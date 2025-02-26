@@ -1,1 +1,6 @@
 node_modules
+.env
+backend/csv/responses.csv
+backend/test.mjs
+backend/table*
+.DS_Store
