@@ -1,6 +1,6 @@
 Flask==3.0.0
 gunicorn==21.2.0
-weasyprint==59.3
+weasyprint==62.3
 PyYAML==6.0.1
 Jinja2==3.1.2
 Werkzeug==3.0.1
