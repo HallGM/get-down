@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Every Angle - Invoice Generator</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        padding: 40px;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 30px;
+        font-size: 28px;
+      }
+
+      h2 {
+        color: #555;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        font-size: 18px;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 10px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+      }
+
+      input[type="text"],
+      input[type="date"],
+      input[type="number"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+
+      input[type="text"]:focus,
+      input[type="date"]:focus,
+      input[type="number"]:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .row.full {
+        grid-template-columns: 1fr;
+      }
+
+      .services-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .service-checkbox {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #f9f9f9;
+      }
+
+      .service-checkbox:hover {
+        background: #f0f0f0;
+        border-color: #667eea;
+      }
+
+      .service-checkbox input[type="checkbox"] {
+        margin-right: 10px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+
+      .service-checkbox input[type="checkbox"]:checked + .service-info {
+        color: #667eea;
+        font-weight: 600;
+      }
+
+      .service-info {
+        flex: 1;
+      }
+
+      .service-name {
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+
+      .service-price {
+        font-size: 12px;
+        color: #999;
+      }
+
+      .custom-items {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 15px;
+        background: #fafafa;
+      }
+
+      .custom-item {
+        display: grid;
+        grid-template-columns: 2fr 1fr auto;
+        gap: 10px;
+        margin-bottom: 12px;
+        align-items: end;
+      }
+
+      .custom-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .custom-item input {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .remove-btn {
+        padding: 8px 12px;
+        background: #ff4444;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: background 0.3s;
+      }
+
+      .remove-btn:hover {
+        background: #cc0000;
+      }
+
+      .add-item-btn {
+        padding: 10px 16px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 0.3s;
+        margin-top: 10px;
+      }
+
+      .add-item-btn:hover {
+        background: #5568d3;
+      }
+
+      .toggles {
+        display: flex;
+        gap: 20px;
+        margin-top: 15px;
+      }
+
+      .toggle-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .toggle-group input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+      }
+
+      .toggle-group label {
+        margin-bottom: 0;
+        cursor: pointer;
+        font-weight: 400;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+      }
+
+      button {
+        flex: 1;
+        padding: 14px 24px;
+        font-size: 16px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-invoice {
+        background: #667eea;
+        color: white;
+      }
+
+      .btn-invoice:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+      }
+
+      .btn-receipt {
+        background: #48bb78;
+        color: white;
+      }
+
+      .btn-receipt:hover {
+        background: #38a169;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(72, 187, 120, 0.2);
+      }
+
+      .error {
+        background: #fed7d7;
+        color: #c53030;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        display: none;
+      }
+
+      .error.show {
+        display: block;
+      }
+
+      .success {
+        background: #c6f6d5;
+        color: #22543d;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        display: none;
+      }
+
+      .success.show {
+        display: block;
+      }
+
+      .category-header {
+        margin-top: 25px;
+        margin-bottom: 12px;
+        font-weight: 600;
+        color: #667eea;
+        text-transform: capitalize;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 25px;
+        }
+
+        .row {
+          grid-template-columns: 1fr;
+        }
+
+        .services-container {
+          grid-template-columns: 1fr;
+        }
+
+        .custom-item {
+          grid-template-columns: 1fr;
+        }
+
+        .button-group {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Every Angle - Invoice Generator</h1>
+
+      <div class="error" id="errorMessage"></div>
+      <div class="success" id="successMessage"></div>
+
+      <form id="invoiceForm">
+        <!-- Customer Information -->
+        <h2>Customer Information</h2>
+        <div class="row">
+          <div class="form-group">
+            <label for="customerName">Customer Name *</label>
+            <input type="text" id="customerName" name="customer_name" required />
+          </div>
+          <div class="form-group">
+            <label for="invoiceNumber">Invoice Number *</label>
+            <input type="text" id="invoiceNumber" name="invoice_number" required />
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <label for="eventDate">Event Date (DD/MM/YYYY) *</label>
+            <input type="text" id="eventDate" name="event_date" placeholder="e.g., 13/06/2026" required />
+          </div>
+          <div class="form-group">
+            <label for="venue">Venue *</label>
+            <input type="text" id="venue" name="venue" required />
+          </div>
+        </div>
+
+        <!-- Service Selection -->
+        <h2>Services</h2>
+        <div id="servicesGrid"></div>
+
+        <!-- Custom Items -->
+        <h2>Custom Items</h2>
+        <div class="custom-items">
+          <div id="customItemsList"></div>
+          <button type="button" class="add-item-btn" id="addItemBtn">+ Add Custom Item</button>
+        </div>
+
+        <!-- Optional Costs -->
+        <h2>Optional Costs</h2>
+        <div class="row">
+          <div class="form-group">
+            <label for="discount">Discount (%)</label>
+            <input type="number" id="discount" name="discount_percent" min="0" max="100" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label for="travelCost">Travel Cost (£)</label>
+            <input type="number" id="travelCost" name="travel_cost" min="0" step="0.01" />
+          </div>
+        </div>
+
+        <!-- Additional Charges -->
+        <h2>Additional Charges</h2>
+        <div class="custom-items">
+          <div id="chargesList"></div>
+          <button type="button" class="add-item-btn" id="addChargeBtn">+ Add Charge</button>
+        </div>
+
+        <!-- Payments Made -->
+        <h2>Payments Made</h2>
+        <div class="custom-items">
+          <div id="paymentsList"></div>
+          <button type="button" class="add-item-btn" id="addPaymentBtn">+ Add Payment</button>
+        </div>
+
+        <!-- Settings -->
+        <h2>Settings</h2>
+        <div class="toggles">
+          <div class="toggle-group">
+            <input type="checkbox" id="showDeposit" name="show_deposit" checked />
+            <label for="showDeposit">Show Deposit Line</label>
+          </div>
+          <div class="toggle-group">
+            <input type="checkbox" id="depositOnly" name="deposit_only" checked />
+            <label for="depositOnly">Amount Due = Deposit Only</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="amountDueOverride">Amount Due Override (optional, £)</label>
+          <input
+            type="number"
+            id="amountDueOverride"
+            name="amount_due_override"
+            placeholder="Leave blank for auto-calculated"
+            step="0.01"
+            min="0"
+          />
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-group">
+          <button type="submit" class="btn-invoice" id="generateInvoiceBtn">Generate Invoice</button>
+          <button type="button" class="btn-receipt" id="generateReceiptBtn">Generate Receipt</button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+        // Parse services from template
+        const servicesDataJson = `{{ services | tojson | safe }}`;
+        let servicesData = [];
+        try {
+            servicesData = servicesDataJson && servicesDataJson.trim() ? JSON.parse(servicesDataJson) : [];
+        } catch (e) {
+            console.error('Failed to parse services data:', e);
+            servicesData = [];
+        }
+        console.log('Services data:', servicesData);
+        console.log('Services data length:', servicesData ? servicesData.length : 'null/undefined');
+        let currentCustomItemId = 0;
+        let currentPaymentId = 0;
+        let currentChargeId = 0;
+
+        // Initialize form
+        document.addEventListener('DOMContentLoaded', initializeForm);
+
+        function initializeForm() {
+            renderServices();
+            renderCustomItems();
+            renderCharges();
+            renderPayments();
+            setupEventListeners();
+        }
+
+        function renderServices() {
+          console.log('renderServices called, servicesData:', servicesData);
+          const grid = document.getElementById('servicesGrid');
+          if (!grid) {
+              console.error('servicesGrid element not found!');
+              return;
+          }
+          if (!servicesData || servicesData.length === 0) {
+              console.warn('servicesData is empty or undefined');
+              const emptyMessage = document.createElement('p');
+              emptyMessage.textContent = 'No services available';
+              grid.appendChild(emptyMessage);
+              return;
+          }
+          let currentCategory = '';
+
+          servicesData.forEach(service => {
+              if (service.category !== currentCategory) {
+                  currentCategory = service.category;
+                  const categoryHeader = document.createElement('div');
+                  categoryHeader.className = 'category-header';
+                  categoryHeader.textContent = currentCategory;
+                  grid.appendChild(categoryHeader);
+              }
+
+              const label = document.createElement('label');
+              label.className = 'service-checkbox';
+
+              const checkbox = document.createElement('input');
+              checkbox.type = 'checkbox';
+              checkbox.value = service.id;
+              checkbox.name = 'services';
+
+              const info = document.createElement('div');
+              info.className = 'service-info';
+
+              const nameDiv = document.createElement('div');
+              nameDiv.className = 'service-name';
+              nameDiv.textContent = service.name;
+
+              const priceDiv = document.createElement('div');
+              priceDiv.className = 'service-price';
+              priceDiv.textContent = `£${service.price.toFixed(2)}`;
+
+              info.appendChild(nameDiv);
+              info.appendChild(priceDiv);
+
+              label.appendChild(checkbox);
+              label.appendChild(info);
+              grid.appendChild(label);
+          });
+      }
+
+      function renderCustomItems() {
+          const list = document.getElementById('customItemsList');
+          list.innerHTML = '';
+
+          if (currentCustomItemId === 0) {
+              const emptyMessage = document.createElement('p');
+              emptyMessage.style.color = '#999';
+              emptyMessage.style.marginBottom = '15px';
+              emptyMessage.textContent = 'No custom items added yet';
+              list.appendChild(emptyMessage);
+          }
+      }
+
+      function setupEventListeners() {
+          document.getElementById('addItemBtn').addEventListener('click', addCustomItem);
+          document.getElementById('addChargeBtn').addEventListener('click', addCharge);
+          document.getElementById('addPaymentBtn').addEventListener('click', addPayment);
+          document.getElementById('generateInvoiceBtn').addEventListener('click', handleGenerateInvoice);
+          document.getElementById('generateReceiptBtn').addEventListener('click', handleGenerateReceipt);
+      }
+
+      function renderCharges() {
+          const list = document.getElementById('chargesList');
+          list.innerHTML = '';
+
+          if (currentChargeId === 0) {
+              const emptyMessage = document.createElement('p');
+              emptyMessage.style.color = '#999';
+              emptyMessage.style.marginBottom = '15px';
+              emptyMessage.textContent = 'No charges added yet';
+              list.appendChild(emptyMessage);
+          }
+      }
+
+      function renderPayments() {
+          const list = document.getElementById('paymentsList');
+          list.innerHTML = '';
+
+          if (currentPaymentId === 0) {
+              const emptyMessage = document.createElement('p');
+              emptyMessage.style.color = '#999';
+              emptyMessage.style.marginBottom = '15px';
+              emptyMessage.textContent = 'No payments added yet';
+              list.appendChild(emptyMessage);
+          }
+      }
+
+      function addPayment() {
+          const list = document.getElementById('paymentsList');
+
+          // Remove empty message if present
+          const emptyMessage = list.querySelector('p');
+          if (emptyMessage) {
+              emptyMessage.remove();
+          }
+
+          const paymentId = `payment-${currentPaymentId++}`;
+          const paymentDiv = document.createElement('div');
+          paymentDiv.className = 'custom-item';
+          paymentDiv.id = paymentId;
+
+          const descInput = document.createElement('input');
+          descInput.type = 'text';
+          descInput.placeholder = 'Payment description (e.g., Paid - cash)';
+          descInput.className = 'item-description';
+
+          const priceInput = document.createElement('input');
+          priceInput.type = 'number';
+          priceInput.placeholder = '0.00';
+          priceInput.className = 'item-price';
+          priceInput.min = '0';
+          priceInput.step = '0.01';
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'remove-btn';
+          removeBtn.textContent = 'Remove';
+          removeBtn.addEventListener('click', () => {
+              paymentDiv.remove();
+              if (document.querySelectorAll('.payment-item').length === 0) {
+                  const emptyMessage = document.createElement('p');
+                  emptyMessage.style.color = '#999';
+                  emptyMessage.style.marginBottom = '15px';
+                  emptyMessage.textContent = 'No payments added yet';
+                  list.insertBefore(emptyMessage, list.firstChild);
+              }
+          });
+
+          paymentDiv.classList.add('payment-item');
+          paymentDiv.appendChild(descInput);
+          paymentDiv.appendChild(priceInput);
+          paymentDiv.appendChild(removeBtn);
+          list.appendChild(paymentDiv);
+      }
+
+      function addCharge() {
+          const list = document.getElementById('chargesList');
+
+          // Remove empty message if present
+          const emptyMessage = list.querySelector('p');
+          if (emptyMessage) {
+              emptyMessage.remove();
+          }
+
+          const chargeId = `charge-${currentChargeId++}`;
+          const chargeDiv = document.createElement('div');
+          chargeDiv.className = 'custom-item';
+          chargeDiv.id = chargeId;
+
+          const descInput = document.createElement('input');
+          descInput.type = 'text';
+          descInput.placeholder = 'Charge description (e.g., Card payment fee)';
+          descInput.className = 'item-description';
+
+          const priceInput = document.createElement('input');
+          priceInput.type = 'number';
+          priceInput.placeholder = '0.00';
+          priceInput.className = 'item-price';
+          priceInput.min = '0';
+          priceInput.step = '0.01';
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'remove-btn';
+          removeBtn.textContent = 'Remove';
+          removeBtn.addEventListener('click', () => {
+              chargeDiv.remove();
+              if (document.querySelectorAll('.charge-item').length === 0) {
+                  const emptyMessage = document.createElement('p');
+                  emptyMessage.style.color = '#999';
+                  emptyMessage.style.marginBottom = '15px';
+                  emptyMessage.textContent = 'No charges added yet';
+                  list.insertBefore(emptyMessage, list.firstChild);
+              }
+          });
+
+          chargeDiv.classList.add('charge-item');
+          chargeDiv.appendChild(descInput);
+          chargeDiv.appendChild(priceInput);
+          chargeDiv.appendChild(removeBtn);
+          list.appendChild(chargeDiv);
+      }
+
+      function addCustomItem() {
+          const list = document.getElementById('customItemsList');
+
+          // Remove empty message if present
+          const emptyMessage = list.querySelector('p');
+          if (emptyMessage) {
+              emptyMessage.remove();
+          }
+
+          const itemId = `custom-${currentCustomItemId++}`;
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'custom-item';
+          itemDiv.id = itemId;
+
+          const descInput = document.createElement('input');
+          descInput.type = 'text';
+          descInput.placeholder = 'Item description';
+          descInput.className = 'item-description';
+
+          const priceInput = document.createElement('input');
+          priceInput.type = 'number';
+          priceInput.placeholder = '0.00';
+          priceInput.className = 'item-price';
+          priceInput.min = '0';
+          priceInput.step = '0.01';
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'remove-btn';
+          removeBtn.textContent = 'Remove';
+          removeBtn.addEventListener('click', () => {
+              itemDiv.remove();
+              if (document.querySelectorAll('.custom-item').length === 0) {
+                  const emptyMessage = document.createElement('p');
+                  emptyMessage.style.color = '#999';
+                  emptyMessage.style.marginBottom = '15px';
+                  emptyMessage.textContent = 'No custom items added yet';
+                  list.insertBefore(emptyMessage, list.firstChild);
+              }
+          });
+
+          itemDiv.appendChild(descInput);
+          itemDiv.appendChild(priceInput);
+          itemDiv.appendChild(removeBtn);
+          list.appendChild(itemDiv);
+      }
+
+      function collectFormData() {
+          const form = document.getElementById('invoiceForm');
+          const formData = new FormData(form);
+
+          const preset_ids = Array.from(form.querySelectorAll('input[name="services"]:checked')).map(cb => cb.value);
+
+          // Collect only custom items (not payments)
+          const custom_items = Array.from(document.querySelectorAll('#customItemsList .custom-item')).map(item => ({
+              description: item.querySelector('.item-description').value,
+              price: item.querySelector('.item-price').value,
+          }));
+
+          // Collect additional charges
+          const additional_charges = Array.from(document.querySelectorAll('#chargesList .charge-item')).map(item => ({
+              description: item.querySelector('.item-description').value,
+              price: item.querySelector('.item-price').value,
+          }));
+
+          // Collect payments made
+          const payment_made = Array.from(document.querySelectorAll('#paymentsList .payment-item')).map(item => ({
+              description: item.querySelector('.item-description').value,
+              price: item.querySelector('.item-price').value,
+          }));
+
+          const amount_due_override = formData.get('amount_due_override');
+
+          const data = {
+              customer_name: formData.get('customer_name'),
+              event_date: formData.get('event_date'),
+              venue: formData.get('venue'),
+              invoice_number: formData.get('invoice_number'),
+              preset_ids: preset_ids,
+              custom_items: custom_items,
+              additional_charges: additional_charges.length > 0 ? additional_charges : null,
+              payment_made: payment_made.length > 0 ? payment_made : null,
+              discount_percent: formData.get('discount_percent'),
+              travel_cost: formData.get('travel_cost'),
+              show_deposit: formData.get('show_deposit') === 'on',
+              deposit_only: formData.get('deposit_only') === 'on',
+              amount_due_override: amount_due_override ? parseFloat(amount_due_override) : null,
+          };
+
+          return data;
+      }
+
+      async function handleGenerateInvoice(e) {
+          e.preventDefault();
+          const data = collectFormData();
+          await generateDocument('/generate', 'invoice', data);
+      }
+
+      async function handleGenerateReceipt(e) {
+          e.preventDefault();
+          const data = collectFormData();
+          await generateDocument('/generate-receipt', 'receipt', data);
+      }
+
+      async function generateDocument(endpoint, docType, data) {
+          const errorDiv = document.getElementById('errorMessage');
+          const successDiv = document.getElementById('successMessage');
+
+          errorDiv.classList.remove('show');
+          successDiv.classList.remove('show');
+
+          try {
+              const response = await fetch(endpoint, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(data),
+              });
+
+              if (!response.ok) {
+                  const errorData = await response.json();
+                  throw new Error(errorData.error || `Failed to generate ${docType}`);
+              }
+
+              // Download PDF
+              const blob = await response.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${docType}-${data.invoice_number}.pdf`;
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              a.remove();
+
+              successDiv.textContent = `${docType.charAt(0).toUpperCase() + docType.slice(1)} generated successfully!`;
+              successDiv.classList.add('show');
+          } catch (error) {
+              errorDiv.textContent = error.message;
+              errorDiv.classList.add('show');
+          }
+      }
+    </script>
+  </body>
+</html>

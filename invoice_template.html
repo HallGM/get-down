@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Invoice</title>
+    <style>
+      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: smaller;
+      }
+
+      .header {
+        margin-bottom: 5px;
+        display: flex;
+        justify-content: space-between;
+        background-color: hsl(177.93deg 33.33% 17.06%);
+        color: white;
+        padding: 20px;
+      }
+
+      .header p {
+        margin: 0;
+      }
+
+      .main {
+        padding: 20px;
+      }
+
+      h2 {
+        margin: 0;
+        padding: 0;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .address {
+        text-align: right;
+      }
+
+      .logo {
+        width: 300px;
+        margin-bottom: 20px;
+      }
+
+      th,
+      td {
+        border: 1px solid #dddddd;
+        padding: 8px;
+        text-align: left;
+      }
+
+      th {
+        background-color: hsl(6.21deg 76.32% 85.1%);
+      }
+
+      .total {
+        text-align: right;
+        margin-top: 20px;
+      }
+
+      .deposit {
+        text-align: right;
+        margin-top: 20px;
+      }
+
+      .balance {
+        text-align: right;
+        margin-top: 20px;
+      }
+
+      .bank-details {
+        margin-top: 30px;
+        margin-bottom: 30px;
+      }
+
+      .bank-details p {
+        margin: 2px 0;
+      }
+
+      .bank-details .gap {
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div>
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Logo" class="logo" />
+        {% endif %}
+      </div>
+      <div class="address">
+        <p><strong>{{ business.business_name }}</strong></p>
+        {% for line in business.address_lines %}
+        <p>{{ line }}</p>
+        {% endfor %}
+        <p>{{ business.phone_number }}</p>
+        <p>{{ business.email_address }}</p>
+        <p>Date: {{ date_today }}</p>
+        <p><strong>Invoice Number</strong>: {{ data.invoice_number }}</p>
+      </div>
+    </div>
+
+    <div class="main">
+      <h2>{{ data.title }}</h2>
+      <p><strong>{{ data.customer_name }}</strong></p>
+
+      <table style="margin-bottom: 24px">
+        <tbody>
+          {% for section in data.sections %} {% if not loop.first %}
+          <tr>
+            <td colspan="2" style="border: none; padding: 6px 0; background: white"></td>
+          </tr>
+          {% endif %} {% for row in section.rows %}
+          <tr>
+            <td {% if row.bold %}style="font-weight: bold" {% endif %}>{{ row.description }}</td>
+            <td style="text-align: right{% if row.bold %}; font-weight: bold{% endif %}">
+              £{{ "%.2f"|format(row.price) }}
+            </td>
+          </tr>
+          {% endfor %} {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="bank-details">
+        <p><strong>Payment Details (Payable To):</strong></p>
+        <p>{{ business.business_name }}</p>
+        <p>Account Number: {{ business.account_number }}</p>
+        <p>Sort Code: {{ business.sort_code }}</p>
+        <p class="gap">Please use Invoice Number as payment reference.</p>
+      </div>
+
+      <p style="text-align: center; margin-top: 20px">
+        Got a question regarding this invoice? Contact
+        <a href="mailto:{{ business.email_address }}">{{ business.email_address }}</a>
+      </p>
+
+      {% if data.linked_invoice_number %}
+      <p><strong>Related Invoice/Receipt:</strong> {{ data.linked_invoice_number }}</p>
+      {% endif %}
+    </div>
+  </body>
+</html>

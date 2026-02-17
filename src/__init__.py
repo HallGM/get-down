@@ -1,0 +1,1 @@
+"""Invoice application source package."""

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: invoice-app
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 3 --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
