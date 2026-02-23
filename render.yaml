@@ -44,7 +44,7 @@ services:
     runtime: node
     plan: free
     branch: main
-    buildCommand: npm install -g pnpm && pnpm install && pnpm build
+    buildCommand: npm install -g pnpm && pnpm install && pnpm --filter @get-down/shared build && pnpm --filter @get-down/api build
     startCommand: node packages/api/dist/app.js
     envVars:
       - key: NODE_ENV
