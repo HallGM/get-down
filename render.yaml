@@ -76,7 +76,6 @@ services:
   - type: web
     name: get-down-gui
     runtime: static
-    plan: free
     branch: main
     buildCommand: npm install -g pnpm && pnpm install && pnpm -C packages/gui build
     staticPublishPath: packages/gui/dist
