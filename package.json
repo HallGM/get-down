@@ -1,0 +1,22 @@
+{
+  "name": "get-down",
+  "version": "1.0.0",
+  "description": "Event services booking platform - TypeScript monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "workspaces": [
+    "packages/shared",
+    "packages/api",
+    "packages/gui"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:watch": "pnpm -r build -- --watch",
+    "dev": "pnpm -r dev",
+    "test": "pnpm -r test",
+    "type-check": "pnpm -r type-check"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
