@@ -44,7 +44,7 @@ services:
     runtime: node
     plan: free
     branch: main
-    buildCommand: npm install -g pnpm && pnpm install && pnpm --filter @get-down/shared build && pnpm --filter @get-down/api build
+    buildCommand: npm install -g pnpm && pnpm install --prod=false && pnpm --filter @get-down/shared build && pnpm --filter @get-down/api build
     startCommand: node packages/api/dist/app.js
     envVars:
       - key: NODE_ENV
@@ -77,7 +77,7 @@ services:
     name: get-down-gui
     runtime: static
     branch: main
-    buildCommand: npm install -g pnpm && pnpm install && pnpm -C packages/gui build
+    buildCommand: npm install -g pnpm && pnpm install --prod=false && pnpm -C packages/gui build
     staticPublishPath: packages/gui/dist
     envVars:
       # Set this to the deployed API URL, e.g. https://get-down-api.onrender.com
