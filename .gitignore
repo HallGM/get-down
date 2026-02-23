@@ -60,3 +60,12 @@ last_invoice_number.txt
 # OS
 .DS_Store
 Thumbs.db
+
+node_modules
+.env
+
+packages/*/dist/
+
+packages/api/src/csv/responses.csv
+packages/api/src/csv/output.csv
+.DS_Store

@@ -1,0 +1,86 @@
+databases:
+  - name: get-down-db
+    databaseName: get_down
+    user: get_down_user
+    plan: free
+
+services:
+  # ── Invoice app (Python / Flask) ─────────────────────────────────────────
+  - type: web
+    name: invoice
+    runtime: python
+    rootDir: invoice
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 3 --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: BUSINESS_NAME
+        sync: false
+      - key: BUSINESS_ADDRESS_LINE1
+        sync: false
+      - key: BUSINESS_ADDRESS_LINE2
+        sync: false
+      - key: BUSINESS_ADDRESS_LINE3
+        sync: false
+      - key: BUSINESS_PHONE
+        sync: false
+      - key: BUSINESS_EMAIL
+        sync: false
+      - key: BUSINESS_ACCOUNT_NUMBER
+        sync: false
+      - key: BUSINESS_SORT_CODE
+        sync: false
+
+  # ── API (Node.js / Express) ───────────────────────────────────────────────
+  - type: web
+    name: get-down-api
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm install -g pnpm && pnpm install && pnpm build
+    startCommand: node packages/api/dist/app.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      # Set this to the deployed GUI URL once known
+      - key: FRONTEND_URL
+        sync: false
+      # Wired automatically from the Render-managed database
+      - key: DB_HOST
+        fromDatabase:
+          name: get-down-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: get-down-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: get-down-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: get-down-db
+          property: password
+
+  # ── GUI (React / Vite — static site) ─────────────────────────────────────
+  - type: web
+    name: get-down-gui
+    runtime: static
+    plan: free
+    branch: main
+    buildCommand: npm install -g pnpm && pnpm install && pnpm -C packages/gui build
+    staticPublishPath: packages/gui/dist
+    envVars:
+      # Set this to the deployed API URL, e.g. https://get-down-api.onrender.com
+      - key: VITE_API_URL
+        sync: false

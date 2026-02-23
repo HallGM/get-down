@@ -1,0 +1,26 @@
+meta {
+  name: enquiry
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:3000/enquiry
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+        "firstName": "Garry",
+        "lastName": "Test",
+        "partnersName": "Jenni",
+        "email": "garrymhall@gmail.com",
+        "phone": "07954577999",
+        "eventDate": "2025-02-15T10:30:00Z",
+        "venueLocation": "a cool place",
+        "services": [1,2,3],
+        "otherServices": ["things"],
+        "message": "hello world"
+  }
+}

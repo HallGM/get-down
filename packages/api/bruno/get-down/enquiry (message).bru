@@ -1,0 +1,19 @@
+meta {
+  name: enquiry (message)
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:3000/enquiry/message
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "firstName": "Leanne",
+    "partnersName": "John",
+    "services": ["Live Band (3/5/7 piece)", "Photography"]
+  }
+}
