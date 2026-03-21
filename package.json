@@ -12,7 +12,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "build:watch": "pnpm -r build -- --watch",
-    "dev": "pnpm -r dev",
+    "dev": "./scripts/dev.sh",
     "test": "pnpm -r test",
     "type-check": "pnpm -r type-check"
   },

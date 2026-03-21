@@ -1,122 +1,123 @@
 import { useState } from "react";
-import {
-  SERVICE_NAMES,
-  type EmailMessageRequest,
-  type EmailMessageResponse,
-} from "@get-down/shared";
+import { Routes, Route, NavLink, Navigate, useNavigate } from "react-router-dom";
+import { useAuth } from "./api/auth.js";
+import ProtectedRoute from "./components/ProtectedRoute.js";
+import Login from "./pages/Login.js";
+import Dashboard from "./pages/Dashboard.js";
+import GigsList from "./pages/gigs/GigsList.js";
+import GigDetail from "./pages/gigs/GigDetail.js";
+import EnquiriesList from "./pages/enquiries/EnquiriesList.js";
+import EmailGenerator from "./pages/enquiries/EmailGenerator.js";
+import InvoicesList from "./pages/invoices/InvoicesList.js";
+import InvoiceDetail from "./pages/invoices/InvoiceDetail.js";
+import PeopleList from "./pages/people/PeopleList.js";
+import ServicesList from "./pages/services/ServicesList.js";
+import SongsList from "./pages/songs/SongsList.js";
+import ShowcasesList from "./pages/showcases/ShowcasesList.js";
+import AttributionsList from "./pages/attributions/AttributionsList.js";
+import RehearsalsList from "./pages/rehearsals/RehearsalsList.js";
+import ExpensesList from "./pages/expenses/ExpensesList.js";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+const NAV_LINKS = [
+  { to: "/", label: "Dashboard", end: true },
+  { to: "/gigs", label: "Gigs" },
+  { to: "/enquiries", label: "Enquiries" },
+  { to: "/invoices", label: "Invoices" },
+  { to: "/songs", label: "Songs" },
+  { to: "/people", label: "People" },
+  { to: "/services", label: "Services" },
+  { to: "/showcases", label: "Showcases" },
+  { to: "/attributions", label: "Attributions" },
+  { to: "/rehearsals", label: "Rehearsals" },
+  { to: "/expenses", label: "Expenses" },
+];
 
-const ALL_SERVICES = Object.values(SERVICE_NAMES);
+function AppNav() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
-export default function App() {
-  const [firstName, setFirstName] = useState("");
-  const [partnersName, setPartnersName] = useState("");
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
-
-  function toggleService(service: string) {
-    setSelectedServices((prev) =>
-      prev.includes(service) ? prev.filter((s) => s !== service) : [...prev, service]
-    );
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setMessage("");
-
-    const body: EmailMessageRequest = {
-      firstName,
-      partnersName: partnersName || undefined,
-      services: selectedServices,
-    };
-
-    try {
-      const res = await fetch(`${API_BASE}/enquiry/message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Request failed");
-      }
-
-      const data: EmailMessageResponse = await res.json();
-      setMessage(data.message);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function copyToClipboard() {
-    await navigator.clipboard.writeText(message);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  function handleLogout() {
+    logout();
+    navigate("/login");
   }
 
   return (
-    <main className="container">
-      <h1>Email Generator</h1>
-      <form onSubmit={handleSubmit}>
-        <label>
-          First Name
-          <input
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            required
-            placeholder="e.g. Leanne"
-          />
-        </label>
-        <label>
-          Partner's Name <small>(optional)</small>
-          <input
-            type="text"
-            value={partnersName}
-            onChange={(e) => setPartnersName(e.target.value)}
-            placeholder="e.g. John"
-          />
-        </label>
-        <fieldset>
-          <legend>Services</legend>
-          {ALL_SERVICES.map((service) => (
-            <label key={service}>
-              <input
-                type="checkbox"
-                checked={selectedServices.includes(service)}
-                onChange={() => toggleService(service)}
-              />
-              {service}
-            </label>
+    <nav className="container-fluid" style={{ borderBottom: "1px solid var(--pico-muted-border-color)", marginBottom: "1rem" }}>
+      <ul>
+        <li><strong>Every Angle</strong></li>
+      </ul>
+      <ul className="nav-desktop-links">
+        {NAV_LINKS.map(({ to, label, end }) => (
+          <li key={to}>
+            <NavLink to={to} end={end} style={({ isActive }) => ({ fontWeight: isActive ? 700 : undefined })}>
+              {label}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+      <ul style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        {user && (
+          <>
+            <li><small style={{ color: "var(--pico-muted-color)" }}>{user.displayName ?? user.firstName}</small></li>
+            <li><button className="secondary outline" style={{ padding: "0.2em 0.7em" }} onClick={handleLogout}>Logout</button></li>
+          </>
+        )}
+        <li className="nav-hamburger">
+          <button
+            className="secondary outline"
+            style={{ padding: "0.2em 0.7em" }}
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-expanded={menuOpen}
+            aria-label="Menu"
+          >
+            ☰
+          </button>
+        </li>
+      </ul>
+      {menuOpen && (
+        <div className="nav-mobile-dropdown">
+          {NAV_LINKS.map(({ to, label, end }) => (
+            <NavLink key={to} to={to} end={end} onClick={() => setMenuOpen(false)}
+              style={({ isActive }) => ({ fontWeight: isActive ? 700 : undefined })}>
+              {label}
+            </NavLink>
           ))}
-        </fieldset>
-        <button type="submit" aria-busy={loading} disabled={loading || selectedServices.length === 0}>
-          {loading ? "Generating…" : "Generate Email"}
-        </button>
-      </form>
-
-      {error && <p style={{ color: "var(--pico-color-red-500)" }}>{error}</p>}
-
-      {message && (
-        <section>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2>Generated Email</h2>
-            <button type="button" className="secondary" onClick={copyToClipboard}>
-              {copied ? "✓ Copied!" : "Copy to Clipboard"}
-            </button>
-          </div>
-          <textarea value={message} readOnly rows={20} />
-        </section>
+        </div>
       )}
-    </main>
+    </nav>
   );
 }
+
+export default function App() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return null;
+
+  return (
+    <>
+      {user && <AppNav />}
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/gigs" element={<GigsList />} />
+          <Route path="/gigs/:id" element={<GigDetail />} />
+          <Route path="/enquiries" element={<EnquiriesList />} />
+          <Route path="/enquiries/email-generator" element={<EmailGenerator />} />
+          <Route path="/invoices" element={<InvoicesList />} />
+          <Route path="/invoices/:id" element={<InvoiceDetail />} />
+          <Route path="/songs" element={<SongsList />} />
+          <Route path="/people" element={<PeopleList />} />
+          <Route path="/services" element={<ServicesList />} />
+          <Route path="/showcases" element={<ShowcasesList />} />
+          <Route path="/attributions" element={<AttributionsList />} />
+          <Route path="/rehearsals" element={<RehearsalsList />} />
+          <Route path="/expenses" element={<ExpensesList />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </>
+  );
+}
+

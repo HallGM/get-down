@@ -13,6 +13,7 @@ interface EnquiryRow {
   venue_location: string | null;
   other_services: string[] | null;
   message: string | null;
+  airtable_id: string | null;
 }
 
 interface EnquiryWithServiceRow extends EnquiryRow {
@@ -23,8 +24,8 @@ interface EnquiryWithServiceRow extends EnquiryRow {
 export async function createEnquiry(enquiry: Enquiry): Promise<{ id: number }[]> {
   const query = {
     text: `
-      INSERT INTO enquiries (created_at, first_name, last_name, partner_name, email, phone, event_date, venue_location, other_services, message)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO enquiries (created_at, first_name, last_name, partner_name, email, phone, event_date, venue_location, other_services, message, airtable_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING id;`,
     values: [
       new Date(),
@@ -37,6 +38,7 @@ export async function createEnquiry(enquiry: Enquiry): Promise<{ id: number }[]>
       enquiry.venueLocation || null,
       enquiry.otherServices.length > 0 ? enquiry.otherServices : null,
       enquiry.message || null,
+      enquiry.airtableId ?? null,
     ],
   };
   return run_query<{ id: number }>(query);
@@ -45,7 +47,7 @@ export async function createEnquiry(enquiry: Enquiry): Promise<{ id: number }[]>
 export async function readEnquiries(): Promise<EnquiryRow[]> {
   const query = {
     text: `
-      SELECT id, created_at, first_name, last_name, partner_name, email, phone, event_date, venue_location, other_services, message 
+      SELECT id, created_at, first_name, last_name, partner_name, email, phone, event_date, venue_location, other_services, message, airtable_id 
       FROM enquiries;`,
   };
   return run_query<EnquiryRow>(query);
@@ -57,7 +59,7 @@ export async function readEnquiriesWithServices(): Promise<EnquiryWithServiceRow
       SELECT 
           e.id, e.created_at, e.first_name, e.last_name,
           e.partner_name, e.email, e.phone, e.event_date, e.venue_location,
-          e.other_services, e.message, s.id as service_id, s.name as service_name
+          e.other_services, e.message, e.airtable_id, s.id as service_id, s.name as service_name
       FROM enquiries e
       LEFT JOIN enquiries_services es ON e.id = es.enquiry_id
       LEFT JOIN services s ON es.service_id = s.id`,

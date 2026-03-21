@@ -2,6 +2,9 @@
 
 import os
 import logging
+import threading
+import time
+from urllib.request import urlopen
 from flask import Flask, render_template, request, jsonify, send_file
 from src.invoice_ev import generate_ev_invoice, generate_receipt, EVInvoiceOptions
 from src.generic_invoice import create_generic_invoice, create_generic_receipt
@@ -298,6 +301,27 @@ def generate_receipt_route():
     except Exception as e:
         logger.error(f"Error generating receipt: {str(e)}", exc_info=True)
         return jsonify({"error": f"Error generating receipt: {str(e)}"}), 500
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"})
+
+
+def _keep_alive():
+    time.sleep(60)
+    urls = [
+        f"{u}/health" for u in [os.getenv("INVOICE_URL"), os.getenv("API_URL")] if u]
+    while True:
+        for url in urls:
+            try:
+                urlopen(url, timeout=10)
+            except Exception:
+                pass
+        time.sleep(14 * 60)
+
+
+threading.Thread(target=_keep_alive, daemon=True).start()
 
 
 if __name__ == "__main__":
