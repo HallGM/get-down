@@ -3,6 +3,10 @@
  * Attaches JWT from sessionStorage, handles 401 → logout redirect.
  */
 
+// In production the GUI is a static site with no proxy, so all API calls must
+// be prefixed with the API origin. In dev, Vite proxies the paths directly.
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+
 const TOKEN_KEY = "ea_token";
 
 export function getToken(): string | null {
@@ -40,7 +44,7 @@ export async function apiFetch<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -77,7 +81,7 @@ export async function apiFetchBlob(method: string, path: string, body?: unknown)
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,

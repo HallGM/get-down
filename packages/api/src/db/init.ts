@@ -6,6 +6,7 @@ const { Pool: PoolConstructor } = Pg;
 
 dotenv.config();
 
+const connectionString = process.env.DATABASE_URL;
 const dbHost = process.env.DB_HOST;
 const dbPort = process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432;
 const dbUser = process.env.DB_USER;
@@ -15,13 +16,11 @@ const dbName = process.env.DB_NAME || "get_down";
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
-const pool = new PoolConstructor({
-  user: dbUser,
-  host: dbHost,
-  database: dbName,
-  password: dbPassword,
-  port: dbPort,
-});
+const pool = new PoolConstructor(
+  connectionString
+    ? { connectionString, ssl: { rejectUnauthorized: false } }
+    : { user: dbUser, host: dbHost, database: dbName, password: dbPassword, port: dbPort }
+);
 
 pool.on("error", (err: Error) => {
   console.error("Unexpected error on idle client", err);
