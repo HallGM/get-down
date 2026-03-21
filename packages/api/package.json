@@ -10,9 +10,14 @@
     "build": "tsc",
     "start": "node dist/app.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "dbml:sql": "tsx src/scripts/dbml_to_sql.ts",
+    "migrate": "tsx src/scripts/migrate.ts",
+    "migrate:airtable": "tsx src/scripts/migrate_airtable.ts",
+    "create-user": "tsx src/scripts/create_user.ts"
   },
   "dependencies": {
+    "@dbml/core": "^6.4.0",
     "@get-down/shared": "workspace:*",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -21,7 +26,8 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",

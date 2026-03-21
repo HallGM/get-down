@@ -71,6 +71,21 @@ services:
         fromDatabase:
           name: get-down-db
           property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: get-down-db
+          property: database
+      # Used only when running pnpm migrate:airtable against prod
+      - key: MIGRATION_EMAIL
+        sync: false
+      - key: MIGRATION_PASSWORD
+        sync: false
+      - key: AIRTABLE_API_KEY
+        sync: false
+      - key: API_BASE_URL
+        sync: false
+      - key: INVOICE_SERVICE_URL
+        sync: false
 
   # ── GUI (React / Vite — static site) ─────────────────────────────────────
   - type: web

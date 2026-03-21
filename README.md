@@ -50,13 +50,16 @@ import { Enquiry, Service } from "@get-down/shared";
 
 ```bash
 pnpm install
-pnpm build
+cp packages/api/.env.example packages/api/.env
+pnpm dev
 ```
+
+`pnpm dev` starts Postgres (Docker), runs migrations, and launches the API + GUI.
 
 ### Development
 
 ```bash
-pnpm -C packages/api dev     # Start dev server with auto-reload
+pnpm dev                     # Start everything (Docker + API + GUI)
 pnpm type-check              # Type check all packages
 pnpm test                    # Run tests in all packages
 ```
@@ -64,10 +67,11 @@ pnpm test                    # Run tests in all packages
 ### Run Scripts
 
 ```bash
-pnpm build
-node packages/api/dist/scripts/build_db.js    # Initialize database
-node packages/api/dist/scripts/csv.js         # Export CSV
-node packages/api/dist/scripts/html_table.js  # Export HTML table
+cd packages/api
+pnpm dbml:sql                 # Print SQL from schema.dbml
+pnpm migrate                  # Run migrations standalone
+pnpm build && node dist/scripts/csv.js         # Export CSV
+pnpm build && node dist/scripts/html_table.js  # Export HTML table
 ```
 
 ### Production
@@ -79,19 +83,22 @@ pnpm -C packages/api start   # Start server on port 3000
 
 ## 🗄️ Database
 
-PostgreSQL schema created by `build_db.ts`:
+PostgreSQL runs in Docker (see `docker-compose.yml`). Schema defined in `schema.dbml`, applied via numbered migrations in `migrations/`.
 
 - `services` - Service catalog
 - `enquiries` - Enquiry records
 - `enquiries_services` - Many-to-many join table
 
-Environment variables:
+Migrations run automatically on API startup. See `.github/copilot-instructions.md` for the full database workflow.
+
+Environment variables (see `packages/api/.env.example`):
 
 ```
 DB_HOST=localhost
 DB_PORT=5432
+DB_NAME=get_down
 DB_USER=postgres
-DB_PASSWORD=password
+DB_PASSWORD=postgres
 JWT_SECRET=your_secret_key
 FRONTEND_URL=http://localhost:5173
 PORT=3000
@@ -152,13 +159,12 @@ SERVICE_NAMES.CEILIDH; // "Ceilidh"
 
 ## 🚢 Deployment to Render
 
+Defined in `render.yaml` (Infrastructure as Code):
+
 1. Push monorepo to GitHub
-2. Create Web Service on Render:
-   - **Build Command**: `pnpm install && pnpm build`
-   - **Start Command**: `pnpm -C packages/api start`
-3. Set environment variables in Render dashboard:
-   - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`
-   - `JWT_SECRET`, `FRONTEND_URL`
+2. Render auto-deploys from `render.yaml` blueprint
+3. Database credentials are auto-injected via `fromDatabase`
+4. Migrations run automatically on API startup
 
 ## 🏗️ Architecture
 

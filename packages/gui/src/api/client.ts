@@ -1,0 +1,102 @@
+/**
+ * Core API fetch wrapper.
+ * Attaches JWT from sessionStorage, handles 401 → logout redirect.
+ */
+
+const TOKEN_KEY = "ea_token";
+
+export function getToken(): string | null {
+  return sessionStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string): void {
+  sessionStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearToken(): void {
+  sessionStorage.removeItem(TOKEN_KEY);
+}
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export async function apiFetch<T>(
+  method: string,
+  path: string,
+  body?: unknown
+): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(path, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+
+  if (res.status === 401) {
+    clearToken();
+    window.location.href = "/login";
+    throw new ApiError(401, "Unauthorised");
+  }
+
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
+  const data: unknown = await res.json();
+
+  if (!res.ok) {
+    const message =
+      typeof data === "object" &&
+      data !== null &&
+      "message" in data &&
+      typeof (data as Record<string, unknown>).message === "string"
+        ? (data as { message: string }).message
+        : `HTTP ${res.status}`;
+    throw new ApiError(res.status, message);
+  }
+
+  return data as T;
+}
+
+export async function apiFetchBlob(method: string, path: string, body?: unknown): Promise<Blob> {
+  const token = getToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(path, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+
+  if (res.status === 401) {
+    clearToken();
+    window.location.href = "/login";
+    throw new ApiError(401, "Unauthorised");
+  }
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    const message =
+      typeof data === "object" && data !== null && "message" in data
+        ? (data as { message: string }).message
+        : `HTTP ${res.status}`;
+    throw new ApiError(res.status, message);
+  }
+
+  return res.blob();
+}

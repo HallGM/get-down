@@ -1,0 +1,283 @@
+// get-down database schema
+// https://dbdiagram.io
+
+Table services {
+  id                    serial [pk, increment]
+  name                  varchar(255) [not null, unique]
+  category              varchar(100)
+  description           text
+  price_to_client       int
+  fee_per_person        int
+  number_of_people      int
+  extra_fee             int
+  extra_fee_description varchar(255)
+  is_band               boolean [not null, default: false]
+  is_dj                 boolean [not null, default: false]
+  is_active             boolean [not null, default: true]
+  airtable_id           varchar(255)
+}
+
+Table enquiries {
+  id             serial [pk, increment]
+  created_at     date
+  first_name     varchar(255) [not null]
+  last_name      varchar(255) [not null]
+  partner_name   varchar(255)
+  email          varchar(255) [not null]
+  phone          varchar(255)
+  event_date     date
+  venue_location varchar(255)
+  other_services varchar[]
+  message        text
+  airtable_id    varchar(255)
+  status         varchar(50) [not null, default: 'new']
+  attribution_id int [ref: > attributions.id]
+}
+
+Table enquiries_services {
+  id          serial [pk, increment]
+  service_id  int    [ref: > services.id, not null]
+  enquiry_id  int    [ref: > enquiries.id, not null]
+}
+
+Table people {
+  id            serial [pk, increment]
+  first_name    varchar(255) [not null]
+  last_name     varchar(255)
+  display_name  varchar(255)
+  email         varchar(255) [unique]
+  phone         varchar(255)
+  bank_details  text
+  password_hash varchar(255)
+  is_partner    boolean [not null, default: false]
+  is_active     boolean [not null, default: true]
+  airtable_id   varchar(255)
+}
+
+Table accounts {
+  id        serial [pk, increment]
+  person_id int [ref: > people.id, not null, unique]
+}
+
+Table account_transactions {
+  id          serial [pk, increment]
+  date        date
+  amount      int [not null]
+  type        varchar(50) [not null]
+  description varchar(255)
+  account_id  int [ref: > accounts.id, not null]
+}
+
+Table fee_allocations {
+  id            serial [pk, increment]
+  person_id     int [ref: > people.id, not null]
+  notes         text
+  is_invoiced   boolean [not null, default: false]
+  is_paid       boolean [not null, default: false]
+  invoice_ref   varchar(255)
+}
+
+Table join_account_transactions_fee_allocations {
+  transaction_id int [ref: > account_transactions.id, not null]
+  allocation_id int [ref: > fee_allocations.id, not null]
+}
+
+Table fee_allocation_line_items {
+  id serial [pk, increment]
+  allocation_id int [ref: > fee_allocations.id, not null]
+  description varchar(255)
+  amount int
+}
+
+Table roles {
+  id serial [pk, increment]
+  name varchar(255) [not null, unique]
+}
+
+Table people_roles {
+  person_id int [ref: > people.id, not null]
+  role_id int [ref: > roles.id, not null]
+}
+
+Table gigs {
+  id               serial [pk, increment]
+  enquiry_id       int [ref: > enquiries.id]
+  attribution_id   int [ref: > attributions.id]
+  name             varchar(255)
+  status           varchar(50) [not null, default: 'draft']
+  first_name       varchar(255) [not null]
+  last_name        varchar(255) [not null]
+  partner_name     varchar(255)
+  email            varchar(255)
+  phone            varchar(255)
+  date             date [not null]
+  venue_name       varchar(255)
+  location         varchar(255)
+  description      text
+  total_price      int
+  deposit_paid     int [not null, default: 0]
+  balance_amount   int [not null, default: 0]
+  travel_cost      int [not null, default: 0]
+  discount_percent int [not null, default: 0]
+  airtable_id      varchar(255)
+}
+
+Table gig_line_items {
+  id          serial [pk, increment]
+  gig_id      int [ref: > gigs.id, not null]
+  description varchar(255)
+  amount      int
+}
+
+Table assigned_roles {
+  id serial [pk, increment]
+  gig_id int [ref: > gigs.id]
+  person_id int [ref: > people.id]
+  role_name varchar(255) [not null]
+  fee_allocation_id int [ref: > fee_allocations.id]
+  showcase_id int [ref: > showcases.id]
+}
+
+Table showcases {
+  id             serial [pk, increment]
+  attribution_id int [ref: > attributions.id, not null, unique]
+  nickname       varchar(255)
+  full_name      varchar(255)
+  name           varchar(255)
+  date           date [not null]
+  location       varchar(255)
+  airtable_id    varchar(255)
+}
+
+Table attributions {
+  id          serial [pk, increment]
+  name        varchar(255) [not null]
+  type        varchar(50) [not null]
+  notes       text
+  airtable_id varchar(255)
+}
+
+Table role_services {
+  role_id int [ref: > roles.id, not null]
+  service_id int [ref: > services.id, not null]
+}
+
+Table expenses {
+  id             serial [pk, increment]
+  date           date
+  amount         int [not null]
+  description    varchar(255) [not null]
+  category       varchar(100)
+  recipient_name varchar(255)
+  payment_method varchar(100)
+  airtable_id    varchar(255)
+}
+
+Table fee_allocations_expenses {
+  allocation_id int [ref: > fee_allocations.id, not null]
+  expense_id int [ref: > expenses.id, not null]
+}
+
+Table invoices {
+  id               serial [pk, increment]
+  gig_id           int [ref: > gigs.id, not null]
+  invoice_number   varchar(255) [not null, unique]
+  customer_name    varchar(255) [not null]
+  event_date       date
+  venue            varchar(255)
+  date             date [not null]
+  subtotal_amount  int [not null, default: 0]
+  discount_percent int [not null, default: 0]
+  travel_cost      int [not null, default: 0]
+  total_amount     int [not null, default: 0]
+  amount_due       int [not null, default: 0]
+}
+
+Table invoice_line_items {
+  id serial [pk, increment]
+  invoice_id int [ref: > invoices.id, not null]
+  description varchar(255)
+  amount int
+}
+
+Table invoice_additional_charges {
+  id serial [pk, increment]
+  invoice_id int [ref: > invoices.id, not null]
+  description varchar(255)
+  amount int
+}
+
+Table invoice_payments_made {
+  id serial [pk, increment]
+  invoice_id int [ref: > invoices.id, not null]
+  description varchar(255)
+  date date
+  amount int
+}
+
+Table payments {
+  id          serial [pk, increment]
+  date        date
+  amount      int
+  method      varchar(100)
+  description varchar(255)
+  gig_id      int [ref: > gigs.id, not null]
+  airtable_id varchar(255)
+}
+
+Table gig_services {
+  gig_id int [ref: > gigs.id, not null]
+  service_id int [ref: > services.id, not null]
+}
+
+Table attribution_fees {
+  id serial [pk, increment]
+  attribution_id int [ref: > attributions.id, not null]
+  description varchar(255)
+  date date
+  amount int
+}
+
+Table attribution_fees_expenses {
+  attribution_fee_id int [ref: > attribution_fees.id, not null]
+  expense_id int [ref: > expenses.id, not null]
+}
+
+Table songs {
+  id          serial [pk, increment]
+  title       varchar(255) [not null]
+  artist      varchar(255)
+  genre       varchar(255)
+  musical_key varchar(50)
+  bpm         int
+  airtable_id varchar(255)
+}
+
+Table set_list_items {
+  id serial [pk, increment]
+  gig_id int [ref: > gigs.id, not null]
+  song_id int [ref: > songs.id, not null]
+  position int
+  notes text
+}
+
+Table rehearsals {
+  id          serial [pk, increment]
+  name        varchar(255) [not null]
+  date        date [not null]
+  location    varchar(255)
+  cost        int
+  notes       text
+  airtable_id varchar(255)
+}
+
+Table rehearsals_gigs {
+  rehearsal_id int [ref: > rehearsals.id, not null]
+  gig_id int [ref: > gigs.id, not null]
+}
+
+Table rehearsals_expenses {
+  rehearsal_id int [ref: > rehearsals.id, not null]
+  expense_id int [ref: > expenses.id, not null]
+}
+

@@ -5,3 +5,37 @@
 main.container {
   padding-top: 2rem;
 }
+
+section + section {
+  margin-top: 4rem;
+}
+
+/* Nav: desktop links shown, hamburger hidden */
+.nav-desktop-links {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 0 0.25rem;
+}
+
+.nav-hamburger {
+  display: none !important;
+}
+
+/* Nav: mobile — swap to hamburger */
+@media (max-width: 768px) {
+  .nav-desktop-links {
+    display: none !important;
+  }
+
+  .nav-hamburger {
+    display: list-item !important;
+  }
+}
+
+.nav-mobile-dropdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--pico-muted-border-color);
+}

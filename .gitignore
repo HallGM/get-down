@@ -65,6 +65,12 @@ node_modules
 .env
 
 packages/*/dist/
+tsconfig.tsbuildinfo
+packages/*/tsconfig.tsbuildinfo
+**/*.d.ts.map
+packages/api/src/**/*.js
+packages/api/src/**/*.js.map
+packages/api/src/**/*.d.ts
 
 packages/api/src/csv/responses.csv
 packages/api/src/csv/output.csv

@@ -1,7 +1,9 @@
 import querystring from "querystring";
+import { z } from "zod";
 import { createEnquiry as createEnquiryModel, type Enquiry } from "@get-down/shared";
 import { parse } from "date-fns";
 import { formatDateSmall } from "../utils/date.js";
+import { parseOrBadRequest } from "../utils/parse.js";
 import * as repoEnquiries from "../repository/enquiries.js";
 import * as repoEnquiriesServices from "../repository/enquiries_services.js";
 import * as repoServices from "../repository/services.js";
@@ -25,6 +27,7 @@ export async function getEnquiries(): Promise<Enquiry[]> {
         services: [],
         otherServices: e.other_services || [],
         message: e.message || undefined,
+        airtableId: e.airtable_id || undefined,
       };
     }
     const enquiry = enquiryMap[e.id];
@@ -55,6 +58,22 @@ export async function createEnquiry(reqBody: any): Promise<Enquiry> {
 
 export async function deleteEnquiry(id: string | number): Promise<void> {
   await repoEnquiries.deleteEnquiry(id);
+}
+
+const EnquiryMessageSchema = z.object({
+  firstName: z.string().min(1, "firstName is required"),
+  partnersName: z.string().optional(),
+  services: z.array(z.unknown(), { error: "services must be an array" }),
+});
+
+export function getEnquiryMessage(body: unknown): { message: string } {
+  const { firstName, partnersName, services } = parseOrBadRequest(EnquiryMessageSchema, body);
+  const enquiry: Enquiry = {
+    firstName: firstName.trim(),
+    partnersName: partnersName?.trim() || undefined,
+    services: services as Enquiry["services"],
+  } as Enquiry;
+  return { message: getText(enquiry) };
 }
 
 export function csvToEnquiry(
