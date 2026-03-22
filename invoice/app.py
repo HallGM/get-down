@@ -311,7 +311,7 @@ def health():
 def _keep_alive():
     time.sleep(60)
     urls = [
-        f"{u}/health" for u in [os.getenv("INVOICE_URL"), os.getenv("API_URL")] if u]
+        f"{u}/health" for u in [os.getenv("INVOICE_SERVICE_URL"), os.getenv("API_URL")] if u]
     while True:
         for url in urls:
             try:
