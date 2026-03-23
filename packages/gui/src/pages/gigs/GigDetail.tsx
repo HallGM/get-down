@@ -9,6 +9,7 @@ import {
   useRemoveGigLineItem,
   useGenerateLineItems,
 } from "../../api/hooks/useGigs.js";
+import { useServices } from "../../api/hooks/useServices.js";
 import { useGigPayments, useCreatePayment, useDeletePayment } from "../../api/hooks/usePayments.js";
 import { useGigRoles, useCreateRole, useDeleteRole } from "../../api/hooks/useAssignedRoles.js";
 import {
@@ -42,6 +43,8 @@ export default function GigDetail() {
 
   const updateGig = useUpdateGig();
   const deleteGig = useDeleteGig();
+  const setGigServices = useSetGigServices();
+  const { data: allServices = [] } = useServices();
   const createPayment = useCreatePayment();
   const deletePayment = useDeletePayment();
   const createRole = useCreateRole();
@@ -233,17 +236,50 @@ export default function GigDetail() {
         <h2>Services</h2>
         {gig.services && gig.services.length > 0 ? (
           <table>
-            <thead><tr><th>Service</th><th>Price to Client</th></tr></thead>
+            <thead><tr><th>Service</th><th>Price to Client</th><th></th></tr></thead>
             <tbody>
               {gig.services.map((s) => (
                 <tr key={s.id}>
                   <td>{s.name}</td>
                   <td><MoneyDisplay pennies={s.priceToClient} /></td>
+                  <td>
+                    <button
+                      className="contrast outline"
+                      style={{ padding: "0.2em 0.5em" }}
+                      aria-busy={setGigServices.isPending}
+                      onClick={() => {
+                        const remaining = (gig.services ?? []).filter(sv => sv.id !== s.id).map(sv => sv.id);
+                        setGigServices.mutate({ gigId, serviceIds: remaining });
+                      }}
+                    >✕</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : <p style={{ color: "var(--pico-muted-color)" }}>No services attached to this gig.</p>}
+        {(() => {
+          const attachedIds = new Set((gig.services ?? []).map(s => s.id));
+          const available = allServices.filter(s => !attachedIds.has(s.id));
+          if (!available.length) return null;
+          return (
+            <select
+              style={{ marginTop: "0.5rem" }}
+              value=""
+              onChange={e => {
+                const id = Number(e.target.value);
+                if (!id) return;
+                const updated = [...(gig.services ?? []).map(s => s.id), id];
+                setGigServices.mutate({ gigId, serviceIds: updated });
+              }}
+            >
+              <option value="">+ Add service…</option>
+              {available.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          );
+        })()}
       </section>
 
       {/* Line Items */}
@@ -322,6 +358,16 @@ export default function GigDetail() {
             </tbody>
           </table>
         ) : <p style={{ color: "var(--pico-muted-color)" }}>No roles assigned.</p>}
+      </section>
+
+      {/* Invoices link */}
+      <section>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2>Set List</h2>
+          <Link to={`/gigs/${gigId}/set-list`} role="button" className="secondary outline" style={{ padding: "0.3em 0.8em" }}>
+            Manage Set List →
+          </Link>
+        </div>
       </section>
 
       {/* Invoices link */}

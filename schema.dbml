@@ -250,6 +250,7 @@ Table songs {
   genre       varchar(255)
   musical_key varchar(50)
   bpm         int
+  vocal_type  varchar(20)
   airtable_id varchar(255)
 }
 
@@ -259,6 +260,24 @@ Table set_list_items {
   song_id int [ref: > songs.id, not null]
   position int
   notes text
+}
+
+Table gig_song_favourites {
+  id      serial [pk, increment]
+  gig_id  int [ref: > gigs.id, not null]
+  song_id int [ref: > songs.id, not null]
+}
+
+Table gig_song_must_plays {
+  id      serial [pk, increment]
+  gig_id  int [ref: > gigs.id, not null]
+  song_id int [ref: > songs.id, not null]
+}
+
+Table gig_song_do_not_plays {
+  id      serial [pk, increment]
+  gig_id  int [ref: > gigs.id, not null]
+  song_id int [ref: > songs.id, not null]
 }
 
 Table rehearsals {

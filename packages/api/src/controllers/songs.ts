@@ -12,8 +12,10 @@ router.post("/songs",    handle(req => songsService.createSong(req.body), 201));
 router.put("/songs/:id", handle(req => songsService.updateSong(+req.params.id, req.body)));
 router.delete("/songs/:id", handle(req => songsService.deleteSong(+req.params.id), 204));
 
-router.get("/gigs/:id/set-list",           handle(req => songsService.getSetList(+req.params.id)));
-router.post("/gigs/:id/set-list",          handle(req => songsService.addSetListItem(+req.params.id, req.body), 201));
-router.delete("/gigs/:id/set-list/:itemId", handle(req => songsService.removeSetListItem(+req.params.id, +req.params.itemId), 204));
+router.get("/gigs/:id/set-list",            handle(req => songsService.getSetList(+req.params.id)));
+router.post("/gigs/:id/set-list",            handle(req => songsService.addSetListItem(+req.params.id, req.body), 201));
+router.delete("/gigs/:id/set-list/:itemId",  handle(req => songsService.removeSetListItem(+req.params.id, +req.params.itemId), 204));
+router.put("/gigs/:id/set-list/reorder",    handle(req => songsService.reorderSetList(+req.params.id, req.body)));
+router.post("/gigs/:id/set-list/import",    handle(req => songsService.bulkImportFromPreferences(+req.params.id)));
 
 export default router;

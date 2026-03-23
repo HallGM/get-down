@@ -523,6 +523,7 @@ export interface Song {
   genre?: string;
   musicalKey?: string;
   bpm?: number;
+  vocalType?: string;
   airtableId?: string;
 }
 
@@ -532,6 +533,7 @@ export interface CreateSongRequest {
   genre?: string;
   musicalKey?: string;
   bpm?: number;
+  vocalType?: string;
   airtableId?: string;
 }
 
@@ -541,6 +543,7 @@ export interface UpdateSongRequest {
   genre?: string;
   musicalKey?: string;
   bpm?: number;
+  vocalType?: string;
   airtableId?: string;
 }
 
@@ -552,10 +555,29 @@ export interface SetListItem {
   notes?: string;
 }
 
+export interface SetListItemWithSong extends SetListItem {
+  title: string;
+  artist?: string;
+  musicalKey?: string;
+  vocalType?: string;
+  isMustPlay: boolean;
+  isFavourite: boolean;
+}
+
 export interface CreateSetListItemRequest {
   songId: number;
   position?: number;
   notes?: string;
+}
+
+export interface GigSongPreferences {
+  favourites: number[];
+  mustPlays: number[];
+  doNotPlays: number[];
+}
+
+export interface ReorderSetListRequest {
+  itemIds: number[];
 }
 
 export interface Rehearsal {
