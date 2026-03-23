@@ -2,11 +2,14 @@ import type {
   Song,
   CreateSongRequest,
   UpdateSongRequest,
-  SetListItem,
+  SetListItemWithSong,
   CreateSetListItemRequest,
+  ReorderSetListRequest,
 } from "@get-down/shared";
 import * as songsRepo from "../repository/songs.js";
+import * as prefsRepo from "../repository/gig_song_preferences.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
+import { withTransaction } from "../db/init.js";
 
 export async function getSongs(): Promise<Song[]> {
   const rows = await songsRepo.readSongs();
@@ -36,28 +39,58 @@ export async function deleteSong(id: number): Promise<void> {
   if (!deleted) throw new NotFoundError("Song not found");
 }
 
-export async function getSetList(gigId: number): Promise<SetListItem[]> {
+export async function getSetList(gigId: number): Promise<SetListItemWithSong[]> {
   const rows = await songsRepo.readSetListByGigId(gigId);
-  return rows.map(mapSetListItem);
+  return rows.map(mapSetListItemWithSong);
 }
 
 export async function addSetListItem(
   gigId: number,
   input: CreateSetListItemRequest
-): Promise<SetListItem> {
-  const row = await songsRepo.createSetListItem(
+): Promise<SetListItemWithSong> {
+  await songsRepo.createSetListItem(
     gigId,
     input.songId,
     input.position ?? null,
     input.notes?.trim() ?? null
   );
-  return mapSetListItem(row);
+  // Re-fetch so we get song details + badge flags
+  const rows = await songsRepo.readSetListByGigId(gigId);
+  const inserted = rows.find(r => r.song_id === input.songId);
+  if (!inserted) throw new NotFoundError("SetListItem not found after insert");
+  return mapSetListItemWithSong(inserted);
 }
 
 export async function removeSetListItem(_gigId: number, itemId: number): Promise<void> {
-  // gigId ownership validated implicitly via DB FK; delete by item id
   const deleted = await songsRepo.deleteSetListItem(itemId);
   if (!deleted) throw new NotFoundError("SetListItem not found");
+}
+
+export async function reorderSetList(gigId: number, input: ReorderSetListRequest): Promise<void> {
+  if (!Array.isArray(input.itemIds) || input.itemIds.length === 0) return;
+  await songsRepo.reorderSetListItems(gigId, input.itemIds);
+}
+
+export async function bulkImportFromPreferences(gigId: number): Promise<SetListItemWithSong[]> {
+  const [prefs, existingIds] = await Promise.all([
+    prefsRepo.readPreferencesByGigId(gigId),
+    songsRepo.readSetListSongIds(gigId),
+  ]);
+  const doNotPlaySet = new Set(prefs.doNotPlays);
+  const existingSet = new Set(existingIds);
+  // Union favourites + must_plays (deduped), excluding do-not-plays and already added
+  const toAdd = [...new Set([...prefs.favourites, ...prefs.mustPlays])].filter(
+    id => !doNotPlaySet.has(id) && !existingSet.has(id)
+  );
+  if (toAdd.length > 0) {
+    await withTransaction(async () => {
+      for (const songId of toAdd) {
+        await songsRepo.createSetListItem(gigId, songId, null, null);
+      }
+    });
+  }
+  const rows = await songsRepo.readSetListByGigId(gigId);
+  return rows.map(mapSetListItemWithSong);
 }
 
 function mapSong(row: songsRepo.SongRow): Song {
@@ -68,17 +101,24 @@ function mapSong(row: songsRepo.SongRow): Song {
     genre: row.genre ?? undefined,
     musicalKey: row.musical_key ?? undefined,
     bpm: row.bpm ?? undefined,
+    vocalType: row.vocal_type ?? undefined,
     airtableId: row.airtable_id ?? undefined,
   };
 }
 
-function mapSetListItem(row: songsRepo.SetListItemRow): SetListItem {
+function mapSetListItemWithSong(row: songsRepo.SetListItemWithSongRow): SetListItemWithSong {
   return {
     id: row.id,
     gigId: row.gig_id,
     songId: row.song_id,
     position: row.position ?? undefined,
     notes: row.notes ?? undefined,
+    title: row.title,
+    artist: row.artist ?? undefined,
+    musicalKey: row.musical_key ?? undefined,
+    vocalType: row.vocal_type ?? undefined,
+    isMustPlay: row.is_must_play,
+    isFavourite: row.is_favourite,
   };
 }
 
@@ -94,6 +134,7 @@ function buildSongMutationInput(
     genre: input.genre?.trim() ?? existing?.genre,
     musicalKey: input.musicalKey?.trim() ?? existing?.musicalKey,
     bpm: input.bpm ?? existing?.bpm,
+    vocalType: input.vocalType ?? existing?.vocalType,
     airtableId: input.airtableId ?? existing?.airtableId,
   };
 }

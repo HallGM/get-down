@@ -266,6 +266,7 @@ async function main(): Promise<void> {
       artist: str(f["Artist"]) ?? undefined,
       genre: str(f["Genre"]) ?? undefined,
       musicalKey: str(f["Key"]) ?? undefined,
+      vocalType: str(f["M/F"]) ?? undefined,
       airtableId: r.id,
     };
 
@@ -470,7 +471,27 @@ async function main(): Promise<void> {
   }
   console.log(`   ${atGigs.length} records\n`);
 
-  // ── 9. Rehearsals ──────────────────────────────────────────────────────────
+  // ── 8b. Gig song preferences ────────────────────────────────────────────────
+  console.log("→ gig song preferences");
+  let prefsUpdated = 0;
+  for (const r of atGigs) {
+    const f = r.fields;
+    const gigId = gigMap.get(r.id);
+    if (!gigId) continue;
+
+    const toSongIds = (field: unknown): number[] =>
+      ids(field).map(atId => songMap.get(atId)).filter((id): id is number => id !== undefined);
+
+    const favourites = toSongIds(f["Song Choices"]);
+    const mustPlays  = toSongIds(f["Must-have song Choices"]);
+    const doNotPlays = toSongIds(f["Avoid playing"]);
+
+    if (favourites.length > 0 || mustPlays.length > 0 || doNotPlays.length > 0) {
+      await callApi("PUT", `/gigs/${gigId}/song-preferences`, { favourites, mustPlays, doNotPlays });
+      prefsUpdated++;
+    }
+  }
+  console.log(`   ${prefsUpdated} gigs with preferences\n`);
   console.log("→ rehearsals");
   const existingRehearsals = await callApi<{ id: number; airtableId?: string }[]>("GET", "/rehearsals");
   const rehearsalsByAirtableId = new Map(existingRehearsals.filter(r => r.airtableId).map(r => [r.airtableId!, r.id]));

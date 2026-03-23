@@ -15,6 +15,7 @@ import payments from "./controllers/payments.js";
 import invoices from "./controllers/invoices.js";
 import songs from "./controllers/songs.js";
 import rehearsals from "./controllers/rehearsals.js";
+import gigSongPreferences from "./controllers/gig_song_preferences.js";
 import { AppError } from "./errors.js";
 
 const app = express();
@@ -35,6 +36,7 @@ app.use("/", payments);
 app.use("/", invoices);
 app.use("/", songs);
 app.use("/", rehearsals);
+app.use("/", gigSongPreferences);
 app.use("/", enquiries);
 
 app.get("/health", (_req, res) => {
