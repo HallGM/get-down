@@ -65,7 +65,7 @@ async function start(): Promise<void> {
     console.log(`listening on http://localhost:${port}`);
   });
 
-  const keepAliveUrls = [process.env.API_URL, process.env.INVOICE_SERVICE_URL]
+  const keepAliveUrls = [process.env.API_URL ?? process.env.RENDER_EXTERNAL_URL, process.env.INVOICE_SERVICE_URL]
     .filter(Boolean)
     .map((url) => `${url}/health`);
 
