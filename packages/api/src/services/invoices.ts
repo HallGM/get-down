@@ -29,19 +29,13 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
   const { gigId } = input;
   if (!gigId) throw new BadRequestError("gigId is required");
 
-  const [gig, lineItems, payments, invoiceCount] = await Promise.all([
+  const [gig, lineItems, payments] = await Promise.all([
     gigsRepo.readGigById(gigId),
     gigLineItemsRepo.readGigLineItemsByGigId(gigId),
     paymentsRepo.readPaymentsByGigId(gigId),
-    invoicesRepo.countInvoicesByGigId(gigId),
   ]);
 
   if (!gig) throw new NotFoundError("Gig not found");
-
-  const gigDateStr = toDateString(gig.date) ?? String(gig.date);
-  const year = gigDateStr.slice(2, 4);
-  const seq = String(invoiceCount + 1).padStart(2, "0");
-  const invoiceNumber = `${year}-${gigId}-${seq}`;
 
   const subtotal = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
   const discountAmount = Math.round(subtotal * gig.discount_percent / 100);
@@ -50,8 +44,12 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
   const amountDue = Math.max(0, total - paid);
 
   const today = new Date().toISOString().slice(0, 10);
+  const year = today.slice(2, 4);
 
   return withTransaction(async () => {
+    const seq = await invoicesRepo.nextInvoiceSequence(year);
+    const invoiceNumber = `${year}-${String(seq).padStart(4, "0")}`;
+
     const row = await invoicesRepo.createInvoice({
       gigId,
       invoiceNumber,
@@ -169,19 +167,17 @@ export async function removePaymentMade(invoiceId: number, paymentMadeId: number
  * Used for the invoice preview endpoint.
  */
 export async function buildPreviewPayloadForGig(gigId: number): Promise<Record<string, unknown>> {
-  const [gig, lineItems, payments, invoiceCount] = await Promise.all([
+  const [gig, lineItems, payments] = await Promise.all([
     gigsRepo.readGigById(gigId),
     gigLineItemsRepo.readGigLineItemsByGigId(gigId),
     paymentsRepo.readPaymentsByGigId(gigId),
-    invoicesRepo.countInvoicesByGigId(gigId),
   ]);
 
   if (!gig) throw new NotFoundError("Gig not found");
 
-  const gigDateStr = toDateString(gig.date) ?? String(gig.date);
-  const year = gigDateStr.slice(2, 4);
-  const seq = String(invoiceCount + 1).padStart(2, "0");
-  const invoiceNumber = `${year}-${gigId}-${seq}`;
+  const year = new Date().toISOString().slice(2, 4);
+  const seq = await invoicesRepo.peekNextInvoiceSequence(year);
+  const invoiceNumber = `${year}-${String(seq).padStart(4, "0")} (PREVIEW)`;
 
   return {
     invoice_number: invoiceNumber,
