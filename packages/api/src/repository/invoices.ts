@@ -83,12 +83,26 @@ export async function createInvoice(input: InvoiceMutationInput): Promise<Invoic
   return row!;
 }
 
-export async function countInvoicesByGigId(gigId: number): Promise<number> {
-  const rows = await run_query<{ count: string }>({
-    text: `SELECT COUNT(*) AS count FROM invoices WHERE gig_id = $1;`,
-    values: [gigId],
+export async function nextInvoiceSequence(year: string): Promise<number> {
+  const rows = await run_query<{ next_seq: string }>({
+    text: `
+      INSERT INTO invoice_sequences (year, next_seq)
+      VALUES ($1, 1)
+      ON CONFLICT (year) DO UPDATE
+        SET next_seq = invoice_sequences.next_seq + 1
+      RETURNING next_seq;
+    `,
+    values: [year],
   });
-  return parseInt(rows[0]!.count, 10);
+  return parseInt(rows[0]!.next_seq, 10);
+}
+
+export async function peekNextInvoiceSequence(year: string): Promise<number> {
+  const rows = await run_query<{ next_seq: string }>({
+    text: `SELECT next_seq FROM invoice_sequences WHERE year = $1;`,
+    values: [year],
+  });
+  return rows[0] ? parseInt(rows[0].next_seq, 10) : 1;
 }
 
 export async function readInvoiceById(id: number): Promise<InvoiceRow | null> {

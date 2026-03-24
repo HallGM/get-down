@@ -215,6 +215,11 @@ Table invoice_payments_made {
   amount int
 }
 
+Table invoice_sequences {
+  year     varchar(2) [pk]
+  next_seq int        [not null, default: 1]
+}
+
 Table payments {
   id          serial [pk, increment]
   date        date
