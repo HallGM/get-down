@@ -43,10 +43,39 @@ router.post("/invoices/:id/generate-pdf", async (req, res, next) => {
 
 export default router;
 
-function proxyToFlask(
+async function proxyToFlask(
   payload: Record<string, unknown>,
   disposition: "inline" | "attachment",
   res: Response
+): Promise<void> {
+  await warmUpFlask();
+  return makeRequest(payload, disposition, res, 0);
+}
+
+async function warmUpFlask(): Promise<void> {
+  const invoiceServiceUrl = process.env.INVOICE_SERVICE_URL || "http://localhost:5000";
+  const healthUrl = `${invoiceServiceUrl}/health`;
+  const transport = healthUrl.startsWith("https") ? https : http;
+  const deadline = Date.now() + 35_000;
+  while (Date.now() < deadline) {
+    const ok = await new Promise<boolean>((resolve) => {
+      const req = transport.get(healthUrl, (res) => {
+        res.resume();
+        resolve(res.statusCode === 200);
+      });
+      req.on("error", () => resolve(false));
+      req.setTimeout(5000, () => { req.destroy(); resolve(false); });
+    });
+    if (ok) return;
+    await new Promise(r => setTimeout(r, 2000));
+  }
+}
+
+function makeRequest(
+  payload: Record<string, unknown>,
+  disposition: "inline" | "attachment",
+  res: Response,
+  attempt: number
 ): Promise<void> {
   const invoiceServiceUrl = process.env.INVOICE_SERVICE_URL || "http://localhost:5000";
   const url = new URL("/generate", invoiceServiceUrl);
@@ -69,7 +98,17 @@ function proxyToFlask(
         if (proxyRes.statusCode && proxyRes.statusCode >= 400) {
           let errBody = "";
           proxyRes.on("data", (chunk: Buffer) => { errBody += chunk.toString(); });
-          proxyRes.on("end", () => {
+          proxyRes.on("end", async () => {
+            const isRetryable = proxyRes.statusCode === 502 || proxyRes.statusCode === 503 || proxyRes.statusCode === 429;
+            if (isRetryable && attempt < 3) {
+              const baseDelayMs = proxyRes.statusCode === 429 ? 10000 : 1000;
+              const delayMs = baseDelayMs * Math.pow(2, attempt);
+              await new Promise(r => setTimeout(r, delayMs));
+              return makeRequest(payload, disposition, res, attempt + 1)
+                .then(resolve)
+                .catch(reject);
+            }
+
             let message = "Invoice service error";
             try {
               const parsed = JSON.parse(errBody) as Record<string, unknown>;
@@ -90,7 +129,14 @@ function proxyToFlask(
         proxyRes.on("end", resolve);
       }
     );
-    proxyReq.on("error", (err: NodeJS.ErrnoException) => {
+    proxyReq.on("error", async (err: NodeJS.ErrnoException) => {
+      if (attempt < 3) {
+        const delayMs = Math.pow(2, attempt) * 1000;
+        await new Promise(r => setTimeout(r, delayMs));
+        return makeRequest(payload, disposition, res, attempt + 1)
+          .then(resolve)
+          .catch(reject);
+      }
       const message = err.code === "ECONNREFUSED"
         ? "Invoice service is not running"
         : `Invoice service connection error: ${err.message}`;
