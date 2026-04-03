@@ -5,7 +5,7 @@ description: >
   adherence to project conventions. Invoke only from review-lead.
 mode: subagent
 hidden: true
-model: opencode/qwen3.6-plus-free
+model: github-copilot/claude-haiku-4.5
 temperature: 0.1
 permission:
   edit: deny

@@ -5,7 +5,7 @@ description: >
   reviewers in parallel, aggregates findings, and produces a unified review.
   Stays in context for follow-up conversation.
 mode: primary
-model: opencode/qwen3.6-plus-free
+model: github-copilot/claude-sonnet-4.6
 temperature: 0.1
 permission:
   edit: deny
