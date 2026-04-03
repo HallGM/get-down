@@ -41,10 +41,14 @@ model of every file that needs to change and why.
 
 ### Step 3: Ask clarifications
 
-ALWAYS pause and ask questions before writing the plan. Do not proceed until
-the user answers. Ask about scope decisions the spec leaves open, behavioural
-edge cases you found in the code, and approach choices where two reasonable
-implementations exist. Max 5 questions, technical and specific.
+ALWAYS pause and ask questions before writing the plan. Actively poke holes in
+the spec — look for contradictions, missing edge cases, implicit assumptions,
+and implementation ambiguities. Challenge the approach if a simpler or safer
+alternative exists.
+
+Do NOT proceed until the plan is absolutely clear. Only move forward when every
+ambiguity has been resolved through user answers. Max 5 questions per round,
+technical and specific.
 
 If — unusually — the spec and codebase leave nothing ambiguous, say so
 explicitly and proceed. This should be rare.

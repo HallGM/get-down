@@ -106,7 +106,9 @@ export async function peekNextInvoiceSequence(year: string): Promise<number> {
     text: `SELECT next_seq FROM invoice_sequences WHERE year = $1;`,
     values: [year],
   });
-  return rows[0] ? parseInt(rows[0].next_seq, 10) : 1;
+  // next_seq holds the current value; the real sequence increments before returning,
+  // so add 1 to match what the next created invoice will actually receive.
+  return rows[0] ? parseInt(rows[0].next_seq, 10) + 1 : 1;
 }
 
 export async function readInvoiceById(id: number): Promise<InvoiceRow | null> {

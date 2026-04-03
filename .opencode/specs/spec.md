@@ -1,30 +1,24 @@
-# Separate invoice and billing from gig details
+# Seed 2026 invoice sequence at 149
 
 ## Background
 
-The current gig detail page is overcrowded, mixing general gig information with invoice line items, payments, and billing settings. Splitting invoice and billing concerns into a dedicated per-gig page will improve usability and give users a focused workspace for financial management.
+The first 148 invoices were created in a separate system before this platform existed. To maintain continuity, the 2026 invoice counter in this system must start at 149 so that invoice numbers do not collide with the legacy records.
 
 ## Goals
 
-- Reduce clutter on the gig detail page by moving all invoice and billing content to its own page.
-- Give users a dedicated "Invoice and billing" page per gig for managing line items, payments, invoices, and billing settings.
-- Consolidate customer invoice management under the per-gig billing area instead of a separate top-level section.
+- The first invoice created in 2026 is numbered `26-0149`.
+- No invoice number below `26-0149` is ever issued by this system for the year 2026.
 
 ## Acceptance criteria
 
-1. The gig detail page must retain general gig details and services only; all invoice and billing content must be removed from it.
-2. The gig detail page must link to a new "Invoice and billing" page following the same view-more/manage pattern used by set list.
-3. The new page must be titled "Invoice and billing".
-4. The new page must display gig context and a calculated financial summary at the top.
-5. The new page must contain line items, payments, invoice preview/generation, saved customer invoices, and invoice-related settings/details such as travel cost and discount percentage.
-6. Deposit paid, if shown, must be calculated from known rules or data rather than entered manually.
-7. Balance/amount due must be calculated, not manually entered.
-8. Existing customer invoice management and viewing must move under the per-gig "Invoice and billing" area.
-9. The standalone "Invoices" area in the main navigation must be removed.
-10. The new page should follow existing UI patterns and conventions used elsewhere in the application.
+1. When the first invoice of 2026 is created, its invoice number must be `26-0149`.
+2. Each subsequent invoice in 2026 must increment normally: `26-0150`, `26-0151`, and so on.
+3. The starting value of 149 must apply only to 2026; other years must continue to start from 1 as normal.
+4. If a row for 2026 already exists in the sequence table, the migration must not lower the counter below 149 — it should only raise it if the current value is less than 149.
+5. The change must survive a full tear-down and re-apply of all migrations (i.e. it must be implemented as a migration, not a manual data fix).
 
 ## Out of scope
 
-- Performer invoices.
-- Changes to invoice generation logic or the invoice service itself.
-- New financial features beyond relocating and organising existing content.
+- Importing or recording the 148 legacy invoices into this system.
+- Any changes to how future years (2027 onwards) are seeded.
+- Any changes to the invoice number format.
