@@ -468,6 +468,7 @@ export interface Invoice {
   travelCost: number;
   totalAmount: number;
   amountDue: number;
+  invoiceType: 'deposit' | 'balance';
   lineItems?: InvoiceLineItem[];
   additionalCharges?: InvoiceAdditionalCharge[];
   paymentsMade?: InvoicePaymentMade[];
@@ -475,6 +476,7 @@ export interface Invoice {
 
 export interface CreateInvoiceRequest {
   gigId: number;
+  invoiceType?: 'deposit' | 'balance';
 }
 
 export interface UpdateInvoiceRequest {
@@ -488,6 +490,7 @@ export interface UpdateInvoiceRequest {
   travelCost?: number;
   totalAmount?: number;
   amountDue?: number;
+  invoiceType?: 'deposit' | 'balance';
 }
 
 export interface CreateInvoiceLineItemRequest {

@@ -60,6 +60,7 @@ export default function GigBilling() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoaded, setPreviewLoaded] = useState(false);
   const [savingInvoice, setSavingInvoice] = useState(false);
+  const [previewInvoiceType, setPreviewInvoiceType] = useState<'deposit' | 'balance'>('balance');
   const prevUrlRef = useRef<string | null>(null);
 
   // Invoice PDF modal
@@ -87,7 +88,7 @@ export default function GigBilling() {
   const discountAmount = Math.round(subtotal * gig.discountPercent / 100);
   const billingTotal = subtotal - discountAmount + gig.travelCost;
   const totalPaid = (payments ?? []).reduce((sum, p) => sum + p.amount, 0);
-  const depositRequired = Math.round(billingTotal * 0.10);
+  const depositRequired = Math.round(billingTotal * 0.20);
   const depositPaid = Math.min(totalPaid, depositRequired);
   const balanceAmount = Math.max(0, billingTotal - totalPaid);
 
@@ -116,13 +117,14 @@ export default function GigBilling() {
     setPaymentForm({ amount: 0 });
   }
 
-  async function openPreview() {
+  async function openPreview(invoiceType: 'deposit' | 'balance') {
     if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
     setPreviewUrl(null);
     setPreviewLoaded(false);
+    setPreviewInvoiceType(invoiceType);
     setShowPreview(true);
     try {
-      const url = await previewMutation.mutateAsync(gigId);
+      const url = await previewMutation.mutateAsync({ gigId, invoiceType });
       prevUrlRef.current = url;
       setPreviewUrl(url);
     } catch {
@@ -133,7 +135,7 @@ export default function GigBilling() {
   async function handleSaveInvoice() {
     setSavingInvoice(true);
     try {
-      await createInvoice.mutateAsync({ gigId });
+      await createInvoice.mutateAsync({ gigId, invoiceType: previewInvoiceType });
       setShowPreview(false);
     } finally {
       setSavingInvoice(false);
@@ -292,13 +294,23 @@ export default function GigBilling() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2>Invoices</h2>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.25rem" }}>
-            <button
-              onClick={openPreview}
-              disabled={!gig.lineItems?.length}
-              title={!gig.lineItems?.length ? "Add line items before generating an invoice" : undefined}
-            >
-              Preview &amp; Generate Invoice
-            </button>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                className="secondary outline"
+                onClick={() => openPreview('deposit')}
+                disabled={!gig.lineItems?.length}
+                title={!gig.lineItems?.length ? "Add line items before generating an invoice" : undefined}
+              >
+                Deposit Invoice
+              </button>
+              <button
+                onClick={() => openPreview('balance')}
+                disabled={!gig.lineItems?.length}
+                title={!gig.lineItems?.length ? "Add line items before generating an invoice" : undefined}
+              >
+                Balance Invoice
+              </button>
+            </div>
             {!gig.lineItems?.length && (
               <small style={{ color: "var(--pico-muted-color)" }}>Add line items first</small>
             )}
@@ -306,12 +318,13 @@ export default function GigBilling() {
         </div>
         {invoices && invoices.length > 0 ? (
           <table>
-            <thead><tr><th>Invoice #</th><th>Date</th><th>Total</th><th>Amount Due</th><th aria-label="Actions"></th></tr></thead>
+            <thead><tr><th>Invoice #</th><th>Date</th><th>Type</th><th>Total</th><th>Amount Due</th><th aria-label="Actions"></th></tr></thead>
             <tbody>
               {invoices.map((inv) => (
                 <tr key={inv.id}>
                   <td>{inv.invoiceNumber}</td>
                   <td>{formatDate(inv.date)}</td>
+                  <td style={{ textTransform: "capitalize" }}>{inv.invoiceType}</td>
                   <td><MoneyDisplay pennies={inv.totalAmount} /></td>
                   <td><MoneyDisplay pennies={inv.amountDue} /></td>
                   <td>
@@ -335,7 +348,7 @@ export default function GigBilling() {
               ))}
             </tbody>
           </table>
-        ) : <p style={{ color: "var(--pico-muted-color)" }}>No invoices yet. Use "Preview &amp; Generate Invoice" to create one.</p>}
+        ) : <p style={{ color: "var(--pico-muted-color)" }}>No invoices yet. Use the buttons above to generate one.</p>}
       </section>
 
       {/* Modals */}
@@ -364,7 +377,7 @@ export default function GigBilling() {
       </Modal>
 
       {/* Invoice Preview Modal */}
-      <Modal open={showPreview} onClose={() => setShowPreview(false)} title="Invoice Preview">
+      <Modal open={showPreview} onClose={() => setShowPreview(false)} title={`Invoice Preview — ${previewInvoiceType === 'deposit' ? 'Deposit' : 'Balance'}`}>
         {previewMutation.isPending && <LoadingState />}
         {previewMutation.error && <ErrorBanner error={previewMutation.error instanceof Error ? previewMutation.error.message : "Failed to load preview"} />}
         {previewUrl && (

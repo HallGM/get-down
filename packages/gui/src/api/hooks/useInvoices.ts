@@ -133,8 +133,8 @@ export function useRemovePaymentMade() {
 /** Fetch the live preview PDF for a gig's current account data (not saved). */
 export function useInvoicePreview() {
   return useApiMutation({
-    mutationFn: async (gigId: number) => {
-      const blob = await apiFetchBlob("GET", `/gigs/${gigId}/invoice-preview`);
+    mutationFn: async ({ gigId, invoiceType }: { gigId: number; invoiceType: 'deposit' | 'balance' }) => {
+      const blob = await apiFetchBlob("GET", `/gigs/${gigId}/invoice-preview?invoiceType=${invoiceType}`);
       return URL.createObjectURL(blob);
     },
   });

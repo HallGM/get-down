@@ -13,6 +13,7 @@ export interface InvoiceRow {
   travel_cost: number;
   total_amount: number;
   amount_due: number;
+  invoice_type: 'deposit' | 'balance';
 }
 
 export interface InvoiceLineItemRow {
@@ -49,11 +50,12 @@ export interface InvoiceMutationInput {
   travelCost: number;
   totalAmount: number;
   amountDue: number;
+  invoiceType: 'deposit' | 'balance';
 }
 
 const INVOICE_COLS = `
   id, gig_id, invoice_number, customer_name, event_date, venue, date,
-  subtotal_amount, discount_percent, travel_cost, total_amount, amount_due
+  subtotal_amount, discount_percent, travel_cost, total_amount, amount_due, invoice_type
 `;
 
 export async function createInvoice(input: InvoiceMutationInput): Promise<InvoiceRow> {
@@ -61,9 +63,10 @@ export async function createInvoice(input: InvoiceMutationInput): Promise<Invoic
       text: `
       INSERT INTO invoices (
         gig_id, invoice_number, customer_name, event_date, venue, date,
-        subtotal_amount, discount_percent, travel_cost, total_amount, amount_due
+        subtotal_amount, discount_percent, travel_cost, total_amount, amount_due,
+        invoice_type
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING ${INVOICE_COLS};
     `,
       values: [
@@ -78,6 +81,7 @@ export async function createInvoice(input: InvoiceMutationInput): Promise<Invoic
         input.travelCost,
         input.totalAmount,
         input.amountDue,
+        input.invoiceType,
       ],
     });
   return row!;
@@ -129,8 +133,8 @@ export async function updateInvoice(
       UPDATE invoices
       SET gig_id = $1, invoice_number = $2, customer_name = $3, event_date = $4, venue = $5,
           date = $6, subtotal_amount = $7, discount_percent = $8, travel_cost = $9,
-          total_amount = $10, amount_due = $11
-      WHERE id = $12
+          total_amount = $10, amount_due = $11, invoice_type = $12
+      WHERE id = $13
       RETURNING ${INVOICE_COLS};
     `,
     values: [
@@ -145,6 +149,7 @@ export async function updateInvoice(
       input.travelCost,
       input.totalAmount,
       input.amountDue,
+      input.invoiceType,
       id,
     ],
   });

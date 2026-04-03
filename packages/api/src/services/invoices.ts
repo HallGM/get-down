@@ -26,7 +26,7 @@ export async function getInvoiceById(id: number): Promise<Invoice> {
 }
 
 export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoice> {
-  const { gigId } = input;
+  const { gigId, invoiceType = 'balance' } = input;
   if (!gigId) throw new BadRequestError("gigId is required");
 
   const [gig, lineItems, payments] = await Promise.all([
@@ -41,7 +41,9 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
   const discountAmount = Math.round(subtotal * gig.discount_percent / 100);
   const total = subtotal - discountAmount + gig.travel_cost;
   const paid = payments.reduce((sum, p) => sum + p.amount, 0);
-  const amountDue = Math.max(0, total - paid);
+  const amountDue = invoiceType === 'deposit'
+    ? Math.max(0, Math.round(total * 0.20) - paid)
+    : Math.max(0, total - paid);
 
   const today = new Date().toISOString().slice(0, 10);
   const year = today.slice(2, 4);
@@ -62,6 +64,7 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
       travelCost: gig.travel_cost,
       totalAmount: total,
       amountDue,
+      invoiceType,
     });
 
     const [snappedLineItems, snappedPayments] = await Promise.all([
@@ -166,7 +169,10 @@ export async function removePaymentMade(invoiceId: number, paymentMadeId: number
  * Build the Flask payload from live gig account data (no DB write).
  * Used for the invoice preview endpoint.
  */
-export async function buildPreviewPayloadForGig(gigId: number): Promise<Record<string, unknown>> {
+export async function buildPreviewPayloadForGig(
+  gigId: number,
+  invoiceType: 'deposit' | 'balance' = 'balance'
+): Promise<Record<string, unknown>> {
   const [gig, lineItems, payments] = await Promise.all([
     gigsRepo.readGigById(gigId),
     gigLineItemsRepo.readGigLineItemsByGigId(gigId),
@@ -195,6 +201,7 @@ export async function buildPreviewPayloadForGig(gigId: number): Promise<Record<s
     })),
     ...(gig.discount_percent > 0 && { discount_percent: gig.discount_percent }),
     ...(gig.travel_cost > 0 && { travel_cost: gig.travel_cost / 100 }),
+    ...(invoiceType === 'deposit' && { deposit_only: true }),
   };
 }
 
@@ -227,6 +234,7 @@ export async function buildInvoicePayload(id: number): Promise<Record<string, un
       })) ?? [],
     discount_percent: invoice.discountPercent > 0 ? invoice.discountPercent : undefined,
     travel_cost: invoice.travelCost > 0 ? invoice.travelCost / 100 : undefined,
+    ...(invoice.invoiceType === 'deposit' && { deposit_only: true }),
   };
 }
 
@@ -250,6 +258,7 @@ function mapInvoice(row: invoicesRepo.InvoiceRow): Invoice {
     travelCost: row.travel_cost,
     totalAmount: row.total_amount,
     amountDue: row.amount_due,
+    invoiceType: row.invoice_type,
   };
 }
 
@@ -320,5 +329,6 @@ function buildMutationInput(
     travelCost: input.travelCost ?? existing?.travelCost ?? 0,
     totalAmount: input.totalAmount ?? existing?.totalAmount ?? 0,
     amountDue: input.amountDue ?? existing?.amountDue ?? 0,
+    invoiceType: input.invoiceType ?? existing?.invoiceType ?? 'balance',
   };
 }

@@ -22,7 +22,7 @@ export async function getGigById(id: number): Promise<Gig> {
   const discountAmount = Math.round(subtotal * row.discount_percent / 100);
   const total = subtotal - discountAmount + row.travel_cost;
   const totalPaid = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
-  const depositRate = 0.10;
+  const depositRate = 0.20;
   const depositRequired = Math.round(total * depositRate);
   const depositPaid = Math.min(totalPaid, depositRequired);
   const balanceAmount = Math.max(0, total - totalPaid);

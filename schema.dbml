@@ -189,6 +189,7 @@ Table invoices {
   travel_cost      int [not null, default: 0]
   total_amount     int [not null, default: 0]
   amount_due       int [not null, default: 0]
+  invoice_type     varchar(20) [not null, default: 'balance']
 }
 
 Table invoice_line_items {
