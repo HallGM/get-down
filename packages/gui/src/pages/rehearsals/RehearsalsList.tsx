@@ -8,6 +8,7 @@ import FormField from "../../components/FormField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
+import { penniesToPounds, poundsToPennies } from "../../utils/money.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 
 const COLUMNS: Column<Rehearsal>[] = [
@@ -34,7 +35,8 @@ export default function RehearsalsList() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    await createRehearsal.mutateAsync(form);
+    const costPennies = form.cost != null ? poundsToPennies(form.cost) : undefined;
+    await createRehearsal.mutateAsync({ ...form, cost: costPennies });
     setShowCreate(false);
     setForm(EMPTY_FORM);
   }
@@ -42,13 +44,14 @@ export default function RehearsalsList() {
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     if (!editTarget) return;
-    await updateRehearsal.mutateAsync({ id: editTarget.id, input: editForm });
+    const costPennies = editForm.cost != null ? poundsToPennies(editForm.cost) : undefined;
+    await updateRehearsal.mutateAsync({ id: editTarget.id, input: { ...editForm, cost: costPennies } });
     setEditTarget(null);
   }
 
   function openEdit(r: Rehearsal) {
     setEditTarget(r);
-    setEditForm({ name: r.name, date: r.date, location: r.location, cost: r.cost, notes: r.notes });
+    setEditForm({ name: r.name, date: r.date, location: r.location, cost: r.cost != null ? penniesToPounds(r.cost) : undefined, notes: r.notes });
   }
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
@@ -77,7 +80,7 @@ export default function RehearsalsList() {
             <FormField label="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
             <FormField label="Date" type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} required />
             <FormField label="Location" value={form.location ?? ""} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
-            <FormField label="Cost (pennies)" type="number" value={form.cost ?? ""} onChange={(e) => setForm((f) => ({ ...f, cost: Number(e.target.value) || undefined }))} min={0} />
+            <FormField label="Cost (£)" type="number" step={0.01} value={form.cost ?? ""} onChange={(e) => setForm((f) => ({ ...f, cost: Number(e.target.value) || undefined }))} min={0} />
           </div>
           <FormField as="textarea" label="Notes" value={form.notes ?? ""} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
@@ -93,7 +96,7 @@ export default function RehearsalsList() {
             <FormField label="Name" value={editForm.name ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} required />
             <FormField label="Date" type="date" value={toInputDate(editForm.date)} onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))} required />
             <FormField label="Location" value={editForm.location ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))} />
-            <FormField label="Cost (pennies)" type="number" value={editForm.cost ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, cost: Number(e.target.value) || undefined }))} min={0} />
+            <FormField label="Cost (£)" type="number" step={0.01} value={editForm.cost ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, cost: Number(e.target.value) || undefined }))} min={0} />
           </div>
           <FormField as="textarea" label="Notes" value={editForm.notes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))} rows={2} />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
