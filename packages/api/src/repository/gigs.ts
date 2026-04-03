@@ -16,8 +16,6 @@ export interface GigRow {
   location: string | null;
   description: string | null;
   total_price: number | null;
-  deposit_paid: number;
-  balance_amount: number;
   travel_cost: number;
   discount_percent: number;
   airtable_id: string | null;
@@ -38,8 +36,6 @@ export interface GigMutationInput {
   location?: string;
   description?: string;
   totalPrice?: number;
-  depositPaid: number;
-  balanceAmount: number;
   travelCost: number;
   discountPercent: number;
   airtableId?: string;
@@ -48,7 +44,7 @@ export interface GigMutationInput {
 const SELECT_COLS = `
   id, enquiry_id, attribution_id, name, status, first_name, last_name,
   partner_name, email, phone, date, venue_name, location, description,
-  total_price, deposit_paid, balance_amount, travel_cost, discount_percent, airtable_id
+  total_price, travel_cost, discount_percent, airtable_id
 `;
 
 export async function createGig(input: GigMutationInput): Promise<GigRow> {
@@ -57,9 +53,9 @@ export async function createGig(input: GigMutationInput): Promise<GigRow> {
       INSERT INTO gigs (
         enquiry_id, attribution_id, name, status, first_name, last_name,
         partner_name, email, phone, date, venue_name, location, description,
-        total_price, deposit_paid, balance_amount, travel_cost, discount_percent, airtable_id
+        total_price, travel_cost, discount_percent, airtable_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -77,8 +73,6 @@ export async function createGig(input: GigMutationInput): Promise<GigRow> {
       input.location ?? null,
       input.description ?? null,
       input.totalPrice ?? null,
-      input.depositPaid,
-      input.balanceAmount,
       input.travelCost,
       input.discountPercent,
       input.airtableId ?? null,
@@ -108,9 +102,8 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
       SET enquiry_id = $1, attribution_id = $2, name = $3, status = $4,
           first_name = $5, last_name = $6, partner_name = $7, email = $8, phone = $9,
           date = $10, venue_name = $11, location = $12, description = $13,
-          total_price = $14, deposit_paid = $15, balance_amount = $16,
-          travel_cost = $17, discount_percent = $18, airtable_id = $19
-      WHERE id = $20
+          total_price = $14, travel_cost = $15, discount_percent = $16, airtable_id = $17
+      WHERE id = $18
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -128,8 +121,6 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
       input.location ?? null,
       input.description ?? null,
       input.totalPrice ?? null,
-      input.depositPaid,
-      input.balanceAmount,
       input.travelCost,
       input.discountPercent,
       input.airtableId ?? null,

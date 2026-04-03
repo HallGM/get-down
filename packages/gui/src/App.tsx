@@ -7,10 +7,9 @@ import Dashboard from "./pages/Dashboard.js";
 import GigsList from "./pages/gigs/GigsList.js";
 import GigDetail from "./pages/gigs/GigDetail.js";
 import SetListBuilder from "./pages/gigs/SetListBuilder.js";
+import GigBilling from "./pages/gigs/GigBilling.js";
 import EnquiriesList from "./pages/enquiries/EnquiriesList.js";
 import EmailGenerator from "./pages/enquiries/EmailGenerator.js";
-import InvoicesList from "./pages/invoices/InvoicesList.js";
-import InvoiceDetail from "./pages/invoices/InvoiceDetail.js";
 import PeopleList from "./pages/people/PeopleList.js";
 import ServicesList from "./pages/services/ServicesList.js";
 import SongsList from "./pages/songs/SongsList.js";
@@ -23,7 +22,6 @@ const NAV_LINKS = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/gigs", label: "Gigs" },
   { to: "/enquiries", label: "Enquiries" },
-  { to: "/invoices", label: "Invoices" },
   { to: "/songs", label: "Songs" },
   { to: "/people", label: "People" },
   { to: "/services", label: "Services" },
@@ -105,10 +103,9 @@ export default function App() {
           <Route path="/gigs" element={<GigsList />} />
           <Route path="/gigs/:id" element={<GigDetail />} />
           <Route path="/gigs/:id/set-list" element={<SetListBuilder />} />
+          <Route path="/gigs/:id/invoices" element={<GigBilling />} />
           <Route path="/enquiries" element={<EnquiriesList />} />
           <Route path="/enquiries/email-generator" element={<EmailGenerator />} />
-          <Route path="/invoices" element={<InvoicesList />} />
-          <Route path="/invoices/:id" element={<InvoiceDetail />} />
           <Route path="/songs" element={<SongsList />} />
           <Route path="/people" element={<PeopleList />} />
           <Route path="/services" element={<ServicesList />} />

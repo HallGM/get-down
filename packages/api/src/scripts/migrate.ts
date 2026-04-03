@@ -78,9 +78,23 @@ export async function migrate(): Promise<void> {
   }
 
   // Always run seed (idempotent via ON CONFLICT DO NOTHING)
+  // Set app.env so seed.sql can skip dev-only rows in production.
+  // Use set_config() with a parameter to avoid any injection risk.
+  const nodeEnv = process.env.NODE_ENV ?? "development";
   const seedPath = resolve(migrationsDir, "seed.sql");
   const seedSql = readFileSync(seedPath, "utf-8");
-  await pool.query(seedSql);
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT set_config('app.env', $1, true)", [nodeEnv]);
+    await client.query(seedSql);
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
   console.log("[migrate] Seed data applied.");
 }
 

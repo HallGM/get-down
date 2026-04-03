@@ -1,6 +1,7 @@
 import type { Gig, GigLineItem, Service, CreateGigRequest, UpdateGigRequest, CreateGigLineItemRequest } from "@get-down/shared";
 import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
+import * as paymentsRepo from "../repository/payments.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 
 export async function getGigs(): Promise<Gig[]> {
@@ -9,13 +10,30 @@ export async function getGigs(): Promise<Gig[]> {
 }
 
 export async function getGigById(id: number): Promise<Gig> {
-  const [row, lineItems, services] = await Promise.all([
+  const [row, lineItems, services, payments] = await Promise.all([
     gigsRepo.readGigById(id),
     gigLineItemsRepo.readGigLineItemsByGigId(id),
     gigsRepo.readGigServicesByGigId(id),
+    paymentsRepo.readPaymentsByGigId(id),
   ]);
   if (!row) throw new NotFoundError("Gig not found");
-  return { ...mapGig(row), lineItems: lineItems.map(mapGigLineItem), services: services.map(mapGigService) };
+
+  const subtotal = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
+  const discountAmount = Math.round(subtotal * row.discount_percent / 100);
+  const total = subtotal - discountAmount + row.travel_cost;
+  const totalPaid = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
+  const depositRate = 0.10;
+  const depositRequired = Math.round(total * depositRate);
+  const depositPaid = Math.min(totalPaid, depositRequired);
+  const balanceAmount = Math.max(0, total - totalPaid);
+
+  return {
+    ...mapGig(row),
+    depositPaid,
+    balanceAmount,
+    lineItems: lineItems.map(mapGigLineItem),
+    services: services.map(mapGigService),
+  };
 }
 
 export async function createGig(input: CreateGigRequest): Promise<Gig> {
@@ -24,10 +42,11 @@ export async function createGig(input: CreateGigRequest): Promise<Gig> {
 }
 
 export async function updateGig(id: number, input: UpdateGigRequest): Promise<Gig> {
-  const existing = await getGigById(id);
-  const row = await gigsRepo.updateGig(id, buildMutationInput(input, existing));
+  const existing = await gigsRepo.readGigById(id);
+  if (!existing) throw new NotFoundError("Gig not found");
+  const row = await gigsRepo.updateGig(id, buildMutationInput(input, mapGig(existing)));
   if (!row) throw new NotFoundError("Gig not found");
-  return mapGig(row);
+  return getGigById(id);
 }
 
 export async function deleteGig(id: number): Promise<void> {
@@ -91,8 +110,6 @@ export async function convertEnquiryToGig(enquiryId: number): Promise<Gig> {
     phone: enquiry.phone ?? undefined,
     date: toDateString(enquiry.event_date) ?? enquiry.event_date,
     location: enquiry.venue_location ?? undefined,
-    depositPaid: 0,
-    balanceAmount: 0,
     travelCost: 0,
     discountPercent: 0,
   });
@@ -122,8 +139,6 @@ function mapGig(row: gigsRepo.GigRow): Gig {
     location: row.location ?? undefined,
     description: row.description ?? undefined,
     totalPrice: row.total_price ?? undefined,
-    depositPaid: row.deposit_paid,
-    balanceAmount: row.balance_amount,
     travelCost: row.travel_cost,
     discountPercent: row.discount_percent,
     airtableId: row.airtable_id ?? undefined,
@@ -173,8 +188,7 @@ function buildMutationInput(
     location: input.location?.trim() ?? existing?.location,
     description: input.description?.trim() ?? existing?.description,
     totalPrice: input.totalPrice ?? existing?.totalPrice,
-    depositPaid: input.depositPaid ?? existing?.depositPaid ?? 0,
-    balanceAmount: input.balanceAmount ?? existing?.balanceAmount ?? 0,
+    // Preserve existing billing settings when partial updates omit them.
     travelCost: input.travelCost ?? existing?.travelCost ?? 0,
     discountPercent: input.discountPercent ?? existing?.discountPercent ?? 0,
     airtableId: input.airtableId ?? existing?.airtableId,

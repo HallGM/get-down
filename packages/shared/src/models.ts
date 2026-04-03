@@ -199,8 +199,8 @@ export interface Gig {
   location?: string;
   description?: string;
   totalPrice?: number;
-  depositPaid: number;
-  balanceAmount: number;
+  depositPaid?: number;
+  balanceAmount?: number;
   travelCost: number;
   discountPercent: number;
   lineItems?: GigLineItem[];
@@ -223,8 +223,6 @@ export interface CreateGigRequest {
   location?: string;
   description?: string;
   totalPrice?: number;
-  depositPaid?: number;
-  balanceAmount?: number;
   travelCost?: number;
   discountPercent?: number;
   airtableId?: string;
@@ -245,8 +243,6 @@ export interface UpdateGigRequest {
   location?: string;
   description?: string;
   totalPrice?: number;
-  depositPaid?: number;
-  balanceAmount?: number;
   travelCost?: number;
   discountPercent?: number;
   airtableId?: string;

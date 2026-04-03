@@ -1,10 +1,11 @@
 ---
+name: review-quality
 description: >
   Reviews code changes for quality, readability, maintainability, and
   adherence to project conventions. Invoke only from review-lead.
 mode: subagent
 hidden: true
-model: github-copilot/gpt-5.4
+model: opencode/qwen3.6-plus-free
 temperature: 0.1
 permission:
   edit: deny
