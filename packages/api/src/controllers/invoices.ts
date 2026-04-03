@@ -23,9 +23,12 @@ router.delete("/invoices/:id/additional-charges/:chargeId", handle(req => invoic
 router.post("/invoices/:id/payments-made",                  handle(req => invoicesService.addPaymentMade(+req.params.id, req.body), 201));
 router.delete("/invoices/:id/payments-made/:paymentMadeId", handle(req => invoicesService.removePaymentMade(+req.params.id, +req.params.paymentMadeId), 204));
 
+// These two routes cannot use handle() because they stream a PDF response
+// via proxyToFlask rather than returning a JSON-serialisable value.
 router.get("/gigs/:id/invoice-preview", async (req, res, next) => {
   try {
-    const payload = await invoicesService.buildPreviewPayloadForGig(+req.params.id);
+    const invoiceType = req.query.invoiceType === 'deposit' ? 'deposit' : 'balance';
+    const payload = await invoicesService.buildPreviewPayloadForGig(+req.params.id, invoiceType);
     await proxyToFlask(payload, "inline", res);
   } catch (err) {
     if (!res.headersSent) next(err);
