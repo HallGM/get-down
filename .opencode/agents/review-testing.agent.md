@@ -1,10 +1,11 @@
 ---
+name: review-testing
 description: >
   Reviews test quality, coverage gaps, and assertion correctness for
   changed code. Invoke only from review-lead.
 mode: subagent
 hidden: true
-model: github-copilot/claude-sonnet-4.6
+model: opencode/qwen3.6-plus-free
 temperature: 0.1
 permission:
   edit: deny

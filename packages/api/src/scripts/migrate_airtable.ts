@@ -415,11 +415,6 @@ async function main(): Promise<void> {
     const status = f["Cancelled?"] === true ? "cancelled" : "confirmed";
 
     const totalPrice  = toP(f["Total Charge (actual)"] ?? f["Total Charge"] ?? 0);
-    const depositPaid = toP(f["Deposit Amount"] ?? 0);
-    const balance =
-      typeof f["Balance Amount"] === "number"
-        ? toP(f["Balance Amount"])
-        : Math.max(0, totalPrice - depositPaid);
     const travelCost     = toP(f["Travel"] ?? 0);
     const discountPercent = Math.round(
       (typeof f["Discount"] === "number" ? f["Discount"] : 0) * 100
@@ -433,8 +428,6 @@ async function main(): Promise<void> {
       venueName: str(f["Venue"]) ?? undefined,
       description: str(f["description"]) ?? undefined,
       totalPrice,
-      depositPaid,
-      balanceAmount: balance,
       travelCost,
       discountPercent,
       attributionId,

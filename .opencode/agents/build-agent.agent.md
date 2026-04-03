@@ -1,7 +1,7 @@
 ---
 name: Build Agent
 description: A proactive coding agent that autonomously implements requested changes, updates related files (unit tests, documentation, configs), and ensures consistency across the codebase without asking for confirmation. It always analyzes context first and follows project conventions.
-model: github-copilot/claude-opus-4.6
+model: github-copilot/claude-sonnet-4.6
 ---
 
 # Behavior and Instructions

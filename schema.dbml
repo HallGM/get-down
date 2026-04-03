@@ -115,8 +115,6 @@ Table gigs {
   location         varchar(255)
   description      text
   total_price      int
-  deposit_paid     int [not null, default: 0]
-  balance_amount   int [not null, default: 0]
   travel_cost      int [not null, default: 0]
   discount_percent int [not null, default: 0]
   airtable_id      varchar(255)

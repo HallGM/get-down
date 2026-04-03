@@ -1,11 +1,12 @@
 ---
+name: review-spec
 description: >
   Reviews whether code changes correctly and completely implement the
   stated intent. Checks logic, edge cases, data flow, and completeness.
   Invoke only from review-lead.
 mode: subagent
 hidden: true
-model: github-copilot/claude-sonnet-4.6
+model: opencode/qwen3.6-plus-free
 temperature: 0.1
 permission:
   edit: deny

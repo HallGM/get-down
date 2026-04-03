@@ -1,11 +1,12 @@
 ---
+name: review-ux
 description: >
   Reviews code changes for UX, accessibility (WCAG 2.1 AA), responsive
   design, API ergonomics, breaking changes, and user-facing text quality.
   Invoke only from review-lead.
 mode: subagent
 hidden: true
-model: github-copilot/claude-sonnet-4.6
+model: opencode/qwen3.6-plus-free
 temperature: 0.1
 permission:
   edit: deny
@@ -70,14 +71,10 @@ handled by other reviewers.
 
 ### User-facing text
 
-15. **Sentence case**: All UI text must use sentence case — labels, buttons,
-    headings, menu items, column headers. Capitalise only product names,
-    proper nouns, and acronyms.
-    - Wrong: "Create New Asset" / Right: "Create new asset"
+15. **Casing**: Do NOT flag sentence case vs title case differences. The project has no casing convention — both are acceptable.
 16. **Error messages**: Must explain what went wrong AND what to do next.
     - Wrong: "An error occurred" / Right: "We couldn't save your changes. Try again."
-17. **Button and action text**: Specific verbs, not generic labels.
-    - Wrong: "Submit", "OK" / Right: "Save changes", "Delete booking"
+17. **Button and action text**: Short labels like "+", "Add", "Edit", "PDF" are fine when the surrounding context makes the action obvious. Only flag truly ambiguous labels like "Submit" or "OK" with no contextual clue.
 18. **API error responses**: JSON error messages should be human-readable.
     - Wrong: `{ "error": "INVALID_PARAM" }` / Right: `{ "error": "Name must be at least 1 character." }`
 

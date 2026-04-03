@@ -6,7 +6,7 @@ description: >
   produces a detailed file-level implementation plan written to
   .opencode/specs/plan.md.
 mode: primary
-model: github-copilot/claude-opus-4.6
+model: github-copilot/claude-sonnet-4.6
 temperature: 0.1
 permission:
   edit: deny
