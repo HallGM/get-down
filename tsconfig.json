@@ -13,9 +13,8 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "composite": true,
-    "baseUrl": ".",
     "paths": {
-      "@get-down/shared": ["packages/shared/src/index.ts"]
+      "@get-down/shared": ["./packages/shared/src/index.ts"]
     }
   },
   "references": [
