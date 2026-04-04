@@ -65,15 +65,15 @@ async function start(): Promise<void> {
     console.log(`listening on http://localhost:${port}`);
   });
 
-  const keepAliveUrls = [process.env.API_URL ?? process.env.RENDER_EXTERNAL_URL, process.env.INVOICE_SERVICE_URL]
-    .filter(Boolean)
-    .map((url) => `${url}/health`);
-
-  if (keepAliveUrls.length > 0) {
-    const timer = setInterval(() => {
-      keepAliveUrls.forEach((url) => fetch(url).catch(() => {}));
+  if (process.env.RENDER_EXTERNAL_URL) {
+    const url = process.env.RENDER_EXTERNAL_URL;
+    setInterval(() => {
+      console.log(`[keep-alive] pinging ${url}`);
+      fetch(url).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[keep-alive] ping failed: ${message}`);
+      });
     }, 14 * 60 * 1000);
-    timer.unref();
   }
 }
 

@@ -309,15 +309,16 @@ def health():
 
 
 def _keep_alive():
+    url = os.getenv("RENDER_EXTERNAL_URL")
+    if not url:
+        return
     time.sleep(60)
-    urls = [
-        f"{u}/health" for u in [os.getenv("INVOICE_SERVICE_URL"), os.getenv("API_URL")] if u]
     while True:
-        for url in urls:
-            try:
-                urlopen(url, timeout=10)
-            except Exception:
-                pass
+        try:
+            logger.info(f"[keep-alive] pinging {url}")
+            urlopen(url, timeout=10)
+        except Exception as e:
+            logger.error(f"[keep-alive] ping failed: {str(e)}")
         time.sleep(14 * 60)
 
 
