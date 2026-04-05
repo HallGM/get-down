@@ -96,6 +96,10 @@ services:
     branch: main
     buildCommand: npm install -g pnpm && pnpm install --prod=false && pnpm -C packages/gui build
     staticPublishPath: packages/gui/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       # Set this to the deployed API URL, e.g. https://get-down-api.onrender.com
       - key: VITE_API_URL
