@@ -1,6 +1,6 @@
 /**
  * Core API fetch wrapper.
- * Attaches JWT from sessionStorage, handles 401 → logout redirect.
+ * Attaches JWT from localStorage, handles 401 → logout redirect.
  */
 
 // In production the GUI is a static site with no proxy, so all API calls must
@@ -10,15 +10,15 @@ const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 const TOKEN_KEY = "ea_token";
 
 export function getToken(): string | null {
-  return sessionStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
-  sessionStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function clearToken(): void {
-  sessionStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_KEY);
 }
 
 export class ApiError extends Error {
