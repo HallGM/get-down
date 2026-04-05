@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // On mount, if a token is in sessionStorage, validate it by fetching /auth/me
+  // On mount, if a token is in localStorage, validate it by fetching /auth/me
   useEffect(() => {
     const token = getToken();
     if (!token) {
