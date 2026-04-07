@@ -552,6 +552,8 @@ export interface SetListItem {
   songId: number;
   position?: number;
   notes?: string;
+  overrideKey?: string;
+  overrideVocalType?: string;
 }
 
 export interface SetListItemWithSong extends SetListItem {
@@ -567,6 +569,11 @@ export interface CreateSetListItemRequest {
   songId: number;
   position?: number;
   notes?: string;
+}
+
+export interface UpdateSetListItemRequest {
+  overrideKey?: string | null;
+  overrideVocalType?: string | null;
 }
 
 export interface GigSongPreferences {

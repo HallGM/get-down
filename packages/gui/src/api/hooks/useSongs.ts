@@ -92,3 +92,49 @@ export function useBulkImportSetList() {
     successMessage: "Songs imported from preferences",
   });
 }
+
+export function useUpdateSetListItem() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({
+      gigId,
+      itemId,
+      overrideKey,
+      overrideVocalType,
+    }: {
+      gigId: number;
+      itemId: number;
+      overrideKey?: string | null;
+      overrideVocalType?: string | null;
+    }) =>
+      apiFetch<SetListItemWithSong>("PATCH", `/gigs/${gigId}/set-list/${itemId}`, {
+        overrideKey,
+        overrideVocalType,
+      }),
+    onMutate: async ({ gigId, itemId, overrideKey, overrideVocalType }) => {
+      await qc.cancelQueries({ queryKey: [SET_LIST_KEY, gigId] });
+      const previous = qc.getQueryData<SetListItemWithSong[]>([SET_LIST_KEY, gigId]);
+      qc.setQueryData<SetListItemWithSong[]>([SET_LIST_KEY, gigId], old =>
+        old?.map(item =>
+          item.id === itemId
+            ? {
+                ...item,
+                overrideKey: overrideKey === undefined ? item.overrideKey : (overrideKey ?? undefined),
+                overrideVocalType: overrideVocalType === undefined ? item.overrideVocalType : (overrideVocalType ?? undefined),
+              }
+            : item
+        )
+      );
+      return { previous, gigId };
+    },
+    onError: (_err, _vars, context) => {
+      const ctx = context as { previous: SetListItemWithSong[] | undefined; gigId: number } | undefined;
+      if (ctx?.previous !== undefined) {
+        qc.setQueryData([SET_LIST_KEY, ctx.gigId], ctx.previous);
+      }
+    },
+    onSettled: (_data, _err, { gigId }) => {
+      qc.invalidateQueries({ queryKey: [SET_LIST_KEY, gigId] });
+    },
+  });
+}

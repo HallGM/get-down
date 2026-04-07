@@ -93,6 +93,8 @@ export interface SetListItemRow {
   song_id: number;
   position: number | null;
   notes: string | null;
+  override_key: string | null;
+  override_vocal_type: string | null;
 }
 
 export interface SetListItemWithSongRow extends SetListItemRow {
@@ -109,6 +111,7 @@ export async function readSetListByGigId(gigId: number): Promise<SetListItemWith
     text: `
       SELECT
         sli.id, sli.gig_id, sli.song_id, sli.position, sli.notes,
+        sli.override_key, sli.override_vocal_type,
         s.title, s.artist, s.musical_key, s.vocal_type,
         EXISTS (SELECT 1 FROM gig_song_must_plays mp WHERE mp.gig_id = sli.gig_id AND mp.song_id = sli.song_id) AS is_must_play,
         EXISTS (SELECT 1 FROM gig_song_favourites fav WHERE fav.gig_id = sli.gig_id AND fav.song_id = sli.song_id) AS is_favourite
@@ -121,6 +124,28 @@ export async function readSetListByGigId(gigId: number): Promise<SetListItemWith
   });
 }
 
+export async function readSetListItemById(
+  itemId: number,
+  gigId: number
+): Promise<SetListItemWithSongRow | null> {
+  const rows = await run_query<SetListItemWithSongRow>({
+    text: `
+      SELECT
+        sli.id, sli.gig_id, sli.song_id, sli.position, sli.notes,
+        sli.override_key, sli.override_vocal_type,
+        s.title, s.artist, s.musical_key, s.vocal_type,
+        EXISTS (SELECT 1 FROM gig_song_must_plays mp WHERE mp.gig_id = sli.gig_id AND mp.song_id = sli.song_id) AS is_must_play,
+        EXISTS (SELECT 1 FROM gig_song_favourites fav WHERE fav.gig_id = sli.gig_id AND fav.song_id = sli.song_id) AS is_favourite
+      FROM set_list_items sli
+      JOIN songs s ON s.id = sli.song_id
+      WHERE sli.id = $1 AND sli.gig_id = $2
+      LIMIT 1;
+    `,
+    values: [itemId, gigId],
+  });
+  return rows[0] ?? null;
+}
+
 export async function createSetListItem(
   gigId: number,
   songId: number,
@@ -128,10 +153,28 @@ export async function createSetListItem(
   notes: string | null
 ): Promise<SetListItemRow> {
   const rows = await run_query<SetListItemRow>({
-    text: `INSERT INTO set_list_items (gig_id, song_id, position, notes) VALUES ($1, $2, $3, $4) RETURNING id, gig_id, song_id, position, notes;`,
+    text: `INSERT INTO set_list_items (gig_id, song_id, position, notes) VALUES ($1, $2, $3, $4) RETURNING id, gig_id, song_id, position, notes, override_key, override_vocal_type;`,
     values: [gigId, songId, position, notes],
   });
   return rows[0];
+}
+
+export async function updateSetListItem(
+  itemId: number,
+  gigId: number,
+  overrideKey: string | null,
+  overrideVocalType: string | null
+): Promise<SetListItemRow | null> {
+  const rows = await run_query<SetListItemRow>({
+    text: `
+      UPDATE set_list_items
+      SET override_key = $1, override_vocal_type = $2
+      WHERE id = $3 AND gig_id = $4
+      RETURNING id, gig_id, song_id, position, notes, override_key, override_vocal_type;
+    `,
+    values: [overrideKey, overrideVocalType, itemId, gigId],
+  });
+  return rows[0] ?? null;
 }
 
 export async function deleteSetListItem(id: number): Promise<boolean> {
