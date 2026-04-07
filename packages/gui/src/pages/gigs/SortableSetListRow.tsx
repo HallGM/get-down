@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { SetListItemWithSong } from "@get-down/shared";
@@ -7,21 +8,50 @@ interface Props {
   index: number;
   onRemove: (itemId: number) => void;
   removing: boolean;
+  onUpdateItem: (itemId: number, field: "key" | "vocalType", value: string | null) => void;
 }
 
-export default function SortableSetListRow({ item, index, onRemove, removing }: Props) {
+export default function SortableSetListRow({ item, index, onRemove, removing, onUpdateItem }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
 
-  const style: React.CSSProperties = {
+  const [editingField, setEditingField] = useState<"key" | "vocalType" | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [focusedField, setFocusedField] = useState<"key" | "vocalType" | null>(null);
+  // Guard against onBlur firing after Enter/Escape already committed
+  const committedRef = useRef(false);
+
+  const displayKey = item.overrideKey ?? item.musicalKey;
+  const displayVocalType = item.overrideVocalType ?? item.vocalType;
+
+  function startEdit(field: "key" | "vocalType") {
+    committedRef.current = false;
+    setEditingField(field);
+    setFocusedField(null);
+    setEditValue(field === "key" ? (displayKey ?? "") : (displayVocalType ?? ""));
+  }
+
+  function commit(field: "key" | "vocalType") {
+    if (committedRef.current) return;
+    committedRef.current = true;
+    setEditingField(null);
+    onUpdateItem(item.id, field, editValue.trim() || null);
+  }
+
+  function cancel() {
+    committedRef.current = true;
+    setEditingField(null);
+  }
+
+  const rowStyle: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
     display: "grid",
-    gridTemplateColumns: "2rem 1.5rem 1fr auto auto auto",
+    gridTemplateColumns: "1.5rem 1.5rem 1fr auto auto auto",
     alignItems: "center",
     gap: "0.5rem",
-    padding: "0.4rem 0.6rem",
+    padding: "0.5rem 0.75rem",
     background: "var(--pico-card-background-color)",
     border: "1px solid var(--pico-muted-border-color)",
     borderRadius: "var(--pico-border-radius)",
@@ -30,43 +60,138 @@ export default function SortableSetListRow({ item, index, onRemove, removing }: 
   };
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={rowStyle}>
+      {/* Drag handle — subtle, no background */}
       <span
         {...attributes}
         {...listeners}
-        style={{ cursor: "grab", fontSize: "1.1rem", lineHeight: 1, userSelect: "none", touchAction: "none" }}
+        style={{
+          cursor: "grab",
+          fontSize: "1rem",
+          lineHeight: 1,
+          userSelect: "none",
+          touchAction: "none",
+          color: "var(--pico-muted-color)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
         title="Drag to reorder"
       >
         ⠿
       </span>
-      <small style={{ color: "var(--pico-muted-color)", fontVariantNumeric: "tabular-nums" }}>
+
+      {/* Row number */}
+      <small style={{ color: "var(--pico-muted-color)", fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
         {index + 1}
       </small>
-      <div>
-        <strong>{item.title}</strong>
-        {item.artist && <span style={{ color: "var(--pico-muted-color)" }}> · {item.artist}</span>}
-        {item.musicalKey && (
-          <small style={{ marginLeft: "0.4rem", background: "var(--pico-secondary-background)", padding: "0 0.3em", borderRadius: "0.2em" }}>
-            {item.musicalKey}
-          </small>
+
+      {/* Song info */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap", minWidth: 0 }}>
+        <strong style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {item.title}
+        </strong>
+        {item.artist && (
+          <span style={{ color: "var(--pico-muted-color)", whiteSpace: "nowrap" }}>· {item.artist}</span>
         )}
-        {item.vocalType && (
-          <small style={{ marginLeft: "0.3rem", color: "var(--pico-muted-color)" }}>
-            ({item.vocalType})
-          </small>
+
+        {/* Key — inline editable */}
+        {editingField === "key" ? (
+          <input
+            type="text"
+            autoFocus
+            value={editValue}
+            onChange={e => setEditValue(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") { e.preventDefault(); commit("key"); }
+              if (e.key === "Escape") { e.preventDefault(); cancel(); }
+            }}
+            onBlur={() => commit("key")}
+            style={{
+              width: "4.5rem",
+              padding: "0.1em 0.3em",
+              fontSize: "0.78rem",
+              borderRadius: "0.25em",
+              border: "1px solid var(--pico-primary)",
+              outline: "2px solid var(--pico-primary-focus)",
+              outlineOffset: "1px",
+            }}
+            placeholder="e.g. G"
+            aria-label="Override key"
+          />
+        ) : (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={() => startEdit("key")}
+            onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startEdit("key"); } }}
+            onFocus={() => setFocusedField("key")}
+            onBlur={() => setFocusedField(null)}
+            title="Click to edit key for this set list"
+            style={
+              focusedField === "key"
+                ? { ...(displayKey ? keyBadgeStyle : placeholderStyle), outline: "2px solid var(--pico-primary-focus)", outlineOffset: "2px" }
+                : displayKey ? keyBadgeStyle : placeholderStyle
+            }
+          >
+            {displayKey ?? "add key"}
+          </span>
+        )}
+
+        {/* Vocal type — inline editable */}
+        {editingField === "vocalType" ? (
+          <input
+            type="text"
+            autoFocus
+            value={editValue}
+            onChange={e => setEditValue(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") { e.preventDefault(); commit("vocalType"); }
+              if (e.key === "Escape") { e.preventDefault(); cancel(); }
+            }}
+            onBlur={() => commit("vocalType")}
+            style={{
+              width: "6rem",
+              padding: "0.1em 0.3em",
+              fontSize: "0.78rem",
+              borderRadius: "0.25em",
+              border: "1px solid var(--pico-primary)",
+              outline: "2px solid var(--pico-primary-focus)",
+              outlineOffset: "1px",
+            }}
+            placeholder="e.g. Male"
+            aria-label="Override vocal type"
+          />
+        ) : (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={() => startEdit("vocalType")}
+            onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startEdit("vocalType"); } }}
+            onFocus={() => setFocusedField("vocalType")}
+            onBlur={() => setFocusedField(null)}
+            title="Click to edit vocal type for this set list"
+            style={
+              focusedField === "vocalType"
+                ? { ...(displayVocalType ? vocalTypeBadgeStyle : placeholderStyle), outline: "2px solid var(--pico-primary-focus)", outlineOffset: "2px" }
+                : displayVocalType ? vocalTypeBadgeStyle : placeholderStyle
+            }
+          >
+            {displayVocalType ?? "add vocal type"}
+          </span>
         )}
       </div>
-      {item.isMustPlay && (
-        <small style={{ whiteSpace: "nowrap", background: "var(--pico-del-color)", color: "#fff", padding: "0.1em 0.4em", borderRadius: "0.25em", fontSize: "0.7rem" }}>
-          MUST PLAY
-        </small>
+
+      {/* Must play / Favourite badge */}
+      {item.isMustPlay ? (
+        <small style={mustPlayBadgeStyle}>MUST PLAY</small>
+      ) : item.isFavourite ? (
+        <small style={favBadgeStyle}>★ FAV</small>
+      ) : (
+        <span />
       )}
-      {item.isFavourite && !item.isMustPlay && (
-        <small style={{ whiteSpace: "nowrap", background: "var(--pico-ins-color)", color: "#fff", padding: "0.1em 0.4em", borderRadius: "0.25em", fontSize: "0.7rem" }}>
-          ★ FAV
-        </small>
-      )}
-      {!item.isMustPlay && !item.isFavourite && <span />}
+
+      {/* Remove button */}
       <button
         className="contrast outline"
         style={{ padding: "0.1em 0.5em", fontSize: "0.85rem" }}
@@ -80,3 +205,58 @@ export default function SortableSetListRow({ item, index, onRemove, removing }: 
     </div>
   );
 }
+
+// ─── Style constants ──────────────────────────────────────────────────────────
+
+const keyBadgeStyle: React.CSSProperties = {
+  display: "inline-block",
+  background: "var(--pico-secondary-background)",
+  color: "var(--pico-secondary-inverse)",
+  border: "1px solid var(--pico-secondary-border)",
+  padding: "0.05em 0.45em",
+  borderRadius: "0.25em",
+  fontSize: "0.75rem",
+  fontWeight: 600,
+  letterSpacing: "0.02em",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
+
+const vocalTypeBadgeStyle: React.CSSProperties = {
+  display: "inline-block",
+  background: "var(--pico-ins-color)",
+  color: "#fff",
+  border: "1px solid transparent",
+  padding: "0.05em 0.45em",
+  borderRadius: "0.25em",
+  fontSize: "0.75rem",
+  fontWeight: 500,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
+
+const placeholderStyle: React.CSSProperties = {
+  fontSize: "0.72rem",
+  color: "var(--pico-muted-color)",
+  cursor: "pointer",
+  opacity: 0.7,
+  whiteSpace: "nowrap",
+};
+
+const mustPlayBadgeStyle: React.CSSProperties = {
+  whiteSpace: "nowrap",
+  background: "var(--pico-del-color)",
+  color: "#fff",
+  padding: "0.1em 0.4em",
+  borderRadius: "0.25em",
+  fontSize: "0.7rem",
+};
+
+const favBadgeStyle: React.CSSProperties = {
+  whiteSpace: "nowrap",
+  background: "var(--pico-ins-color)",
+  color: "#fff",
+  padding: "0.1em 0.4em",
+  borderRadius: "0.25em",
+  fontSize: "0.7rem",
+};

@@ -22,6 +22,7 @@ import {
   useReorderSetList,
   useBulkImportSetList,
   useSongs,
+  useUpdateSetListItem,
 } from "../../api/hooks/useSongs.js";
 import { useGigSongPreferences, useUpdateGigSongPreferences } from "../../api/hooks/useGigSongPreferences.js";
 import LoadingState from "../../components/LoadingState.js";
@@ -45,6 +46,7 @@ export default function SetListBuilder() {
   const addItem = useAddSetListItem();
   const removeItem = useRemoveSetListItem();
   const updatePrefs = useUpdateGigSongPreferences();
+  const updateItem = useUpdateSetListItem();
 
   // Local ordering state (drives optimistic DnD)
   const [localOrder, setLocalOrder] = useState<SetListItemWithSong[] | null>(null);
@@ -135,6 +137,14 @@ export default function SetListBuilder() {
                   index={i}
                   removing={removeItem.isPending}
                   onRemove={(itemId) => removeItem.mutate({ gigId, itemId })}
+                  onUpdateItem={(itemId, field, value) =>
+                    updateItem.mutate({
+                      gigId,
+                      itemId,
+                      overrideKey: field === "key" ? value : undefined,
+                      overrideVocalType: field === "vocalType" ? value : undefined,
+                    })
+                  }
                 />
               ))}
             </SortableContext>

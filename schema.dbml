@@ -264,6 +264,8 @@ Table set_list_items {
   song_id int [ref: > songs.id, not null]
   position int
   notes text
+  override_key varchar(50)
+  override_vocal_type varchar(50)
 }
 
 Table gig_song_favourites {
