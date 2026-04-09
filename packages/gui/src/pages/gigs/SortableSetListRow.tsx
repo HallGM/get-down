@@ -51,7 +51,7 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
     gridTemplateColumns: "1.5rem 1.5rem 1fr auto auto auto",
     alignItems: "center",
     gap: "0.5rem",
-    padding: "0.5rem 0.75rem",
+    padding: "0.25rem 0.75rem",
     background: "var(--pico-card-background-color)",
     border: "1px solid var(--pico-muted-border-color)",
     borderRadius: "var(--pico-border-radius)",
@@ -75,6 +75,12 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          // Pico v2 styles [role="button"] like a <button> (filled bg, border, padding).
+          // dnd-kit injects role="button" via {...attributes}, so we must reset explicitly.
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          boxShadow: "none",
         }}
         title="Drag to reorder"
       >
@@ -108,8 +114,12 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
             }}
             onBlur={() => commit("key")}
             style={{
-              width: "4.5rem",
-              padding: "0.1em 0.3em",
+              width: "3rem",
+              height: "1.4em",
+              padding: "0 0.3em",
+              margin: 0,
+              lineHeight: 1,
+              boxSizing: "border-box",
               fontSize: "0.78rem",
               borderRadius: "0.25em",
               border: "1px solid var(--pico-primary)",
@@ -151,8 +161,12 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
             }}
             onBlur={() => commit("vocalType")}
             style={{
-              width: "6rem",
-              padding: "0.1em 0.3em",
+              width: "4.5rem",
+              height: "1.4em",
+              padding: "0 0.3em",
+              margin: 0,
+              lineHeight: 1,
+              boxSizing: "border-box",
               fontSize: "0.78rem",
               borderRadius: "0.25em",
               border: "1px solid var(--pico-primary)",
