@@ -350,7 +350,7 @@ export default function SetListBuilder() {
                       onClick={() => { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); }}
                       onKeyDown={e => { if (e.key === "Enter") { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); } }}
                     >
-                      <strong>{s.title}</strong>
+                      <strong style={{ color: "var(--pico-color)" }}>{s.title}</strong>
                       {s.artist && <span style={{ color: "var(--pico-muted-color)" }}>· {s.artist}</span>}
                       {s.musicalKey && <small style={{ marginLeft: "0.2rem" }}>{s.musicalKey}</small>}
                       {s.vocalType && <small style={{ color: "var(--pico-muted-color)" }}>({s.vocalType})</small>}
