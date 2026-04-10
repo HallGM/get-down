@@ -242,7 +242,7 @@ export async function deleteSetListItem(id: number): Promise<boolean> {
 
 export async function reorderSetListItems(gigId: number, itemIds: number[]): Promise<void> {
   // Use WITH ORDINALITY to safely zip item IDs with their 1-based positions
-  const result = await run_query<{ id: number; position: number }>({
+  await run_query({
     text: `
       UPDATE set_list_items AS sli
       SET position = ord.pos
@@ -250,15 +250,10 @@ export async function reorderSetListItems(gigId: number, itemIds: number[]): Pro
         SELECT id, ordinality::int AS pos
         FROM unnest($1::int[]) WITH ORDINALITY AS u(id, ordinality)
       ) AS ord
-      WHERE sli.id = ord.id AND sli.gig_id = $2
-      RETURNING sli.id, ord.pos AS position;
+      WHERE sli.id = ord.id AND sli.gig_id = $2;
     `,
     values: [itemIds, gigId],
   });
-  console.log(`[reorder] gigId=${gigId} rowsUpdated=${result.length} expected=${itemIds.length}`);
-  if (result.length !== itemIds.length) {
-    console.warn(`[reorder] WARNING: updated ${result.length} rows but expected ${itemIds.length} — possible gig_id mismatch or stale item ids`);
-  }
 }
 
 export async function readSetListSongIds(gigId: number): Promise<number[]> {
