@@ -330,7 +330,6 @@ export default function SetListBuilder() {
                   return (
                     <div
                       key={s.id}
-                      role="button"
                       tabIndex={0}
                       aria-label={`Add ${s.title}${s.artist ? ` by ${s.artist}` : ""}${isDnp ? " (Do Not Play warning)" : ""} to set list`}
                       style={{
@@ -350,7 +349,7 @@ export default function SetListBuilder() {
                       onClick={() => { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); }}
                       onKeyDown={e => { if (e.key === "Enter") { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); } }}
                     >
-                      <strong style={{ color: "var(--pico-color)" }}>{s.title}</strong>
+                      <strong>{s.title}</strong>
                       {s.artist && <span style={{ color: "var(--pico-muted-color)" }}>· {s.artist}</span>}
                       {s.musicalKey && <small style={{ marginLeft: "0.2rem" }}>{s.musicalKey}</small>}
                       {s.vocalType && <small style={{ color: "var(--pico-muted-color)" }}>({s.vocalType})</small>}
