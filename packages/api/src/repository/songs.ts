@@ -240,6 +240,21 @@ export async function deleteSetListItem(id: number): Promise<boolean> {
   return rows.length > 0;
 }
 
+export async function clearSetList(gigId: number): Promise<void> {
+  await run_query({
+    text: `DELETE FROM set_list_items WHERE gig_id = $1;`,
+    values: [gigId],
+  });
+}
+
+export async function bulkDeleteSetListItems(gigId: number, itemIds: number[]): Promise<void> {
+  if (itemIds.length === 0) return;
+  await run_query({
+    text: `DELETE FROM set_list_items WHERE gig_id = $1 AND id = ANY($2::int[]);`,
+    values: [gigId, itemIds],
+  });
+}
+
 export async function reorderSetListItems(gigId: number, itemIds: number[]): Promise<void> {
   // Use WITH ORDINALITY to safely zip item IDs with their 1-based positions
   await run_query({

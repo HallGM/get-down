@@ -8,11 +8,13 @@ interface Props {
   index: number;
   onRemove: (itemId: number) => void;
   removing: boolean;
+  selected: boolean;
+  onToggleSelect: (itemId: number) => void;
   onUpdateItem: (itemId: number, field: "key" | "vocalType" | "unlinkedTitle" | "unlinkedArtist" | "unlinkedKey" | "unlinkedVocalType", value: string | null) => void;
   onEditUnlinked?: (item: SetListItemWithSong) => void;
 }
 
-export default function SortableSetListRow({ item, index, onRemove, removing, onUpdateItem, onEditUnlinked }: Props) {
+export default function SortableSetListRow({ item, index, onRemove, removing, selected, onToggleSelect, onUpdateItem, onEditUnlinked }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
 
@@ -61,16 +63,20 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
     transition,
     opacity: isDragging ? 0.5 : 1,
     display: "grid",
-    gridTemplateColumns: "1.5rem 1.5rem 1fr auto auto auto",
+    gridTemplateColumns: "1.2rem 1.5rem 1.5rem 1fr auto auto auto",
     alignItems: "center",
     gap: "0.5rem",
     padding: "0.25rem 0.75rem",
-    background: item.isDoNotPlay
-      ? "color-mix(in srgb, var(--pico-del-color) 8%, var(--pico-card-background-color))"
-      : "var(--pico-card-background-color)",
-    border: item.isDoNotPlay
-      ? "1px solid color-mix(in srgb, var(--pico-del-color) 40%, transparent)"
-      : "1px solid var(--pico-muted-border-color)",
+    background: selected
+      ? "color-mix(in srgb, var(--pico-primary) 8%, var(--pico-card-background-color))"
+      : item.isDoNotPlay
+        ? "color-mix(in srgb, var(--pico-del-color) 8%, var(--pico-card-background-color))"
+        : "var(--pico-card-background-color)",
+    border: selected
+      ? "1px solid color-mix(in srgb, var(--pico-primary) 40%, transparent)"
+      : item.isDoNotPlay
+        ? "1px solid color-mix(in srgb, var(--pico-del-color) 40%, transparent)"
+        : "1px solid var(--pico-muted-border-color)",
     borderRadius: "var(--pico-border-radius)",
     marginBottom: "0.25rem",
     cursor: isDragging ? "grabbing" : undefined,
@@ -78,6 +84,15 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
 
   return (
     <div ref={setNodeRef} style={rowStyle}>
+      {/* Checkbox */}
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={() => onToggleSelect(item.id)}
+        aria-label={`Select ${item.title}`}
+        style={{ margin: 0, cursor: "pointer" }}
+      />
+
       {/* Drag handle */}
       <span
         {...attributes}
