@@ -110,6 +110,16 @@ export async function removeSetListItem(_gigId: number, itemId: number): Promise
   if (!deleted) throw new NotFoundError("SetListItem not found");
 }
 
+export async function clearSetList(gigId: number): Promise<void> {
+  await songsRepo.clearSetList(gigId);
+}
+
+export async function bulkDeleteSetListItems(gigId: number, body: unknown): Promise<void> {
+  const schema = z.object({ itemIds: z.array(z.number().int().positive()).min(1) });
+  const { itemIds } = parseOrBadRequest(schema, body);
+  await songsRepo.bulkDeleteSetListItems(gigId, itemIds);
+}
+
 export async function reorderSetList(gigId: number, input: ReorderSetListRequest): Promise<void> {
   if (!Array.isArray(input.itemIds) || input.itemIds.length === 0) return;
   await songsRepo.reorderSetListItems(gigId, input.itemIds);

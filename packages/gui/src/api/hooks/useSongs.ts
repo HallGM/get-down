@@ -72,6 +72,28 @@ export function useRemoveSetListItem() {
   });
 }
 
+export function useClearSetList() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: (gigId: number) =>
+      apiFetch<void>("DELETE", `/gigs/${gigId}/set-list`),
+    onSuccess: (_data, gigId) =>
+      qc.invalidateQueries({ queryKey: [SET_LIST_KEY, gigId] }),
+    successMessage: "Set list cleared",
+  });
+}
+
+export function useBulkRemoveSetListItems() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ gigId, itemIds }: { gigId: number; itemIds: number[] }) =>
+      apiFetch<void>("DELETE", `/gigs/${gigId}/set-list/bulk`, { itemIds }),
+    onSuccess: (_data, { gigId }) =>
+      qc.invalidateQueries({ queryKey: [SET_LIST_KEY, gigId] }),
+    successMessage: "Songs removed from set list",
+  });
+}
+
 export function useReorderSetList() {
   const qc = useQueryClient();
   return useApiMutation({

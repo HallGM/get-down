@@ -24,6 +24,8 @@ import {
   useSongs,
   useUpdateSetListItem,
   useAutoOrderSetList,
+  useClearSetList,
+  useBulkRemoveSetListItems,
 } from "../../api/hooks/useSongs.js";
 import { useGigSongPreferences } from "../../api/hooks/useGigSongPreferences.js";
 import { useHousePlaylist } from "../../api/hooks/useHousePlaylist.js";
@@ -53,6 +55,8 @@ export default function SetListBuilder() {
   const addItem = useAddSetListItem();
   const removeItem = useRemoveSetListItem();
   const updateItem = useUpdateSetListItem();
+  const clearAll = useClearSetList();
+  const bulkRemove = useBulkRemoveSetListItems();
 
   // We add from the house playlist using the regular addItem mutation
   const addFromHouse = useAddSetListItem();
@@ -62,6 +66,40 @@ export default function SetListBuilder() {
   const ordered = localOrder ?? setList;
 
   const [downloadPending, setDownloadPending] = useState(false);
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  function toggleSelect(itemId: number) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === ordered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(ordered.map(i => i.id)));
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    await bulkRemove.mutateAsync({ gigId, itemIds: [...selectedIds] });
+    setSelectedIds(new Set());
+    setLocalOrder(null);
+  }
+
+  async function handleClearAll() {
+    if (!window.confirm(`Remove all ${ordered.length} songs from this set list?`)) return;
+    await clearAll.mutateAsync(gigId);
+    setSelectedIds(new Set());
+    setLocalOrder(null);
+  }
 
   // Add song search
   const [addSearch, setAddSearch] = useState("");
@@ -198,6 +236,15 @@ export default function SetListBuilder() {
           >
             Import from Preferences
           </button>
+          <button
+            className="contrast outline"
+            onClick={handleClearAll}
+            aria-busy={clearAll.isPending}
+            disabled={clearAll.isPending || ordered.length === 0}
+            title="Remove all songs from this set list"
+          >
+            Clear all
+          </button>
         </div>
       </div>
 
@@ -209,33 +256,63 @@ export default function SetListBuilder() {
             {ordered.length === 0 ? (
               <p style={{ color: "var(--pico-muted-color)" }}>No songs in the set list yet.</p>
             ) : (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={ordered.map(i => i.id)} strategy={verticalListSortingStrategy}>
-                  {ordered.map((item, i) => (
-                    <SortableSetListRow
-                      key={item.id}
-                      item={item}
-                      index={i}
-                      removing={removeItem.isPending}
-                      onRemove={(itemId) => removeItem.mutate({ gigId, itemId })}
-                      onUpdateItem={(itemId, field, value) => {
-                        const patch: Parameters<typeof updateItem.mutate>[0] = { gigId, itemId };
-                        if (field === "key")                 patch.overrideKey = value;
-                        else if (field === "vocalType")      patch.overrideVocalType = value;
-                        else if (field === "unlinkedKey")    patch.unlinkedKey = value;
-                        else if (field === "unlinkedVocalType") patch.unlinkedVocalType = value;
-                        else if (field === "unlinkedTitle")  patch.unlinkedTitle = value;
-                        else if (field === "unlinkedArtist") patch.unlinkedArtist = value;
-                        updateItem.mutate(patch);
-                      }}
-                      onEditUnlinked={(item) => {
-                        setEditingUnlinked(item);
-                        setShowUnlinkedModal(true);
-                      }}
+              <>
+                {/* Bulk-action bar */}
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", margin: 0, fontSize: "0.85rem", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === ordered.length && ordered.length > 0}
+                      onChange={toggleSelectAll}
+                      style={{ margin: 0 }}
                     />
-                  ))}
-                </SortableContext>
-              </DndContext>
+                    {selectedIds.size === 0
+                      ? "Select all"
+                      : `${selectedIds.size} selected`}
+                  </label>
+                  {selectedIds.size > 0 && (
+                    <button
+                      className="contrast outline"
+                      onClick={handleBulkDelete}
+                      aria-busy={bulkRemove.isPending}
+                      disabled={bulkRemove.isPending}
+                      style={{ padding: "0.2rem 0.6rem", fontSize: "0.8rem" }}
+                    >
+                      Delete selected
+                    </button>
+                  )}
+                </div>
+
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={ordered.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                    {ordered.map((item, i) => (
+                      <SortableSetListRow
+                        key={item.id}
+                        item={item}
+                        index={i}
+                        removing={removeItem.isPending}
+                        selected={selectedIds.has(item.id)}
+                        onToggleSelect={toggleSelect}
+                        onRemove={(itemId) => removeItem.mutate({ gigId, itemId })}
+                        onUpdateItem={(itemId, field, value) => {
+                          const patch: Parameters<typeof updateItem.mutate>[0] = { gigId, itemId };
+                          if (field === "key")                 patch.overrideKey = value;
+                          else if (field === "vocalType")      patch.overrideVocalType = value;
+                          else if (field === "unlinkedKey")    patch.unlinkedKey = value;
+                          else if (field === "unlinkedVocalType") patch.unlinkedVocalType = value;
+                          else if (field === "unlinkedTitle")  patch.unlinkedTitle = value;
+                          else if (field === "unlinkedArtist") patch.unlinkedArtist = value;
+                          updateItem.mutate(patch);
+                        }}
+                        onEditUnlinked={(item) => {
+                          setEditingUnlinked(item);
+                          setShowUnlinkedModal(true);
+                        }}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              </>
             )}
 
             {/* Add song controls */}
