@@ -53,18 +53,28 @@ async function login(): Promise<void> {
   if (!email || !password) {
     throw new Error("MIGRATION_EMAIL and MIGRATION_PASSWORD env vars must be set");
   }
-  const resp = await fetch(`${API_BASE}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  if (!resp.ok) throw new Error(`Login failed: HTTP ${resp.status} ${await resp.text()}`);
-  const body = (await resp.json()) as { token: string };
-  jwtToken = body.token;
+  const delays = [5000, 10000, 20000];
+  for (let attempt = 0; ; attempt++) {
+    const resp = await fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    if (resp.status === 502 && attempt < delays.length) {
+      console.log(`  Login 502 — retrying in ${delays[attempt] / 1000}s (API may be waking up)...`);
+      await sleep(delays[attempt]);
+      continue;
+    }
+    if (!resp.ok) throw new Error(`Login failed: HTTP ${resp.status} ${await resp.text()}`);
+    const body = (await resp.json()) as { token: string };
+    jwtToken = body.token;
+    return;
+  }
 }
 
 async function callApi<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
-  const delays = [2000, 5000, 10000];
+  // Render free tier spins down and can take 30-60s to wake; retry generously.
+  const delays = [3000, 5000, 10000, 15000, 20000, 30000];
   for (let attempt = 0; ; attempt++) {
     const resp = await fetch(`${API_BASE}${path}`, {
       method,
