@@ -549,11 +549,15 @@ export interface UpdateSongRequest {
 export interface SetListItem {
   id: number;
   gigId: number;
-  songId: number;
+  songId?: number;
   position?: number;
   notes?: string;
   overrideKey?: string;
   overrideVocalType?: string;
+  unlinkedTitle?: string;
+  unlinkedArtist?: string;
+  unlinkedKey?: string;
+  unlinkedVocalType?: string;
 }
 
 export interface SetListItemWithSong extends SetListItem {
@@ -563,23 +567,47 @@ export interface SetListItemWithSong extends SetListItem {
   vocalType?: string;
   isMustPlay: boolean;
   isFavourite: boolean;
+  isDoNotPlay: boolean;
 }
 
 export interface CreateSetListItemRequest {
-  songId: number;
+  songId?: number;
   position?: number;
   notes?: string;
+  // Unlinked song fields (used when songId is absent)
+  unlinkedTitle?: string;
+  unlinkedArtist?: string;
+  unlinkedKey?: string;
+  unlinkedVocalType?: string;
 }
 
 export interface UpdateSetListItemRequest {
   overrideKey?: string | null;
   overrideVocalType?: string | null;
+  // Unlinked song fields
+  unlinkedTitle?: string | null;
+  unlinkedArtist?: string | null;
+  unlinkedKey?: string | null;
+  unlinkedVocalType?: string | null;
 }
 
 export interface GigSongPreferences {
   favourites: number[];
   mustPlays: number[];
   doNotPlays: number[];
+}
+
+export interface HousePlaylistSong {
+  id: number;       // house_playlist_songs.id
+  songId: number;
+  title: string;
+  artist?: string;
+  musicalKey?: string;
+  vocalType?: string;
+}
+
+export interface CreateHousePlaylistEntryRequest {
+  songId: number;
 }
 
 export interface ReorderSetListRequest {

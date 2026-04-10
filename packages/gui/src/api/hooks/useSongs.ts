@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Song, CreateSongRequest, UpdateSongRequest, SetListItemWithSong } from "@get-down/shared";
+import type { Song, CreateSongRequest, UpdateSongRequest, SetListItemWithSong, CreateSetListItemRequest, UpdateSetListItemRequest } from "@get-down/shared";
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
@@ -53,8 +53,8 @@ export function useGigSetList(gigId: number) {
 export function useAddSetListItem() {
   const qc = useQueryClient();
   return useApiMutation({
-    mutationFn: ({ gigId, songId, position }: { gigId: number; songId: number; position?: number }) =>
-      apiFetch<SetListItemWithSong>("POST", `/gigs/${gigId}/set-list`, { songId, position }),
+    mutationFn: ({ gigId, ...body }: { gigId: number } & CreateSetListItemRequest) =>
+      apiFetch<SetListItemWithSong>("POST", `/gigs/${gigId}/set-list`, body),
     onSuccess: (_data, { gigId }) =>
       qc.invalidateQueries({ queryKey: [SET_LIST_KEY, gigId] }),
     successMessage: "Song added to set list",
@@ -93,24 +93,26 @@ export function useBulkImportSetList() {
   });
 }
 
+export function useAutoOrderSetList() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: (gigId: number) =>
+      apiFetch<SetListItemWithSong[]>("POST", `/gigs/${gigId}/set-list/auto-order`),
+    onSuccess: (_data, gigId) =>
+      qc.invalidateQueries({ queryKey: [SET_LIST_KEY, gigId] }),
+    successMessage: "Set list auto-ordered",
+  });
+}
+
 export function useUpdateSetListItem() {
   const qc = useQueryClient();
   return useApiMutation({
     mutationFn: ({
       gigId,
       itemId,
-      overrideKey,
-      overrideVocalType,
-    }: {
-      gigId: number;
-      itemId: number;
-      overrideKey?: string | null;
-      overrideVocalType?: string | null;
-    }) =>
-      apiFetch<SetListItemWithSong>("PATCH", `/gigs/${gigId}/set-list/${itemId}`, {
-        overrideKey,
-        overrideVocalType,
-      }),
+      ...body
+    }: { gigId: number; itemId: number } & UpdateSetListItemRequest) =>
+      apiFetch<SetListItemWithSong>("PATCH", `/gigs/${gigId}/set-list/${itemId}`, body),
     onMutate: async ({ gigId, itemId, overrideKey, overrideVocalType }) => {
       await qc.cancelQueries({ queryKey: [SET_LIST_KEY, gigId] });
       const previous = qc.getQueryData<SetListItemWithSong[]>([SET_LIST_KEY, gigId]);

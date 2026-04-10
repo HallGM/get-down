@@ -39,3 +39,17 @@ section + section {
   padding: 0.75rem 0;
   border-top: 1px solid var(--pico-muted-border-color);
 }
+
+/* Set list builder: two-column layout on desktop, single column on mobile */
+.set-list-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .set-list-layout {
+    grid-template-columns: 1fr;
+  }
+}

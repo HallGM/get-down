@@ -85,16 +85,20 @@ export async function deleteSong(id: number): Promise<boolean> {
   return rows.length > 0;
 }
 
-// Set list items
+// ─── Set list items ───────────────────────────────────────────────────────────
 
 export interface SetListItemRow {
   id: number;
   gig_id: number;
-  song_id: number;
+  song_id: number | null;
   position: number | null;
   notes: string | null;
   override_key: string | null;
   override_vocal_type: string | null;
+  unlinked_title: string | null;
+  unlinked_artist: string | null;
+  unlinked_key: string | null;
+  unlinked_vocal_type: string | null;
 }
 
 export interface SetListItemWithSongRow extends SetListItemRow {
@@ -104,6 +108,7 @@ export interface SetListItemWithSongRow extends SetListItemRow {
   vocal_type: string | null;
   is_must_play: boolean;
   is_favourite: boolean;
+  is_do_not_play: boolean;
 }
 
 export async function readSetListByGigId(gigId: number): Promise<SetListItemWithSongRow[]> {
@@ -112,11 +117,16 @@ export async function readSetListByGigId(gigId: number): Promise<SetListItemWith
       SELECT
         sli.id, sli.gig_id, sli.song_id, sli.position, sli.notes,
         sli.override_key, sli.override_vocal_type,
-        s.title, s.artist, s.musical_key, s.vocal_type,
-        EXISTS (SELECT 1 FROM gig_song_must_plays mp WHERE mp.gig_id = sli.gig_id AND mp.song_id = sli.song_id) AS is_must_play,
-        EXISTS (SELECT 1 FROM gig_song_favourites fav WHERE fav.gig_id = sli.gig_id AND fav.song_id = sli.song_id) AS is_favourite
+        sli.unlinked_title, sli.unlinked_artist, sli.unlinked_key, sli.unlinked_vocal_type,
+        COALESCE(s.title, sli.unlinked_title, '') AS title,
+        COALESCE(s.artist, sli.unlinked_artist)  AS artist,
+        s.musical_key,
+        COALESCE(s.vocal_type, sli.unlinked_vocal_type) AS vocal_type,
+        EXISTS (SELECT 1 FROM gig_song_must_plays mp  WHERE mp.gig_id  = sli.gig_id AND mp.song_id  = sli.song_id) AS is_must_play,
+        EXISTS (SELECT 1 FROM gig_song_favourites fav WHERE fav.gig_id = sli.gig_id AND fav.song_id = sli.song_id) AS is_favourite,
+        EXISTS (SELECT 1 FROM gig_song_do_not_plays dnp WHERE dnp.gig_id = sli.gig_id AND dnp.song_id = sli.song_id) AS is_do_not_play
       FROM set_list_items sli
-      JOIN songs s ON s.id = sli.song_id
+      LEFT JOIN songs s ON s.id = sli.song_id
       WHERE sli.gig_id = $1
       ORDER BY sli.position, sli.id;
     `,
@@ -133,11 +143,16 @@ export async function readSetListItemById(
       SELECT
         sli.id, sli.gig_id, sli.song_id, sli.position, sli.notes,
         sli.override_key, sli.override_vocal_type,
-        s.title, s.artist, s.musical_key, s.vocal_type,
-        EXISTS (SELECT 1 FROM gig_song_must_plays mp WHERE mp.gig_id = sli.gig_id AND mp.song_id = sli.song_id) AS is_must_play,
-        EXISTS (SELECT 1 FROM gig_song_favourites fav WHERE fav.gig_id = sli.gig_id AND fav.song_id = sli.song_id) AS is_favourite
+        sli.unlinked_title, sli.unlinked_artist, sli.unlinked_key, sli.unlinked_vocal_type,
+        COALESCE(s.title, sli.unlinked_title, '') AS title,
+        COALESCE(s.artist, sli.unlinked_artist)  AS artist,
+        s.musical_key,
+        COALESCE(s.vocal_type, sli.unlinked_vocal_type) AS vocal_type,
+        EXISTS (SELECT 1 FROM gig_song_must_plays mp  WHERE mp.gig_id  = sli.gig_id AND mp.song_id  = sli.song_id) AS is_must_play,
+        EXISTS (SELECT 1 FROM gig_song_favourites fav WHERE fav.gig_id = sli.gig_id AND fav.song_id = sli.song_id) AS is_favourite,
+        EXISTS (SELECT 1 FROM gig_song_do_not_plays dnp WHERE dnp.gig_id = sli.gig_id AND dnp.song_id = sli.song_id) AS is_do_not_play
       FROM set_list_items sli
-      JOIN songs s ON s.id = sli.song_id
+      LEFT JOIN songs s ON s.id = sli.song_id
       WHERE sli.id = $1 AND sli.gig_id = $2
       LIMIT 1;
     `,
@@ -146,33 +161,73 @@ export async function readSetListItemById(
   return rows[0] ?? null;
 }
 
-export async function createSetListItem(
-  gigId: number,
-  songId: number,
-  position: number | null,
-  notes: string | null
-): Promise<SetListItemRow> {
+export interface CreateSetListItemInput {
+  gigId: number;
+  songId: number | null;
+  position: number | null;
+  notes: string | null;
+  unlinkedTitle: string | null;
+  unlinkedArtist: string | null;
+  unlinkedKey: string | null;
+  unlinkedVocalType: string | null;
+}
+
+export async function createSetListItem(input: CreateSetListItemInput): Promise<SetListItemRow> {
   const rows = await run_query<SetListItemRow>({
-    text: `INSERT INTO set_list_items (gig_id, song_id, position, notes) VALUES ($1, $2, $3, $4) RETURNING id, gig_id, song_id, position, notes, override_key, override_vocal_type;`,
-    values: [gigId, songId, position, notes],
+    text: `
+      INSERT INTO set_list_items
+        (gig_id, song_id, position, notes, unlinked_title, unlinked_artist, unlinked_key, unlinked_vocal_type)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id, gig_id, song_id, position, notes, override_key, override_vocal_type,
+                unlinked_title, unlinked_artist, unlinked_key, unlinked_vocal_type;
+    `,
+    values: [
+      input.gigId,
+      input.songId,
+      input.position,
+      input.notes,
+      input.unlinkedTitle,
+      input.unlinkedArtist,
+      input.unlinkedKey,
+      input.unlinkedVocalType,
+    ],
   });
   return rows[0];
+}
+
+export interface UpdateSetListItemInput {
+  overrideKey: string | null;
+  overrideVocalType: string | null;
+  unlinkedTitle: string | null;
+  unlinkedArtist: string | null;
+  unlinkedKey: string | null;
+  unlinkedVocalType: string | null;
 }
 
 export async function updateSetListItem(
   itemId: number,
   gigId: number,
-  overrideKey: string | null,
-  overrideVocalType: string | null
+  input: UpdateSetListItemInput
 ): Promise<SetListItemRow | null> {
   const rows = await run_query<SetListItemRow>({
     text: `
       UPDATE set_list_items
-      SET override_key = $1, override_vocal_type = $2
-      WHERE id = $3 AND gig_id = $4
-      RETURNING id, gig_id, song_id, position, notes, override_key, override_vocal_type;
+      SET override_key = $1, override_vocal_type = $2,
+          unlinked_title = $3, unlinked_artist = $4, unlinked_key = $5, unlinked_vocal_type = $6
+      WHERE id = $7 AND gig_id = $8
+      RETURNING id, gig_id, song_id, position, notes, override_key, override_vocal_type,
+                unlinked_title, unlinked_artist, unlinked_key, unlinked_vocal_type;
     `,
-    values: [overrideKey, overrideVocalType, itemId, gigId],
+    values: [
+      input.overrideKey,
+      input.overrideVocalType,
+      input.unlinkedTitle,
+      input.unlinkedArtist,
+      input.unlinkedKey,
+      input.unlinkedVocalType,
+      itemId,
+      gigId,
+    ],
   });
   return rows[0] ?? null;
 }
@@ -186,21 +241,29 @@ export async function deleteSetListItem(id: number): Promise<boolean> {
 }
 
 export async function reorderSetListItems(gigId: number, itemIds: number[]): Promise<void> {
-  // Update positions in a single query using unnest
-  await run_query({
+  // Use WITH ORDINALITY to safely zip item IDs with their 1-based positions
+  const result = await run_query<{ id: number; position: number }>({
     text: `
       UPDATE set_list_items AS sli
       SET position = ord.pos
-      FROM (SELECT unnest($1::int[]) AS id, generate_series(1, $2) AS pos) AS ord
-      WHERE sli.id = ord.id AND sli.gig_id = $3;
+      FROM (
+        SELECT id, ordinality::int AS pos
+        FROM unnest($1::int[]) WITH ORDINALITY AS u(id, ordinality)
+      ) AS ord
+      WHERE sli.id = ord.id AND sli.gig_id = $2
+      RETURNING sli.id, ord.pos AS position;
     `,
-    values: [itemIds, itemIds.length, gigId],
+    values: [itemIds, gigId],
   });
+  console.log(`[reorder] gigId=${gigId} rowsUpdated=${result.length} expected=${itemIds.length}`);
+  if (result.length !== itemIds.length) {
+    console.warn(`[reorder] WARNING: updated ${result.length} rows but expected ${itemIds.length} — possible gig_id mismatch or stale item ids`);
+  }
 }
 
 export async function readSetListSongIds(gigId: number): Promise<number[]> {
   const rows = await run_query<{ song_id: number }>({
-    text: `SELECT song_id FROM set_list_items WHERE gig_id = $1;`,
+    text: `SELECT song_id FROM set_list_items WHERE gig_id = $1 AND song_id IS NOT NULL;`,
     values: [gigId],
   });
   return rows.map(r => r.song_id);

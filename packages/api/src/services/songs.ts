@@ -47,21 +47,61 @@ export async function getSetList(gigId: number): Promise<SetListItemWithSong[]> 
   return rows.map(mapSetListItemWithSong);
 }
 
+// Zod schemas for the two add paths
+const AddLinkedSchema = z.object({
+  songId: z.number().int().positive(),
+  position: z.number().int().positive().optional(),
+  notes: z.string().optional(),
+});
+
+const AddUnlinkedSchema = z.object({
+  unlinkedTitle: z.string().min(1, "title is required").max(255),
+  unlinkedArtist: z.string().max(255).optional(),
+  unlinkedKey: z.string().max(50).optional(),
+  unlinkedVocalType: z.string().max(50).optional(),
+  position: z.number().int().positive().optional(),
+  notes: z.string().optional(),
+});
+
 export async function addSetListItem(
   gigId: number,
-  input: CreateSetListItemRequest
+  body: unknown
 ): Promise<SetListItemWithSong> {
-  await songsRepo.createSetListItem(
-    gigId,
-    input.songId,
-    input.position ?? null,
-    input.notes?.trim() ?? null
-  );
-  // Re-fetch so we get song details + badge flags
-  const rows = await songsRepo.readSetListByGigId(gigId);
-  const inserted = rows.find(r => r.song_id === input.songId);
-  if (!inserted) throw new NotFoundError("SetListItem not found after insert");
-  return mapSetListItemWithSong(inserted);
+  const raw = body as Record<string, unknown>;
+
+  if (raw.songId !== undefined) {
+    // Linked path
+    const input = parseOrBadRequest(AddLinkedSchema, body);
+    const inserted = await songsRepo.createSetListItem({
+      gigId,
+      songId: input.songId,
+      position: input.position ?? null,
+      notes: input.notes?.trim() ?? null,
+      unlinkedTitle: null,
+      unlinkedArtist: null,
+      unlinkedKey: null,
+      unlinkedVocalType: null,
+    });
+    const row = await songsRepo.readSetListItemById(inserted.id, gigId);
+    if (!row) throw new NotFoundError("SetListItem not found after insert");
+    return mapSetListItemWithSong(row);
+  } else {
+    // Unlinked path
+    const input = parseOrBadRequest(AddUnlinkedSchema, body);
+    const inserted = await songsRepo.createSetListItem({
+      gigId,
+      songId: null,
+      position: input.position ?? null,
+      notes: input.notes?.trim() ?? null,
+      unlinkedTitle: input.unlinkedTitle.trim(),
+      unlinkedArtist: input.unlinkedArtist?.trim() ?? null,
+      unlinkedKey: input.unlinkedKey?.trim() ?? null,
+      unlinkedVocalType: input.unlinkedVocalType?.trim() ?? null,
+    });
+    const row = await songsRepo.readSetListItemById(inserted.id, gigId);
+    if (!row) throw new NotFoundError("SetListItem not found after insert");
+    return mapSetListItemWithSong(row);
+  }
 }
 
 export async function removeSetListItem(_gigId: number, itemId: number): Promise<void> {
@@ -74,11 +114,15 @@ export async function reorderSetList(gigId: number, input: ReorderSetListRequest
   await songsRepo.reorderSetListItems(gigId, input.itemIds);
 }
 
-// Fields are optional (absent = don't touch), nullable (null = clear override).
+// Fields are optional (absent = don't touch), nullable (null = clear).
 // Empty/whitespace strings are normalised to null.
 const UpdateSetListItemSchema = z.object({
-  overrideKey: z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
-  overrideVocalType: z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  overrideKey:        z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  overrideVocalType:  z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  unlinkedTitle:      z.string().max(255).transform(v => v.trim() || null).nullable().optional(),
+  unlinkedArtist:     z.string().max(255).transform(v => v.trim() || null).nullable().optional(),
+  unlinkedKey:        z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  unlinkedVocalType:  z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
 });
 
 export async function updateSetListItem(
@@ -88,18 +132,25 @@ export async function updateSetListItem(
 ): Promise<SetListItemWithSong> {
   const input: UpdateSetListItemRequest = parseOrBadRequest(UpdateSetListItemSchema, body);
 
-  // Fetch existing row so we can preserve whichever field was not sent in this request.
   const existing = await songsRepo.readSetListItemById(itemId, gigId);
   if (!existing) throw new NotFoundError("SetListItem not found");
 
-  const newKey =
-    input.overrideKey !== undefined ? input.overrideKey : existing.override_key;
-  const newVocalType =
-    input.overrideVocalType !== undefined ? input.overrideVocalType : existing.override_vocal_type;
+  const newKey =          input.overrideKey         !== undefined ? input.overrideKey         : existing.override_key;
+  const newVocalType =    input.overrideVocalType    !== undefined ? input.overrideVocalType    : existing.override_vocal_type;
+  const newUnlTitle =     input.unlinkedTitle        !== undefined ? input.unlinkedTitle        : existing.unlinked_title;
+  const newUnlArtist =    input.unlinkedArtist       !== undefined ? input.unlinkedArtist       : existing.unlinked_artist;
+  const newUnlKey =       input.unlinkedKey          !== undefined ? input.unlinkedKey          : existing.unlinked_key;
+  const newUnlVocalType = input.unlinkedVocalType    !== undefined ? input.unlinkedVocalType    : existing.unlinked_vocal_type;
 
-  await songsRepo.updateSetListItem(itemId, gigId, newKey, newVocalType);
+  await songsRepo.updateSetListItem(itemId, gigId, {
+    overrideKey: newKey,
+    overrideVocalType: newVocalType,
+    unlinkedTitle: newUnlTitle,
+    unlinkedArtist: newUnlArtist,
+    unlinkedKey: newUnlKey,
+    unlinkedVocalType: newUnlVocalType,
+  });
 
-  // Re-fetch the single item with joined song fields + badge flags
   const updated = await songsRepo.readSetListItemById(itemId, gigId);
   if (!updated) throw new NotFoundError("SetListItem not found after update");
   return mapSetListItemWithSong(updated);
@@ -119,13 +170,118 @@ export async function bulkImportFromPreferences(gigId: number): Promise<SetListI
   if (toAdd.length > 0) {
     await withTransaction(async () => {
       for (const songId of toAdd) {
-        await songsRepo.createSetListItem(gigId, songId, null, null);
+        await songsRepo.createSetListItem({
+          gigId,
+          songId,
+          position: null,
+          notes: null,
+          unlinkedTitle: null,
+          unlinkedArtist: null,
+          unlinkedKey: null,
+          unlinkedVocalType: null,
+        });
       }
     });
   }
   const rows = await songsRepo.readSetListByGigId(gigId);
   return rows.map(mapSetListItemWithSong);
 }
+
+// ─── Auto-order ───────────────────────────────────────────────────────────────
+
+export async function autoOrderSetList(gigId: number): Promise<SetListItemWithSong[]> {
+  const items = await songsRepo.readSetListByGigId(gigId);
+  console.log(`[auto-order] gig=${gigId} totalItems=${items.length}`);
+  if (items.length === 0) return [];
+
+  // Effective vocal type: override > catalogue > unlinked
+  function effectiveVocalType(row: songsRepo.SetListItemWithSongRow): string | null {
+    return row.override_vocal_type ?? row.vocal_type ?? row.unlinked_vocal_type ?? null;
+  }
+
+  const isMale   = (row: songsRepo.SetListItemWithSongRow) => {
+    const v = (effectiveVocalType(row) ?? "").toLowerCase().trim();
+    return v === "m" || v === "male" || v.startsWith("male");
+  };
+  const isFemale = (row: songsRepo.SetListItemWithSongRow) => {
+    const v = (effectiveVocalType(row) ?? "").toLowerCase().trim();
+    return v === "f" || v === "female" || v.startsWith("female");
+  };
+  const isTyped  = (row: songsRepo.SetListItemWithSongRow) => isMale(row) || isFemale(row);
+
+  const males   = items.filter(isMale);
+  const females = items.filter(isFemale);
+  const untyped = items.filter(r => !isTyped(r));
+
+  console.log(`[auto-order] males=${males.length} females=${females.length} untyped=${untyped.length}`);
+  console.log(`[auto-order] vocal_type values:`, items.map(r => ({
+    id: r.id,
+    title: r.title,
+    vocal_type: r.vocal_type,
+    override_vocal_type: r.override_vocal_type,
+    unlinked_vocal_type: r.unlinked_vocal_type,
+    effective: effectiveVocalType(r),
+    is_must_play: r.is_must_play,
+  })));
+
+  // Interleave M/F starting with male
+  const typed: songsRepo.SetListItemWithSongRow[] = [];
+  const mQueue = [...males];
+  const fQueue = [...females];
+  while (mQueue.length > 0 || fQueue.length > 0) {
+    if (mQueue.length > 0) typed.push(mQueue.shift()!);
+    if (fQueue.length > 0) typed.push(fQueue.shift()!);
+  }
+
+  // Spread must-plays evenly through the typed sequence.
+  // Untyped must-plays are appended just before the untyped block.
+  const typedMustPlays   = typed.filter(r => r.is_must_play);
+  const typedNonMust     = typed.filter(r => !r.is_must_play);
+  const untypedMustPlays = untyped.filter(r => r.is_must_play);
+  const untypedNonMust   = untyped.filter(r => !r.is_must_play);
+
+  let finalTyped: songsRepo.SetListItemWithSongRow[];
+  if (typedMustPlays.length === 0) {
+    finalTyped = typed;
+  } else {
+    // Distribute must-plays at evenly-spaced positions within the typed list
+    const total = typed.length;
+    const mCount = typedMustPlays.length;
+    const targetPositions = typedMustPlays.map((_, i) =>
+      Math.round(i * (total - 1) / Math.max(mCount - 1, 1))
+    );
+
+    // Build a working copy without must-plays, then insert them at targets
+    const base = [...typedNonMust];
+    const result: (songsRepo.SetListItemWithSongRow | null)[] = new Array(total).fill(null);
+    // Place must-plays at target positions
+    for (let i = 0; i < typedMustPlays.length; i++) {
+      result[targetPositions[i]] = typedMustPlays[i];
+    }
+    // Fill remaining slots with non-must-play songs
+    let baseIdx = 0;
+    for (let i = 0; i < result.length; i++) {
+      if (result[i] === null) result[i] = base[baseIdx++];
+    }
+    finalTyped = result.filter(Boolean) as songsRepo.SetListItemWithSongRow[];
+  }
+
+  const ordered = [...finalTyped, ...untypedMustPlays, ...untypedNonMust];
+  const orderedIds = ordered.map(r => r.id);
+
+  console.log(`[auto-order] before ids:`, items.map(r => r.id));
+  console.log(`[auto-order] after  ids:`, orderedIds);
+  console.log(`[auto-order] order changed:`, JSON.stringify(items.map(r => r.id)) !== JSON.stringify(orderedIds));
+
+  if (orderedIds.length > 0) {
+    await songsRepo.reorderSetListItems(gigId, orderedIds);
+    console.log(`[auto-order] reorderSetListItems called with gigId=${gigId}, ids=${orderedIds}`);
+  }
+
+  return getSetList(gigId);
+}
+
+// ─── Mappers ──────────────────────────────────────────────────────────────────
 
 function mapSong(row: songsRepo.SongRow): Song {
   return {
@@ -144,17 +300,22 @@ function mapSetListItemWithSong(row: songsRepo.SetListItemWithSongRow): SetListI
   return {
     id: row.id,
     gigId: row.gig_id,
-    songId: row.song_id,
+    songId: row.song_id ?? undefined,
     position: row.position ?? undefined,
     notes: row.notes ?? undefined,
     overrideKey: row.override_key ?? undefined,
     overrideVocalType: row.override_vocal_type ?? undefined,
+    unlinkedTitle: row.unlinked_title ?? undefined,
+    unlinkedArtist: row.unlinked_artist ?? undefined,
+    unlinkedKey: row.unlinked_key ?? undefined,
+    unlinkedVocalType: row.unlinked_vocal_type ?? undefined,
     title: row.title,
     artist: row.artist ?? undefined,
     musicalKey: row.musical_key ?? undefined,
     vocalType: row.vocal_type ?? undefined,
     isMustPlay: row.is_must_play,
     isFavourite: row.is_favourite,
+    isDoNotPlay: row.is_do_not_play,
   };
 }
 

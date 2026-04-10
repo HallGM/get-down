@@ -261,11 +261,15 @@ Table songs {
 Table set_list_items {
   id serial [pk, increment]
   gig_id int [ref: > gigs.id, not null]
-  song_id int [ref: > songs.id, not null]
+  song_id int [ref: > songs.id]
   position int
   notes text
   override_key varchar(50)
   override_vocal_type varchar(50)
+  unlinked_title varchar(255)
+  unlinked_artist varchar(255)
+  unlinked_key varchar(50)
+  unlinked_vocal_type varchar(50)
 }
 
 Table gig_song_favourites {
@@ -284,6 +288,11 @@ Table gig_song_do_not_plays {
   id      serial [pk, increment]
   gig_id  int [ref: > gigs.id, not null]
   song_id int [ref: > songs.id, not null]
+}
+
+Table house_playlist_songs {
+  id      serial [pk, increment]
+  song_id int [ref: > songs.id, not null, unique]
 }
 
 Table rehearsals {
