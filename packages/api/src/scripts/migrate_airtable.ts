@@ -64,20 +64,28 @@ async function login(): Promise<void> {
 }
 
 async function callApi<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
-  const resp = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${jwtToken}`,
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  if (!resp.ok) {
-    throw new Error(`API ${method} ${path} → HTTP ${resp.status}: ${await resp.text()}`);
+  const delays = [2000, 5000, 10000];
+  for (let attempt = 0; ; attempt++) {
+    const resp = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwtToken}`,
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    if (resp.status === 502 && attempt < delays.length) {
+      console.log(`    502 on ${method} ${path} — retrying in ${delays[attempt] / 1000}s...`);
+      await sleep(delays[attempt]);
+      continue;
+    }
+    if (!resp.ok) {
+      throw new Error(`API ${method} ${path} → HTTP ${resp.status}: ${await resp.text()}`);
+    }
+    if (resp.status === 204 || resp.headers.get("content-length") === "0") return undefined as T;
+    const text = await resp.text();
+    return text ? JSON.parse(text) as T : undefined as T;
   }
-  if (resp.status === 204 || resp.headers.get("content-length") === "0") return undefined as T;
-  const text = await resp.text();
-  return text ? JSON.parse(text) as T : undefined as T;
 }
 
 // ─── Airtable helpers ─────────────────────────────────────────────────────────

@@ -279,11 +279,17 @@ const vocalTypeBadgeStyle: React.CSSProperties = {
 };
 
 const placeholderStyle: React.CSSProperties = {
+  display: "inline",
   fontSize: "0.72rem",
   color: "var(--pico-muted-color)",
   cursor: "pointer",
   opacity: 0.7,
   whiteSpace: "nowrap",
+  background: "none",
+  border: "none",
+  padding: 0,
+  margin: 0,
+  boxShadow: "none",
 };
 
 const mustPlayBadgeStyle: React.CSSProperties = {
