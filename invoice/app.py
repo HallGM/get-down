@@ -303,6 +303,56 @@ def generate_receipt_route():
         return jsonify({"error": f"Error generating receipt: {str(e)}"}), 500
 
 
+@app.route("/set-list", methods=["POST"])
+def generate_set_list():
+    """Generate a set list PDF."""
+    try:
+        data = request.get_json()
+        logger.info(f"Set list PDF requested for {data.get('client_name', 'unknown')}")
+
+        if not data.get("client_name"):
+            return jsonify({"error": "client_name is required"}), 400
+        if not data.get("event_date"):
+            return jsonify({"error": "event_date is required"}), 400
+        if not data.get("songs"):
+            return jsonify({"error": "songs is required"}), 400
+
+        app_root = os.path.dirname(os.path.abspath(__file__))
+        template_path = os.path.join(app_root, "templates", "set_list_template.html")
+        stylesheet_path = os.path.join(app_root, "dejavu_sans.css")
+
+        with open(template_path, "r") as f:
+            template_content = f.read()
+
+        from jinja2 import Template
+        html = Template(template_content).render(
+            client_name=data["client_name"],
+            event_date=data["event_date"],
+            venue=data.get("venue", ""),
+            songs=data["songs"],
+        )
+
+        from weasyprint import HTML, CSS
+        pdf_bytes = BytesIO()
+        HTML(string=html).write_pdf(
+            pdf_bytes,
+            stylesheets=[CSS(stylesheet_path)] if os.path.exists(stylesheet_path) else None,
+        )
+        pdf_bytes.seek(0)
+
+        safe_name = data["client_name"].replace(" ", "-").lower()
+        return send_file(
+            pdf_bytes,
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"set-list-{safe_name}.pdf",
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating set list PDF: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Error generating set list PDF: {str(e)}"}), 500
+
+
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"})

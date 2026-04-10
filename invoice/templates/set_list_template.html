@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Set List</title>
+    <style>
+      @page { margin: 1cm; }
+      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 9pt;
+        margin: 0;
+      }
+      .header {
+        background-color: hsl(177.93deg 33.33% 17.06%);
+        color: white;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+      }
+      .header h1 { margin: 0; font-size: 16pt; }
+      .header p  { margin: 2px 0; font-size: 9pt; }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        background-color: hsl(6.21deg 76.32% 85.1%);
+        padding: 4px 6px;
+        text-align: left;
+        font-size: 8pt;
+        border: 1px solid #ccc;
+      }
+      td {
+        padding: 3px 6px;
+        border: 1px solid #ddd;
+        vertical-align: middle;
+      }
+      tr:nth-child(even) td { background-color: #f9f9f9; }
+      .num  { text-align: center; width: 2em; color: #666; }
+      .vocal { text-align: center; width: 3em; }
+      .key  { width: 4em; }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div>
+        <h1>Set List</h1>
+        <p>{{ client_name }}</p>
+      </div>
+      <div style="text-align: right;">
+        <p>{{ event_date }}</p>
+        {% if venue %}<p>{{ venue }}</p>{% endif %}
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="num">#</th>
+          <th>Title</th>
+          <th>Artist</th>
+          <th class="key">Key</th>
+          <th class="vocal">Vocal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for song in songs %}
+        <tr>
+          <td class="num">{{ loop.index }}</td>
+          <td>{{ song.title }}</td>
+          <td>{{ song.artist or '—' }}</td>
+          <td>{{ song.key or '—' }}</td>
+          <td class="vocal">{{ song.vocal_type or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>

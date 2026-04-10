@@ -27,6 +27,7 @@ import {
 } from "../../api/hooks/useSongs.js";
 import { useGigSongPreferences } from "../../api/hooks/useGigSongPreferences.js";
 import { useHousePlaylist } from "../../api/hooks/useHousePlaylist.js";
+import { apiFetchBlob } from "../../api/client.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import SortableSetListRow from "./SortableSetListRow.js";
@@ -59,6 +60,8 @@ export default function SetListBuilder() {
   // Local ordering state (drives optimistic DnD)
   const [localOrder, setLocalOrder] = useState<SetListItemWithSong[] | null>(null);
   const ordered = localOrder ?? setList;
+
+  const [downloadPending, setDownloadPending] = useState(false);
 
   // Add song search
   const [addSearch, setAddSearch] = useState("");
@@ -104,6 +107,21 @@ export default function SetListBuilder() {
   async function handleAutoOrder() {
     await autoOrder.mutateAsync(gigId);
     setLocalOrder(null);
+  }
+
+  async function handleDownloadPdf() {
+    setDownloadPending(true);
+    try {
+      const blob = await apiFetchBlob("GET", `/gigs/${gigId}/set-list/pdf`);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      // No a.download — let the server's Content-Disposition header provide the client-identified filename
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloadPending(false);
+    }
   }
 
   async function handleAddUnlinked(form: {
@@ -153,6 +171,15 @@ export default function SetListBuilder() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
         <h1 style={{ margin: 0 }}>Set List</h1>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <button
+            className="secondary outline"
+            onClick={handleDownloadPdf}
+            aria-busy={downloadPending}
+            disabled={downloadPending || ordered.length === 0}
+            title="Download set list as PDF"
+          >
+            ↓ PDF
+          </button>
           <button
             className="secondary outline"
             onClick={handleAutoOrder}

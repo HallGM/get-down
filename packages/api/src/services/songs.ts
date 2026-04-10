@@ -9,6 +9,7 @@ import type {
 } from "@get-down/shared";
 import { z } from "zod";
 import * as songsRepo from "../repository/songs.js";
+import * as gigsRepo from "../repository/gigs.js";
 import * as prefsRepo from "../repository/gig_song_preferences.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { withTransaction } from "../db/init.js";
@@ -191,7 +192,6 @@ export async function bulkImportFromPreferences(gigId: number): Promise<SetListI
 
 export async function autoOrderSetList(gigId: number): Promise<SetListItemWithSong[]> {
   const items = await songsRepo.readSetListByGigId(gigId);
-  console.log(`[auto-order] gig=${gigId} totalItems=${items.length}`);
   if (items.length === 0) return [];
 
   // Effective vocal type: override > catalogue > unlinked
@@ -212,17 +212,6 @@ export async function autoOrderSetList(gigId: number): Promise<SetListItemWithSo
   const males   = items.filter(isMale);
   const females = items.filter(isFemale);
   const untyped = items.filter(r => !isTyped(r));
-
-  console.log(`[auto-order] males=${males.length} females=${females.length} untyped=${untyped.length}`);
-  console.log(`[auto-order] vocal_type values:`, items.map(r => ({
-    id: r.id,
-    title: r.title,
-    vocal_type: r.vocal_type,
-    override_vocal_type: r.override_vocal_type,
-    unlinked_vocal_type: r.unlinked_vocal_type,
-    effective: effectiveVocalType(r),
-    is_must_play: r.is_must_play,
-  })));
 
   // Interleave M/F starting with male
   const typed: songsRepo.SetListItemWithSongRow[] = [];
@@ -254,11 +243,9 @@ export async function autoOrderSetList(gigId: number): Promise<SetListItemWithSo
     // Build a working copy without must-plays, then insert them at targets
     const base = [...typedNonMust];
     const result: (songsRepo.SetListItemWithSongRow | null)[] = new Array(total).fill(null);
-    // Place must-plays at target positions
     for (let i = 0; i < typedMustPlays.length; i++) {
       result[targetPositions[i]] = typedMustPlays[i];
     }
-    // Fill remaining slots with non-must-play songs
     let baseIdx = 0;
     for (let i = 0; i < result.length; i++) {
       if (result[i] === null) result[i] = base[baseIdx++];
@@ -269,16 +256,41 @@ export async function autoOrderSetList(gigId: number): Promise<SetListItemWithSo
   const ordered = [...finalTyped, ...untypedMustPlays, ...untypedNonMust];
   const orderedIds = ordered.map(r => r.id);
 
-  console.log(`[auto-order] before ids:`, items.map(r => r.id));
-  console.log(`[auto-order] after  ids:`, orderedIds);
-  console.log(`[auto-order] order changed:`, JSON.stringify(items.map(r => r.id)) !== JSON.stringify(orderedIds));
-
   if (orderedIds.length > 0) {
     await songsRepo.reorderSetListItems(gigId, orderedIds);
-    console.log(`[auto-order] reorderSetListItems called with gigId=${gigId}, ids=${orderedIds}`);
   }
 
   return getSetList(gigId);
+}
+
+export async function buildSetListPdfPayload(gigId: number): Promise<Record<string, unknown>> {
+  const [gig, items] = await Promise.all([
+    gigsRepo.readGigById(gigId),
+    songsRepo.readSetListByGigId(gigId),
+  ]);
+  if (!gig) throw new NotFoundError("Gig not found");
+
+  const clientName = gig.partner_name
+    ? `${gig.first_name} ${gig.last_name} & ${gig.partner_name}`
+    : `${gig.first_name} ${gig.last_name}`;
+
+  const eventDate = gig.date
+    ? new Date(gig.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    : "";
+
+  const songs = items.map(r => ({
+    title: r.title,
+    artist: r.artist ?? null,
+    key: r.override_key ?? r.musical_key ?? r.unlinked_key ?? null,
+    vocal_type: r.override_vocal_type ?? r.vocal_type ?? r.unlinked_vocal_type ?? null,
+  }));
+
+  return {
+    client_name: clientName,
+    event_date: eventDate,
+    venue: gig.venue_name ?? null,
+    songs,
+  };
 }
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
