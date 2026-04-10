@@ -18,5 +18,6 @@ router.patch("/gigs/:id/set-list/:itemId",   handle(req => songsService.updateSe
 router.delete("/gigs/:id/set-list/:itemId",  handle(req => songsService.removeSetListItem(+req.params.id, +req.params.itemId), 204));
 router.put("/gigs/:id/set-list/reorder",    handle(req => songsService.reorderSetList(+req.params.id, req.body)));
 router.post("/gigs/:id/set-list/import",    handle(req => songsService.bulkImportFromPreferences(+req.params.id)));
+router.post("/gigs/:id/set-list/auto-order", handle(req => songsService.autoOrderSetList(+req.params.id)));
 
 export default router;

@@ -23,12 +23,16 @@ import {
   useBulkImportSetList,
   useSongs,
   useUpdateSetListItem,
+  useAutoOrderSetList,
 } from "../../api/hooks/useSongs.js";
-import { useGigSongPreferences, useUpdateGigSongPreferences } from "../../api/hooks/useGigSongPreferences.js";
+import { useGigSongPreferences } from "../../api/hooks/useGigSongPreferences.js";
+import { useHousePlaylist } from "../../api/hooks/useHousePlaylist.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import SortableSetListRow from "./SortableSetListRow.js";
 import SongPrefList from "./SongPrefList.js";
+import HousePlaylistPanel from "./HousePlaylistPanel.js";
+import AddUnlinkedSongModal from "./AddUnlinkedSongModal.js";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -40,25 +44,27 @@ export default function SetListBuilder() {
   const { data: setList = [], isLoading, error } = useGigSetList(gigId);
   const { data: songs = [] } = useSongs();
   const { data: prefs } = useGigSongPreferences(gigId);
+  const { data: housePlaylist = [] } = useHousePlaylist();
 
   const reorder = useReorderSetList();
   const bulkImport = useBulkImportSetList();
+  const autoOrder = useAutoOrderSetList();
   const addItem = useAddSetListItem();
   const removeItem = useRemoveSetListItem();
-  const updatePrefs = useUpdateGigSongPreferences();
   const updateItem = useUpdateSetListItem();
+
+  // We add from the house playlist using the regular addItem mutation
+  const addFromHouse = useAddSetListItem();
 
   // Local ordering state (drives optimistic DnD)
   const [localOrder, setLocalOrder] = useState<SetListItemWithSong[] | null>(null);
   const ordered = localOrder ?? setList;
 
-  // Preferences local state
-  const [prefsLocal, setPrefsLocal] = useState<{ favourites: number[]; mustPlays: number[]; doNotPlays: number[] } | null>(null);
-  const activePrefs = prefsLocal ?? prefs ?? { favourites: [], mustPlays: [], doNotPlays: [] };
-
-  // Add song
+  // Add song search
   const [addSearch, setAddSearch] = useState("");
-  const existingSongIds = new Set(setList.map(i => i.songId));
+  const existingSongIds = new Set(setList.map(i => i.songId).filter((id): id is number => id !== undefined));
+  const doNotPlaySet = new Set(prefs?.doNotPlays ?? []);
+
   const filteredAdd = songs.filter(
     s => !existingSongIds.has(s.id) && (
       addSearch === "" ||
@@ -66,6 +72,10 @@ export default function SetListBuilder() {
       (s.artist ?? "").toLowerCase().includes(addSearch.toLowerCase())
     )
   );
+
+  // Unlinked song modal state
+  const [showUnlinkedModal, setShowUnlinkedModal] = useState(false);
+  const [editingUnlinked, setEditingUnlinked] = useState<SetListItemWithSong | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -91,10 +101,39 @@ export default function SetListBuilder() {
     setLocalOrder(null);
   }
 
-  async function handleSavePrefs() {
-    if (!prefsLocal) return;
-    await updatePrefs.mutateAsync({ gigId, input: prefsLocal });
-    setPrefsLocal(null);
+  async function handleAutoOrder() {
+    await autoOrder.mutateAsync(gigId);
+    setLocalOrder(null);
+  }
+
+  async function handleAddUnlinked(form: {
+    unlinkedTitle: string;
+    unlinkedArtist: string;
+    unlinkedKey: string;
+    unlinkedVocalType: string;
+  }) {
+    if (editingUnlinked) {
+      // Edit mode — PATCH the existing item
+      await updateItem.mutateAsync({
+        gigId,
+        itemId: editingUnlinked.id,
+        unlinkedTitle: form.unlinkedTitle || null,
+        unlinkedArtist: form.unlinkedArtist || null,
+        unlinkedKey: form.unlinkedKey || null,
+        unlinkedVocalType: form.unlinkedVocalType || null,
+      });
+      setEditingUnlinked(null);
+    } else {
+      // Create mode
+      await addItem.mutateAsync({
+        gigId,
+        unlinkedTitle: form.unlinkedTitle,
+        unlinkedArtist: form.unlinkedArtist || undefined,
+        unlinkedKey: form.unlinkedKey || undefined,
+        unlinkedVocalType: form.unlinkedVocalType || undefined,
+      });
+    }
+    setShowUnlinkedModal(false);
   }
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
@@ -110,107 +149,176 @@ export default function SetListBuilder() {
         </ul>
       </nav>
 
+      {/* Page header row with action buttons */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
         <h1 style={{ margin: 0 }}>Set List</h1>
-        <button
-          className="secondary"
-          onClick={handleImport}
-          aria-busy={bulkImport.isPending}
-          disabled={bulkImport.isPending}
-          title="Add all favourites & must-plays (excluding do-not-plays and already added songs)"
-        >
-          Import from Preferences
-        </button>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <button
+            className="secondary outline"
+            onClick={handleAutoOrder}
+            aria-busy={autoOrder.isPending}
+            disabled={autoOrder.isPending || ordered.length === 0}
+            title="Auto-order: alternates Male/Female, spreads must-plays evenly, untyped songs last"
+          >
+            Auto-order
+          </button>
+          <button
+            className="secondary"
+            onClick={handleImport}
+            aria-busy={bulkImport.isPending}
+            disabled={bulkImport.isPending}
+            title="Add all favourites & must-plays (excluding do-not-plays and already added songs)"
+          >
+            Import from Preferences
+          </button>
+        </div>
       </div>
 
-      {/* Set list */}
-      <section>
-        {ordered.length === 0 ? (
-          <p style={{ color: "var(--pico-muted-color)" }}>No songs in the set list yet.</p>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={ordered.map(i => i.id)} strategy={verticalListSortingStrategy}>
-              {ordered.map((item, i) => (
-                <SortableSetListRow
-                  key={item.id}
-                  item={item}
-                  index={i}
-                  removing={removeItem.isPending}
-                  onRemove={(itemId) => removeItem.mutate({ gigId, itemId })}
-                  onUpdateItem={(itemId, field, value) =>
-                    updateItem.mutate({
-                      gigId,
-                      itemId,
-                      overrideKey: field === "key" ? value : undefined,
-                      overrideVocalType: field === "vocalType" ? value : undefined,
-                    })
-                  }
+      {/* Two-column layout on desktop, single column on mobile */}
+      <div className="set-list-layout">
+        {/* Left column: set list + add */}
+        <div>
+          <section>
+            {ordered.length === 0 ? (
+              <p style={{ color: "var(--pico-muted-color)" }}>No songs in the set list yet.</p>
+            ) : (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={ordered.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                  {ordered.map((item, i) => (
+                    <SortableSetListRow
+                      key={item.id}
+                      item={item}
+                      index={i}
+                      removing={removeItem.isPending}
+                      onRemove={(itemId) => removeItem.mutate({ gigId, itemId })}
+                      onUpdateItem={(itemId, field, value) => {
+                        const patch: Parameters<typeof updateItem.mutate>[0] = { gigId, itemId };
+                        if (field === "key")                 patch.overrideKey = value;
+                        else if (field === "vocalType")      patch.overrideVocalType = value;
+                        else if (field === "unlinkedKey")    patch.unlinkedKey = value;
+                        else if (field === "unlinkedVocalType") patch.unlinkedVocalType = value;
+                        else if (field === "unlinkedTitle")  patch.unlinkedTitle = value;
+                        else if (field === "unlinkedArtist") patch.unlinkedArtist = value;
+                        updateItem.mutate(patch);
+                      }}
+                      onEditUnlinked={(item) => {
+                        setEditingUnlinked(item);
+                        setShowUnlinkedModal(true);
+                      }}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
+
+            {/* Add song controls */}
+            <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", alignItems: "flex-start", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: "200px" }}>
+                <input
+                  type="search"
+                  placeholder="Add a song from catalogue…"
+                  value={addSearch}
+                  onChange={e => setAddSearch(e.target.value)}
+                  style={{ marginBottom: "0.25rem" }}
                 />
-              ))}
-            </SortableContext>
-          </DndContext>
-        )}
-
-        {/* Add song */}
-        <div style={{ marginTop: "1rem" }}>
-          <input
-            type="search"
-            placeholder="Add a song…"
-            value={addSearch}
-            onChange={e => setAddSearch(e.target.value)}
-            style={{ marginBottom: "0.25rem" }}
-          />
-          {addSearch && filteredAdd.slice(0, 10).map(s => (
-            <div
-              key={s.id}
-              role="button"
-              tabIndex={0}
-              style={{ cursor: "pointer", padding: "0.3rem 0.5rem", borderRadius: "var(--pico-border-radius)", background: "var(--pico-card-background-color)", border: "1px solid var(--pico-muted-border-color)", marginBottom: "0.15rem" }}
-              onClick={() => { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); }}
-              onKeyDown={e => { if (e.key === "Enter") { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); } }}
-            >
-              <strong>{s.title}</strong>
-              {s.artist && <span style={{ color: "var(--pico-muted-color)" }}> · {s.artist}</span>}
-              {s.musicalKey && <small style={{ marginLeft: "0.4rem" }}>{s.musicalKey}</small>}
-              {s.vocalType && <small style={{ marginLeft: "0.3rem", color: "var(--pico-muted-color)" }}>({s.vocalType})</small>}
+                {addSearch && filteredAdd.slice(0, 10).map(s => {
+                  const isDnp = doNotPlaySet.has(s.id);
+                  return (
+                    <div
+                      key={s.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Add ${s.title}${s.artist ? ` by ${s.artist}` : ""}${isDnp ? " (Do Not Play warning)" : ""} to set list`}
+                      style={{
+                        cursor: "pointer",
+                        padding: "0.3rem 0.5rem",
+                        borderRadius: "var(--pico-border-radius)",
+                        background: "var(--pico-card-background-color)",
+                        border: isDnp
+                          ? "1px solid var(--pico-del-color)"
+                          : "1px solid var(--pico-muted-border-color)",
+                        marginBottom: "0.15rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        flexWrap: "wrap",
+                      }}
+                      onClick={() => { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); }}
+                      onKeyDown={e => { if (e.key === "Enter") { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); } }}
+                    >
+                      <strong>{s.title}</strong>
+                      {s.artist && <span style={{ color: "var(--pico-muted-color)" }}>· {s.artist}</span>}
+                      {s.musicalKey && <small style={{ marginLeft: "0.2rem" }}>{s.musicalKey}</small>}
+                      {s.vocalType && <small style={{ color: "var(--pico-muted-color)" }}>({s.vocalType})</small>}
+                      {isDnp && (
+                        <small style={{
+                          marginLeft: "auto",
+                          background: "var(--pico-del-color)",
+                          color: "#fff",
+                          padding: "0.05em 0.4em",
+                          borderRadius: "0.2em",
+                          fontWeight: 700,
+                          fontSize: "0.7rem",
+                        }}>
+                          ⚠ Do Not Play
+                        </small>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <button
+                className="secondary outline"
+                onClick={() => { setEditingUnlinked(null); setShowUnlinkedModal(true); }}
+                style={{ whiteSpace: "nowrap" }}
+              >
+                + Add unlisted song
+              </button>
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
 
-      {/* Song Preferences */}
-      <section style={{ marginTop: "2rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-          <h2 style={{ margin: 0 }}>Song Preferences</h2>
-          {prefsLocal && (
-            <button
-              onClick={handleSavePrefs}
-              aria-busy={updatePrefs.isPending}
-              disabled={updatePrefs.isPending}
-            >
-              Save Preferences
-            </button>
-          )}
+          {/* Song Preferences — read-only reference */}
+          <section style={{ marginTop: "2rem" }}>
+            <h2 style={{ marginBottom: "0.75rem" }}>Song Preferences</h2>
+            <SongPrefList
+              label="⭐ Favourites"
+              ids={prefs?.favourites ?? []}
+              songs={songs}
+              readOnly
+            />
+            <SongPrefList
+              label="🎯 Must Plays"
+              ids={prefs?.mustPlays ?? []}
+              songs={songs}
+              readOnly
+            />
+            <SongPrefList
+              label="🚫 Do Not Plays"
+              ids={prefs?.doNotPlays ?? []}
+              songs={songs}
+              readOnly
+            />
+          </section>
         </div>
-        <SongPrefList
-          label="⭐ Favourites"
-          ids={activePrefs.favourites}
-          songs={songs}
-          onChange={favs => setPrefsLocal({ ...activePrefs, favourites: favs })}
+
+        {/* Right column: house playlist panel */}
+        <HousePlaylistPanel
+          songs={housePlaylist}
+          setListSongIds={existingSongIds}
+          doNotPlayIds={doNotPlaySet}
+          onAdd={(songId) => addFromHouse.mutate({ gigId, songId })}
+          isAdding={addFromHouse.isPending}
         />
-        <SongPrefList
-          label="🎯 Must Plays"
-          ids={activePrefs.mustPlays}
-          songs={songs}
-          onChange={must => setPrefsLocal({ ...activePrefs, mustPlays: must })}
-        />
-        <SongPrefList
-          label="🚫 Do Not Plays"
-          ids={activePrefs.doNotPlays}
-          songs={songs}
-          onChange={dnp => setPrefsLocal({ ...activePrefs, doNotPlays: dnp })}
-        />
-      </section>
+      </div>
+
+      {/* Unlinked song modal */}
+      <AddUnlinkedSongModal
+        open={showUnlinkedModal}
+        editItem={editingUnlinked}
+        onClose={() => { setShowUnlinkedModal(false); setEditingUnlinked(null); }}
+        onSubmit={handleAddUnlinked}
+        isPending={addItem.isPending || updateItem.isPending}
+      />
     </main>
   );
 }

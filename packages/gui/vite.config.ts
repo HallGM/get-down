@@ -26,6 +26,7 @@ export default defineConfig({
       "/services": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/people": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/songs": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
+      "/house-playlist": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/rehearsals": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/todos": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/expenses": { target: "http://localhost:3000", bypass: bypassHtmlRequests },

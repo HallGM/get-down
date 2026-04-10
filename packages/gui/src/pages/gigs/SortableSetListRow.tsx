@@ -8,12 +8,15 @@ interface Props {
   index: number;
   onRemove: (itemId: number) => void;
   removing: boolean;
-  onUpdateItem: (itemId: number, field: "key" | "vocalType", value: string | null) => void;
+  onUpdateItem: (itemId: number, field: "key" | "vocalType" | "unlinkedTitle" | "unlinkedArtist" | "unlinkedKey" | "unlinkedVocalType", value: string | null) => void;
+  onEditUnlinked?: (item: SetListItemWithSong) => void;
 }
 
-export default function SortableSetListRow({ item, index, onRemove, removing, onUpdateItem }: Props) {
+export default function SortableSetListRow({ item, index, onRemove, removing, onUpdateItem, onEditUnlinked }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
+
+  const isUnlinked = !item.songId;
 
   const [editingField, setEditingField] = useState<"key" | "vocalType" | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -21,8 +24,13 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
   // Guard against onBlur firing after Enter/Escape already committed
   const committedRef = useRef(false);
 
-  const displayKey = item.overrideKey ?? item.musicalKey;
-  const displayVocalType = item.overrideVocalType ?? item.vocalType;
+  // For linked songs, overrides take precedence; for unlinked, use unlinked fields directly
+  const displayKey = isUnlinked
+    ? item.unlinkedKey
+    : (item.overrideKey ?? item.musicalKey);
+  const displayVocalType = isUnlinked
+    ? item.unlinkedVocalType
+    : (item.overrideVocalType ?? item.vocalType);
 
   function startEdit(field: "key" | "vocalType") {
     committedRef.current = false;
@@ -35,7 +43,12 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
     if (committedRef.current) return;
     committedRef.current = true;
     setEditingField(null);
-    onUpdateItem(item.id, field, editValue.trim() || null);
+    const value = editValue.trim() || null;
+    if (isUnlinked) {
+      onUpdateItem(item.id, field === "key" ? "unlinkedKey" : "unlinkedVocalType", value);
+    } else {
+      onUpdateItem(item.id, field === "key" ? "key" : "vocalType", value);
+    }
   }
 
   function cancel() {
@@ -52,8 +65,12 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
     alignItems: "center",
     gap: "0.5rem",
     padding: "0.25rem 0.75rem",
-    background: "var(--pico-card-background-color)",
-    border: "1px solid var(--pico-muted-border-color)",
+    background: item.isDoNotPlay
+      ? "color-mix(in srgb, var(--pico-del-color) 8%, var(--pico-card-background-color))"
+      : "var(--pico-card-background-color)",
+    border: item.isDoNotPlay
+      ? "1px solid color-mix(in srgb, var(--pico-del-color) 40%, transparent)"
+      : "1px solid var(--pico-muted-border-color)",
     borderRadius: "var(--pico-border-radius)",
     marginBottom: "0.25rem",
     cursor: isDragging ? "grabbing" : undefined,
@@ -61,7 +78,7 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
 
   return (
     <div ref={setNodeRef} style={rowStyle}>
-      {/* Drag handle — subtle, no background */}
+      {/* Drag handle */}
       <span
         {...attributes}
         {...listeners}
@@ -75,8 +92,6 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          // Pico v2 styles [role="button"] like a <button> (filled bg, border, padding).
-          // dnd-kit injects role="button" via {...attributes}, so we must reset explicitly.
           background: "transparent",
           border: "none",
           padding: 0,
@@ -94,8 +109,18 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
 
       {/* Song info */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap", minWidth: 0 }}>
-        <strong style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {/* Title — for unlinked songs, show an edit icon to open the edit modal */}
+        <strong
+          style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: isUnlinked ? "pointer" : undefined }}
+          title={isUnlinked ? "Click to edit this song" : undefined}
+          role={isUnlinked ? "button" : undefined}
+          tabIndex={isUnlinked ? 0 : undefined}
+          aria-label={isUnlinked ? `Edit unlinked song: ${item.title}` : undefined}
+          onClick={isUnlinked ? () => onEditUnlinked?.(item) : undefined}
+          onKeyDown={isUnlinked ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onEditUnlinked?.(item); } } : undefined}
+        >
           {item.title}
+          {isUnlinked && <span style={{ marginLeft: "0.3rem", fontSize: "0.7rem", color: "var(--pico-muted-color)" }}>✎</span>}
         </strong>
         {item.artist && (
           <span style={{ color: "var(--pico-muted-color)", whiteSpace: "nowrap" }}>· {item.artist}</span>
@@ -137,7 +162,8 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
             onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startEdit("key"); } }}
             onFocus={() => setFocusedField("key")}
             onBlur={() => setFocusedField(null)}
-            title="Click to edit key for this set list"
+            title="Click to edit key"
+            aria-label={`Edit key: ${displayKey ?? "add key"}`}
             style={
               focusedField === "key"
                 ? { ...(displayKey ? keyBadgeStyle : placeholderStyle), outline: "2px solid var(--pico-primary-focus)", outlineOffset: "2px" }
@@ -174,7 +200,7 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
               outlineOffset: "1px",
             }}
             placeholder="e.g. Male"
-            aria-label="Override vocal type"
+            aria-label="Vocal type"
           />
         ) : (
           <span
@@ -184,7 +210,8 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
             onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startEdit("vocalType"); } }}
             onFocus={() => setFocusedField("vocalType")}
             onBlur={() => setFocusedField(null)}
-            title="Click to edit vocal type for this set list"
+            title="Click to edit vocal type"
+            aria-label={`Edit vocal type: ${displayVocalType ?? "add vocal type"}`}
             style={
               focusedField === "vocalType"
                 ? { ...(displayVocalType ? vocalTypeBadgeStyle : placeholderStyle), outline: "2px solid var(--pico-primary-focus)", outlineOffset: "2px" }
@@ -196,8 +223,10 @@ export default function SortableSetListRow({ item, index, onRemove, removing, on
         )}
       </div>
 
-      {/* Must play / Favourite badge */}
-      {item.isMustPlay ? (
+      {/* Badges column — DNP takes priority, then Must Play, then Fav */}
+      {item.isDoNotPlay ? (
+        <small style={doNotPlayBadgeStyle}>⚠ DNP</small>
+      ) : item.isMustPlay ? (
         <small style={mustPlayBadgeStyle}>MUST PLAY</small>
       ) : item.isFavourite ? (
         <small style={favBadgeStyle}>★ FAV</small>
@@ -273,4 +302,14 @@ const favBadgeStyle: React.CSSProperties = {
   padding: "0.1em 0.4em",
   borderRadius: "0.25em",
   fontSize: "0.7rem",
+};
+
+const doNotPlayBadgeStyle: React.CSSProperties = {
+  whiteSpace: "nowrap",
+  background: "var(--pico-del-color)",
+  color: "#fff",
+  padding: "0.1em 0.4em",
+  borderRadius: "0.25em",
+  fontSize: "0.7rem",
+  fontWeight: 700,
 };
