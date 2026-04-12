@@ -1,6 +1,6 @@
 import { run_query, withTransaction } from "../db/init.js";
 
-interface PersonRow {
+export interface PersonRow {
   id: number;
   first_name: string;
   last_name: string | null;
@@ -11,6 +11,7 @@ interface PersonRow {
   is_partner: boolean;
   is_active: boolean;
   airtable_id: string | null;
+  performer_token: string | null;
 }
 
 export interface PersonMutationInput {
@@ -58,7 +59,7 @@ async function syncPartnerAccount(
 export async function readPeople(): Promise<PersonRow[]> {
   return run_query<PersonRow>({
     text: `
-      SELECT id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id
+      SELECT id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id, performer_token
       FROM people
       ORDER BY first_name, last_name, id;
     `,
@@ -68,7 +69,7 @@ export async function readPeople(): Promise<PersonRow[]> {
 export async function readPersonById(id: number): Promise<PersonRow | null> {
   const rows = await run_query<PersonRow>({
     text: `
-      SELECT id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id
+      SELECT id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id, performer_token
       FROM people
       WHERE id = $1
       LIMIT 1;
@@ -79,13 +80,26 @@ export async function readPersonById(id: number): Promise<PersonRow | null> {
   return rows[0] ?? null;
 }
 
+export async function readPersonByPerformerToken(token: string): Promise<PersonRow | null> {
+  const rows = await run_query<PersonRow>({
+    text: `
+      SELECT id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id, performer_token
+      FROM people
+      WHERE performer_token = $1
+      LIMIT 1;
+    `,
+    values: [token],
+  });
+  return rows[0] ?? null;
+}
+
 export async function createPerson(input: PersonMutationInput): Promise<PersonRow> {
   return withTransaction(async () => {
     const rows = await run_query<PersonRow>({
       text: `
         INSERT INTO people (first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        RETURNING id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id;
+        RETURNING id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id, performer_token;
       `,
       values: [
         input.firstName,
@@ -121,7 +135,7 @@ export async function updatePerson(id: number, input: PersonUpdateInput): Promis
             is_active = $9,
             airtable_id = $10
         WHERE id = $1
-        RETURNING id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id;
+        RETURNING id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id, performer_token;
       `,
       values: [
         id,
@@ -154,4 +168,17 @@ export async function deletePerson(id: number): Promise<boolean> {
   });
 
   return result.length > 0;
+}
+
+export async function setPerformerToken(id: number, token: string): Promise<PersonRow | null> {
+  const rows = await run_query<PersonRow>({
+    text: `
+      UPDATE people
+      SET performer_token = $2
+      WHERE id = $1
+      RETURNING id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id, performer_token;
+    `,
+    values: [id, token],
+  });
+  return rows[0] ?? null;
 }

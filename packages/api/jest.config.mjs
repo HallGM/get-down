@@ -5,6 +5,7 @@ export default {
   extensionsToTreatAsEsm: [".ts"],
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
+    "^@get-down/shared$": "<rootDir>/../../packages/shared/dist/index.js",
   },
   transform: {
     "^.+\\.tsx?$": [
@@ -13,6 +14,7 @@ export default {
         useESM: true,
         tsconfig: {
           module: "ESNext",
+          paths: {},
         },
       },
     ],

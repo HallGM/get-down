@@ -60,6 +60,7 @@ export interface Person {
   isPartner: boolean;
   isActive: boolean;
   airtableId?: string;
+  performerToken?: string;
 }
 
 export interface CreatePersonRequest {
@@ -84,6 +85,7 @@ export interface UpdatePersonRequest {
   isPartner?: boolean;
   isActive?: boolean;
   airtableId?: string;
+  performerToken?: string;
 }
 
 export interface AuthUser {
@@ -206,6 +208,19 @@ export interface Gig {
   lineItems?: GigLineItem[];
   services?: Service[];
   airtableId?: string;
+  // Event details
+  timings?: string;
+  contactNumber?: string;
+  parkingInfo?: string;
+  clientNotes?: string;
+  performerNotes?: string;
+  playlistUrl?: string;
+  endOfNightSong?: string;
+  firstDanceSong?: string;
+  firstDanceType?: string;
+  ceilidh?: boolean;
+  ceilidhLength?: string;
+  ceilidhStyle?: string;
 }
 
 export interface CreateGigRequest {
@@ -226,6 +241,19 @@ export interface CreateGigRequest {
   travelCost?: number;
   discountPercent?: number;
   airtableId?: string;
+  // Event details
+  timings?: string;
+  contactNumber?: string;
+  parkingInfo?: string;
+  clientNotes?: string;
+  performerNotes?: string;
+  playlistUrl?: string;
+  endOfNightSong?: string;
+  firstDanceSong?: string;
+  firstDanceType?: string;
+  ceilidh?: boolean;
+  ceilidhLength?: string;
+  ceilidhStyle?: string;
 }
 
 export interface UpdateGigRequest {
@@ -246,6 +274,63 @@ export interface UpdateGigRequest {
   travelCost?: number;
   discountPercent?: number;
   airtableId?: string;
+  // Event details
+  timings?: string;
+  contactNumber?: string;
+  parkingInfo?: string;
+  clientNotes?: string;
+  performerNotes?: string;
+  playlistUrl?: string;
+  endOfNightSong?: string;
+  firstDanceSong?: string;
+  firstDanceType?: string;
+  ceilidh?: boolean;
+  ceilidhLength?: string;
+  ceilidhStyle?: string;
+}
+
+// ─── Performer portal types ────────────────────────────────────────────────────
+
+/** Summary of a gig shown on the performer's gig list page */
+export interface PerformerGig {
+  id: number;
+  date: string;
+  firstName: string;
+  lastName: string;
+  venueName?: string;
+  location?: string;
+}
+
+/** Full gig detail shown on the performer's gig detail page */
+export interface PerformerGigDetail {
+  id: number;
+  date: string;
+  firstName: string;
+  lastName: string;
+  venueName?: string;
+  location?: string;
+  services: { id: number; name: string }[];
+  timings?: string;
+  contactNumber?: string;
+  parkingInfo?: string;
+  clientNotes?: string;
+  performerNotes?: string;
+  playlistUrl?: string;
+  endOfNightSong?: string;
+  firstDanceSong?: string;
+  firstDanceType?: string;
+  ceilidh: boolean;
+  ceilidhLength?: string;
+  ceilidhStyle?: string;
+  otherPerformers: { id: number; firstName: string; lastName?: string; displayName?: string }[];
+  mustPlaySongs: { title: string; artist?: string }[];
+  avoidSongs: { title: string; artist?: string }[];
+}
+
+/** Response shape for GET /performer/:token */
+export interface PerformerResponse {
+  person: { id: number; firstName: string; lastName?: string; displayName?: string };
+  gigs: PerformerGig[];
 }
 
 export interface Showcase {

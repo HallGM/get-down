@@ -20,6 +20,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      "/performer": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/auth": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/gigs": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/enquir": { target: "http://localhost:3000", bypass: bypassHtmlRequests },

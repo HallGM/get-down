@@ -41,17 +41,18 @@ Table enquiries_services {
 }
 
 Table people {
-  id            serial [pk, increment]
-  first_name    varchar(255) [not null]
-  last_name     varchar(255)
-  display_name  varchar(255)
-  email         varchar(255) [unique]
-  phone         varchar(255)
-  bank_details  text
-  password_hash varchar(255)
-  is_partner    boolean [not null, default: false]
-  is_active     boolean [not null, default: true]
-  airtable_id   varchar(255)
+  id              serial [pk, increment]
+  first_name      varchar(255) [not null]
+  last_name       varchar(255)
+  display_name    varchar(255)
+  email           varchar(255) [unique]
+  phone           varchar(255)
+  bank_details    text
+  password_hash   varchar(255)
+  is_partner      boolean [not null, default: false]
+  is_active       boolean [not null, default: true]
+  airtable_id     varchar(255)
+  performer_token varchar(255) [unique]
 }
 
 Table accounts {
@@ -100,24 +101,36 @@ Table people_roles {
 }
 
 Table gigs {
-  id               serial [pk, increment]
-  enquiry_id       int [ref: > enquiries.id]
-  attribution_id   int [ref: > attributions.id]
-  name             varchar(255)
-  status           varchar(50) [not null, default: 'draft']
-  first_name       varchar(255) [not null]
-  last_name        varchar(255) [not null]
-  partner_name     varchar(255)
-  email            varchar(255)
-  phone            varchar(255)
-  date             date [not null]
-  venue_name       varchar(255)
-  location         varchar(255)
-  description      text
-  total_price      int
-  travel_cost      int [not null, default: 0]
-  discount_percent int [not null, default: 0]
-  airtable_id      varchar(255)
+  id                serial [pk, increment]
+  enquiry_id        int [ref: > enquiries.id]
+  attribution_id    int [ref: > attributions.id]
+  name              varchar(255)
+  status            varchar(50) [not null, default: 'draft']
+  first_name        varchar(255) [not null]
+  last_name         varchar(255) [not null]
+  partner_name      varchar(255)
+  email             varchar(255)
+  phone             varchar(255)
+  date              date [not null]
+  venue_name        varchar(255)
+  location          varchar(255)
+  description       text
+  total_price       int
+  travel_cost       int [not null, default: 0]
+  discount_percent  int [not null, default: 0]
+  airtable_id       varchar(255)
+  timings           text
+  contact_number    text
+  parking_info      text
+  client_notes      text
+  performer_notes   text
+  playlist_url      text
+  end_of_night_song text
+  first_dance_song  text
+  first_dance_type  text
+  ceilidh           boolean [not null, default: false]
+  ceilidh_length    text
+  ceilidh_style     text
 }
 
 Table gig_line_items {
