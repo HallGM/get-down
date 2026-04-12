@@ -17,6 +17,7 @@ import songs from "./controllers/songs.js";
 import rehearsals from "./controllers/rehearsals.js";
 import gigSongPreferences from "./controllers/gig_song_preferences.js";
 import housePlaylist from "./controllers/house_playlist.js";
+import performer from "./controllers/performer.js";
 import { AppError } from "./errors.js";
 
 const app = express();
@@ -25,6 +26,7 @@ app.use(express.json());
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use("/auth", auth);
+app.use("/", performer);
 app.use("/", services);
 app.use("/", people);
 app.use("/", attributions);

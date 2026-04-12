@@ -142,6 +142,18 @@ function mapGig(row: gigsRepo.GigRow): Gig {
     travelCost: row.travel_cost,
     discountPercent: row.discount_percent,
     airtableId: row.airtable_id ?? undefined,
+    timings: row.timings ?? undefined,
+    contactNumber: row.contact_number ?? undefined,
+    parkingInfo: row.parking_info ?? undefined,
+    clientNotes: row.client_notes ?? undefined,
+    performerNotes: row.performer_notes ?? undefined,
+    playlistUrl: row.playlist_url ?? undefined,
+    endOfNightSong: row.end_of_night_song ?? undefined,
+    firstDanceSong: row.first_dance_song ?? undefined,
+    firstDanceType: row.first_dance_type ?? undefined,
+    ceilidh: row.ceilidh,
+    ceilidhLength: row.ceilidh_length ?? undefined,
+    ceilidhStyle: row.ceilidh_style ?? undefined,
   };
 }
 
@@ -192,5 +204,17 @@ function buildMutationInput(
     travelCost: input.travelCost ?? existing?.travelCost ?? 0,
     discountPercent: input.discountPercent ?? existing?.discountPercent ?? 0,
     airtableId: input.airtableId ?? existing?.airtableId,
+    timings: input.timings ?? existing?.timings,
+    contactNumber: input.contactNumber ?? existing?.contactNumber,
+    parkingInfo: input.parkingInfo ?? existing?.parkingInfo,
+    clientNotes: input.clientNotes ?? existing?.clientNotes,
+    performerNotes: input.performerNotes ?? existing?.performerNotes,
+    playlistUrl: input.playlistUrl ?? existing?.playlistUrl,
+    endOfNightSong: input.endOfNightSong ?? existing?.endOfNightSong,
+    firstDanceSong: input.firstDanceSong ?? existing?.firstDanceSong,
+    firstDanceType: input.firstDanceType ?? existing?.firstDanceType,
+    ceilidh: input.ceilidh ?? existing?.ceilidh ?? false,
+    ceilidhLength: input.ceilidhLength ?? existing?.ceilidhLength,
+    ceilidhStyle: input.ceilidhStyle ?? existing?.ceilidhStyle,
   };
 }

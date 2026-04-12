@@ -11,5 +11,6 @@ router.get("/people/:id", handle(req => peopleService.getPersonById(+req.params.
 router.post("/people",    handle(req => peopleService.createPerson(req.body), 201));
 router.put("/people/:id", handle(req => peopleService.updatePerson(+req.params.id, req.body)));
 router.delete("/people/:id", handle(req => peopleService.deletePerson(+req.params.id), 204));
+router.post("/people/:id/generate-token", handle(req => peopleService.generatePerformerToken(+req.params.id)));
 
 export default router;

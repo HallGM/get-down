@@ -48,3 +48,11 @@ export function useDeletePerson() {
     successMessage: "Person deleted",
   });
 }
+
+export function useGeneratePerformerToken() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: (id: number) => apiFetch<Person>("POST", `/people/${id}/generate-token`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+  });
+}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { usePeople, useCreatePerson, useUpdatePerson, useDeletePerson } from "../../api/hooks/usePeople.js";
+import { usePeople, useCreatePerson, useUpdatePerson, useDeletePerson, useGeneratePerformerToken } from "../../api/hooks/usePeople.js";
 import type { CreatePersonRequest, UpdatePersonRequest, Person } from "@get-down/shared";
 import DataTable, { type Column } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
@@ -7,6 +7,7 @@ import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
+import { useToast } from "../../components/Toast.js";
 
 const COLUMNS: Column<Person>[] = [
   { key: "firstName", header: "First Name", sortable: true },
@@ -25,12 +26,26 @@ export default function PeopleList() {
   const createPerson = useCreatePerson();
   const updatePerson = useUpdatePerson();
   const deletePerson = useDeletePerson();
+  const generateToken = useGeneratePerformerToken();
+  const { showToast } = useToast();
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CreatePersonRequest>(EMPTY_FORM);
   const [editTarget, setEditTarget] = useState<Person | null>(null);
   const [editForm, setEditForm] = useState<UpdatePersonRequest>({});
   const [deleteTarget, setDeleteTarget] = useState<Person | null>(null);
+
+  async function handleCopyLink(person: Person) {
+    let token = person.performerToken;
+    if (!token) {
+      const updated = await generateToken.mutateAsync(person.id);
+      token = updated.performerToken;
+    }
+    if (!token) return;
+    const url = `${window.location.origin}/p/${token}`;
+    await navigator.clipboard.writeText(url);
+    showToast("Link copied!", "success");
+  }
 
   function setField<K extends keyof CreatePersonRequest>(field: K, value: CreatePersonRequest[K]) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -78,7 +93,18 @@ export default function PeopleList() {
         columns={[...COLUMNS, {
           key: "actions",
           header: "",
-          render: (p) => <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); openEdit(p); }}>Edit</button>,
+          render: (p) => (
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); openEdit(p); }}>Edit</button>
+              <button
+                className="secondary outline"
+                style={{ padding: "0.2em 0.5em" }}
+                title="Copy performer link"
+                aria-busy={generateToken.isPending}
+                onClick={(e) => { e.stopPropagation(); void handleCopyLink(p); }}
+              >🔗</button>
+            </div>
+          ),
         }]}
         data={people ?? []}
         emptyMessage="No people yet."

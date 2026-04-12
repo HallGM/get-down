@@ -57,6 +57,18 @@ export default function GigDetail() {
       description: gig!.description,
       status: gig!.status,
       totalPrice: gig!.totalPrice,
+      timings: gig!.timings,
+      contactNumber: gig!.contactNumber,
+      parkingInfo: gig!.parkingInfo,
+      clientNotes: gig!.clientNotes,
+      performerNotes: gig!.performerNotes,
+      playlistUrl: gig!.playlistUrl,
+      endOfNightSong: gig!.endOfNightSong,
+      firstDanceSong: gig!.firstDanceSong,
+      firstDanceType: gig!.firstDanceType,
+      ceilidh: gig!.ceilidh ?? false,
+      ceilidhLength: gig!.ceilidhLength,
+      ceilidhStyle: gig!.ceilidhStyle,
     });
     setEditing(true);
   }
@@ -128,12 +140,78 @@ export default function GigDetail() {
               <FormField label="Quoted Price (p)" type="number" value={editForm.totalPrice ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, totalPrice: Number(e.target.value) }))} />
             </div>
             <FormField as="textarea" label="Description" value={editForm.description ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={3} />
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+
+            <h3 style={{ marginTop: "1.5rem" }}>Event details</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem" }}>
+              <FormField label="Contact number" value={editForm.contactNumber ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, contactNumber: e.target.value }))} />
+              <FormField label="End of night song" value={editForm.endOfNightSong ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, endOfNightSong: e.target.value }))} />
+              <FormField label="First dance / song request" value={editForm.firstDanceSong ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, firstDanceSong: e.target.value }))} />
+              <FormField label="First dance type" value={editForm.firstDanceType ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, firstDanceType: e.target.value }))} />
+              <FormField label="Ceilidh length" value={editForm.ceilidhLength ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, ceilidhLength: e.target.value }))} />
+              <FormField label="Ceilidh style" value={editForm.ceilidhStyle ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, ceilidhStyle: e.target.value }))} />
+            </div>
+            <label style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <input type="checkbox" checked={!!editForm.ceilidh} onChange={(e) => setEditForm((f) => ({ ...f, ceilidh: e.target.checked }))} /> Ceilidh
+            </label>
+            <FormField as="textarea" label="Timings" value={editForm.timings ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, timings: e.target.value }))} rows={3} />
+            <FormField as="textarea" label="Parking info" value={editForm.parkingInfo ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, parkingInfo: e.target.value }))} rows={3} />
+            <FormField as="textarea" label="Client notes" value={editForm.clientNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, clientNotes: e.target.value }))} rows={3} />
+            <FormField as="textarea" label="Performer notes" value={editForm.performerNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, performerNotes: e.target.value }))} rows={3} />
+            <div>
+              <label htmlFor="playlistUrl" style={{ display: "block", marginBottom: "0.25rem" }}>DJ playlist URL</label>
+              <input
+                id="playlistUrl"
+                type="url"
+                value={editForm.playlistUrl ?? ""}
+                onChange={(e) => setEditForm((f) => ({ ...f, playlistUrl: e.target.value }))}
+                style={{ width: "100%" }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
               <button type="submit" aria-busy={updateGig.isPending} disabled={updateGig.isPending}>Save</button>
               <button type="button" className="secondary" onClick={() => setEditing(false)}>Cancel</button>
             </div>
           </form>
         </article>
+      )}
+
+      {/* Event details (view mode) */}
+      {!editing && (
+        <section>
+          <h2>Event details</h2>
+          {[
+            gig.timings,
+            gig.contactNumber,
+            gig.parkingInfo,
+            gig.clientNotes,
+            gig.performerNotes,
+            gig.playlistUrl,
+            gig.endOfNightSong,
+            gig.firstDanceSong,
+            gig.firstDanceType,
+            gig.ceilidh,
+            gig.ceilidhLength,
+            gig.ceilidhStyle,
+          ].every((v) => !v) ? (
+            <p style={{ color: "var(--pico-muted-color)" }}>No event details recorded yet.</p>
+          ) : (
+            <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem" }}>
+              {gig.timings && <><dt>Timings</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.timings}</dd></>}
+              {gig.contactNumber && <><dt>Contact number</dt><dd>{gig.contactNumber}</dd></>}
+              {gig.parkingInfo && <><dt>Parking info</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.parkingInfo}</dd></>}
+              {gig.clientNotes && <><dt>Client notes</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.clientNotes}</dd></>}
+              {gig.performerNotes && <><dt>Performer notes</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.performerNotes}</dd></>}
+              {gig.playlistUrl && <><dt>DJ playlist</dt><dd><a href={gig.playlistUrl} target="_blank" rel="noopener noreferrer">{gig.playlistUrl}</a></dd></>}
+              {gig.endOfNightSong && <><dt>End of night</dt><dd>{gig.endOfNightSong}</dd></>}
+              {gig.firstDanceSong && <><dt>First dance</dt><dd>{gig.firstDanceSong}</dd></>}
+              {gig.firstDanceType && <><dt>First dance type</dt><dd>{gig.firstDanceType}</dd></>}
+              <dt>Ceilidh</dt><dd>{gig.ceilidh ? "Yes" : "No"}</dd>
+              {gig.ceilidhLength && <><dt>Ceilidh length</dt><dd>{gig.ceilidhLength}</dd></>}
+              {gig.ceilidhStyle && <><dt>Ceilidh style</dt><dd>{gig.ceilidhStyle}</dd></>}
+            </dl>
+          )}
+        </section>
       )}
 
       {/* Services */}

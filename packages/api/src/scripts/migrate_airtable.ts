@@ -31,7 +31,6 @@ const TABLES = {
   enquiries:    "tblIF2otYYuZwirXR",
   gigs:         "tbldxbkHiZOEcpkrk",
   rehearsals:   "tblVrEfV206UKPL3G",
-  setListItems: "tblLwZ7c6cAIHKSy2",
   gigPayments:  "tblmoq1Xt57MR5p4X",
 } as const;
 
@@ -444,6 +443,7 @@ async function main(): Promise<void> {
       email: str(f["Email"]) ?? undefined,
       date,
       venueName: str(f["Venue"]) ?? undefined,
+      location: str(f["Venue Location"]) ?? undefined,
       description: str(f["description"]) ?? undefined,
       totalPrice,
       travelCost,
@@ -451,6 +451,19 @@ async function main(): Promise<void> {
       attributionId,
       status,
       airtableId: r.id,
+      // Event detail fields
+      timings: str(f["Timings"]) ?? undefined,
+      contactNumber: str(f["Contact Number (on the day)"]) ?? undefined,
+      parkingInfo: str(f["Parking Info"]) ?? undefined,
+      clientNotes: str(f["Client Notes"]) ?? undefined,
+      performerNotes: str(f["notes"]) ?? undefined,
+      playlistUrl: str(f["Playlist"]) ?? undefined,
+      endOfNightSong: str(f["End of the night"]) ?? undefined,
+      firstDanceSong: str(f["First Dance/Song Request (if required)"]) ?? undefined,
+      firstDanceType: str(f["First Dance - Live or DJ?"]) ?? undefined,
+      ceilidh: typeof f["ceilidh?"] === "boolean" ? f["ceilidh?"] : false,
+      ceilidhLength: str(f["Ceilidh Length"]) ?? undefined,
+      ceilidhStyle: str(f["Ceilidh style"]) ?? undefined,
     };
 
     let gigId = gigsByAirtableId.get(r.id);
@@ -497,12 +510,11 @@ async function main(): Promise<void> {
     const mustPlays  = toSongIds(f["Must-have song Choices"]);
     const doNotPlays = toSongIds(f["Avoid playing"]);
 
-    if (favourites.length > 0 || mustPlays.length > 0 || doNotPlays.length > 0) {
-      await callApi("PUT", `/gigs/${gigId}/song-preferences`, { favourites, mustPlays, doNotPlays });
-      prefsUpdated++;
-    }
+    // Always upsert — even if empty — so stale data from a previous run is cleared
+    await callApi("PUT", `/gigs/${gigId}/song-preferences`, { favourites, mustPlays, doNotPlays });
+    prefsUpdated++;
   }
-  console.log(`   ${prefsUpdated} gigs with preferences\n`);
+  console.log(`   ${prefsUpdated} gigs updated\n`);
   console.log("→ rehearsals");
   const existingRehearsals = await callApi<{ id: number; airtableId?: string }[]>("GET", "/rehearsals");
   const rehearsalsByAirtableId = new Map(existingRehearsals.filter(r => r.airtableId).map(r => [r.airtableId!, r.id]));
@@ -538,28 +550,7 @@ async function main(): Promise<void> {
   }
   console.log(`   ${atRehearsals.length} records\n`);
 
-  // ── 10. Set list items ──────────────────────────────────────────────────────
-  console.log("→ set_list_items");
-  const atSetList = await fetchTable(TABLES.setListItems);
-  let setListInserted = 0;
-  for (const r of atSetList) {
-    const f = r.fields;
-    const gigAirtableIds  = ids(f["Gigs"]);
-    const songAirtableIds = ids(f["Songs"]);
-    if (!gigAirtableIds.length || !songAirtableIds.length) continue;
-
-    const gigId  = gigMap.get(gigAirtableIds[0]);
-    const songId = songMap.get(songAirtableIds[0]);
-    if (!gigId || !songId) continue;
-
-    const position =
-      typeof f["order"] === "number" ? Math.round(f["order"]) : undefined;
-    await callApi("POST", `/gigs/${gigId}/set-list`, { songId, position });
-    setListInserted++;
-  }
-  console.log(`   ${setListInserted} / ${atSetList.length} records inserted\n`);
-
-  // ── 11. Gig payments → payments table ──────────────────────────────────────
+  // ── 10. Gig payments → payments table ──────────────────────────────────────
   console.log("→ gig payments (performer fees)");
   const existingPayments = await callApi<{ id: number; airtableId?: string }[]>("GET", "/payments");
   const paymentsByAirtableId = new Map(existingPayments.filter(p => p.airtableId).map(p => [p.airtableId!, p.id]));

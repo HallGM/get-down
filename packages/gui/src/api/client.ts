@@ -104,3 +104,33 @@ export async function apiFetchBlob(method: string, path: string, body?: unknown)
 
   return res.blob();
 }
+
+/**
+ * Public fetch — no auth header, no 401→login redirect.
+ * Used exclusively by performer portal pages.
+ */
+export async function publicFetch<T>(method: string, path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
+  const data: unknown = await res.json();
+
+  if (!res.ok) {
+    const message =
+      typeof data === "object" &&
+      data !== null &&
+      "message" in data &&
+      typeof (data as Record<string, unknown>).message === "string"
+        ? (data as { message: string }).message
+        : `HTTP ${res.status}`;
+    throw new ApiError(res.status, message);
+  }
+
+  return data as T;
+}

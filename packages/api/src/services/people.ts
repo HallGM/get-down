@@ -56,6 +56,21 @@ export async function deletePerson(id: number): Promise<void> {
   }
 }
 
+export async function generatePerformerToken(id: number): Promise<Person> {
+  const existing = await peopleRepository.readPersonById(id);
+  if (!existing) throw new NotFoundError("Person not found");
+
+  // Idempotent — if token already exists, return person as-is
+  if (existing.performer_token) {
+    return mapPerson(existing);
+  }
+
+  const token = crypto.randomUUID();
+  const updated = await peopleRepository.setPerformerToken(id, token);
+  if (!updated) throw new NotFoundError("Person not found");
+  return mapPerson(updated);
+}
+
 function normalizeOptionalString(value?: string): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
@@ -72,6 +87,7 @@ function mapPerson(row: {
   is_partner: boolean;
   is_active: boolean;
   airtable_id: string | null;
+  performer_token: string | null;
 }): Person {
   return {
     id: row.id,
@@ -84,6 +100,7 @@ function mapPerson(row: {
     isPartner: row.is_partner,
     isActive: row.is_active,
     airtableId: row.airtable_id ?? undefined,
+    performerToken: row.performer_token ?? undefined,
   };
 }
 

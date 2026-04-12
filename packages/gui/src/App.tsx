@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Routes, Route, NavLink, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./api/auth.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
 import Login from "./pages/Login.js";
@@ -17,6 +17,8 @@ import ShowcasesList from "./pages/showcases/ShowcasesList.js";
 import AttributionsList from "./pages/attributions/AttributionsList.js";
 import RehearsalsList from "./pages/rehearsals/RehearsalsList.js";
 import ExpensesList from "./pages/expenses/ExpensesList.js";
+import PerformerGigList from "./pages/performer/PerformerGigList.js";
+import PerformerGigDetail from "./pages/performer/PerformerGigDetail.js";
 
 const NAV_LINKS = [
   { to: "/", label: "Dashboard", end: true },
@@ -90,14 +92,20 @@ function AppNav() {
 
 export default function App() {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) return null;
 
+  const isPerformerRoute = location.pathname.startsWith("/p/");
+
   return (
     <>
-      {user && <AppNav />}
+      {user && !isPerformerRoute && <AppNav />}
       <Routes>
         <Route path="/login" element={<Login />} />
+        {/* Public performer portal — no auth required */}
+        <Route path="/p/:token" element={<PerformerGigList />} />
+        <Route path="/p/:token/gigs/:gigId" element={<PerformerGigDetail />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/gigs" element={<GigsList />} />

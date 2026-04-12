@@ -85,6 +85,14 @@ export async function deleteSong(id: number): Promise<boolean> {
   return rows.length > 0;
 }
 
+export async function readSongsByIds(ids: number[]): Promise<SongRow[]> {
+  if (ids.length === 0) return [];
+  return run_query<SongRow>({
+    text: `SELECT id, title, artist, genre, musical_key, bpm, vocal_type, airtable_id FROM songs WHERE id = ANY($1::int[]);`,
+    values: [ids],
+  });
+}
+
 // ─── Set list items ───────────────────────────────────────────────────────────
 
 export interface SetListItemRow {
