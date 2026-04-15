@@ -61,46 +61,92 @@ export default function PerformerGigDetail() {
       {/* Event details */}
       <article>
         <h2>Event details</h2>
-        <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem" }}>
+        <dl style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {gig.venueName && (
-            <><dt>Venue</dt><dd>{gig.venueName}</dd></>
+            <div>
+              <dt><small><strong>Venue</strong></small></dt>
+              <dd style={{ margin: 0, overflowWrap: "anywhere" }}>{gig.venueName}</dd>
+            </div>
           )}
           {gig.location && (
-            <><dt>Location</dt><dd>{gig.location}</dd></>
+            <div>
+              <dt><small><strong>Location</strong></small></dt>
+              <dd style={{ margin: 0, overflowWrap: "anywhere" }}>{gig.location}</dd>
+            </div>
           )}
           {gig.timings && (
-            <><dt>Timings</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.timings}</dd></>
+            <div>
+              <dt><small><strong>Timings</strong></small></dt>
+              <dd style={{ margin: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{gig.timings}</dd>
+            </div>
           )}
           {gig.contactNumber && (
-            <><dt>Contact number</dt><dd><a href={`tel:${gig.contactNumber}`}>{gig.contactNumber}</a></dd></>
+            <div>
+              <dt><small><strong>Contact number</strong></small></dt>
+              <dd style={{ margin: 0, overflowWrap: "anywhere" }}>
+                <a href={`tel:${gig.contactNumber}`}>{gig.contactNumber}</a>
+              </dd>
+            </div>
           )}
           {gig.parkingInfo && (
-            <><dt>Parking</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.parkingInfo}</dd></>
+            <div>
+              <dt><small><strong>Parking</strong></small></dt>
+              <dd style={{ margin: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{gig.parkingInfo}</dd>
+            </div>
           )}
           {gig.clientNotes && (
-            <><dt>Client notes</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.clientNotes}</dd></>
+            <div>
+              <dt><small><strong>Client notes</strong></small></dt>
+              <dd style={{ margin: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{gig.clientNotes}</dd>
+            </div>
           )}
           {gig.performerNotes && (
-            <><dt>Performer notes</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.performerNotes}</dd></>
+            <div>
+              <dt><small><strong>Performer notes</strong></small></dt>
+              <dd style={{ margin: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{gig.performerNotes}</dd>
+            </div>
           )}
           {gig.playlistUrl && (
-            <><dt>DJ playlist</dt><dd><a href={gig.playlistUrl} target="_blank" rel="noopener noreferrer">{gig.playlistUrl}</a></dd></>
+            <div>
+              <dt><small><strong>DJ playlist</strong></small></dt>
+              <dd style={{ margin: 0, overflowWrap: "anywhere" }}>
+                <a href={gig.playlistUrl} target="_blank" rel="noopener noreferrer">Open playlist ↗</a>
+              </dd>
+            </div>
           )}
           {gig.endOfNightSong && (
-            <><dt>End of night</dt><dd>{gig.endOfNightSong}</dd></>
+            <div>
+              <dt><small><strong>End of night</strong></small></dt>
+              <dd style={{ margin: 0, overflowWrap: "anywhere" }}>{gig.endOfNightSong}</dd>
+            </div>
           )}
           {gig.firstDanceSong && (
-            <><dt>First dance</dt><dd>{gig.firstDanceSong}</dd></>
+            <div>
+              <dt><small><strong>First dance</strong></small></dt>
+              <dd style={{ margin: 0, overflowWrap: "anywhere" }}>{gig.firstDanceSong}</dd>
+            </div>
           )}
           {gig.firstDanceType && (
-            <><dt>First dance type</dt><dd>{gig.firstDanceType}</dd></>
+            <div>
+              <dt><small><strong>First dance type</strong></small></dt>
+              <dd style={{ margin: 0, overflowWrap: "anywhere" }}>{gig.firstDanceType}</dd>
+            </div>
           )}
-          <dt>Ceilidh</dt><dd>{gig.ceilidh ? "Yes" : "No"}</dd>
+          <div>
+            <dt><small><strong>Ceilidh</strong></small></dt>
+            <dd style={{ margin: 0 }}>{gig.ceilidh ? "Yes" : "No"}</dd>
+          </div>
           {gig.ceilidh && gig.ceilidhLength && (
-            <><dt>Ceilidh length</dt><dd>{gig.ceilidhLength}</dd></>
+            <div>
+              <dt><small><strong>Ceilidh length</strong></small></dt>
+              <dd style={{ margin: 0, overflowWrap: "anywhere" }}>{gig.ceilidhLength}</dd>
+            </div>
           )}
           {gig.ceilidh && gig.ceilidhStyle && (
-            <><dt>Ceilidh style</dt><dd>{gig.ceilidhStyle}</dd></>
+            <div>
+              <dt><small><strong>Ceilidh style</strong></small></dt>
+              <dd style={{ margin: 0, overflowWrap: "anywhere" }}>{gig.ceilidhStyle}</dd>
+            </div>
           )}
         </dl>
       </article>
