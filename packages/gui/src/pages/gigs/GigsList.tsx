@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGigs, useCreateGig, useDeleteGig } from "../../api/hooks/useGigs.js";
 import type { CreateGigRequest } from "@get-down/shared";
@@ -12,6 +12,8 @@ import StatusBadge from "../../components/StatusBadge.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import { formatDate } from "../../utils/date.js";
 import type { Gig } from "@get-down/shared";
+
+type GigView = "upcoming" | "past" | "all";
 
 const STATUS_OPTIONS = ["enquiry", "confirmed", "completed", "cancelled", "postponed"];
 
@@ -37,9 +39,23 @@ export default function GigsList() {
   const createGig = useCreateGig();
   const deleteGig = useDeleteGig();
 
+  const [view, setView] = useState<GigView>("upcoming");
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CreateGigRequest>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<Gig | null>(null);
+
+  const displayedGigs = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const all = gigs ?? [];
+    if (view === "upcoming") {
+      return [...all].filter((g) => g.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+    }
+    if (view === "past") {
+      return [...all].filter((g) => g.date < today).sort((a, b) => b.date.localeCompare(a.date));
+    }
+    // "all"
+    return [...all].sort((a, b) => a.date.localeCompare(b.date));
+  }, [gigs, view]);
 
   function setField(field: keyof CreateGigRequest, value: string | number | undefined) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -62,11 +78,35 @@ export default function GigsList() {
         <button onClick={() => setShowCreate(true)}>+ New Gig</button>
       </div>
 
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+        <button
+          className={view !== "upcoming" ? "secondary" : undefined}
+          aria-pressed={view === "upcoming"}
+          onClick={() => setView("upcoming")}
+        >
+          Upcoming
+        </button>
+        <button
+          className={view !== "past" ? "secondary" : undefined}
+          aria-pressed={view === "past"}
+          onClick={() => setView("past")}
+        >
+          Past
+        </button>
+        <button
+          className={view !== "all" ? "secondary" : undefined}
+          aria-pressed={view === "all"}
+          onClick={() => setView("all")}
+        >
+          All
+        </button>
+      </div>
+
       <DataTable<Gig>
         columns={COLUMNS}
-        data={gigs ?? []}
+        data={displayedGigs}
         onRowClick={(g) => navigate(`/gigs/${g.id}`)}
-        emptyMessage="No gigs yet."
+        emptyMessage="No gigs found."
         filterPlaceholder="Search gigs…"
       />
 

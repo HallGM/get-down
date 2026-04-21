@@ -23,13 +23,13 @@ import PerformerGigDetail from "./pages/performer/PerformerGigDetail.js";
 const NAV_LINKS = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/gigs", label: "Gigs" },
-  { to: "/enquiries", label: "Enquiries" },
+  // { to: "/enquiries", label: "Enquiries" },  // hidden — not in use yet
   { to: "/songs", label: "Songs" },
   { to: "/people", label: "People" },
   { to: "/services", label: "Services" },
-  { to: "/showcases", label: "Showcases" },
-  { to: "/attributions", label: "Attributions" },
-  { to: "/rehearsals", label: "Rehearsals" },
+  // { to: "/showcases", label: "Showcases" },  // hidden — not in use yet
+  // { to: "/attributions", label: "Attributions" },  // hidden — not in use yet
+  // { to: "/rehearsals", label: "Rehearsals" },  // hidden — not in use yet
   { to: "/expenses", label: "Expenses" },
 ];
 

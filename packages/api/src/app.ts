@@ -18,6 +18,7 @@ import rehearsals from "./controllers/rehearsals.js";
 import gigSongPreferences from "./controllers/gig_song_preferences.js";
 import housePlaylist from "./controllers/house_playlist.js";
 import performer from "./controllers/performer.js";
+import genres from "./controllers/genres.js";
 import { AppError } from "./errors.js";
 
 const app = express();
@@ -38,6 +39,7 @@ app.use("/", expenses);
 app.use("/", payments);
 app.use("/", invoices);
 app.use("/", songs);
+app.use("/", genres);
 app.use("/", rehearsals);
 app.use("/", gigSongPreferences);
 app.use("/", housePlaylist);

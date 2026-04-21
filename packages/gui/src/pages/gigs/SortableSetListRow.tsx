@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { SetListItemWithSong } from "@get-down/shared";
+import { formatDuration } from "../../utils/formatDuration.js";
 
 interface Props {
   item: SetListItemWithSong;
@@ -10,60 +10,31 @@ interface Props {
   removing: boolean;
   selected: boolean;
   onToggleSelect: (itemId: number) => void;
-  onUpdateItem: (itemId: number, field: "key" | "vocalType" | "unlinkedTitle" | "unlinkedArtist" | "unlinkedKey" | "unlinkedVocalType", value: string | null) => void;
-  onEditUnlinked?: (item: SetListItemWithSong) => void;
+  onEdit: (item: SetListItemWithSong) => void;
 }
 
-export default function SortableSetListRow({ item, index, onRemove, removing, selected, onToggleSelect, onUpdateItem, onEditUnlinked }: Props) {
+export default function SortableSetListRow({ item, index, onRemove, removing, selected, onToggleSelect, onEdit }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
 
   const isUnlinked = !item.songId;
 
-  const [editingField, setEditingField] = useState<"key" | "vocalType" | null>(null);
-  const [editValue, setEditValue] = useState("");
-  const [focusedField, setFocusedField] = useState<"key" | "vocalType" | null>(null);
-  // Guard against onBlur firing after Enter/Escape already committed
-  const committedRef = useRef(false);
-
-  // For linked songs, overrides take precedence; for unlinked, use unlinked fields directly
   const displayKey = isUnlinked
     ? item.unlinkedKey
     : (item.overrideKey ?? item.musicalKey);
   const displayVocalType = isUnlinked
     ? item.unlinkedVocalType
     : (item.overrideVocalType ?? item.vocalType);
-
-  function startEdit(field: "key" | "vocalType") {
-    committedRef.current = false;
-    setEditingField(field);
-    setFocusedField(null);
-    setEditValue(field === "key" ? (displayKey ?? "") : (displayVocalType ?? ""));
-  }
-
-  function commit(field: "key" | "vocalType") {
-    if (committedRef.current) return;
-    committedRef.current = true;
-    setEditingField(null);
-    const value = editValue.trim() || null;
-    if (isUnlinked) {
-      onUpdateItem(item.id, field === "key" ? "unlinkedKey" : "unlinkedVocalType", value);
-    } else {
-      onUpdateItem(item.id, field === "key" ? "key" : "vocalType", value);
-    }
-  }
-
-  function cancel() {
-    committedRef.current = true;
-    setEditingField(null);
-  }
+  const displayDuration = isUnlinked
+    ? item.duration
+    : (item.overrideDuration ?? item.duration);
 
   const rowStyle: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
     display: "grid",
-    gridTemplateColumns: "1.2rem 1.5rem 1.5rem 1fr auto auto auto",
+    gridTemplateColumns: "1.2rem 1.5rem 1.5rem 1fr auto auto auto auto",
     alignItems: "center",
     gap: "0.5rem",
     padding: "0.25rem 0.75rem",
@@ -124,117 +95,28 @@ export default function SortableSetListRow({ item, index, onRemove, removing, se
 
       {/* Song info */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap", minWidth: 0 }}>
-        {/* Title — for unlinked songs, show an edit icon to open the edit modal */}
-        <strong
-          style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: isUnlinked ? "pointer" : undefined }}
-          title={isUnlinked ? "Click to edit this song" : undefined}
-          role={isUnlinked ? "button" : undefined}
-          tabIndex={isUnlinked ? 0 : undefined}
-          aria-label={isUnlinked ? `Edit unlinked song: ${item.title}` : undefined}
-          onClick={isUnlinked ? () => onEditUnlinked?.(item) : undefined}
-          onKeyDown={isUnlinked ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onEditUnlinked?.(item); } } : undefined}
-        >
+        <strong style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {item.title}
-          {isUnlinked && <span style={{ marginLeft: "0.3rem", fontSize: "0.7rem", color: "var(--pico-muted-color)" }}>✎</span>}
         </strong>
         {item.artist && (
           <span style={{ color: "var(--pico-muted-color)", whiteSpace: "nowrap" }}>· {item.artist}</span>
         )}
 
-        {/* Key — inline editable */}
-        {editingField === "key" ? (
-          <input
-            type="text"
-            autoFocus
-            value={editValue}
-            onChange={e => setEditValue(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter") { e.preventDefault(); commit("key"); }
-              if (e.key === "Escape") { e.preventDefault(); cancel(); }
-            }}
-            onBlur={() => commit("key")}
-            style={{
-              width: "3rem",
-              height: "1.4em",
-              padding: "0 0.3em",
-              margin: 0,
-              lineHeight: 1,
-              boxSizing: "border-box",
-              fontSize: "0.78rem",
-              borderRadius: "0.25em",
-              border: "1px solid var(--pico-primary)",
-              outline: "2px solid var(--pico-primary-focus)",
-              outlineOffset: "1px",
-            }}
-            placeholder="e.g. G"
-            aria-label="Override key"
-          />
-        ) : (
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={() => startEdit("key")}
-            onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startEdit("key"); } }}
-            onFocus={() => setFocusedField("key")}
-            onBlur={() => setFocusedField(null)}
-            title="Click to edit key"
-            aria-label={`Edit key: ${displayKey ?? "add key"}`}
-            style={
-              focusedField === "key"
-                ? { ...(displayKey ? keyBadgeStyle : placeholderStyle), outline: "2px solid var(--pico-primary-focus)", outlineOffset: "2px" }
-                : displayKey ? keyBadgeStyle : placeholderStyle
-            }
-          >
-            {displayKey ?? "add key"}
-          </span>
+        {/* Duration */}
+        {displayDuration !== undefined && (
+          <small style={{ color: "var(--pico-muted-color)", fontVariantNumeric: "tabular-nums" }}>
+            {formatDuration(displayDuration)}
+          </small>
         )}
 
-        {/* Vocal type — inline editable */}
-        {editingField === "vocalType" ? (
-          <input
-            type="text"
-            autoFocus
-            value={editValue}
-            onChange={e => setEditValue(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter") { e.preventDefault(); commit("vocalType"); }
-              if (e.key === "Escape") { e.preventDefault(); cancel(); }
-            }}
-            onBlur={() => commit("vocalType")}
-            style={{
-              width: "4.5rem",
-              height: "1.4em",
-              padding: "0 0.3em",
-              margin: 0,
-              lineHeight: 1,
-              boxSizing: "border-box",
-              fontSize: "0.78rem",
-              borderRadius: "0.25em",
-              border: "1px solid var(--pico-primary)",
-              outline: "2px solid var(--pico-primary-focus)",
-              outlineOffset: "1px",
-            }}
-            placeholder="e.g. Male"
-            aria-label="Vocal type"
-          />
-        ) : (
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={() => startEdit("vocalType")}
-            onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startEdit("vocalType"); } }}
-            onFocus={() => setFocusedField("vocalType")}
-            onBlur={() => setFocusedField(null)}
-            title="Click to edit vocal type"
-            aria-label={`Edit vocal type: ${displayVocalType ?? "add vocal type"}`}
-            style={
-              focusedField === "vocalType"
-                ? { ...(displayVocalType ? vocalTypeBadgeStyle : placeholderStyle), outline: "2px solid var(--pico-primary-focus)", outlineOffset: "2px" }
-                : displayVocalType ? vocalTypeBadgeStyle : placeholderStyle
-            }
-          >
-            {displayVocalType ?? "add vocal type"}
-          </span>
+        {/* Key badge */}
+        {displayKey && (
+          <span style={keyBadgeStyle}>{displayKey}</span>
+        )}
+
+        {/* Vocal type badge */}
+        {displayVocalType && (
+          <span style={vocalTypeBadgeStyle}>{displayVocalType}</span>
         )}
       </div>
 
@@ -248,6 +130,17 @@ export default function SortableSetListRow({ item, index, onRemove, removing, se
       ) : (
         <span />
       )}
+
+      {/* Edit button */}
+      <button
+        className="secondary outline"
+        style={{ padding: "0.1em 0.5em", fontSize: "0.85rem" }}
+        onClick={() => onEdit(item)}
+        title="Edit song details"
+        aria-label={`Edit ${item.title}`}
+      >
+        ✎
+      </button>
 
       {/* Remove button */}
       <button
@@ -276,7 +169,6 @@ const keyBadgeStyle: React.CSSProperties = {
   fontSize: "0.75rem",
   fontWeight: 600,
   letterSpacing: "0.02em",
-  cursor: "pointer",
   whiteSpace: "nowrap",
 };
 
@@ -289,22 +181,7 @@ const vocalTypeBadgeStyle: React.CSSProperties = {
   borderRadius: "0.25em",
   fontSize: "0.75rem",
   fontWeight: 500,
-  cursor: "pointer",
   whiteSpace: "nowrap",
-};
-
-const placeholderStyle: React.CSSProperties = {
-  display: "inline",
-  fontSize: "0.72rem",
-  color: "var(--pico-muted-color)",
-  cursor: "pointer",
-  opacity: 0.7,
-  whiteSpace: "nowrap",
-  background: "none",
-  border: "none",
-  padding: 0,
-  margin: 0,
-  boxShadow: "none",
 };
 
 const mustPlayBadgeStyle: React.CSSProperties = {

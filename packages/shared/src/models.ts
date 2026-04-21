@@ -600,35 +600,48 @@ export interface CreateAccountTransactionRequest {
   description?: string;
 }
 
+export interface Genre {
+  id: number;
+  name: string;
+}
+
+export interface CreateGenreRequest {
+  name: string;
+}
+
 export interface Song {
   id: number;
   title: string;
   artist?: string;
   genre?: string;
+  genreId?: number;
   musicalKey?: string;
   bpm?: number;
   vocalType?: string;
   airtableId?: string;
+  duration?: number;
 }
 
 export interface CreateSongRequest {
   title: string;
   artist?: string;
-  genre?: string;
+  genreId?: number;
   musicalKey?: string;
   bpm?: number;
   vocalType?: string;
   airtableId?: string;
+  duration?: number;
 }
 
 export interface UpdateSongRequest {
   title?: string;
   artist?: string;
-  genre?: string;
+  genreId?: number;
   musicalKey?: string;
   bpm?: number;
   vocalType?: string;
   airtableId?: string;
+  duration?: number;
 }
 
 export interface SetListItem {
@@ -639,10 +652,12 @@ export interface SetListItem {
   notes?: string;
   overrideKey?: string;
   overrideVocalType?: string;
+  overrideDuration?: number;
   unlinkedTitle?: string;
   unlinkedArtist?: string;
   unlinkedKey?: string;
   unlinkedVocalType?: string;
+  unlinkedDuration?: number;
 }
 
 export interface SetListItemWithSong extends SetListItem {
@@ -650,6 +665,7 @@ export interface SetListItemWithSong extends SetListItem {
   artist?: string;
   musicalKey?: string;
   vocalType?: string;
+  duration?: number;
   isMustPlay: boolean;
   isFavourite: boolean;
   isDoNotPlay: boolean;
@@ -664,16 +680,19 @@ export interface CreateSetListItemRequest {
   unlinkedArtist?: string;
   unlinkedKey?: string;
   unlinkedVocalType?: string;
+  unlinkedDuration?: number;
 }
 
 export interface UpdateSetListItemRequest {
   overrideKey?: string | null;
   overrideVocalType?: string | null;
+  overrideDuration?: number | null;
   // Unlinked song fields
   unlinkedTitle?: string | null;
   unlinkedArtist?: string | null;
   unlinkedKey?: string | null;
   unlinkedVocalType?: string | null;
+  unlinkedDuration?: number | null;
 }
 
 export interface GigSongPreferences {

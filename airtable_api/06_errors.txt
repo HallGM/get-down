@@ -1,0 +1,22 @@
+Errors
+The Every Angle API follows HTTP status code semantics. 2xx codes signify success, 4xx mostly represent user error, 5xx generally correspond to a server error. The error messages will return a JSON-encoded body that contains error and message fields. Those will provide specific error condition and human-readable message to identify what caused the error.
+
+Success code
+200OKRequest completed successfully.
+User error codes
+These errors generally indicate a problem on the client side. If you are getting one of these, check your code and the request details.
+
+400Bad RequestThe request encoding is invalid; the request can't be parsed as a valid JSON.
+401UnauthorizedAccessing a protected resource without authorization or with invalid credentials.
+402Payment RequiredThe account associated with the API key making requests hits a quota that can be increased by upgrading the Airtable account plan.
+403ForbiddenAccessing a protected resource with API credentials that don't have access to that resource.
+404Not FoundRoute or resource is not found. This error is returned when the request hits an undefined route, or if the resource doesn't exist (e.g. has been deleted).
+413Request Entity Too LargeThe request exceeded the maximum allowed payload size. You shouldn't encounter this under normal use.
+422Invalid RequestThe request data is invalid. This includes most of the base-specific validations. You will receive a detailed error message and code pointing to the exact issue.
+429Too Many RequestsThe API is limited to 5 requests per second per base. You will receive a 429 status code and a message "Rate limit exceeded. Please try again later" and will need to wait 30 seconds before subsequent requests will succeed. To learn more about rate limits, please visit our Rate Limits guide.
+Server error codes
+These errors generally represent an error on our side. In the event of a 5xx error code, detailed information about the error will be automatically recorded, and Airtable's developers will be notified.
+
+500Internal Server ErrorThe server encountered an unexpected condition.
+502Bad GatewayAirtable's servers are restarting or an unexpected outage is in progress. You should generally not receive this error, and requests are safe to retry.
+503Service UnavailableThe server could not process your request in time. The server could be temporarily unavailable, or it could have timed out processing your request. You should retry the request with backoffs.

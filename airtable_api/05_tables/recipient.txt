@@ -1,0 +1,393 @@
+Recipient Table
+The id for Recipient is tblIgNPC0L10PhpMl. Table ids and table names can be used interchangeably in API requests. Using table ids means table name changes do not require modifications to your API request.
+
+Fields
+Each record in the Recipient table contains the following fields:
+
+Field names and field ids can be used interchangeably. Using field ids means field name changes do not require modifications to your API request. We recommend using field ids over field names where possible, to reduce modifications to your API request if the user changes the field name later.
+
+Field NameField IDTypeDescription
+NamefldgiRASjrQDfKsQBText
+string
+A single line of text.
+ 
+Example values
+"MARK MORROW"
+
+"COLIN SNEDDON"
+
+"STARK AGENCY LTD"
+
+"EWAN MAINS"
+
+"Scott Bathgate"
+
+Expensesfld4Jnc45L7Z5U1lVText
+string
+A single line of text.
+ 
+Example values
+"MARK MORROW, MARK MORROW, MARK MORROW"
+
+"COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON"
+
+"STARK AGENCY LTD, STARK AGENCY LTD, STARK AGENCY LTD - magazine thing, STARK AGENCY LTD - Three showcases, \"STARK AGENCY LTD - Hamden, Dumfries, Ayrsh..."
+
+"EWAN MAINS - banners and cards, EWAN MAINS - cards"
+
+"Scott Bathgate - mixing"
+
+Bank DetailsfldMzDOsdXuADkBcHLong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"832318 00765750"
+
+"paypal"
+
+"direct debit"
+
+Expenses copyfldUXrVxrfM7xOkntText
+string
+A single line of text.
+ 
+Example values
+"MARK MORROW, MARK MORROW, MARK MORROW"
+
+"COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON"
+
+"STARK AGENCY LTD, STARK AGENCY LTD, STARK AGENCY LTD - magazine thing, STARK AGENCY LTD - Three showcases, \"STARK AGENCY LTD - Hamden, Dumfries, Ayrsh..."
+
+"EWAN MAINS - banners and cards, EWAN MAINS - cards"
+
+"Scott Bathgate - mixing"
+
+List Recipient records
+To list records in Recipient, issue a GET request to the Recipient endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Returned records do not include any fields with "empty" values, e.g. "", [], or false.
+
+You can filter, sort, and format the results with the following query parameters. Note that these parameters need to be URL encoded. You can use our API URL encoder tool to help with this. If you are using a helper library like Airtable.js, these parameters will be automatically encoded.
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+fields
+array of strings
+optional
+Only data for fields whose names are in this list will be included in the result. If you don't need every field, you can use this parameter to reduce the amount of data transferred.
+
+For example, to only return data from Name and Expenses, send these two query parameters:
+
+fields%5B%5D=Name&fields%5B%5D=Expenses
+You can also perform the same action with field ids (they can be found in the fields section):
+
+fields%5B%5D=fldgiRASjrQDfKsQB&fields%5B%5D=fld4Jnc45L7Z5U1lV
+Note: %5B%5D may be omitted when specifying multiple fields, but must always be included when specifying only a single field.
+
+filterByFormula
+string
+optional
+A formula used to filter records. The formula will be evaluated for each record, and if the result is not 0, false, "", NaN, [], or #Error! the record will be included in the response. We recommend testing your formula in the Formula field UI before using it in your API request.
+
+If combined with the view parameter, only records in that view which satisfy the formula will be returned.
+
+The formula must be encoded first before passing it as a value. You can use this tool to not only encode the formula but also create the entire url you need. For example, to only include records where Name isn't empty, pass in NOT({Name} = '') as a parameter like this:
+
+filterByFormula=NOT%28%7BName%7D%20%3D%20%27%27%29
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+maxRecords
+number
+optional
+The maximum total number of records that will be returned in your requests. If this value is larger than pageSize (which is 100 by default), you may have to load multiple pages to reach this total. See the Pagination section below for more.pageSize
+number
+optional
+The number of records returned in each request. Must be less than or equal to 100. Default is 100. See the Pagination section below for more.sort
+array of objects
+optional
+A list of sort objects that specifies how the records will be ordered. Each sort object must have a field key specifying the name of the field to sort on, and an optional direction key that is either "asc" or "desc". The default direction is "asc".
+
+The sort parameter overrides the sorting of the view specified in the view parameter. If neither the sort nor the view parameter is included, the order of records is arbitrary.
+
+For example, to sort records by Name in descending order, send these two query parameters:
+
+sort%5B0%5D%5Bfield%5D=Name
+sort%5B0%5D%5Bdirection%5D=desc
+For example, to sort records by Name in descending order, pass in:
+
+[{field: "Name", direction: "desc"}]
+view
+string
+optional
+The name or ID of a view in the Recipient table. If set, only the records in that view will be returned. The records will be sorted according to the order of the view unless the sort parameter is included, which overrides that order. Fields hidden in this view will be returned in the results. To only return a subset of fields, use the fields parameter.cellFormat
+string
+optional
+The format that should be used for cell values. Supported values are:
+
+json: cells will be formatted as JSON, depending on the field type.
+
+string: cells will be formatted as user-facing strings, regardless of the field type. The timeZone and userLocale parameters are required when using string as the cellFormat.
+
+Note: You should not rely on the format of these strings, as it is subject to change.
+The default is json.
+
+timeZone
+string
+optional
+The time zone that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+userLocale
+string
+optional
+The user locale that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+returnFieldsByFieldId
+boolean
+optional
+An optional boolean value that lets you return field objects where the key is the field id.
+
+This defaults to false, which returns field objects where the key is the field name.
+
+recordMetadata
+array of strings
+optional
+An optional field that, if includes commentCount, adds a commentCount read only property on each record returned.
+
+These parameters need to be URL encoded. If you are using a helper library like Airtable.js, they will be automatically encoded.
+
+Pagination
+The server returns one page of records at a time. Each page will contain pageSize records, which is 100 by default.
+
+If there are more records, the response will contain an offset. To fetch the next page of records, include offset in the next request's parameters.
+
+Pagination will stop when you've reached the end of your table. If the maxRecords parameter is passed, pagination will stop once you've reached this maximum.
+
+ 
+Example request
+curl "https://api.airtable.com/v0/appZXteLrpESv7H8X/Recipient?maxRecords=3&view=Grid%20view" \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "records": [
+        {
+            "id": "rec8MEk6Qgmyuhuea",
+            "createdTime": "2024-05-09T15:06:04.000Z",
+            "fields": {
+                "Name": "MARK MORROW",
+                "Expenses": "MARK MORROW, MARK MORROW, MARK MORROW",
+                "Expenses copy": "MARK MORROW, MARK MORROW, MARK MORROW"
+            }
+        },
+        {
+            "id": "rec8w5W0WTKbVLS0l",
+            "createdTime": "2024-05-09T15:06:04.000Z",
+            "fields": {
+                "Name": "COLIN SNEDDON",
+                "Expenses": "COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON",
+                "Expenses copy": "COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON"
+            }
+        },
+        {
+            "id": "rec61jbfxs14jMrin",
+            "createdTime": "2024-05-09T15:06:04.000Z",
+            "fields": {
+                "Name": "STARK AGENCY LTD",
+                "Expenses": "STARK AGENCY LTD, STARK AGENCY LTD, STARK AGENCY LTD - magazine thing, STARK AGENCY LTD - Three showcases, \"STARK AGENCY LTD - Hamden, Dumfries, Ayrsh...",
+                "Expenses copy": "STARK AGENCY LTD, STARK AGENCY LTD, STARK AGENCY LTD - magazine thing, STARK AGENCY LTD - Three showcases, \"STARK AGENCY LTD - Hamden, Dumfries, Ayrsh..."
+            }
+        }
+    ],
+    "offset": "itrmnjZLO3J5zO9N2/rec61jbfxs14jMrin"
+}
+ 
+Iteration may timeout due to client inactivity or server restarts. In that case, the client will receive a 422 response with error message LIST_RECORDS_ITERATOR_NOT_AVAILABLE. It may then restart iteration from the beginning.
+
+ 
+Retrieve a Recipient record
+To retrieve an existing record in Recipient table, issue a GET request to the record endpoint.
+Any "empty" fields (e.g. "", [], or false) in the record will not be returned.
+
+ 
+Example request
+curl https://api.airtable.com/v0/appZXteLrpESv7H8X/Recipient/rec8MEk6Qgmyuhuea \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "id": "rec8MEk6Qgmyuhuea",
+    "createdTime": "2024-05-09T15:06:04.000Z",
+    "fields": {
+        "Name": "MARK MORROW",
+        "Expenses": "MARK MORROW, MARK MORROW, MARK MORROW",
+        "Expenses copy": "MARK MORROW, MARK MORROW, MARK MORROW"
+    }
+}
+Create Recipient records
+To create new records, issue a POST request to the Recipient endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request body should include an array of up to 10 record objects. Each of these objects should have one key whose value is an inner object containing your record's cell values, keyed by either field name or field id.
+
+Returns an array of record objects created if the call succeeded, including record IDs which will uniquely identify the records within Every Angle.
+
+The Airtable API will perform best-effort automatic data conversion from string values if the typecast parameter is passed in (click to show example). Automatic conversion is disabled by default to ensure data integrity, but it may be helpful for integrating with 3rd party data sources.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X POST https://api.airtable.com/v0/appZXteLrpESv7H8X/Recipient \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "fields": {
+        "Name": "MARK MORROW",
+        "Expenses": "MARK MORROW, MARK MORROW, MARK MORROW",
+        "Expenses copy": "MARK MORROW, MARK MORROW, MARK MORROW"
+      }
+    },
+    {
+      "fields": {
+        "Name": "COLIN SNEDDON",
+        "Expenses": "COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON",
+        "Expenses copy": "COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON"
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "rec8MEk6Qgmyuhuea",
+            "createdTime": "2024-05-09T15:06:04.000Z",
+            "fields": {
+                "Name": "MARK MORROW",
+                "Expenses": "MARK MORROW, MARK MORROW, MARK MORROW",
+                "Expenses copy": "MARK MORROW, MARK MORROW, MARK MORROW"
+            }
+        },
+        {
+            "id": "rec8w5W0WTKbVLS0l",
+            "createdTime": "2024-05-09T15:06:04.000Z",
+            "fields": {
+                "Name": "COLIN SNEDDON",
+                "Expenses": "COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON",
+                "Expenses copy": "COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON"
+            }
+        }
+    ]
+}
+Update/Upsert Recipient records
+To update Recipient records, issue a request to the Recipient endpoint. Table names and table IDs can be used interchangeably. Using table IDs means table name changes won't require modifying your API request code. A PATCH request will only update the fields included in the request. Fields not included in the request will be unchanged. A PUT request will perform a destructive update and clear all unincluded cell values.
+Your request body should include an array of up to 10 record objects. Each of these objects should have an id property representing the record ID and a fields property which contains all of your record's cell values by field name or field id for all of your record's cell values by field name.
+Upsert behavior can be enabled by including a performUpsert object with a fieldsToMergeOn array in your request. Upserts will treat fieldsToMergeOn as an external ID to find existing records in Airtable. If a match is found, that record will be updated. If no matches are found, a new record will be created. For more details, visit our API reference.
+Click here to show an example.
+
+fieldsToMergeOn should be an array with 1-3 field names or field IDs which uniquely identify a record. These cannot be computed fields and must be of the following field types: number, text, long text, single select, multiple select, date.
+
+The API response for upsert requests will additionally include createdRecords and updatedRecords. These are arrays of record IDs, identifying the records from the response's records array that were created or updated.
+
+Airtable reserves the right to throttle upsert requests differently from the standard rate limit throttling policy.
+
+Bank Details may contain "mention tokens". A mention token corresponds to a "@mention" in Airtable's user interface; here in the API it will look like <airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>. Mention tokens cannot be created via this API and should be left intact (or wholly removed) when updating long text fields.
+
+Automatic data conversion for update actions can be enabled via typecast parameter. See create record for details.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X PATCH https://api.airtable.com/v0/appZXteLrpESv7H8X/Recipient \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "id": "rec8MEk6Qgmyuhuea",
+      "fields": {
+        "Name": "MARK MORROW",
+        "Expenses": "MARK MORROW, MARK MORROW, MARK MORROW",
+        "Expenses copy": "MARK MORROW, MARK MORROW, MARK MORROW"
+      }
+    },
+    {
+      "id": "rec8w5W0WTKbVLS0l",
+      "fields": {
+        "Name": "COLIN SNEDDON",
+        "Expenses": "COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON",
+        "Expenses copy": "COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON"
+      }
+    },
+    {
+      "id": "rec61jbfxs14jMrin",
+      "fields": {
+        "Name": "STARK AGENCY LTD",
+        "Expenses": "STARK AGENCY LTD, STARK AGENCY LTD, STARK AGENCY LTD - magazine thing, STARK AGENCY LTD - Three showcases, \"STARK AGENCY LTD - Hamden, Dumfries, Ayrsh...",
+        "Expenses copy": "STARK AGENCY LTD, STARK AGENCY LTD, STARK AGENCY LTD - magazine thing, STARK AGENCY LTD - Three showcases, \"STARK AGENCY LTD - Hamden, Dumfries, Ayrsh..."
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "rec8MEk6Qgmyuhuea",
+            "createdTime": "2024-05-09T15:06:04.000Z",
+            "fields": {
+                "Name": "MARK MORROW",
+                "Expenses": "MARK MORROW, MARK MORROW, MARK MORROW",
+                "Expenses copy": "MARK MORROW, MARK MORROW, MARK MORROW"
+            }
+        },
+        {
+            "id": "rec8w5W0WTKbVLS0l",
+            "createdTime": "2024-05-09T15:06:04.000Z",
+            "fields": {
+                "Name": "COLIN SNEDDON",
+                "Expenses": "COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON",
+                "Expenses copy": "COLIN SNEDDON, COLIN SNEDDON, COLIN SNEDDON"
+            }
+        },
+        {
+            "id": "rec61jbfxs14jMrin",
+            "createdTime": "2024-05-09T15:06:04.000Z",
+            "fields": {
+                "Name": "STARK AGENCY LTD",
+                "Expenses": "STARK AGENCY LTD, STARK AGENCY LTD, STARK AGENCY LTD - magazine thing, STARK AGENCY LTD - Three showcases, \"STARK AGENCY LTD - Hamden, Dumfries, Ayrsh...",
+                "Expenses copy": "STARK AGENCY LTD, STARK AGENCY LTD, STARK AGENCY LTD - magazine thing, STARK AGENCY LTD - Three showcases, \"STARK AGENCY LTD - Hamden, Dumfries, Ayrsh..."
+            }
+        }
+    ]
+}
+Delete Recipient records
+To delete Recipient records, issue a DELETE request to the Recipient endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request should include a URL-encoded array of up to 10 record IDs to delete.
+
+You can also issue a DELETE request to the record endpoint to delete a single record. Click here to show an example.
+
+ 
+Example request
+curl -X DELETE https://api.airtable.com/v0/appZXteLrpESv7H8X/Recipient \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -G \
+  --data-urlencode 'records[]=rec8MEk6Qgmyuhuea' \
+  --data-urlencode 'records[]=rec8w5W0WTKbVLS0l'
+Example response
+{
+    "records": [
+        {
+            "id": "rec8MEk6Qgmyuhuea",
+            "deleted": true
+        },
+        {
+            "id": "rec8w5W0WTKbVLS0l",
+            "deleted": true
+        }
+    ]
+}

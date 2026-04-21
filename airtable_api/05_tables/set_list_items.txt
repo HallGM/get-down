@@ -1,0 +1,1066 @@
+Set List Items Table
+The id for Set List Items is tblLwZ7c6cAIHKSy2. Table ids and table names can be used interchangeably in API requests. Using table ids means table name changes do not require modifications to your API request.
+
+Fields
+Each record in the Set List Items table contains the following fields:
+
+Field names and field ids can be used interchangeably. Using field ids means field name changes do not require modifications to your API request. We recommend using field ids over field names where possible, to reduce modifications to your API request if the user changes the field name later.
+
+Field NameField IDTypeDescription
+NamefldQfLW7Sw8jxbVOpFormula
+number, string, array of numbers or strings
+Computed value: RECORD_ID().
+ 
+Example values
+"\"rec7T357AAH53xMYY\""
+
+"\"rec2jkqj79z3bRt3h\""
+
+"\"recp3GxOQECi5m3jz\""
+
+"\"rec3mM5c2ud0s36re\""
+
+"\"rechZtV1XpUm4M3qz\""
+
+GigsfldW79T2U4SbGAlxj
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Gigs table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Name (from Performers) (from Gigs)fldGLPxsw06Z2N48o
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Name (from Performers) fields in linked Gigs records.
+ 
+Example values
+[
+    "Scott Bruce",
+    "Ciaran Whyte",
+    "Dean Anderson",
+    "Kev Smith",
+    "Kev Moulds",
+    "Calum Johnston"
+]
+
+[
+    "Scott Bruce",
+    "Ciaran Whyte",
+    "Dean Anderson",
+    "Kev Smith",
+    "Kev Moulds",
+    "Calum Johnston",
+    "Scott Bruce",
+    "Jonnie Wallace",
+    "Martin Walker"
+]
+
+[
+    "Scott Bruce",
+    "Ciaran Whyte",
+    "Dean Anderson",
+    "Kev Smith",
+    "Kev Moulds",
+    "Calum Johnston"
+]
+
+[
+    "Scott Bruce",
+    "Ciaran Whyte",
+    "Dean Anderson",
+    "Kev Smith",
+    "Kev Moulds",
+    "Calum Johnston"
+]
+
+[
+    "Scott Bruce",
+    "Ciaran Whyte",
+    "Dean Anderson",
+    "Kev Smith",
+    "Kev Moulds",
+    "Calum Johnston"
+]
+
+Performers (from Gigs)fldJyixjjL2IRJ2mg
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Performers fields in linked Gigs records.
+ 
+Example values
+[
+    "recrcRCn2wnq0yv48",
+    "recIzGxdU99o3bS8C",
+    "recAiygBNCzRUoBIf",
+    "recVzl5rVcFvXe5Op",
+    "rectJP6GkSKDmVG0n",
+    "recCq13rLKoqgtsp9"
+]
+
+[
+    "recrcRCn2wnq0yv48",
+    "recIzGxdU99o3bS8C",
+    "recAiygBNCzRUoBIf",
+    "recVzl5rVcFvXe5Op",
+    "rectJP6GkSKDmVG0n",
+    "recCq13rLKoqgtsp9",
+    "recrcRCn2wnq0yv48",
+    "recC5SxcPcBpYMzmr",
+    "recXMMomspfUSKAEz"
+]
+
+[
+    "recrcRCn2wnq0yv48",
+    "recIzGxdU99o3bS8C",
+    "recAiygBNCzRUoBIf",
+    "recVzl5rVcFvXe5Op",
+    "rectJP6GkSKDmVG0n",
+    "recCq13rLKoqgtsp9"
+]
+
+[
+    "recrcRCn2wnq0yv48",
+    "recIzGxdU99o3bS8C",
+    "recAiygBNCzRUoBIf",
+    "recVzl5rVcFvXe5Op",
+    "rectJP6GkSKDmVG0n",
+    "recCq13rLKoqgtsp9"
+]
+
+[
+    "recrcRCn2wnq0yv48",
+    "recIzGxdU99o3bS8C",
+    "recAiygBNCzRUoBIf",
+    "recVzl5rVcFvXe5Op",
+    "rectJP6GkSKDmVG0n",
+    "recCq13rLKoqgtsp9"
+]
+
+Date (from Gigs)fldBpETJz07x97GGP
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Date fields in linked Gigs records.
+ 
+Example values
+[
+    "2025-08-23"
+]
+
+[
+    "2025-08-23",
+    "2025-09-12"
+]
+
+[
+    "2025-08-23"
+]
+
+[
+    "2025-08-23"
+]
+
+[
+    "2025-08-23"
+]
+
+Songsflde47KqhLhsDmVAt
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Songs table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Name (from Songs)fldGvNMnfgHsMPMgp
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Name fields in linked Songs records.
+ 
+Example values
+[
+    "Murder on the Dancefloor - Sophie Ellis-Bextor"
+]
+
+[
+    "Proud Mary - Tina Turner"
+]
+
+[
+    "A Little Respect - Erasure"
+]
+
+[
+    "Faith - George Michael"
+]
+
+[
+    "Take on me - Aha"
+]
+
+record_ id (from Songs)fldhCrstXn34ipRp7
+Lookup
+array of numbers, strings, booleans, or objects
+Array of record_ id fields in linked Songs records.
+ 
+Example values
+[
+    "recLQANOgeGVd0Ofn"
+]
+
+[
+    "recucdKhQWbPbrWW8"
+]
+
+[
+    "recAxb8DRdAXu0CiI"
+]
+
+[
+    "reclI2b7LhE0SZ6z7"
+]
+
+[
+    "recIhBdEVXvU12uh6"
+]
+
+duration (from Songs)fldjs2BByneILOAr7
+Lookup
+array of numbers, strings, booleans, or objects
+Array of duration fields in linked Songs records.
+ 
+Example values
+[
+    "3:50"
+]
+
+[
+    "5:27"
+]
+
+[
+    "5:31"
+]
+
+[
+    "3:12"
+]
+
+[
+    "3:45"
+]
+
+duration (seconds) (from Songs)fldnrwRaF8KIGxh4j
+Lookup
+array of numbers, strings, booleans, or objects
+Array of duration (seconds) fields in linked Songs records.
+ 
+Example values
+[
+    230
+]
+
+[
+    327
+]
+
+[
+    331
+]
+
+[
+    192
+]
+
+[
+    225
+]
+
+set list name (from Songs)fldd6iuHDQKMXJQyY
+Lookup
+array of numbers, strings, booleans, or objects
+Array of set list name fields in linked Songs records.
+ 
+Example values
+[
+    "Murder on the Dancefloor - Sophie Ellis-Bextor (F) - E"
+]
+
+[
+    "Proud Mary - Tina Turner (F) - D"
+]
+
+[
+    "A Little Respect - Erasure (M) - C"
+]
+
+[
+    "Faith - George Michael (M) - B"
+]
+
+[
+    "Take on me - Aha (M) - A"
+]
+
+orderfldnogdr7mHA32ff1Number
+number
+A decimal number showing 1 decimal digit. This field only allows positive numbers.
+ 
+Example values
+6.0
+
+7.0
+
+9.0
+
+11.0
+
+16.0
+
+Manual sortfldLVUr0KSOeqzU5K
+ 
+must-playfldDXonvM2riwTMxE
+Checkbox
+boolean
+This field is "true" when checked and otherwise empty.
+ 
+Example value
+true
+
+List Set List Items records
+To list records in Set List Items, issue a GET request to the Set List Items endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Returned records do not include any fields with "empty" values, e.g. "", [], or false.
+
+You can filter, sort, and format the results with the following query parameters. Note that these parameters need to be URL encoded. You can use our API URL encoder tool to help with this. If you are using a helper library like Airtable.js, these parameters will be automatically encoded.
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+fields
+array of strings
+optional
+Only data for fields whose names are in this list will be included in the result. If you don't need every field, you can use this parameter to reduce the amount of data transferred.
+
+For example, to only return data from Name and Gigs, send these two query parameters:
+
+fields%5B%5D=Name&fields%5B%5D=Gigs
+You can also perform the same action with field ids (they can be found in the fields section):
+
+fields%5B%5D=fldQfLW7Sw8jxbVOp&fields%5B%5D=fldW79T2U4SbGAlxj
+Note: %5B%5D may be omitted when specifying multiple fields, but must always be included when specifying only a single field.
+
+filterByFormula
+string
+optional
+A formula used to filter records. The formula will be evaluated for each record, and if the result is not 0, false, "", NaN, [], or #Error! the record will be included in the response. We recommend testing your formula in the Formula field UI before using it in your API request.
+
+If combined with the view parameter, only records in that view which satisfy the formula will be returned.
+
+The formula must be encoded first before passing it as a value. You can use this tool to not only encode the formula but also create the entire url you need. For example, to only include records where Name isn't empty, pass in NOT({Name} = '') as a parameter like this:
+
+filterByFormula=NOT%28%7BName%7D%20%3D%20%27%27%29
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+maxRecords
+number
+optional
+The maximum total number of records that will be returned in your requests. If this value is larger than pageSize (which is 100 by default), you may have to load multiple pages to reach this total. See the Pagination section below for more.pageSize
+number
+optional
+The number of records returned in each request. Must be less than or equal to 100. Default is 100. See the Pagination section below for more.sort
+array of objects
+optional
+A list of sort objects that specifies how the records will be ordered. Each sort object must have a field key specifying the name of the field to sort on, and an optional direction key that is either "asc" or "desc". The default direction is "asc".
+
+The sort parameter overrides the sorting of the view specified in the view parameter. If neither the sort nor the view parameter is included, the order of records is arbitrary.
+
+For example, to sort records by Name in descending order, send these two query parameters:
+
+sort%5B0%5D%5Bfield%5D=Name
+sort%5B0%5D%5Bdirection%5D=desc
+For example, to sort records by Name in descending order, pass in:
+
+[{field: "Name", direction: "desc"}]
+view
+string
+optional
+The name or ID of a view in the Set List Items table. If set, only the records in that view will be returned. The records will be sorted according to the order of the view unless the sort parameter is included, which overrides that order. Fields hidden in this view will be returned in the results. To only return a subset of fields, use the fields parameter.cellFormat
+string
+optional
+The format that should be used for cell values. Supported values are:
+
+json: cells will be formatted as JSON, depending on the field type.
+
+string: cells will be formatted as user-facing strings, regardless of the field type. The timeZone and userLocale parameters are required when using string as the cellFormat.
+
+Note: You should not rely on the format of these strings, as it is subject to change.
+The default is json.
+
+timeZone
+string
+optional
+The time zone that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+userLocale
+string
+optional
+The user locale that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+returnFieldsByFieldId
+boolean
+optional
+An optional boolean value that lets you return field objects where the key is the field id.
+
+This defaults to false, which returns field objects where the key is the field name.
+
+recordMetadata
+array of strings
+optional
+An optional field that, if includes commentCount, adds a commentCount read only property on each record returned.
+
+These parameters need to be URL encoded. If you are using a helper library like Airtable.js, they will be automatically encoded.
+
+Pagination
+The server returns one page of records at a time. Each page will contain pageSize records, which is 100 by default.
+
+If there are more records, the response will contain an offset. To fetch the next page of records, include offset in the next request's parameters.
+
+Pagination will stop when you've reached the end of your table. If the maxRecords parameter is passed, pagination will stop once you've reached this maximum.
+
+ 
+Example request
+curl "https://api.airtable.com/v0/appZXteLrpESv7H8X/Set%20List%20Items?maxRecords=3&view=Grid%20view" \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "records": [
+        {
+            "id": "rec7T357AAH53xMYY",
+            "createdTime": "2025-07-29T22:22:57.000Z",
+            "fields": {
+                "Name": "rec7T357AAH53xMYY",
+                "Gigs": [
+                    "recV7SplUdIshpvtX"
+                ],
+                "Songs": [
+                    "recLQANOgeGVd0Ofn"
+                ],
+                "order": 6,
+                "Date (from Gigs)": [
+                    "2025-08-23"
+                ],
+                "Manual sort": "b1kV",
+                "set list name (from Songs)": [
+                    "Murder on the Dancefloor - Sophie Ellis-Bextor (F) - E"
+                ],
+                "duration (seconds) (from Songs)": [
+                    230
+                ],
+                "duration (from Songs)": [
+                    "3:50"
+                ],
+                "record_ id (from Songs)": [
+                    "recLQANOgeGVd0Ofn"
+                ],
+                "Name (from Songs)": [
+                    "Murder on the Dancefloor - Sophie Ellis-Bextor"
+                ],
+                "Performers (from Gigs)": [
+                    "recrcRCn2wnq0yv48",
+                    "recIzGxdU99o3bS8C",
+                    "recAiygBNCzRUoBIf",
+                    "recVzl5rVcFvXe5Op",
+                    "rectJP6GkSKDmVG0n",
+                    "recCq13rLKoqgtsp9"
+                ],
+                "Name (from Performers) (from Gigs)": [
+                    "Scott Bruce",
+                    "Ciaran Whyte",
+                    "Dean Anderson",
+                    "Kev Smith",
+                    "Kev Moulds",
+                    "Calum Johnston"
+                ]
+            }
+        },
+        {
+            "id": "rec2jkqj79z3bRt3h",
+            "createdTime": "2025-07-29T22:22:57.000Z",
+            "fields": {
+                "Name": "rec2jkqj79z3bRt3h",
+                "Gigs": [
+                    "recV7SplUdIshpvtX",
+                    "rec2qgnXxWjguEESN"
+                ],
+                "Songs": [
+                    "recucdKhQWbPbrWW8"
+                ],
+                "order": 7,
+                "Date (from Gigs)": [
+                    "2025-08-23",
+                    "2025-09-12"
+                ],
+                "Manual sort": "b2L",
+                "set list name (from Songs)": [
+                    "Proud Mary - Tina Turner (F) - D"
+                ],
+                "duration (seconds) (from Songs)": [
+                    327
+                ],
+                "duration (from Songs)": [
+                    "5:27"
+                ],
+                "record_ id (from Songs)": [
+                    "recucdKhQWbPbrWW8"
+                ],
+                "Name (from Songs)": [
+                    "Proud Mary - Tina Turner"
+                ],
+                "Performers (from Gigs)": [
+                    "recrcRCn2wnq0yv48",
+                    "recIzGxdU99o3bS8C",
+                    "recAiygBNCzRUoBIf",
+                    "recVzl5rVcFvXe5Op",
+                    "rectJP6GkSKDmVG0n",
+                    "recCq13rLKoqgtsp9",
+                    "recrcRCn2wnq0yv48",
+                    "recC5SxcPcBpYMzmr",
+                    "recXMMomspfUSKAEz"
+                ],
+                "Name (from Performers) (from Gigs)": [
+                    "Scott Bruce",
+                    "Ciaran Whyte",
+                    "Dean Anderson",
+                    "Kev Smith",
+                    "Kev Moulds",
+                    "Calum Johnston",
+                    "Scott Bruce",
+                    "Jonnie Wallace",
+                    "Martin Walker"
+                ]
+            }
+        },
+        {
+            "id": "recp3GxOQECi5m3jz",
+            "createdTime": "2025-07-29T22:22:57.000Z",
+            "fields": {
+                "Name": "recp3GxOQECi5m3jz",
+                "Gigs": [
+                    "recV7SplUdIshpvtX"
+                ],
+                "Songs": [
+                    "recAxb8DRdAXu0CiI"
+                ],
+                "order": 9,
+                "Date (from Gigs)": [
+                    "2025-08-23"
+                ],
+                "Manual sort": "b1B",
+                "set list name (from Songs)": [
+                    "A Little Respect - Erasure (M) - C"
+                ],
+                "duration (seconds) (from Songs)": [
+                    331
+                ],
+                "duration (from Songs)": [
+                    "5:31"
+                ],
+                "record_ id (from Songs)": [
+                    "recAxb8DRdAXu0CiI"
+                ],
+                "Name (from Songs)": [
+                    "A Little Respect - Erasure"
+                ],
+                "Performers (from Gigs)": [
+                    "recrcRCn2wnq0yv48",
+                    "recIzGxdU99o3bS8C",
+                    "recAiygBNCzRUoBIf",
+                    "recVzl5rVcFvXe5Op",
+                    "rectJP6GkSKDmVG0n",
+                    "recCq13rLKoqgtsp9"
+                ],
+                "Name (from Performers) (from Gigs)": [
+                    "Scott Bruce",
+                    "Ciaran Whyte",
+                    "Dean Anderson",
+                    "Kev Smith",
+                    "Kev Moulds",
+                    "Calum Johnston"
+                ]
+            }
+        }
+    ],
+    "offset": "itrmnjZLO3J5zO9N2/recp3GxOQECi5m3jz"
+}
+ 
+Iteration may timeout due to client inactivity or server restarts. In that case, the client will receive a 422 response with error message LIST_RECORDS_ITERATOR_NOT_AVAILABLE. It may then restart iteration from the beginning.
+
+ 
+Retrieve a Set List Items record
+To retrieve an existing record in Set List Items table, issue a GET request to the record endpoint.
+Any "empty" fields (e.g. "", [], or false) in the record will not be returned.
+
+ 
+Example request
+curl https://api.airtable.com/v0/appZXteLrpESv7H8X/Set%20List%20Items/rec7T357AAH53xMYY \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "id": "rec7T357AAH53xMYY",
+    "createdTime": "2025-07-29T22:22:57.000Z",
+    "fields": {
+        "Name": "rec7T357AAH53xMYY",
+        "Gigs": [
+            "recV7SplUdIshpvtX"
+        ],
+        "Songs": [
+            "recLQANOgeGVd0Ofn"
+        ],
+        "order": 6,
+        "Date (from Gigs)": [
+            "2025-08-23"
+        ],
+        "Manual sort": "b1kV",
+        "set list name (from Songs)": [
+            "Murder on the Dancefloor - Sophie Ellis-Bextor (F) - E"
+        ],
+        "duration (seconds) (from Songs)": [
+            230
+        ],
+        "duration (from Songs)": [
+            "3:50"
+        ],
+        "record_ id (from Songs)": [
+            "recLQANOgeGVd0Ofn"
+        ],
+        "Name (from Songs)": [
+            "Murder on the Dancefloor - Sophie Ellis-Bextor"
+        ],
+        "Performers (from Gigs)": [
+            "recrcRCn2wnq0yv48",
+            "recIzGxdU99o3bS8C",
+            "recAiygBNCzRUoBIf",
+            "recVzl5rVcFvXe5Op",
+            "rectJP6GkSKDmVG0n",
+            "recCq13rLKoqgtsp9"
+        ],
+        "Name (from Performers) (from Gigs)": [
+            "Scott Bruce",
+            "Ciaran Whyte",
+            "Dean Anderson",
+            "Kev Smith",
+            "Kev Moulds",
+            "Calum Johnston"
+        ]
+    }
+}
+Create Set List Items records
+To create new records, issue a POST request to the Set List Items endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request body should include an array of up to 10 record objects. Each of these objects should have one key whose value is an inner object containing your record's cell values, keyed by either field name or field id.
+
+Returns an array of record objects created if the call succeeded, including record IDs which will uniquely identify the records within Every Angle.
+
+Values for Name, Name (from Performers) (from Gigs), Performers (from Gigs), Date (from Gigs), Name (from Songs), record_ id (from Songs), duration (from Songs), duration (seconds) (from Songs), set list name (from Songs) and Manual sort are automatically computed by Airtable and cannot be directly created.
+
+The Airtable API will perform best-effort automatic data conversion from string values if the typecast parameter is passed in (click to show example). Automatic conversion is disabled by default to ensure data integrity, but it may be helpful for integrating with 3rd party data sources.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X POST https://api.airtable.com/v0/appZXteLrpESv7H8X/Set%20List%20Items \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "fields": {
+        "Gigs": [
+          "recV7SplUdIshpvtX"
+        ],
+        "Songs": [
+          "recLQANOgeGVd0Ofn"
+        ],
+        "order": 6
+      }
+    },
+    {
+      "fields": {
+        "Gigs": [
+          "recV7SplUdIshpvtX",
+          "rec2qgnXxWjguEESN"
+        ],
+        "Songs": [
+          "recucdKhQWbPbrWW8"
+        ],
+        "order": 7
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "rec7T357AAH53xMYY",
+            "createdTime": "2025-07-29T22:22:57.000Z",
+            "fields": {
+                "Name": "rec7T357AAH53xMYY",
+                "Gigs": [
+                    "recV7SplUdIshpvtX"
+                ],
+                "Songs": [
+                    "recLQANOgeGVd0Ofn"
+                ],
+                "order": 6,
+                "Date (from Gigs)": [
+                    "2025-08-23"
+                ],
+                "Manual sort": "b1kV",
+                "set list name (from Songs)": [
+                    "Murder on the Dancefloor - Sophie Ellis-Bextor (F) - E"
+                ],
+                "duration (seconds) (from Songs)": [
+                    230
+                ],
+                "duration (from Songs)": [
+                    "3:50"
+                ],
+                "record_ id (from Songs)": [
+                    "recLQANOgeGVd0Ofn"
+                ],
+                "Name (from Songs)": [
+                    "Murder on the Dancefloor - Sophie Ellis-Bextor"
+                ],
+                "Performers (from Gigs)": [
+                    "recrcRCn2wnq0yv48",
+                    "recIzGxdU99o3bS8C",
+                    "recAiygBNCzRUoBIf",
+                    "recVzl5rVcFvXe5Op",
+                    "rectJP6GkSKDmVG0n",
+                    "recCq13rLKoqgtsp9"
+                ],
+                "Name (from Performers) (from Gigs)": [
+                    "Scott Bruce",
+                    "Ciaran Whyte",
+                    "Dean Anderson",
+                    "Kev Smith",
+                    "Kev Moulds",
+                    "Calum Johnston"
+                ]
+            }
+        },
+        {
+            "id": "rec2jkqj79z3bRt3h",
+            "createdTime": "2025-07-29T22:22:57.000Z",
+            "fields": {
+                "Name": "rec2jkqj79z3bRt3h",
+                "Gigs": [
+                    "recV7SplUdIshpvtX",
+                    "rec2qgnXxWjguEESN"
+                ],
+                "Songs": [
+                    "recucdKhQWbPbrWW8"
+                ],
+                "order": 7,
+                "Date (from Gigs)": [
+                    "2025-08-23",
+                    "2025-09-12"
+                ],
+                "Manual sort": "b2L",
+                "set list name (from Songs)": [
+                    "Proud Mary - Tina Turner (F) - D"
+                ],
+                "duration (seconds) (from Songs)": [
+                    327
+                ],
+                "duration (from Songs)": [
+                    "5:27"
+                ],
+                "record_ id (from Songs)": [
+                    "recucdKhQWbPbrWW8"
+                ],
+                "Name (from Songs)": [
+                    "Proud Mary - Tina Turner"
+                ],
+                "Performers (from Gigs)": [
+                    "recrcRCn2wnq0yv48",
+                    "recIzGxdU99o3bS8C",
+                    "recAiygBNCzRUoBIf",
+                    "recVzl5rVcFvXe5Op",
+                    "rectJP6GkSKDmVG0n",
+                    "recCq13rLKoqgtsp9",
+                    "recrcRCn2wnq0yv48",
+                    "recC5SxcPcBpYMzmr",
+                    "recXMMomspfUSKAEz"
+                ],
+                "Name (from Performers) (from Gigs)": [
+                    "Scott Bruce",
+                    "Ciaran Whyte",
+                    "Dean Anderson",
+                    "Kev Smith",
+                    "Kev Moulds",
+                    "Calum Johnston",
+                    "Scott Bruce",
+                    "Jonnie Wallace",
+                    "Martin Walker"
+                ]
+            }
+        }
+    ]
+}
+Update/Upsert Set List Items records
+To update Set List Items records, issue a request to the Set List Items endpoint. Table names and table IDs can be used interchangeably. Using table IDs means table name changes won't require modifying your API request code. A PATCH request will only update the fields included in the request. Fields not included in the request will be unchanged. A PUT request will perform a destructive update and clear all unincluded cell values.
+Your request body should include an array of up to 10 record objects. Each of these objects should have an id property representing the record ID and a fields property which contains all of your record's cell values by field name or field id for all of your record's cell values by field name.
+Upsert behavior can be enabled by including a performUpsert object with a fieldsToMergeOn array in your request. Upserts will treat fieldsToMergeOn as an external ID to find existing records in Airtable. If a match is found, that record will be updated. If no matches are found, a new record will be created. For more details, visit our API reference.
+Click here to show an example.
+
+fieldsToMergeOn should be an array with 1-3 field names or field IDs which uniquely identify a record. These cannot be computed fields and must be of the following field types: number, text, long text, single select, multiple select, date.
+
+The API response for upsert requests will additionally include createdRecords and updatedRecords. These are arrays of record IDs, identifying the records from the response's records array that were created or updated.
+
+Airtable reserves the right to throttle upsert requests differently from the standard rate limit throttling policy.
+
+To link to new records in Gigs and Songs, add new linked record IDs to the existing array. Be sure to include all existing linked record IDs that you wish to retain. To unlink records, include the existing array of record IDs, excluding any that you wish to unlink.
+
+Values for Name, Name (from Performers) (from Gigs), Performers (from Gigs), Date (from Gigs), Name (from Songs), record_ id (from Songs), duration (from Songs), duration (seconds) (from Songs), set list name (from Songs) and Manual sort are automatically computed by Airtable and cannot be directly updated. You cannot clear these, even with a PUT request.
+Automatic data conversion for update actions can be enabled via typecast parameter. See create record for details.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X PATCH https://api.airtable.com/v0/appZXteLrpESv7H8X/Set%20List%20Items \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "id": "rec7T357AAH53xMYY",
+      "fields": {
+        "Gigs": [
+          "recV7SplUdIshpvtX"
+        ],
+        "Songs": [
+          "recLQANOgeGVd0Ofn"
+        ],
+        "order": 6
+      }
+    },
+    {
+      "id": "rec2jkqj79z3bRt3h",
+      "fields": {
+        "Gigs": [
+          "recV7SplUdIshpvtX",
+          "rec2qgnXxWjguEESN"
+        ],
+        "Songs": [
+          "recucdKhQWbPbrWW8"
+        ],
+        "order": 7
+      }
+    },
+    {
+      "id": "recp3GxOQECi5m3jz",
+      "fields": {
+        "Gigs": [
+          "recV7SplUdIshpvtX"
+        ],
+        "Songs": [
+          "recAxb8DRdAXu0CiI"
+        ],
+        "order": 9
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "rec7T357AAH53xMYY",
+            "createdTime": "2025-07-29T22:22:57.000Z",
+            "fields": {
+                "Name": "rec7T357AAH53xMYY",
+                "Gigs": [
+                    "recV7SplUdIshpvtX"
+                ],
+                "Songs": [
+                    "recLQANOgeGVd0Ofn"
+                ],
+                "order": 6,
+                "Date (from Gigs)": [
+                    "2025-08-23"
+                ],
+                "Manual sort": "b1kV",
+                "set list name (from Songs)": [
+                    "Murder on the Dancefloor - Sophie Ellis-Bextor (F) - E"
+                ],
+                "duration (seconds) (from Songs)": [
+                    230
+                ],
+                "duration (from Songs)": [
+                    "3:50"
+                ],
+                "record_ id (from Songs)": [
+                    "recLQANOgeGVd0Ofn"
+                ],
+                "Name (from Songs)": [
+                    "Murder on the Dancefloor - Sophie Ellis-Bextor"
+                ],
+                "Performers (from Gigs)": [
+                    "recrcRCn2wnq0yv48",
+                    "recIzGxdU99o3bS8C",
+                    "recAiygBNCzRUoBIf",
+                    "recVzl5rVcFvXe5Op",
+                    "rectJP6GkSKDmVG0n",
+                    "recCq13rLKoqgtsp9"
+                ],
+                "Name (from Performers) (from Gigs)": [
+                    "Scott Bruce",
+                    "Ciaran Whyte",
+                    "Dean Anderson",
+                    "Kev Smith",
+                    "Kev Moulds",
+                    "Calum Johnston"
+                ]
+            }
+        },
+        {
+            "id": "rec2jkqj79z3bRt3h",
+            "createdTime": "2025-07-29T22:22:57.000Z",
+            "fields": {
+                "Name": "rec2jkqj79z3bRt3h",
+                "Gigs": [
+                    "recV7SplUdIshpvtX",
+                    "rec2qgnXxWjguEESN"
+                ],
+                "Songs": [
+                    "recucdKhQWbPbrWW8"
+                ],
+                "order": 7,
+                "Date (from Gigs)": [
+                    "2025-08-23",
+                    "2025-09-12"
+                ],
+                "Manual sort": "b2L",
+                "set list name (from Songs)": [
+                    "Proud Mary - Tina Turner (F) - D"
+                ],
+                "duration (seconds) (from Songs)": [
+                    327
+                ],
+                "duration (from Songs)": [
+                    "5:27"
+                ],
+                "record_ id (from Songs)": [
+                    "recucdKhQWbPbrWW8"
+                ],
+                "Name (from Songs)": [
+                    "Proud Mary - Tina Turner"
+                ],
+                "Performers (from Gigs)": [
+                    "recrcRCn2wnq0yv48",
+                    "recIzGxdU99o3bS8C",
+                    "recAiygBNCzRUoBIf",
+                    "recVzl5rVcFvXe5Op",
+                    "rectJP6GkSKDmVG0n",
+                    "recCq13rLKoqgtsp9",
+                    "recrcRCn2wnq0yv48",
+                    "recC5SxcPcBpYMzmr",
+                    "recXMMomspfUSKAEz"
+                ],
+                "Name (from Performers) (from Gigs)": [
+                    "Scott Bruce",
+                    "Ciaran Whyte",
+                    "Dean Anderson",
+                    "Kev Smith",
+                    "Kev Moulds",
+                    "Calum Johnston",
+                    "Scott Bruce",
+                    "Jonnie Wallace",
+                    "Martin Walker"
+                ]
+            }
+        },
+        {
+            "id": "recp3GxOQECi5m3jz",
+            "createdTime": "2025-07-29T22:22:57.000Z",
+            "fields": {
+                "Name": "recp3GxOQECi5m3jz",
+                "Gigs": [
+                    "recV7SplUdIshpvtX"
+                ],
+                "Songs": [
+                    "recAxb8DRdAXu0CiI"
+                ],
+                "order": 9,
+                "Date (from Gigs)": [
+                    "2025-08-23"
+                ],
+                "Manual sort": "b1B",
+                "set list name (from Songs)": [
+                    "A Little Respect - Erasure (M) - C"
+                ],
+                "duration (seconds) (from Songs)": [
+                    331
+                ],
+                "duration (from Songs)": [
+                    "5:31"
+                ],
+                "record_ id (from Songs)": [
+                    "recAxb8DRdAXu0CiI"
+                ],
+                "Name (from Songs)": [
+                    "A Little Respect - Erasure"
+                ],
+                "Performers (from Gigs)": [
+                    "recrcRCn2wnq0yv48",
+                    "recIzGxdU99o3bS8C",
+                    "recAiygBNCzRUoBIf",
+                    "recVzl5rVcFvXe5Op",
+                    "rectJP6GkSKDmVG0n",
+                    "recCq13rLKoqgtsp9"
+                ],
+                "Name (from Performers) (from Gigs)": [
+                    "Scott Bruce",
+                    "Ciaran Whyte",
+                    "Dean Anderson",
+                    "Kev Smith",
+                    "Kev Moulds",
+                    "Calum Johnston"
+                ]
+            }
+        }
+    ]
+}
+Delete Set List Items records
+To delete Set List Items records, issue a DELETE request to the Set List Items endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request should include a URL-encoded array of up to 10 record IDs to delete.
+
+You can also issue a DELETE request to the record endpoint to delete a single record. Click here to show an example.
+
+ 
+Example request
+curl -X DELETE https://api.airtable.com/v0/appZXteLrpESv7H8X/Set%20List%20Items \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -G \
+  --data-urlencode 'records[]=rec7T357AAH53xMYY' \
+  --data-urlencode 'records[]=rec2jkqj79z3bRt3h'
+Example response
+{
+    "records": [
+        {
+            "id": "rec7T357AAH53xMYY",
+            "deleted": true
+        },
+        {
+            "id": "rec2jkqj79z3bRt3h",
+            "deleted": true
+        }
+    ]
+}

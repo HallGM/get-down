@@ -1,0 +1,6 @@
+Authentication
+Airtable uses simple token-based authentication. For personal development, we recommend using personal access tokens, which can be created at /create/tokens. To learn more about other authentication methods like OAuth, please visit our developer documentation.
+
+You can authenticate to the API by providing your secret API token (e.g. personal access token) in the HTTP authorization bearer token header.
+
+All API requests must be authenticated and made over HTTPS.

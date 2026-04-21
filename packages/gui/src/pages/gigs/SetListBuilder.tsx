@@ -35,7 +35,7 @@ import ErrorBanner from "../../components/ErrorBanner.js";
 import SortableSetListRow from "./SortableSetListRow.js";
 import SongPrefList from "./SongPrefList.js";
 import HousePlaylistPanel from "./HousePlaylistPanel.js";
-import AddUnlinkedSongModal from "./AddUnlinkedSongModal.js";
+import EditSetListItemModal, { type EditSetListItemSubmit } from "./EditSetListItemModal.js";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -114,9 +114,73 @@ export default function SetListBuilder() {
     )
   );
 
-  // Unlinked song modal state
-  const [showUnlinkedModal, setShowUnlinkedModal] = useState(false);
-  const [editingUnlinked, setEditingUnlinked] = useState<SetListItemWithSong | null>(null);
+  // Edit modal state
+  // editingItem = the row being edited; null = create (add unlisted song) mode
+  const [editingItem, setEditingItem] = useState<SetListItemWithSong | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+
+  const modalOpen = showCreate || editingItem !== null;
+
+  function openCreate() {
+    setEditingItem(null);
+    setShowCreate(true);
+  }
+
+  function openEdit(item: SetListItemWithSong) {
+    setShowCreate(false);
+    setEditingItem(item);
+  }
+
+  function closeModal() {
+    setEditingItem(null);
+    setShowCreate(false);
+  }
+
+  async function handleEditItem(form: EditSetListItemSubmit) {
+    const mins = parseInt(form.durationMinutes, 10);
+    const secs = parseInt(form.durationSeconds, 10);
+    const hasDuration = !isNaN(mins) || !isNaN(secs);
+    const totalSeconds = ((isNaN(mins) ? 0 : mins) * 60) + (isNaN(secs) ? 0 : secs);
+    const duration = (form.durationMinutes === "" && form.durationSeconds === "")
+      ? null
+      : hasDuration && totalSeconds > 0 ? totalSeconds : null;
+
+    if (editingItem) {
+      if (editingItem.songId) {
+        // Linked song — store as overrides
+        await updateItem.mutateAsync({
+          gigId,
+          itemId: editingItem.id,
+          overrideKey: form.key || null,
+          overrideVocalType: form.vocalType || null,
+          overrideDuration: duration,
+        });
+      } else {
+        // Unlinked song — update all fields
+        await updateItem.mutateAsync({
+          gigId,
+          itemId: editingItem.id,
+          unlinkedTitle: form.title || null,
+          unlinkedArtist: form.artist || null,
+          unlinkedKey: form.key || null,
+          unlinkedVocalType: form.vocalType || null,
+          unlinkedDuration: duration,
+        });
+      }
+    } else {
+      // Create mode — add unlisted song
+      await addItem.mutateAsync({
+        gigId,
+        unlinkedTitle: form.title,
+        unlinkedArtist: form.artist || undefined,
+        unlinkedKey: form.key || undefined,
+        unlinkedVocalType: form.vocalType || undefined,
+        unlinkedDuration: duration ?? undefined,
+      });
+    }
+
+    closeModal();
+  }
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -160,36 +224,6 @@ export default function SetListBuilder() {
     } finally {
       setDownloadPending(false);
     }
-  }
-
-  async function handleAddUnlinked(form: {
-    unlinkedTitle: string;
-    unlinkedArtist: string;
-    unlinkedKey: string;
-    unlinkedVocalType: string;
-  }) {
-    if (editingUnlinked) {
-      // Edit mode — PATCH the existing item
-      await updateItem.mutateAsync({
-        gigId,
-        itemId: editingUnlinked.id,
-        unlinkedTitle: form.unlinkedTitle || null,
-        unlinkedArtist: form.unlinkedArtist || null,
-        unlinkedKey: form.unlinkedKey || null,
-        unlinkedVocalType: form.unlinkedVocalType || null,
-      });
-      setEditingUnlinked(null);
-    } else {
-      // Create mode
-      await addItem.mutateAsync({
-        gigId,
-        unlinkedTitle: form.unlinkedTitle,
-        unlinkedArtist: form.unlinkedArtist || undefined,
-        unlinkedKey: form.unlinkedKey || undefined,
-        unlinkedVocalType: form.unlinkedVocalType || undefined,
-      });
-    }
-    setShowUnlinkedModal(false);
   }
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
@@ -294,24 +328,35 @@ export default function SetListBuilder() {
                         selected={selectedIds.has(item.id)}
                         onToggleSelect={toggleSelect}
                         onRemove={(itemId) => removeItem.mutate({ gigId, itemId })}
-                        onUpdateItem={(itemId, field, value) => {
-                          const patch: Parameters<typeof updateItem.mutate>[0] = { gigId, itemId };
-                          if (field === "key")                 patch.overrideKey = value;
-                          else if (field === "vocalType")      patch.overrideVocalType = value;
-                          else if (field === "unlinkedKey")    patch.unlinkedKey = value;
-                          else if (field === "unlinkedVocalType") patch.unlinkedVocalType = value;
-                          else if (field === "unlinkedTitle")  patch.unlinkedTitle = value;
-                          else if (field === "unlinkedArtist") patch.unlinkedArtist = value;
-                          updateItem.mutate(patch);
-                        }}
-                        onEditUnlinked={(item) => {
-                          setEditingUnlinked(item);
-                          setShowUnlinkedModal(true);
-                        }}
+                        onEdit={openEdit}
                       />
                     ))}
                   </SortableContext>
                 </DndContext>
+
+                {/* Set duration total */}
+                {(() => {
+                  const totalSeconds = ordered.reduce((acc, item) => acc + (item.duration ?? 0), 0);
+                  if (totalSeconds === 0) return null;
+                  return (
+                    <div style={{
+                      marginTop: "0.75rem",
+                      paddingTop: "0.5rem",
+                      borderTop: "1px solid var(--pico-muted-border-color)",
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      alignItems: "center",
+                      gap: "0.4rem",
+                      color: "var(--pico-muted-color)",
+                      fontSize: "0.9rem",
+                    }}>
+                      <span>Total set time:</span>
+                      <strong style={{ color: "var(--pico-color)" }}>
+                        {formatTotalDuration(totalSeconds)}
+                      </strong>
+                    </div>
+                  );
+                })()}
               </>
             )}
 
@@ -372,7 +417,7 @@ export default function SetListBuilder() {
               </div>
               <button
                 className="secondary outline"
-                onClick={() => { setEditingUnlinked(null); setShowUnlinkedModal(true); }}
+                onClick={openCreate}
                 style={{ whiteSpace: "nowrap" }}
               >
                 + Add unlisted song
@@ -414,14 +459,31 @@ export default function SetListBuilder() {
         />
       </div>
 
-      {/* Unlinked song modal */}
-      <AddUnlinkedSongModal
-        open={showUnlinkedModal}
-        editItem={editingUnlinked}
-        onClose={() => { setShowUnlinkedModal(false); setEditingUnlinked(null); }}
-        onSubmit={handleAddUnlinked}
+      {/* Edit / create modal */}
+      <EditSetListItemModal
+        open={modalOpen}
+        item={editingItem}
+        isLinked={editingItem !== null && !!editingItem.songId}
+        modalTitle={
+          showCreate
+            ? "Add unlisted song"
+            : editingItem?.songId
+              ? "Edit song"
+              : "Edit unlisted song"
+        }
+        onClose={closeModal}
+        onSubmit={handleEditItem}
         isPending={addItem.isPending || updateItem.isPending}
       />
     </main>
   );
+}
+
+// ─── Duration helpers ─────────────────────────────────────────────────────────
+
+/** Format seconds as Xh Ym or Ym for the total set duration footer */
+function formatTotalDuration(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 }

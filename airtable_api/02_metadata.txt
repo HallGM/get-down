@@ -1,0 +1,3 @@
+Metadata
+This API gives you the ability to list all of your bases, tables, fields, and views. For more, see the API reference documentation for List bases and Get base schema.
+
