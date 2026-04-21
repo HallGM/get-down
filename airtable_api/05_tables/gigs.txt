@@ -1,0 +1,4401 @@
+Gigs Table
+The id for Gigs is tbldxbkHiZOEcpkrk. Table ids and table names can be used interchangeably in API requests. Using table ids means table name changes do not require modifications to your API request.
+
+Fields
+Each record in the Gigs table contains the following fields:
+
+Field names and field ids can be used interchangeably. Using field ids means field name changes do not require modifications to your API request. We recommend using field ids over field names where possible, to reduce modifications to your API request if the user changes the field name later.
+
+Field NameField IDTypeDescription
+NamefldFY7TZkaqgMy9CCFormula
+number, string, array of numbers or strings
+Computed value: DATETIME_FORMAT(Date, "DD/MM/YY")& " - " & {Client Name(s)} & " - " & Venue.
+ 
+Example values
+"\"16/05/26 - Hannah Pearson - Piersland house hotel\""
+
+"\"27/05/26 - Megan Gorton - Fingask Castle in Perthshire\""
+
+"\"13/06/26 - Abbie Phillips & Will Hand - Culdees Castle, Muthill, PH5 2BA\""
+
+"\"27/06/26 - Kirsten Love - Biscuit Factory (Leith)\n\nCeremony is at Edinburgh botanics and reception is at the Biscuit Factory in Leith.\""
+
+"\"28/06/26 - Rosanna Bailey - Balbirnie House\""
+
+DatefldsP7rj6ja1uDxVn
+Date
+string (ISO 8601 formatted date)
+UTC date, e.g. "2014-09-05".
+ 
+Example values
+"2026-05-16"
+
+"2026-05-27"
+
+"2026-06-13"
+
+"2026-06-27"
+
+"2026-06-28"
+
+Client Name(s)fldTUryBEgVtjKgJxText
+string
+A single line of text.
+ 
+Example values
+"Hannah Pearson"
+
+"Megan Gorton"
+
+"Abbie Phillips & Will Hand"
+
+"Kirsten Love"
+
+"Rosanna Bailey"
+
+VenuefldkHqJV82IFERubcLong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"Piersland house hotel"
+
+"Fingask Castle in Perthshire"
+
+"Culdees Castle, Muthill, PH5 2BA"
+
+"Biscuit Factory (Leith)\n\nCeremony is at Edinburgh botanics and reception is at the Biscuit Factory in Leith."
+
+"Balbirnie House"
+
+D Paid?fldWFhKa45Yoq3pf1
+Checkbox
+boolean
+This field is "true" when checked and otherwise empty.
+ 
+Example value
+true
+
+B Paid?fldZH7cu2EJ7WoUJF
+Checkbox
+boolean
+This field is "true" when checked and otherwise empty.
+ 
+Example value
+true
+
+Total Charge (actual)fldYvImCMuBMizBsACurrency
+number
+Currency value. This field only allows positive numbers.
+ 
+Example values
+1525.00
+
+810.00
+
+1625.00
+
+2873.75
+
+2595.00
+
+Deposit AmountfldI6OgUknB2itC6kCurrency
+number
+Currency value. This field only allows positive numbers.
+ 
+Example values
+305.00
+
+162.00
+
+325.00
+
+574.25
+
+499.00
+
+Balance AmountfldJdwFpS3MSj8AWzFormula
+number, string, array of numbers or strings
+Computed value: {Total Charge (actual)} - {Deposit Amount}.
+ 
+Example values
+1220
+
+648
+
+1300
+
+2299.5
+
+2096
+
+Amount Paid (Turnover)fldWowL8BRNI2WiZqFormula
+number, string, array of numbers or strings
+Computed value: IF({D Paid?}, {Deposit Amount}, 0) + IF({B Paid?}, {Balance Amount}, 0).
+ 
+Example values
+305
+
+162
+
+325
+
+574.25
+
+499
+
+Amount Paid (current)fldEb3SRy7CLtoqf2Formula
+number, string, array of numbers or strings
+Computed value: IF(IS_BEFORE(Date, TODAY()), {Amount Paid (Turnover)}, 0) .
+ 
+Example values
+0
+
+0
+
+0
+
+0
+
+0
+
+eventfldeGgmznRrsF9j4e
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Event table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+AttributionfldH3JWoj9i4zc3CF
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Showcases table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+OptionsfldZbdDFY1w6CTPOW
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Services table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+options_idsfldbHGJu6z2cYZ5to
+Lookup
+array of numbers, strings, booleans, or objects
+Array of record_id fields in linked Services records.
+ 
+Example values
+[
+    "recKQDzOTXYTUcKPE"
+]
+
+[
+    "rec6gmlxv5hNvu0MW"
+]
+
+[
+    "recKQDzOTXYTUcKPE"
+]
+
+[
+    "recKQDzOTXYTUcKPE",
+    "recR53kqsBeVbVbNR",
+    "reckICfpGA3qCxz9T"
+]
+
+[
+    "recAs9JlxgNRMkihn",
+    "recKQDzOTXYTUcKPE"
+]
+
+descriptionfldDq5dtOoUepBpXxText
+string
+A single line of text.
+ 
+Example values
+"biscuit factory, leith"
+
+Options PricefldVWP9ZlKDIg3zn9
+Rollup
+number or string
+Computed value: SUM(values) for Price (to client) in Services.
+ 
+Example values
+1500
+
+900
+
+1500
+
+3350
+
+2495
+
+Options FeesfldSdQFic5idYpaCW
+Rollup
+number or string
+Computed value: SUM(values) for Total Fees in Services.
+ 
+Example values
+1125
+
+675
+
+1125
+
+2525
+
+1925
+
+Description (from event)fldpOPEznNY9v9iim
+Lookup
+array of numbers, strings, booleans, or objects
+Array of fields in linked Event records.
+ 
+Example values
+To see example values, try adding some data to Gigs.
+
+Early Arrival (Hours)fldCtt1TvqqhqSk6sNumber
+number
+A decimal number showing 1 decimal digit. This field only allows positive numbers.
+ 
+Example values
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+Early Arrival PricefldKDfmDyApLPsWjNFormula
+number, string, array of numbers or strings
+Computed value: {Early Arrival (Hours)} * 50.
+ 
+Example values
+0
+
+0
+
+0
+
+0
+
+0
+
+Late Finish (Hours)fldCTEWSRZdh4OwLaNumber
+number
+A decimal number showing 1 decimal digit. This field only allows positive numbers.
+ 
+Example values
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+Late Finish Pricefld8DCEFxKgIfLsEmFormula
+number, string, array of numbers or strings
+Computed value: {Late Finish (Hours)} * 125.
+ 
+Example values
+0
+
+0
+
+0
+
+0
+
+0
+
+Bandeoke SongsfldLbFp4zSwGeFjiENumber
+number
+An integer (whole number, e.g. 1, 32, 99). This field only allows positive numbers.
+ 
+Example value
+42
+
+DiscountfldyIi4HxSQq49w5BPercent
+number
+Decimal number representing a percentage value. For example, the underlying cell value for 12.3% is 0.123. This field only allows positive numbers.
+ 
+Example value
+
+TravelfldSHNNVXmyjUEiSeCurrency
+number
+Currency value. This field only allows positive numbers.
+ 
+Example values
+0.00
+
+0.00
+
+125.00
+
+25.00
+
+100.00
+
+SubtotalfldHBJ9QSkw2xlclvFormula
+number, string, array of numbers or strings
+Computed value: ({Options Price} + {Early Arrival Price} + {Late Finish Price} + {Karaoke (cost)}).
+ 
+Example values
+1500
+
+900
+
+1500
+
+3350
+
+2495
+
+Discount Appliedfld4lPqxWeoDcBkDEFormula
+number, string, array of numbers or strings
+Computed value: ROUND((Subtotal * (1-Discount))* 100)/100.
+ 
+Example values
+1500
+
+900
+
+1500
+
+3350
+
+2495
+
+Date (from event)fld5DL2bxoJcUhW8X
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Date fields in linked Event records.
+ 
+Example values
+[
+    "2026-05-16T00:00:00.000Z"
+]
+
+[
+    "2026-05-27T00:00:00.000Z"
+]
+
+[
+    "2026-06-06T00:00:00.000Z"
+]
+
+[
+    "2026-06-27T00:00:00.000Z"
+]
+
+[
+    "2026-06-28T00:00:00.000Z"
+]
+
+Total Due (calculated)fld3swgmB2BUUdViBFormula
+number, string, array of numbers or strings
+Computed value: {Discount Applied} + Travel.
+ 
+Example values
+1500
+
+900
+
+1625
+
+3375
+
+2595
+
+Deposit Due (Calculated)fld9RlibPzp1SCG5ZFormula
+number, string, array of numbers or strings
+Computed value: ROUND({Total Due (calculated)} * .2, 2) .
+ 
+Example values
+300
+
+180
+
+325
+
+675
+
+519
+
+Profit (projected)fldPCpulSNixN03J7Formula
+number, string, array of numbers or strings
+Computed value: {Total Due (calculated)} - {Options Fees} - Travel.
+ 
+Example values
+375
+
+225
+
+375
+
+825
+
+570
+
+Performer Fee (actual)fldLxflIepPzkTRwA
+Rollup
+number or string
+Computed value: SUM(values) for amount in Gig Payment.
+ 
+Example values
+0
+
+0
+
+0
+
+0
+
+0
+
+Profit (Pot)fldJwY1VGSdQ8Ki6GFormula
+number, string, array of numbers or strings
+Computed value: {Amount Paid (Turnover)} - {Performer Fee (actual)}.
+ 
+Example values
+305
+
+162
+
+325
+
+574.25
+
+499
+
+Totalsfld2tnydnhVRSdKIU
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Totals table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+is_donefldbEyY6OPeTScrQ0Formula
+number, string, array of numbers or strings
+Computed value: DATETIME_DIFF( TODAY(), Date, 'days' ) > 0.
+ 
+Example values
+0
+
+0
+
+0
+
+0
+
+0
+
+Distance (from Bathgate - miles)fld2VEDpet1WoBqctNumber
+number
+A decimal number showing 1 decimal digit. This field only allows positive numbers.
+ 
+Example value
+42.2
+
+InvoicesfldTV5u6RQbFMfeLt
+Attachment
+array of attachment objects
+Each attachment object may contain the following properties. To see which fields are required or optional, please consult the relevant section: retrieve, create, update, or delete.
+
+idstring
+unique attachment id
+urlstring
+url, e.g. "https://v5.airtableusercontent.com/foo".
+
+Note: URLs returned will expire 2 hours after being returned from our API. If you want to persist the attachments, we recommend downloading them instead of saving the URL. See our support article for more information.
+filenamestring
+filename, e.g. "foo.jpg"
+sizenumber
+file size, in bytes
+typestring
+content type, e.g. "image/jpeg"
+widthnumberheightnumber
+width/height, in pixels (these may be available if the attachment is an image)
+thumbnails.small.urlstringthumbnails.large.urlstring
+url of small/large thumbnails (these may be available if the attachment is an image or document). See notes under url about the lifetime of these URLs.
+thumbnails.small.widthnumberthumbnails.small.heightnumberthumbnails.large.widthnumberthumbnails.large.heightnumber
+width/height of small/large thumbnails, in pixels (these will be available if the corresponding thumbnail url is available)
+ 
+Example values
+[
+    {
+        "id": "attZHpDxCnU99hu3G",
+        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/2F9yPv8K9u7hvF-vBqS1rg/qRsy_0Td4najn5I1GCdNjY4U88Wy4AuLsYkgPlyLxn0hVX3gjT19Ylw4WkrI6hrXgkSnlQUbrRCf8pBQWEnBTUB24qd_2iCOsg3yqTJMLl_c6LFSR2O5F1sjBvkcdASX75ero-eCNkfyGEGu6YU7QJ1ZdSSjoMJ_6Sr88kbIonalNAkx_dUvt6tR2li-_q7l/dQY37CBHZnU4j4MGzzzcp-wWx-EEBVXoVJ5TNXK8Wlo",
+        "filename": "Invoice - Hannah Pearson - 16 05 2026.pdf",
+        "size": 206093,
+        "type": "application/pdf",
+        "thumbnails": {
+            "small": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/fFHs7e4xVlNaIZNBliYOaw/j8LrZdcil34hhtw4DDLRWnWkH1C4Y86bVebkjbVpx93rabMWlwaswcjrxjoqGXNDvt8K5uQgt3Itd8DFBJUKTyA2eZ6VLlQG8i0qKVCSo5v090SNWuNA3j89xDysUsfuS6BRnTKONkO42e2P7cgp5g/eZRMkNHi_UNDQAxjg9e88XpJzZOz7kOu8wE2Y5wbCCg",
+                "width": 25,
+                "height": 35
+            },
+            "large": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/oI2iHjgAuAthvR8ZOohO8Q/n85e9oB8SKI_ufQlKFx9940v1T4QNhKnmcui5J3fsfOUjD5DiRY_cnEb_24Hcf3j0XDrgM6H7ECxfCGMtDbWwzW3ck9LPt-7wmr0nZ1qpDQEUwpgme_9Krv-EoN7njf24jq5fFjuIgDfhhCmjTtQPw/qwGRHq2YKC1W0I6UFFdkrHA9kbPXvLc9oePnNeplt90",
+                "width": 512,
+                "height": 724
+            }
+        }
+    }
+]
+
+[
+    {
+        "id": "attDQtXnP4KpmipPA",
+        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/6H8nhhopZAoFdyTF1ESnPg/CxlAHnk3d0OSjMBR81Mx6Oy78rMyfZW40kNYe_LnftRleMdbZcm-x_LACnZlAdHNGPDrMe7xDngl3NDIMAVeOg9roV4rDB8TIECfqyIo9C0U5GQd0a36prbybS-u1MAUNgHruvbIXJdKu8euzhfa1wvZZnzpraGeSHxEEUi5gPIJyCJY_QOY8uKCmRdlDaTr/7qVfc9co-t3VWjUM8b2ZQXWeK8PtUU56JtqnJXbi2fI",
+        "filename": "Invoice - Megan Gorton - 27 05 2026.pdf",
+        "size": 210135,
+        "type": "application/pdf",
+        "thumbnails": {
+            "small": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/k7BMlZjvSmM1POaEMU31ww/yAwEAiLONzyw5hy4alqHQdaM-4WHB7N1e6Tpggb0kXkgta_yGn4iN3eJOKjWhXGvrNgoKETTcYGkqy_VfoPfMCC5NbOV7vlJh0tEpLH6q8DImt9g9YWLbqs4WaBvgDO2wFb78VWaKZzKvZp7HFn0BA/R_GdmzrSzpfxaW3UX2ZN-8mOM6Gisgoy3CgN3lZ0hRs",
+                "width": 25,
+                "height": 35
+            },
+            "large": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/ljh-CxatUV7Q1VPaaOtK5Q/bSOTAsR1Jc9jLJ4l-h0dY347VysCKg56CxED20x06pSMa35nXXzqcSvTCtOCTCZwLYH0CcjMr2Byrl-Svf6JA9T7aErsNp8IlOsafzd7arviSZHU-OvLMOGpLEV1jmk9deRVt49pkIkPE1in8mv9RQ/SH_XYOO0eKW4okgHhhdWQPobelJxPKZWV5W35A5GCz4",
+                "width": 512,
+                "height": 724
+            }
+        }
+    }
+]
+
+PerformersfldkvwxmkKc5CIqkq
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the People table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Name (from Performers)fld3xTHKDnL64UUs1
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Name fields in linked People records.
+ 
+Example values
+[
+    "Scott Bruce",
+    "Louise Grant",
+    "Jasmin Galvin",
+    "Craig Harkness",
+    "Frazer Smith"
+]
+
+[
+    "Scott Bruce",
+    "Craig Harkness"
+]
+
+[
+    "Scott Bruce",
+    "Michelle",
+    "Joe Nichols",
+    "Craig Harkness",
+    "Pete Wall"
+]
+
+[
+    "Scott Bruce",
+    "Katie Lindsay",
+    "Louise Grant",
+    "Craig Harkness",
+    "Matthew Kilner"
+]
+
+[
+    "Katie Lindsay",
+    "Louise Grant",
+    "Scott Bruce",
+    "Craig Harkness"
+]
+
+notesfldahQrzs3Y2yiHzo
+Long text (with rich text formatting enabled)
+string
+A Markdown-inspired markup language.
+Learn more about using Markdown in long text's rich text formatting API.
+ 
+Example value
+[
+    {
+        "type": "paragraph",
+        "value": [
+            {
+                "type": "paragraphLine",
+                "value": [
+                    {
+                        "type": "text",
+                        "value": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam et nulla vulputate, sollicitudin risus sed, suscipit sapien. "
+                    },
+                    {
+                        "type": "text",
+                        "value": "Donec ac tempus velit, nec efficitur augue. Donec fermentum ex cursus, tincidunt justo ac, bibendum turpis",
+                        "attributes": {
+                            "bold": true,
+                        }
+                    }
+                ]
+            },
+            {
+                "type": "paragraphLine",
+                "value": [
+                    {
+                        "type": "mention",
+                        "value": {
+                            "userName": "Waffles Wags-a-lot",
+                            "userId": "usrR2o0pNsHC4FdrT",
+                            "mentionId": "menE1i9oBaGX3DseR"
+                        },
+                        "attributes": {
+                            "bold": true
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+]
+                            
+
+EmailfldXz0NHH7CnRLXpKEmail
+string
+A valid email address.
+ 
+Example values
+"hannah_pearson14393@hotmail.co.uk"
+
+"GortonBryce24@outlook.com"
+
+"abbie3@hotmail.co.uk"
+
+"lovekirsten1997@gmail.com"
+
+"rosannabailey40@gmail.com"
+
+Cancelled?fldf8FPAuuhaojg7r
+Checkbox
+boolean
+This field is "true" when checked and otherwise empty.
+ 
+Example value
+true
+
+do a thingfldrNbUF73fNHbfKr
+Checkbox
+boolean
+This field is "true" when checked and otherwise empty.
+ 
+Example value
+true
+
+Song Choicesfldfg0IfFA0q3yiQN
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Songs table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Must-have song ChoicesfldYJeeiQdkhwi1TE
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Songs table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+songfldzOTgk3k3CAb3uc
+Multiple select
+array of strings
+Array of selected option names.
+
+When creating or updating records, if a choice string does not exactly match an existing option, the request will fail with an INVALID_MULTIPLE_CHOICE_OPTIONS error unless the typecast parameter is enabled. If typecast is enabled, a new choice will be created if one does not exactly match.
+
+ 
+Possible values
+[
+    "About Damn time - Lizzo",
+    "Shut up and Dance - Walk The Moon",
+    "Juice - Lizzo",
+    "Royals - Lorde",
+    "Valerie - Mark Ronson",
+    "I Wanna Dance With somebody - Whitney Houston",
+    "Everywhere - Fleetwood Mac",
+    "Whenever/wherever - Shakira",
+    "You get what you give - New Radicals",
+    "I Will Wait - Mumford and Sons",
+    "Came Here for Love - Ella Eyre",
+    "American Boy - Estelle",
+    "Pink Pony Club - Chappell Roan",
+    "C’est la vie - B*witched",
+    "Footloose - Kenny Loggins",
+    "Chandelier - Sia",
+    "HOT TO GO! - Chappell Roan",
+    "A Little Respect - Erasure",
+    "Kiss Me - Sixpence None The Richer",
+    "Sweet Dreams (Are Made of This) - Eurythmics",
+    "Africa - Toto",
+    "Watermelon Sugar - Harry Styles",
+    "I kissed a girl - Katy Perry",
+    "Karma Chameleon - Boy George",
+    "Take on me - Aha",
+    "Firework - Katy Perry",
+    "This love - Maroon 5",
+    "Murder on the Dancefloor - Sophie Ellis - Bextor",
+    "Shape of you - Ed Sheeran",
+    "These beautiful things - Benson Boone Hozier - Too Sweet",
+    "Mamma Mia - ABBA",
+    "Let me entertain you - Robbie Williams",
+    "Yes Sir I can Boogie - Baccara",
+    "Dancing Queen - ABBA",
+    "Tainted Love - Soft Cell",
+    "Hips Don’t Lie - Shakira",
+    "No Scrubs - TLC",
+    "Until I found you - Stephen Sanchez",
+    "Everybody - Backstreet Boys",
+    "Don’t Start Now - Dua Lipa",
+    "What makes you beautiful - One Direction",
+    "What’s up - Four Non Blondes",
+    "Low - Flo Rida, T Pain",
+    "Cheerleader - OMI (7 piece)",
+    "Sugar - Maroon 5",
+    "Angels - Robbie Williams",
+    "Keep on moving - Five",
+    "Umbrella - Rihanna",
+    "All Night Long - Lionel Ritchie",
+    "Wannabe - The Spice Girls",
+    "I Gotta Feeling - Black Eyed Peas",
+    "Crazy in love - Beyonce",
+    "Mambo no5 - Lou Bega",
+    "Wake Me Up - Wham",
+    "Freak like me - Sugababes",
+    "Lola's Theme - Shapeshifters",
+    "Faith - George Michael",
+    "Call Me Al - Paul Simon",
+    "Toxic - Britney Spears",
+    "Does your Mother Know - ABBA",
+    "Treasure - Bruno Mars",
+    "Like A Prayer - Madonna",
+    "Pure Shores - All Saints",
+    "Can’t stop the feeling - Justin Timberlake",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+]
+fillout - song selectionfldEJoJz7fuYhoMLiFormula
+number, string, array of numbers or strings
+Computed value: "https://everyangle.fillout.com/t/bCbSagn1zhus?id=" & RECORD_ID().
+ 
+Example values
+"\"https://everyangle.fillout.com/t/bCbSagn1zhus?id=rec9VwxF80ZhND3gh\""
+
+"\"https://everyangle.fillout.com/t/bCbSagn1zhus?id=recjswXFP97UPS0lW\""
+
+"\"https://everyangle.fillout.com/t/bCbSagn1zhus?id=recsk8LMqZVQjABCN\""
+
+"\"https://everyangle.fillout.com/t/bCbSagn1zhus?id=recfa0mkdosFeZCs8\""
+
+"\"https://everyangle.fillout.com/t/bCbSagn1zhus?id=recEdUEAPwLxzjjqK\""
+
+ceilidh?fldaUJCyS0zuIhG6W
+Checkbox
+boolean
+This field is "true" when checked and otherwise empty.
+ 
+Example value
+true
+
+Ceilidh stylefld0ZQnljTkAp2d6N
+Single select
+string
+Selected option name.
+
+When creating or updating records, if the choice string does not exactly match an existing option, the request will fail with an INVALID_MULTIPLE_CHOICE_OPTIONS error unless the typecast parameter is enabled. If typecast is enabled, a new choice will be created if one does not exactly match.
+
+ 
+Possible values
+[
+    "Traditional",
+    "Mash-Up"
+]
+Ceilidh LengthfldwGv9vgTX2GA50X
+Single select
+string
+Selected option name.
+
+When creating or updating records, if the choice string does not exactly match an existing option, the request will fail with an INVALID_MULTIPLE_CHOICE_OPTIONS error unless the typecast parameter is enabled. If typecast is enabled, a new choice will be created if one does not exactly match.
+
+ 
+Possible values
+[
+    "30 mins",
+    "1 hour"
+]
+Formatted DatefldVgmgP5hFPdPuMtFormula
+number, string, array of numbers or strings
+Computed value: DATETIME_FORMAT({Date}, 'D MMMM YYYY') .
+ 
+Example values
+"\"16 May 2026\""
+
+"\"27 May 2026\""
+
+"\"13 June 2026\""
+
+"\"27 June 2026\""
+
+"\"28 June 2026\""
+
+TimingsfldQDQfV7qs6Va93NLong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"Not yet confirmed, have meeting with venue on 7th March\nEstimated timings below:\n2pm- ceremony\n2:30pm- drinks reception and photos\n4/4:30pm- invited i..."
+
+"ceremony at 1400\ncall for dinner at 1630\nband starts at 2000 "
+
+"4pm: Wedding breakfast served\n6.45pm: Cake cutting\n7pm: First dance & band to begin\n8.15pm: Band break & evening buffet served\n11pm: Band to finish (a..."
+
+"Guest arrival at Botanics from 12pm\n\nCeremony due to start 1-1:15pm\n\nTransport taking guests to reception venue straight after ceremony (approx 2:15pm..."
+
+"1pm Ceremony\n(We have a meeting with the venue on 6th April, we will confirm timings after that)"
+
+Contact Number (on the day)fld0KZjkxXL34jMp2Long text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"My number: 07496043684\ngrooms number: 07706609115\nbridemaids number (Bethany): 07585334859\nMOB number: 07855850197"
+
+"charlie bryce +44 7854 015945\nbecca gorton +447794 289951"
+
+"Tracey (Venue): 07585308567 or 07586726108\nGraeme (Groomsman): 07725577293\nJacky (Bridesmaid): 07399476123"
+
+"Amy Russell (Coordinator on the day) - 07854 840229"
+
+"Bradley (Groom) - 07429010939\nKate (Maid of Honour) - 07943348105\nCalum (Best Man) 07938632270"
+
+_has_band?fldSySUAEYVHukAgC
+Rollup
+number or string
+Computed value: OR(values) for _is_band? in Services.
+ 
+Example values
+1
+
+1
+
+1
+
+1
+
+1
+
+_has_videofldqKxM41flllrkhR
+Rollup
+number or string
+Computed value: OR(values) for _is_video in Services.
+ 
+Example values
+0
+
+0
+
+0
+
+1
+
+1
+
+_has_photofldQJWCPQPM2mi1Iq
+Rollup
+number or string
+Computed value: OR(values) for _is_photo in Services.
+ 
+Example values
+0
+
+0
+
+0
+
+0
+
+0
+
+_has_djfld5FVxvxwkRiRT9l
+Rollup
+number or string
+Computed value: OR(values) for _is_dj in Services.
+ 
+Example values
+1
+
+1
+
+1
+
+1
+
+1
+
+First Dance/Song Request (if required)fldcRydIB15EdPceVLong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"Wonderful tonight Eric Clapton"
+
+"You're my best friend by Queen"
+
+"Don't Delete the Kisses by Wolf Alice"
+
+"‘I Love You Always Forever’ by Donna Lewis"
+
+"the 1975 - About You. This is quite long so could it maybe be shortened? Happy to discuss live or DJ. "
+
+First Dance - Live or DJ?fld3Fzz5xxmcrj2AG
+Single select
+string
+Selected option name.
+
+When creating or updating records, if the choice string does not exactly match an existing option, the request will fail with an INVALID_MULTIPLE_CHOICE_OPTIONS error unless the typecast parameter is enabled. If typecast is enabled, a new choice will be created if one does not exactly match.
+
+ 
+Possible values
+[
+    "Live",
+    "DJ",
+    "None"
+]
+Parking Infofldnu6pdF2Or2RnAuLong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"Venue has large carpark spaces right beside front door of venue"
+
+"plenty of parking on site, directions from entry. "
+
+"The venue has a car park to the side of the castle and to the front. Some suppliers might be able to drive around the side depending on equipment - Tr..."
+
+"We hope to have videographers with us whilst getting ready. We will be in seperate venues. \n\nI will be at home (199/22 Lindsay Road) and there will be..."
+
+"There is a car park with vehicle registration to be filled out at reception. The car park is located past the entrance, you just follow the road round..."
+
+Client NotesfldmiYRLGILzK5vdWLong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"Is is possible for one of the guests to play along side you for the first song?"
+
+"Please don't play anything by The 1975."
+
+"Fleetwood Mac, The Corrs - Runaway, The Cranberries especially.\nAlanis Morissette \nAlso LOVE No Doubt \n\nIf possible to avoid Mr Brightside and Sweet C..."
+
+"We like the 1975. \nMumford and Sons - Believe "
+
+"This years love - David Gray\nChanges - David Bowie \nYour love - the outfield \nI think we’re alone now - Tiffany\nNever forget - take that \nBoys of summ..."
+
+Internal notesfldgarQqGmS0TsE5eLong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"Sean/Craig? Sean if he is free, otherwise Craig"
+
+Avoid playingfldz5zMXyMuTMAW7L
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Songs table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Playlistfldxoeu4NPV8aVvfKLong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"Bruno Mars- Mary You\nTrue- Spandau Ballet\nHero- Enrique\nGirls just wanna have fun- Cyndi Lauper\nHey Ya- OutKast\nShot through the heart- Bon Jovi\nBaba ..."
+
+"https://open.spotify.com/playlist/5vt7MYQZl0ghVLDhdSuKpu?si=RlH23xUoTh-QQ8_lXMDmBA&pi=2PIjQtkJR3-Ux"
+
+"We may have a playlist to add by the day but if we don’t get round to it then just all the classics!!! 90s/00s pop and emo as well as some good garage..."
+
+"Enrique Iglesias - Escape\nhttps://open.spotify.com/playlist/1RImeg9IIJQ1sSkM6T7kgq?si=p4a4BJbjQeC2MfhyOUc6DA "
+
+"This is a work in process https://open.spotify.com/playlist/5PWUSrmtzvPdlTmPlHTKrU?si=jt0PZyUdReeQMKIzh1ljKg&pi=qFZqPgBaR-m7T "
+
+set list (favourites)fldXR4zxOp8U3Uwyv
+Rollup
+number or string
+Computed value: ARRAYJOIN(values, "\n") for set list name in Songs.
+ 
+Example values
+"\"Loch Lomond - Runrig (M) - ?\nTake on me - Aha (M) - A\nDancing Queen - ABBA (F) - A\nDon’t You Want Me - The Human League (Both) - Am\nSweet Caroline - N...\""
+
+"\"Loch Lomond - Runrig (M) - ?\nTake on me - Aha (M) - A\nCountry Roads - John Denver (M) - A\nWagon Wheel - Darious Tucker (M) - A\nAre you gonna be my gir...\""
+
+"\"Are you gonna be my girl - Jet (M) - A blues\nBelter - Gerry Cinnamon (M) - Am\nAint No Mountain High Enough - Marvin Gaye (Both) - Am/Bbm\nWannabe - The...\""
+
+"\"Country Roads - John Denver (M) - A\nWagon Wheel - Darious Tucker (M) - A\nAmerican Idiot - Green day (M) - Ab (mixolydian)\nBelter - Gerry Cinnamon (M) ...\""
+
+"\"Loch Lomond - Runrig (M) - ?\nTake on me - Aha (M) - A\nDancing Queen - ABBA (F) - A\nCountry Roads - John Denver (M) - A\nWhat’s up - Four Non Blondes (F...\""
+
+set list (must-play)fldfF8MhShOWU9Ds8
+Rollup
+number or string
+Computed value: ARRAYJOIN(values, "\n") for set list name in Songs.
+ 
+Example values
+"\"Get Lucky - Daft Punk (M) - Bm (Dorian)\nMr Brightside - The Killers (M) - Db\""
+
+"\"I Believe in a Thing Called Love - The Darkness (M) - Eb (-1) \nBad Moon Rising - Creedence Clearwater revival (M) - D\nI’m a Believer - The Monkees (M)...\""
+
+"\"The Middle - Jimmy Eat World (M) - D\nTeenage Dirtbag - Wheatus (M) - E\nThe Only Exception - Paramore (F) - B\""
+
+"\"No Scrubs - TLC (F) - G#m\nMisery Business - Paramore (F) - Fm\nOne way or another - Blondie (F) - D\""
+
+"\"September - Earth, Wind and Fire (M) - F#m\nLove Story - Taylor Swift (F) - D/E\nDancing Queen - ABBA (F) - A\""
+
+set list (avoid)fldxglKbR98481oJw
+Rollup
+number or string
+Computed value: ARRAYJOIN(values, "\n") for set list name in Songs.
+ 
+Example values
+"\"I write sins not tragedies - Panic at the disco (M) - Am\""
+
+"\"Mr Brightside - The Killers (M) - Db\nJuice - Lizzo (F) - Dm\nI Will Wait - Mumford and Sons (M) - Db\nAfrica - Toto (M) - C#m/B/A\nTake on me - Aha (M) -...\""
+
+"\"Murder on the Dancefloor - Sophie Ellis-Bextor (F) - E\nAmerican Boy - Estelle (F) - E (ambigous tonality)\nFreed From Desire - Gaia (F) - Dm\nLose Yours...\""
+
+"\"Dignity - Deacon Blue (M) - F\nFlowers - Miley Cyrus (F) - Am\nCall Me Maybe - Carly Rae Jepsen (F) - G\nWelcome to the Black Parade - My Chemical Romanc...\""
+
+"\"About Damn time - Lizzo (F) - Ebm\nJuice - Lizzo (F) - Dm\nPink Pony Club - Chappell Roan (F) - F#\nHOT TO GO! - Chappell Roan (F) - F#\""
+
+Meal detailsfldRduQ44BsBjoh5RLong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"We have arranged a main meal to be provided for our vendors that are with us all day. I will send a copy of the menu to choose from. There is a sepera..."
+
+"Meals are provided by the venue\nStarter - Smoked Salmon\nMain - Balmoral Chicken\nDessert - Eton Mess\n\nlet us know of any dietaries"
+
+Gig PaymentflddZK3A9iBBtnJZg
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Gig Payment table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+amount (from Gig Payment)fldwBN5ywuzjnTWcf
+Lookup
+array of numbers, strings, booleans, or objects
+Array of amount fields in linked Gig Payment records.
+ 
+Example values
+To see example values, try adding some data to Gigs.
+
+_quote_optionsfldnbgBY2Aok5dUFz
+Rollup
+number or string
+Computed value: ARRAYJOIN(values, "\n") for quote in Services.
+ 
+Example values
+"\"Band (5 piece): £1500\""
+
+"\"Band (3 piece): £900\""
+
+"\"Band (5 piece): £1500\""
+
+"\"Band (5 piece): £1500\nFilm (Afternoon + Dance) + 2nd shooter: £1500\nSax Afternoon (solo + backing tracks): £350\""
+
+"\"Film (Highlights): £995\nBand (5 piece): £1500\""
+
+QuotefldKdJz8ZkfYCXg2yFormula
+number, string, array of numbers or strings
+Computed value: _quote_options & IF({Early Arrival Price}, "\nEarly Arrival: £" & {Early Arrival Price}, "") & IF({Late Finish Price},"\nLate Finish: £" & {Late Finish Price}, "") & IF({Karaoke (cost)}>0,"\nKaraoke: £" & {Karaoke (cost)}, "") & IF(Discount, "\n\nSubtotal: £" & Subtotal, "") & IF(Discount, "\nDiscount Applied (" & Discount*100 & "%" & "): £" & {Discount Applied}, "") & IF(Travel, "\nTravel: £" & Travel, "") & "\n\nTotal: £" & {Total Due (calculated)} & "\nDeposit (20%): £" & {Deposit Due (Calculated)} & "\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hours of live music (split into sets) plus DJ music and breaks to keep the atmosphere going throughout.\n\nPlease note that there may be an additional travel fee depending on your venue location. Extra charges may also apply if you’d like us to stay longer than the 4-hour period or finish after midnight.".
+ 
+Example values
+"\"Band (5 piece): £1500\n\nTotal: £1500\nDeposit (20%): £300\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hours of live mu...\""
+
+"\"Band (3 piece): £900\n\nTotal: £900\nDeposit (20%): £180\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hours of live musi...\""
+
+"\"Band (5 piece): £1500\nTravel: £125\n\nTotal: £1625\nDeposit (20%): £325\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hou...\""
+
+"\"Band (5 piece): £1500\nFilm (Afternoon + Dance) + 2nd shooter: £1500\nSax Afternoon (solo + backing tracks): £350\nTravel: £25\n\nTotal: £3375\nDeposit (20%...\""
+
+"\"Film (Highlights): £995\nBand (5 piece): £1500\nTravel: £100\n\nTotal: £2595\nDeposit (20%): £519\n\nOur standard package covers up to 4 hours on site, which...\""
+
+Karaoke (hours)fldwXJcQMVgTHb8YjNumber
+number
+A decimal number showing 1 decimal digit. This field only allows positive numbers.
+ 
+Example value
+42.2
+
+Karaoke (cost)fldNpMa5Wbk38VYPJFormula
+number, string, array of numbers or strings
+Computed value: {Karaoke (hours)} * 100.
+ 
+Example values
+0
+
+0
+
+0
+
+0
+
+0
+
+End of the nightfldE2p4r4qr2eXJSFLong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"Loch Lomond- Runrig"
+
+"Loch lomond by Runrig"
+
+"I Believe in a Thing Called Love by The Darkness"
+
+"Loch Lomond "
+
+"Penultimate Song - About you The 1975\nFinal Song - Loch Lomond"
+
+Performers copyfldxiCFSJGsXdAJqJText
+string
+A single line of text.
+ 
+Example values
+"Scott Bruce, Jasmin Galvin, Dean Anderson, Louise Grant, Craig Harkness"
+
+"Scott Bruce, Dean Anderson, Craig Harkness"
+
+"Scott Bruce, Katie Lindsay, Dean Anderson, Louise Grant, Craig Harkness, Matthew Kilner"
+
+"Katie Lindsay"
+
+"Scott Bruce, Dean Anderson, Louise Grant, Craig Harkness, Joe Nichols"
+
+Set List ItemsfldH0ZVubTambcJrK
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Set List Items table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Songs (from Set List Items)fld4US2HO5WavyiUA
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Songs fields in linked Set List Items records.
+ 
+Example values
+[
+    "recRLl7oxCduLSNnR",
+    "reccQLrXSPXJFm6oO",
+    "recm0deniXPQNFE4e",
+    "rec9FfWlVzZiwKNtf",
+    "recuKhakHuQXTF98t",
+    "recgclGfzwKnFckPK",
+    "recQwRCxWq49bgOUE",
+    "recfXNSWBDgOSx2Lb",
+    "recOyLH8RnhaYuhJi",
+    "recmejNvytP4IIFri",
+    "rectrMJ2iNckJjS1k",
+    "recuzu9grxDE160QQ",
+    "recxvBERwaOhXtDG7",
+    "reclI2b7LhE0SZ6z7",
+    "recnzeqPgLNRT4ZS6",
+    "recnzeqPgLNRT4ZS6",
+    "recns99WABr9oNzLW",
+    "rec0Q4afxENLqiNL2",
+    "recMF2s9vxKPA2gO8",
+    "recUrUDa0NHnVIKZJ",
+    "recNOAnRBt1NvXeBl",
+    "recP1cPUWuVTs0ZOI",
+    "recKGa87GShqZ46eP",
+    "recMqkkpvdl0ShH4g",
+    "recj5qmYJEyT3rfky",
+    "rect7IULVY9erZLpK",
+    "rect7IULVY9erZLpK",
+    "recLQANOgeGVd0Ofn",
+    "rec9tKWWBNH8dbizU",
+    "recucdKhQWbPbrWW8",
+    "recreA7L4RswXTl1n",
+    "recuvRjqPKkkkUHcO",
+    "recHUMzoqJRTiauOD",
+    "recoIt5VRLXPzDIwq",
+    "recIhBdEVXvU12uh6",
+    "recn9APYQtkheKpRX",
+    "recw8iQJImsfkYr8D",
+    "recfNUlX3XUJyAfoL",
+    "recIFBgLu9lOHH55n"
+]
+
+[
+    "recFPFgnCE0HKDm4w",
+    "recAxb8DRdAXu0CiI",
+    "recDyNJoFcCbzzd7T",
+    "receXkcTK4WfplnaG",
+    "rec5GGlmKrSMJuNUu",
+    "recm0deniXPQNFE4e",
+    "rec94OpAmkvJh7Nmh",
+    "rec9FfWlVzZiwKNtf",
+    "reclVkbDv4afzAy4Y",
+    "rec6Vk3j1yX6KKmDN",
+    "rec3oaWzFKCEIiGD0",
+    "recOWVKYX7JJhytg0",
+    "recjx6KyxDmfunwxs",
+    "recOIl15CxWt6tnDe",
+    "rechKoo0zTvvSPZDa",
+    "rec0k2BYIgDIUHt2X",
+    "reclI2b7LhE0SZ6z7",
+    "recnzeqPgLNRT4ZS6",
+    "recGWlHw0HW0VXe4X",
+    "recmgm6Ayrt6NW0es",
+    "recdonMCBvmy6tBDj",
+    "rec8qYinZ8kNqEqYn",
+    "recns99WABr9oNzLW",
+    "recAnB8C8kriX8WnW",
+    "recKGa87GShqZ46eP",
+    "recMqkkpvdl0ShH4g",
+    "recLQANOgeGVd0Ofn",
+    "rec9wZbmJ8hmmeew9",
+    "rec6gh8qAPPUJABxH",
+    "recgimWQArgOJhBhi",
+    "recHUMzoqJRTiauOD",
+    "recIhBdEVXvU12uh6",
+    "recn9APYQtkheKpRX",
+    "recbUhGT4ON6AUKIG",
+    "recebcyxT1oL9uiDf"
+]
+
+[
+    "recRLl7oxCduLSNnR",
+    "recAxb8DRdAXu0CiI",
+    "recDyNJoFcCbzzd7T",
+    "rec5GGlmKrSMJuNUu",
+    "reccQLrXSPXJFm6oO",
+    "rec6Vk3j1yX6KKmDN",
+    "recVu231sxFhHpQM2",
+    "recuKhakHuQXTF98t",
+    "recNCQiIy9swRASPT",
+    "rechKoo0zTvvSPZDa",
+    "recTTcHAJx8IsYVZD",
+    "recOyLH8RnhaYuhJi",
+    "recmejNvytP4IIFri",
+    "rectrMJ2iNckJjS1k",
+    "recfbbSy7CIamhKbT",
+    "recwjPsMFl0xcC9qh",
+    "recuzu9grxDE160QQ",
+    "rec0k2BYIgDIUHt2X",
+    "reclI2b7LhE0SZ6z7",
+    "recGWlHw0HW0VXe4X",
+    "recmgm6Ayrt6NW0es",
+    "rec8qYinZ8kNqEqYn",
+    "recUSWhr3CpHF6z9a",
+    "rec0Q4afxENLqiNL2",
+    "recAnB8C8kriX8WnW",
+    "recMF2s9vxKPA2gO8",
+    "recI8O3G2mWBOmuvY",
+    "recFsatC8MOvSp8jU",
+    "recP1cPUWuVTs0ZOI",
+    "rec3qC4Izk3nKKI1s",
+    "recMqkkpvdl0ShH4g",
+    "rec9tKWWBNH8dbizU",
+    "recucdKhQWbPbrWW8",
+    "recgimWQArgOJhBhi",
+    "reclxb4Xx0MfWWTJ4",
+    "recnrKoLdlDNJ1Kaj",
+    "recmV2xFxRTf2GhXT",
+    "recY7p9nMqCOIScRD",
+    "recuvRjqPKkkkUHcO",
+    "rec58XWpY9RrfRnT8",
+    "recHUMzoqJRTiauOD",
+    "recoIt5VRLXPzDIwq",
+    "recIhBdEVXvU12uh6",
+    "recn9APYQtkheKpRX",
+    "rec2hiUozNbfoItdE",
+    "recsdMDXSehs2T2wZ",
+    "recICnUuyAq9W52sb",
+    "recebcyxT1oL9uiDf",
+    "recfNUlX3XUJyAfoL",
+    "rec4QKJfRC9JtqfYl",
+    "rect4RkrDmvB1Ha0f"
+]
+
+Set List Duration (seconds)fldkPUPNvlXEi6hfJ
+Rollup
+number or string
+Computed value: SUM(values) for duration (seconds) (from Songs) in Set List Items.
+ 
+Example values
+9196
+
+7831
+
+0
+
+0
+
+0
+
+Set List Total DurationfldsfR2AatClJZxP0Formula
+number, string, array of numbers or strings
+Computed value: IF( FLOOR({Set List Duration (seconds)} / 3600) > 0, FLOOR({Set List Duration (seconds)} / 3600) & "h ", "" ) & IF( FLOOR(MOD({Set List Duration (seconds)}, 3600) / 60) > 0, FLOOR(MOD({Set List Duration (seconds)}, 3600) / 60) & "m ", "" ) & MOD({Set List Duration (seconds)}, 60) & "s" .
+ 
+Example values
+"\"2h 33m 16s\""
+
+"\"2h 10m 31s\""
+
+"\"0s\""
+
+"\"0s\""
+
+"\"0s\""
+
+set list built (copyable)fldwF8I7wRmXDxZVh
+Rollup
+number or string
+Computed value: ARRAYJOIN(values, "\n") for set list name (from Songs) in Set List Items.
+ 
+Example values
+"\"Get Lucky - Daft Punk (M) - Bm (Dorian)\nMr Brightside - The Killers (M) - Db\nDancing Queen - ABBA (F) - A\nMamma Mia - ABBA (F) - D\nDoes your Mother Kn...\""
+
+"\"I Believe in a Thing Called Love - The Darkness (M) - Eb (-1) \nBad Moon Rising - Creedence Clearwater revival (M) - D\nI’m a Believer - The Monkees (M)...\""
+
+"\"I’m a Believer - The Monkees (M) - G\nBrown Eyed Girl - Van Morrison (M) - G\nSummer of 69 - Bryan Adams (M) - D\nDon't Stop Me Now - Queen (F) - F\nI Wan...\""
+
+other documentsfldlFfJOLWY3nwQ7L
+Attachment
+array of attachment objects
+Each attachment object may contain the following properties. To see which fields are required or optional, please consult the relevant section: retrieve, create, update, or delete.
+
+idstring
+unique attachment id
+urlstring
+url, e.g. "https://v5.airtableusercontent.com/foo".
+
+Note: URLs returned will expire 2 hours after being returned from our API. If you want to persist the attachments, we recommend downloading them instead of saving the URL. See our support article for more information.
+filenamestring
+filename, e.g. "foo.jpg"
+sizenumber
+file size, in bytes
+typestring
+content type, e.g. "image/jpeg"
+widthnumberheightnumber
+width/height, in pixels (these may be available if the attachment is an image)
+thumbnails.small.urlstringthumbnails.large.urlstring
+url of small/large thumbnails (these may be available if the attachment is an image or document). See notes under url about the lifetime of these URLs.
+thumbnails.small.widthnumberthumbnails.small.heightnumberthumbnails.large.widthnumberthumbnails.large.heightnumber
+width/height of small/large thumbnails, in pixels (these will be available if the corresponding thumbnail url is available)
+ 
+Example value
+[
+    {
+        "id": "att6f75cc83f1b648",
+        "size": 26317,
+        "url": "https://www.filepicker.io/api/file/5YTJXioCQG0tYWPw6OPw",
+        "type": "image/jpeg",
+        "filename": "33823_3_xl.jpg",
+        "thumbnails": {
+            "small": {
+                 "url": "https://www.filepicker.io/api/file/Dy5gioxaShSUvHX0LgIC",
+                 "width": 54,
+                 "height": 36
+             },
+            "large": {
+                 "url": "https://www.filepicker.io/api/file/ueYi00yRiqhuUn420UZA",
+                 "width": 197,
+                 "height": 131
+             }
+         }
+    }
+]
+                            
+
+Rehearsalfldscwpk9pLoqsnto
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Rehearsal table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+payment notesfldqswCyI3zR8h8XWLong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"Deposit received - check business account"
+
+"deposit received "
+
+"Paid 18th October "
+
+GOTO emailsfldfCBUMjWQp987jSFormula
+number, string, array of numbers or strings
+Computed value: IF({Email}, "https://mail.google.com/mail/u/0/#search/from:" & {Email} & "+OR+to:" & Email, "no email address provided").
+ 
+Example values
+"\"https://mail.google.com/mail/u/0/#search/from:hannah_pearson14393@hotmail.co.uk+OR+to:hannah_pearson14393@hotmail.co.uk\""
+
+"\"https://mail.google.com/mail/u/0/#search/from:GortonBryce24@outlook.com+OR+to:GortonBryce24@outlook.com\""
+
+"\"https://mail.google.com/mail/u/0/#search/from:abbie3@hotmail.co.uk+OR+to:abbie3@hotmail.co.uk\""
+
+"\"https://mail.google.com/mail/u/0/#search/from:lovekirsten1997@gmail.com+OR+to:lovekirsten1997@gmail.com\""
+
+"\"https://mail.google.com/mail/u/0/#search/from:rosannabailey40@gmail.com+OR+to:rosannabailey40@gmail.com\""
+
+fillout - gig detailsfldbvRUJs4aIvI3g4Formula
+number, string, array of numbers or strings
+Computed value: "https://everyangle.fillout.com/t/ne4TPPm5Deus?id=" & RECORD_ID().
+ 
+Example values
+"\"https://everyangle.fillout.com/t/ne4TPPm5Deus?id=rec9VwxF80ZhND3gh\""
+
+"\"https://everyangle.fillout.com/t/ne4TPPm5Deus?id=recjswXFP97UPS0lW\""
+
+"\"https://everyangle.fillout.com/t/ne4TPPm5Deus?id=recsk8LMqZVQjABCN\""
+
+"\"https://everyangle.fillout.com/t/ne4TPPm5Deus?id=recfa0mkdosFeZCs8\""
+
+"\"https://everyangle.fillout.com/t/ne4TPPm5Deus?id=recEdUEAPwLxzjjqK\""
+
+GOTO interfacefldLVexMnGJ3Kf5HUFormula
+number, string, array of numbers or strings
+Computed value: "https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=" & RECORD_ID().
+ 
+Example values
+"\"https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=rec9VwxF80ZhND3gh\""
+
+"\"https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=recjswXFP97UPS0lW\""
+
+"\"https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=recsk8LMqZVQjABCN\""
+
+"\"https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=recfa0mkdosFeZCs8\""
+
+"\"https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=recEdUEAPwLxzjjqK\""
+
+card transactionfldncwrIQqUx7m3FX
+Checkbox
+boolean
+This field is "true" when checked and otherwise empty.
+ 
+Example value
+true
+
+Profit (current)fldLOlJNn8OQ1FAuOFormula
+number, string, array of numbers or strings
+Computed value: {Amount Paid (current)} - {Performer Fee (actual)} .
+ 
+Example values
+0
+
+0
+
+0
+
+0
+
+0
+
+Profit (theoretical)fld0QjQh7zYwTeqJmFormula
+number, string, array of numbers or strings
+Computed value: {Total Charge (actual)} - {Performer Fee (actual)}.
+ 
+Example values
+1525
+
+810
+
+1625
+
+2873.75
+
+2595
+
+Profit (theoretical/current)fldysCP1FVIDXUWNMFormula
+number, string, array of numbers or strings
+Computed value: IF(IS_BEFORE(Date, TODAY()), {Profit (theoretical)}, 0).
+ 
+Example values
+0
+
+0
+
+0
+
+0
+
+0
+
+Profit (theoretical/pot)fld1ptPBMwSdCXuszFormula
+number, string, array of numbers or strings
+Computed value: (IF(IS_BEFORE(Date, TODAY()), {Profit (theoretical/current)}, {Deposit Amount})).
+ 
+Example values
+305
+
+162
+
+325
+
+574.25
+
+499
+
+Drawings (Scott)fldhruEpR3ROHyKliCurrency
+number
+Currency value. This field only allows positive numbers.
+ 
+Example value
+42.21
+
+Totals 2fldDe5Dit3p2nLz99
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Totals table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+List Gigs records
+To list records in Gigs, issue a GET request to the Gigs endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Returned records do not include any fields with "empty" values, e.g. "", [], or false.
+
+You can filter, sort, and format the results with the following query parameters. Note that these parameters need to be URL encoded. You can use our API URL encoder tool to help with this. If you are using a helper library like Airtable.js, these parameters will be automatically encoded.
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+fields
+array of strings
+optional
+Only data for fields whose names are in this list will be included in the result. If you don't need every field, you can use this parameter to reduce the amount of data transferred.
+
+For example, to only return data from Name and Date, send these two query parameters:
+
+fields%5B%5D=Name&fields%5B%5D=Date
+You can also perform the same action with field ids (they can be found in the fields section):
+
+fields%5B%5D=fldFY7TZkaqgMy9CC&fields%5B%5D=fldsP7rj6ja1uDxVn
+Note: %5B%5D may be omitted when specifying multiple fields, but must always be included when specifying only a single field.
+
+filterByFormula
+string
+optional
+A formula used to filter records. The formula will be evaluated for each record, and if the result is not 0, false, "", NaN, [], or #Error! the record will be included in the response. We recommend testing your formula in the Formula field UI before using it in your API request.
+
+If combined with the view parameter, only records in that view which satisfy the formula will be returned.
+
+The formula must be encoded first before passing it as a value. You can use this tool to not only encode the formula but also create the entire url you need. For example, to only include records where Name isn't empty, pass in NOT({Name} = '') as a parameter like this:
+
+filterByFormula=NOT%28%7BName%7D%20%3D%20%27%27%29
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+maxRecords
+number
+optional
+The maximum total number of records that will be returned in your requests. If this value is larger than pageSize (which is 100 by default), you may have to load multiple pages to reach this total. See the Pagination section below for more.pageSize
+number
+optional
+The number of records returned in each request. Must be less than or equal to 100. Default is 100. See the Pagination section below for more.sort
+array of objects
+optional
+A list of sort objects that specifies how the records will be ordered. Each sort object must have a field key specifying the name of the field to sort on, and an optional direction key that is either "asc" or "desc". The default direction is "asc".
+
+The sort parameter overrides the sorting of the view specified in the view parameter. If neither the sort nor the view parameter is included, the order of records is arbitrary.
+
+For example, to sort records by Name in descending order, send these two query parameters:
+
+sort%5B0%5D%5Bfield%5D=Name
+sort%5B0%5D%5Bdirection%5D=desc
+For example, to sort records by Name in descending order, pass in:
+
+[{field: "Name", direction: "desc"}]
+view
+string
+optional
+The name or ID of a view in the Gigs table. If set, only the records in that view will be returned. The records will be sorted according to the order of the view unless the sort parameter is included, which overrides that order. Fields hidden in this view will be returned in the results. To only return a subset of fields, use the fields parameter.cellFormat
+string
+optional
+The format that should be used for cell values. Supported values are:
+
+json: cells will be formatted as JSON, depending on the field type.
+
+string: cells will be formatted as user-facing strings, regardless of the field type. The timeZone and userLocale parameters are required when using string as the cellFormat.
+
+Note: You should not rely on the format of these strings, as it is subject to change.
+The default is json.
+
+timeZone
+string
+optional
+The time zone that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+userLocale
+string
+optional
+The user locale that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+returnFieldsByFieldId
+boolean
+optional
+An optional boolean value that lets you return field objects where the key is the field id.
+
+This defaults to false, which returns field objects where the key is the field name.
+
+recordMetadata
+array of strings
+optional
+An optional field that, if includes commentCount, adds a commentCount read only property on each record returned.
+
+These parameters need to be URL encoded. If you are using a helper library like Airtable.js, they will be automatically encoded.
+
+Pagination
+The server returns one page of records at a time. Each page will contain pageSize records, which is 100 by default.
+
+If there are more records, the response will contain an offset. To fetch the next page of records, include offset in the next request's parameters.
+
+Pagination will stop when you've reached the end of your table. If the maxRecords parameter is passed, pagination will stop once you've reached this maximum.
+
+ 
+Example request
+curl "https://api.airtable.com/v0/appZXteLrpESv7H8X/Gigs?maxRecords=3&view=Play" \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "records": [
+        {
+            "id": "rec9VwxF80ZhND3gh",
+            "createdTime": "2025-06-09T20:13:39.000Z",
+            "fields": {
+                "Name": "16/05/26 - Hannah Pearson - Piersland house hotel",
+                "event": [
+                    "recPSuJp0ex1GSlHr"
+                ],
+                "Date (from event)": [
+                    "2026-05-16T00:00:00.000Z"
+                ],
+                "Options": [
+                    "recKQDzOTXYTUcKPE"
+                ],
+                "Early Arrival (Hours)": 0,
+                "Late Finish (Hours)": 0,
+                "Attribution": [
+                    "recWdZGPI5RwyhoTB"
+                ],
+                "Options Price": 1500,
+                "Options Fees": 1125,
+                "Early Arrival Price": 0,
+                "Late Finish Price": 0,
+                "Total Due (calculated)": 1500,
+                "Total Charge (actual)": 1525,
+                "Profit (projected)": 375,
+                "Invoices": [
+                    {
+                        "id": "attZHpDxCnU99hu3G",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/2F9yPv8K9u7hvF-vBqS1rg/qRsy_0Td4najn5I1GCdNjY4U88Wy4AuLsYkgPlyLxn0hVX3gjT19Ylw4WkrI6hrXgkSnlQUbrRCf8pBQWEnBTUB24qd_2iCOsg3yqTJMLl_c6LFSR2O5F1sjBvkcdASX75ero-eCNkfyGEGu6YU7QJ1ZdSSjoMJ_6Sr88kbIonalNAkx_dUvt6tR2li-_q7l/dQY37CBHZnU4j4MGzzzcp-wWx-EEBVXoVJ5TNXK8Wlo",
+                        "filename": "Invoice - Hannah Pearson - 16 05 2026.pdf",
+                        "size": 206093,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/fFHs7e4xVlNaIZNBliYOaw/j8LrZdcil34hhtw4DDLRWnWkH1C4Y86bVebkjbVpx93rabMWlwaswcjrxjoqGXNDvt8K5uQgt3Itd8DFBJUKTyA2eZ6VLlQG8i0qKVCSo5v090SNWuNA3j89xDysUsfuS6BRnTKONkO42e2P7cgp5g/eZRMkNHi_UNDQAxjg9e88XpJzZOz7kOu8wE2Y5wbCCg",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/oI2iHjgAuAthvR8ZOohO8Q/n85e9oB8SKI_ufQlKFx9940v1T4QNhKnmcui5J3fsfOUjD5DiRY_cnEb_24Hcf3j0XDrgM6H7ECxfCGMtDbWwzW3ck9LPt-7wmr0nZ1qpDQEUwpgme_9Krv-EoN7njf24jq5fFjuIgDfhhCmjTtQPw/qwGRHq2YKC1W0I6UFFdkrHA9kbPXvLc9oePnNeplt90",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "Totals": [
+                    "recruuTrjJzTlgAoZ",
+                    "recLFQM0Cc9JIDLVU"
+                ],
+                "Date": "2026-05-16",
+                "Travel": 0,
+                "Deposit Amount": 305,
+                "is_done": 0,
+                "Venue": "Piersland house hotel",
+                "Performers": [
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "rec5vduwT4m1t9UHw",
+                    "reckue0FzIkpeymGz",
+                    "recNuaBB2j7ves5vT"
+                ],
+                "Client Name(s)": "Hannah Pearson",
+                "Email": "hannah_pearson14393@hotmail.co.uk",
+                "Song Choices": [
+                    "recOyLH8RnhaYuhJi",
+                    "recMqkkpvdl0ShH4g",
+                    "recmejNvytP4IIFri",
+                    "rec0Q4afxENLqiNL2",
+                    "recreA7L4RswXTl1n",
+                    "reccQLrXSPXJFm6oO",
+                    "recLQANOgeGVd0Ofn",
+                    "recucdKhQWbPbrWW8",
+                    "reclI2b7LhE0SZ6z7",
+                    "recUrUDa0NHnVIKZJ",
+                    "recxvBERwaOhXtDG7",
+                    "recuKhakHuQXTF98t",
+                    "recIhBdEVXvU12uh6",
+                    "rectrMJ2iNckJjS1k",
+                    "rec9tKWWBNH8dbizU",
+                    "recfNUlX3XUJyAfoL",
+                    "rec9FfWlVzZiwKNtf",
+                    "recNOAnRBt1NvXeBl",
+                    "recnzeqPgLNRT4ZS6",
+                    "recMF2s9vxKPA2gO8",
+                    "rect7IULVY9erZLpK",
+                    "recm0deniXPQNFE4e",
+                    "recP1cPUWuVTs0ZOI",
+                    "recns99WABr9oNzLW",
+                    "recoIt5VRLXPzDIwq",
+                    "recfXNSWBDgOSx2Lb",
+                    "recuzu9grxDE160QQ",
+                    "recuvRjqPKkkkUHcO",
+                    "recRLl7oxCduLSNnR",
+                    "recIFBgLu9lOHH55n",
+                    "recj5qmYJEyT3rfky",
+                    "recQwRCxWq49bgOUE",
+                    "recgclGfzwKnFckPK",
+                    "recHUMzoqJRTiauOD",
+                    "recw8iQJImsfkYr8D",
+                    "recKGa87GShqZ46eP",
+                    "recn9APYQtkheKpRX"
+                ],
+                "fillout - song selection": "https://everyangle.fillout.com/t/bCbSagn1zhus?id=rec9VwxF80ZhND3gh",
+                "Must-have song Choices": [
+                    "recnzeqPgLNRT4ZS6",
+                    "rect7IULVY9erZLpK"
+                ],
+                "options_ids": [
+                    "recKQDzOTXYTUcKPE"
+                ],
+                "fillout - gig details": "https://everyangle.fillout.com/t/ne4TPPm5Deus?id=rec9VwxF80ZhND3gh",
+                "Formatted Date": "16 May 2026",
+                "Timings": "Not yet confirmed, have meeting with venue on 7th March\nEstimated timings below:\n2pm- ceremony\n2:30pm- drinks reception and photos\n4/4:30pm- invited i...",
+                "Contact Number (on the day)": "My number: 07496043684\ngrooms number: 07706609115\nbridemaids number (Bethany): 07585334859\nMOB number: 07855850197",
+                "_has_band?": 1,
+                "First Dance/Song Request (if required)": "Wonderful tonight Eric Clapton",
+                "Parking Info": "Venue has large carpark spaces right beside front door of venue",
+                "GOTO emails": "https://mail.google.com/mail/u/0/#search/from:hannah_pearson14393@hotmail.co.uk+OR+to:hannah_pearson14393@hotmail.co.uk",
+                "Playlist": "Bruno Mars- Mary You\nTrue- Spandau Ballet\nHero- Enrique\nGirls just wanna have fun- Cyndi Lauper\nHey Ya- OutKast\nShot through the heart- Bon Jovi\nBaba ...",
+                "set list (favourites)": "Loch Lomond - Runrig (M) - ?\nTake on me - Aha (M) - A\nDancing Queen - ABBA (F) - A\nDon’t You Want Me - The Human League (Both) - Am\nSweet Caroline - N...",
+                "set list (must-play)": "Get Lucky - Daft Punk (M) - Bm (Dorian)\nMr Brightside - The Killers (M) - Db",
+                "_has_video": 0,
+                "_has_photo": 0,
+                "_has_dj": 1,
+                "_quote_options": "Band (5 piece): £1500",
+                "Quote": "Band (5 piece): £1500\n\nTotal: £1500\nDeposit (20%): £300\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hours of live mu...",
+                "Karaoke (cost)": 0,
+                "Subtotal": 1500,
+                "Discount Applied": 1500,
+                "End of the night": "Loch Lomond- Runrig",
+                "Performer Fee (actual)": 0,
+                "Profit (Pot)": 305,
+                "Deposit Due (Calculated)": 300,
+                "Performers copy": "Scott Bruce, Jasmin Galvin, Dean Anderson, Louise Grant, Craig Harkness",
+                "Set List Items": [
+                    "recW9iEp7shW2qnRt",
+                    "rectz7I7s7iTHOkjC",
+                    "rec1OsGxUe1ESFbpg",
+                    "rec6zbM8Com4itBK7",
+                    "rectIIo2E8yMG73ll",
+                    "recaFcGi208KCCXbr",
+                    "recHa0ExcvLlS7cUq",
+                    "recME6sj6PutbPtPr",
+                    "recvkezcRZtliwdfz",
+                    "recLS27bVc4fqk0Ln",
+                    "recva871XGfBb7XCv",
+                    "recMTXkMtucWKLoBu",
+                    "rec6ipMp9mNQ3u5bZ",
+                    "reco05F3SoV6MeLEE",
+                    "recOtTunUeZlilzYb",
+                    "recHOfcCltUbBzu8b",
+                    "recpz4iKYomez1bMZ",
+                    "rec6VV1VBINy7ZVal",
+                    "rec1LF3XHlRKduip3",
+                    "reckd9EzyVIjpMvMM",
+                    "recHtEl8s5bvrEiYN",
+                    "recj5rZhJLdSh09td",
+                    "recpGDYSviwux5xUf",
+                    "recujE9zYnhxPNnLt",
+                    "rec12Vt77p61YMzJD",
+                    "reco8bgkdjQtNI8Td",
+                    "recKwAz3o2TBX6uSn",
+                    "recFo2Mie97Hf4S1m",
+                    "recYNGLkXHku9VKvv",
+                    "recqtVQHduqt9G1fo",
+                    "recZkrar8ZhJtObpx",
+                    "recDxnLnkHCWIj7Ov",
+                    "recxKPdONxkKu6ehs",
+                    "recMamX5kN6Hqu6r0",
+                    "recGqGJgpOvloNJGh",
+                    "recDuWrZNDzzIqv4B",
+                    "recKBtlr1dYITIMRi",
+                    "recldS5yJ00J5nQl7",
+                    "recbmd5UuO0GkCZ4W"
+                ],
+                "Set List Duration (seconds)": 9196,
+                "Set List Total Duration": "2h 33m 16s",
+                "set list built (copyable)": "Get Lucky - Daft Punk (M) - Bm (Dorian)\nMr Brightside - The Killers (M) - Db\nDancing Queen - ABBA (F) - A\nMamma Mia - ABBA (F) - D\nDoes your Mother Kn...",
+                "D Paid?": true,
+                "Balance Amount": 1220,
+                "GOTO interface": "https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=rec9VwxF80ZhND3gh",
+                "Amount Paid (Turnover)": 305,
+                "Profit (current)": 0,
+                "Amount Paid (current)": 0,
+                "Profit (theoretical)": 1525,
+                "Profit (theoretical/current)": 0,
+                "Profit (theoretical/pot)": 305,
+                "Songs (from Set List Items)": [
+                    "recRLl7oxCduLSNnR",
+                    "reccQLrXSPXJFm6oO",
+                    "recm0deniXPQNFE4e",
+                    "rec9FfWlVzZiwKNtf",
+                    "recuKhakHuQXTF98t",
+                    "recgclGfzwKnFckPK",
+                    "recQwRCxWq49bgOUE",
+                    "recfXNSWBDgOSx2Lb",
+                    "recOyLH8RnhaYuhJi",
+                    "recmejNvytP4IIFri",
+                    "rectrMJ2iNckJjS1k",
+                    "recuzu9grxDE160QQ",
+                    "recxvBERwaOhXtDG7",
+                    "reclI2b7LhE0SZ6z7",
+                    "recnzeqPgLNRT4ZS6",
+                    "recnzeqPgLNRT4ZS6",
+                    "recns99WABr9oNzLW",
+                    "rec0Q4afxENLqiNL2",
+                    "recMF2s9vxKPA2gO8",
+                    "recUrUDa0NHnVIKZJ",
+                    "recNOAnRBt1NvXeBl",
+                    "recP1cPUWuVTs0ZOI",
+                    "recKGa87GShqZ46eP",
+                    "recMqkkpvdl0ShH4g",
+                    "recj5qmYJEyT3rfky",
+                    "rect7IULVY9erZLpK",
+                    "rect7IULVY9erZLpK",
+                    "recLQANOgeGVd0Ofn",
+                    "rec9tKWWBNH8dbizU",
+                    "recucdKhQWbPbrWW8",
+                    "recreA7L4RswXTl1n",
+                    "recuvRjqPKkkkUHcO",
+                    "recHUMzoqJRTiauOD",
+                    "recoIt5VRLXPzDIwq",
+                    "recIhBdEVXvU12uh6",
+                    "recn9APYQtkheKpRX",
+                    "recw8iQJImsfkYr8D",
+                    "recfNUlX3XUJyAfoL",
+                    "recIFBgLu9lOHH55n"
+                ],
+                "Name (from Performers)": [
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jasmin Galvin",
+                    "Craig Harkness",
+                    "Frazer Smith"
+                ]
+            }
+        },
+        {
+            "id": "recjswXFP97UPS0lW",
+            "createdTime": "2025-06-09T20:32:32.000Z",
+            "fields": {
+                "Name": "27/05/26 - Megan Gorton - Fingask Castle in Perthshire",
+                "event": [
+                    "recJr1sdRkGgjW38N"
+                ],
+                "Date (from event)": [
+                    "2026-05-27T00:00:00.000Z"
+                ],
+                "Options": [
+                    "rec6gmlxv5hNvu0MW"
+                ],
+                "Early Arrival (Hours)": 0,
+                "Late Finish (Hours)": 0,
+                "Attribution": [
+                    "rec7KVr1XNkzwYYGf"
+                ],
+                "Options Price": 900,
+                "Options Fees": 675,
+                "Early Arrival Price": 0,
+                "Late Finish Price": 0,
+                "Total Due (calculated)": 900,
+                "Total Charge (actual)": 810,
+                "Profit (projected)": 225,
+                "Invoices": [
+                    {
+                        "id": "attDQtXnP4KpmipPA",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/6H8nhhopZAoFdyTF1ESnPg/CxlAHnk3d0OSjMBR81Mx6Oy78rMyfZW40kNYe_LnftRleMdbZcm-x_LACnZlAdHNGPDrMe7xDngl3NDIMAVeOg9roV4rDB8TIECfqyIo9C0U5GQd0a36prbybS-u1MAUNgHruvbIXJdKu8euzhfa1wvZZnzpraGeSHxEEUi5gPIJyCJY_QOY8uKCmRdlDaTr/7qVfc9co-t3VWjUM8b2ZQXWeK8PtUU56JtqnJXbi2fI",
+                        "filename": "Invoice - Megan Gorton - 27 05 2026.pdf",
+                        "size": 210135,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/k7BMlZjvSmM1POaEMU31ww/yAwEAiLONzyw5hy4alqHQdaM-4WHB7N1e6Tpggb0kXkgta_yGn4iN3eJOKjWhXGvrNgoKETTcYGkqy_VfoPfMCC5NbOV7vlJh0tEpLH6q8DImt9g9YWLbqs4WaBvgDO2wFb78VWaKZzKvZp7HFn0BA/R_GdmzrSzpfxaW3UX2ZN-8mOM6Gisgoy3CgN3lZ0hRs",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/ljh-CxatUV7Q1VPaaOtK5Q/bSOTAsR1Jc9jLJ4l-h0dY347VysCKg56CxED20x06pSMa35nXXzqcSvTCtOCTCZwLYH0CcjMr2Byrl-Svf6JA9T7aErsNp8IlOsafzd7arviSZHU-OvLMOGpLEV1jmk9deRVt49pkIkPE1in8mv9RQ/SH_XYOO0eKW4okgHhhdWQPobelJxPKZWV5W35A5GCz4",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "Totals": [
+                    "recruuTrjJzTlgAoZ",
+                    "recLFQM0Cc9JIDLVU"
+                ],
+                "Date": "2026-05-27",
+                "Travel": 0,
+                "Deposit Amount": 162,
+                "is_done": 0,
+                "Venue": "Fingask Castle in Perthshire",
+                "Performers": [
+                    "recrcRCn2wnq0yv48",
+                    "reckue0FzIkpeymGz"
+                ],
+                "Client Name(s)": "Megan Gorton",
+                "Email": "GortonBryce24@outlook.com",
+                "Song Choices": [
+                    "rec0k2BYIgDIUHt2X",
+                    "rec6gh8qAPPUJABxH",
+                    "rec8qYinZ8kNqEqYn",
+                    "recAxb8DRdAXu0CiI",
+                    "recDyNJoFcCbzzd7T",
+                    "recIhBdEVXvU12uh6",
+                    "recLQANOgeGVd0Ofn",
+                    "recMqkkpvdl0ShH4g",
+                    "rec9FfWlVzZiwKNtf",
+                    "rechKoo0zTvvSPZDa",
+                    "reclI2b7LhE0SZ6z7",
+                    "receXkcTK4WfplnaG",
+                    "recnzeqPgLNRT4ZS6",
+                    "rec9wZbmJ8hmmeew9",
+                    "recGWlHw0HW0VXe4X",
+                    "recgimWQArgOJhBhi",
+                    "recbUhGT4ON6AUKIG",
+                    "recm0deniXPQNFE4e",
+                    "recn9APYQtkheKpRX",
+                    "recOIl15CxWt6tnDe",
+                    "recebcyxT1oL9uiDf",
+                    "rec5GGlmKrSMJuNUu",
+                    "recHUMzoqJRTiauOD",
+                    "rec3oaWzFKCEIiGD0",
+                    "recFPFgnCE0HKDm4w",
+                    "recOWVKYX7JJhytg0",
+                    "rec94OpAmkvJh7Nmh",
+                    "recdonMCBvmy6tBDj",
+                    "recjx6KyxDmfunwxs",
+                    "reclVkbDv4afzAy4Y",
+                    "recmgm6Ayrt6NW0es",
+                    "recKGa87GShqZ46eP"
+                ],
+                "fillout - song selection": "https://everyangle.fillout.com/t/bCbSagn1zhus?id=recjswXFP97UPS0lW",
+                "Must-have song Choices": [
+                    "recns99WABr9oNzLW",
+                    "rec6Vk3j1yX6KKmDN",
+                    "recAnB8C8kriX8WnW"
+                ],
+                "options_ids": [
+                    "rec6gmlxv5hNvu0MW"
+                ],
+                "fillout - gig details": "https://everyangle.fillout.com/t/ne4TPPm5Deus?id=recjswXFP97UPS0lW",
+                "Formatted Date": "27 May 2026",
+                "Timings": "ceremony at 1400\ncall for dinner at 1630\nband starts at 2000 ",
+                "Contact Number (on the day)": "charlie bryce +44 7854 015945\nbecca gorton +447794 289951",
+                "_has_band?": 1,
+                "First Dance/Song Request (if required)": "You're my best friend by Queen",
+                "Parking Info": "plenty of parking on site, directions from entry. ",
+                "Client Notes": "Is is possible for one of the guests to play along side you for the first song?",
+                "GOTO emails": "https://mail.google.com/mail/u/0/#search/from:GortonBryce24@outlook.com+OR+to:GortonBryce24@outlook.com",
+                "set list (favourites)": "Loch Lomond - Runrig (M) - ?\nTake on me - Aha (M) - A\nCountry Roads - John Denver (M) - A\nWagon Wheel - Darious Tucker (M) - A\nAre you gonna be my gir...",
+                "set list (must-play)": "I Believe in a Thing Called Love - The Darkness (M) - Eb (-1) \nBad Moon Rising - Creedence Clearwater revival (M) - D\nI’m a Believer - The Monkees (M)...",
+                "_has_video": 0,
+                "_has_photo": 0,
+                "_has_dj": 1,
+                "_quote_options": "Band (3 piece): £900",
+                "Quote": "Band (3 piece): £900\n\nTotal: £900\nDeposit (20%): £180\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hours of live musi...",
+                "Karaoke (cost)": 0,
+                "Subtotal": 900,
+                "Discount Applied": 900,
+                "End of the night": "Loch lomond by Runrig",
+                "Performer Fee (actual)": 0,
+                "Profit (Pot)": 162,
+                "Deposit Due (Calculated)": 180,
+                "Performers copy": "Scott Bruce, Dean Anderson, Craig Harkness",
+                "Set List Items": [
+                    "recHXjeVRy6w4VySz",
+                    "recAKRLUdp2LfQiCn",
+                    "recSeGjrwWpy5eMow",
+                    "rechmw79HOA0vT5dL",
+                    "recuy1F4lS6tKecLP",
+                    "reci1jkZ19hZUZGLm",
+                    "recoXvwUSjpxvHyiQ",
+                    "reclPomcVBppgvedG",
+                    "rec9CHL5NFAmlUYLz",
+                    "recp4KgeWLaSoOTSq",
+                    "rec5xM3u0K3FTOASC",
+                    "rec7mulXl6jRkYqSA",
+                    "recrYvqLyNmopprZV",
+                    "recdvJoZPrmwZodxE",
+                    "recPblSI5OTtF5iwu",
+                    "rec2EAzm8w7IsPaZy",
+                    "rec1zjxuFdVzVnfuK",
+                    "rechMwYmxP5VcGEZX",
+                    "rec7wjkU0jV4GTVA3",
+                    "recScYavVfQYNyK7U",
+                    "recsTErmKFxXo6LBP",
+                    "rec3j4K7xPPeCfOEZ",
+                    "recqqZPh4jcLDDDrg",
+                    "recVr6pYDGvwpKS8a",
+                    "recjkYBIFII1KLo0Z",
+                    "rechjG7bIcCExkGwi",
+                    "rec44rXThMAUJpMPP",
+                    "recSx1wlJCj8J7Zan",
+                    "recIwqKMoyuKMmv0f",
+                    "recvUTB5LOps589YR",
+                    "recr06nSuukQZSJgG",
+                    "rec4GDkrg9rbkHZxR",
+                    "recTT8MkLq2qUV2QG",
+                    "reck5Y8QnFWsjliYe",
+                    "recYdRgaybNo7chBu"
+                ],
+                "Set List Duration (seconds)": 7831,
+                "Set List Total Duration": "2h 10m 31s",
+                "set list built (copyable)": "I Believe in a Thing Called Love - The Darkness (M) - Eb (-1) \nBad Moon Rising - Creedence Clearwater revival (M) - D\nI’m a Believer - The Monkees (M)...",
+                "D Paid?": true,
+                "Balance Amount": 648,
+                "GOTO interface": "https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=recjswXFP97UPS0lW",
+                "Amount Paid (Turnover)": 162,
+                "Profit (current)": 0,
+                "Amount Paid (current)": 0,
+                "Profit (theoretical)": 810,
+                "Profit (theoretical/current)": 0,
+                "Profit (theoretical/pot)": 162,
+                "Songs (from Set List Items)": [
+                    "recFPFgnCE0HKDm4w",
+                    "recAxb8DRdAXu0CiI",
+                    "recDyNJoFcCbzzd7T",
+                    "receXkcTK4WfplnaG",
+                    "rec5GGlmKrSMJuNUu",
+                    "recm0deniXPQNFE4e",
+                    "rec94OpAmkvJh7Nmh",
+                    "rec9FfWlVzZiwKNtf",
+                    "reclVkbDv4afzAy4Y",
+                    "rec6Vk3j1yX6KKmDN",
+                    "rec3oaWzFKCEIiGD0",
+                    "recOWVKYX7JJhytg0",
+                    "recjx6KyxDmfunwxs",
+                    "recOIl15CxWt6tnDe",
+                    "rechKoo0zTvvSPZDa",
+                    "rec0k2BYIgDIUHt2X",
+                    "reclI2b7LhE0SZ6z7",
+                    "recnzeqPgLNRT4ZS6",
+                    "recGWlHw0HW0VXe4X",
+                    "recmgm6Ayrt6NW0es",
+                    "recdonMCBvmy6tBDj",
+                    "rec8qYinZ8kNqEqYn",
+                    "recns99WABr9oNzLW",
+                    "recAnB8C8kriX8WnW",
+                    "recKGa87GShqZ46eP",
+                    "recMqkkpvdl0ShH4g",
+                    "recLQANOgeGVd0Ofn",
+                    "rec9wZbmJ8hmmeew9",
+                    "rec6gh8qAPPUJABxH",
+                    "recgimWQArgOJhBhi",
+                    "recHUMzoqJRTiauOD",
+                    "recIhBdEVXvU12uh6",
+                    "recn9APYQtkheKpRX",
+                    "recbUhGT4ON6AUKIG",
+                    "recebcyxT1oL9uiDf"
+                ],
+                "Name (from Performers)": [
+                    "Scott Bruce",
+                    "Craig Harkness"
+                ]
+            }
+        },
+        {
+            "id": "recsk8LMqZVQjABCN",
+            "createdTime": "2026-01-08T20:02:44.000Z",
+            "fields": {
+                "Name": "13/06/26 - Abbie Phillips & Will Hand - Culdees Castle, Muthill, PH5 2BA",
+                "event": [
+                    "recufTensYzFcw4fe"
+                ],
+                "Date (from event)": [
+                    "2026-06-06T00:00:00.000Z"
+                ],
+                "Options": [
+                    "recKQDzOTXYTUcKPE"
+                ],
+                "Early Arrival (Hours)": 0,
+                "Late Finish (Hours)": 0,
+                "Attribution": [
+                    "recHyW5LlysJtFQDw"
+                ],
+                "Options Price": 1500,
+                "Options Fees": 1125,
+                "Early Arrival Price": 0,
+                "Late Finish Price": 0,
+                "Total Due (calculated)": 1625,
+                "Total Charge (actual)": 1625,
+                "Profit (projected)": 375,
+                "Invoices": [
+                    {
+                        "id": "attJxnJQdaxUDYITd",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/j33-6icAQjfjnhqktLQKyg/AJYcgTedgmQuE2BdJbIYCPprYMR7cI41wWpEhVoWliMlguL5cYB8F9kS1pb3d5pzlddZAjr-K-rkyw1oQXDk9zS6VhQAPWabx0iAGNAu-Gr5V1aX_kaJR2ZVFTFyRd5fXarpUmSxYxFb8O7a3dELkXFCn4kP3BOHouAm_0O3jV4/AKANOA021cHPiMeihsH7VVVEfrFaWWV8D78JNFafgBw",
+                        "filename": "invoice-0139.pdf",
+                        "size": 46538,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/slJwueQQup3gZtKBuf4vIQ/W9jn0rNoUEtuhzbgp_CsAAi69e-MU88hx4qahLwdPIsBkL0psLFx6mLi3FF4KaNaW3GeC3jThAT2VdLOoL4LdSrtU3OLer5hoZfbr_FBUNSse6S9RJCSDODKC66XWx2yqUzIhDdeqPl_vHZrq1kvmg/5A5F-9oXBqDpbK1PYz2Av_NPVvW_pvZ0sO4A0htUnb8",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/xfLcftutagATbEHIVm1wcw/Q450Ktov2kcTI8NA72bNmfTdrZQoeGX6e-yD1wHU0WLDm3hixCI1NSF5JM8t7SKR6dV0Pp0keRAUaGym6cyH-Z8lmgJQ2CfV8kDl8JEBIUDMv9nS8MhxDRdXjUJbKToF4Gkm3QifbXnbzaJt9wSWEg/lsHw0fQmxD_-ym3vixbBoyRS8FQAxICVXOn3cYWTM8Q",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "Totals": [
+                    "recruuTrjJzTlgAoZ",
+                    "recLFQM0Cc9JIDLVU"
+                ],
+                "Date": "2026-06-13",
+                "Travel": 125,
+                "Deposit Amount": 325,
+                "is_done": 0,
+                "Venue": "Culdees Castle, Muthill, PH5 2BA",
+                "Performers": [
+                    "recrcRCn2wnq0yv48",
+                    "recxh0Y2WxlXsJPpe",
+                    "rec5b6oJshqzoFDQB",
+                    "reckue0FzIkpeymGz",
+                    "recTZfee5MgWhvQrK"
+                ],
+                "Client Name(s)": "Abbie Phillips & Will Hand",
+                "Email": "abbie3@hotmail.co.uk",
+                "Song Choices": [
+                    "rec0AQMQx3LDB9Bws",
+                    "reczdToigMNTZchu0",
+                    "recm0deniXPQNFE4e",
+                    "recRLl7oxCduLSNnR",
+                    "recj5qmYJEyT3rfky",
+                    "rec5GGlmKrSMJuNUu",
+                    "rec3oaWzFKCEIiGD0",
+                    "recNif7hpaTfHxwtN",
+                    "recZ2DHTWsFRpk4jC",
+                    "recAnB8C8kriX8WnW",
+                    "recHCNOyeZPThLa3F",
+                    "recJqLQUs9N2suCW9",
+                    "recOWVKYX7JJhytg0",
+                    "reclVkbDv4afzAy4Y",
+                    "recqLuOXhrttugKlY",
+                    "rect7IULVY9erZLpK",
+                    "recuzu9grxDE160QQ",
+                    "rec0K6NtxqV2MDyM2",
+                    "rec0Q4afxENLqiNL2",
+                    "rec53DMBTp0v9hFsv",
+                    "rec6gh8qAPPUJABxH",
+                    "recAxb8DRdAXu0CiI",
+                    "recBkRkAG9AVNwC5U",
+                    "recLQANOgeGVd0Ofn",
+                    "recfNUlX3XUJyAfoL",
+                    "recreA7L4RswXTl1n",
+                    "recsA8OJZfLaeOSVw",
+                    "recyEHLJAL7pfmuQM",
+                    "rec3TQw3tpXjZEEVj",
+                    "rec9FfWlVzZiwKNtf"
+                ],
+                "fillout - song selection": "https://everyangle.fillout.com/t/bCbSagn1zhus?id=recsk8LMqZVQjABCN",
+                "Must-have song Choices": [
+                    "recbUhGT4ON6AUKIG",
+                    "recn9APYQtkheKpRX",
+                    "recnEDAn8SMxf3PsP"
+                ],
+                "ceilidh?": true,
+                "Ceilidh style": "Mash-Up",
+                "Ceilidh Length": "30 mins",
+                "options_ids": [
+                    "recKQDzOTXYTUcKPE"
+                ],
+                "fillout - gig details": "https://everyangle.fillout.com/t/ne4TPPm5Deus?id=recsk8LMqZVQjABCN",
+                "Formatted Date": "13 June 2026",
+                "Timings": "4pm: Wedding breakfast served\n6.45pm: Cake cutting\n7pm: First dance & band to begin\n8.15pm: Band break & evening buffet served\n11pm: Band to finish (a...",
+                "Contact Number (on the day)": "Tracey (Venue): 07585308567 or 07586726108\nGraeme (Groomsman): 07725577293\nJacky (Bridesmaid): 07399476123",
+                "_has_band?": 1,
+                "First Dance/Song Request (if required)": "Don't Delete the Kisses by Wolf Alice",
+                "Parking Info": "The venue has a car park to the side of the castle and to the front. Some suppliers might be able to drive around the side depending on equipment - Tr...",
+                "Client Notes": "Please don't play anything by The 1975.",
+                "GOTO emails": "https://mail.google.com/mail/u/0/#search/from:abbie3@hotmail.co.uk+OR+to:abbie3@hotmail.co.uk",
+                "Avoid playing": [
+                    "recV3OaMJneBhgGbH"
+                ],
+                "Playlist": "https://open.spotify.com/playlist/5vt7MYQZl0ghVLDhdSuKpu?si=RlH23xUoTh-QQ8_lXMDmBA&pi=2PIjQtkJR3-Ux",
+                "set list (favourites)": "Are you gonna be my girl - Jet (M) - A blues\nBelter - Gerry Cinnamon (M) - Am\nAint No Mountain High Enough - Marvin Gaye (Both) - Am/Bbm\nWannabe - The...",
+                "set list (must-play)": "The Middle - Jimmy Eat World (M) - D\nTeenage Dirtbag - Wheatus (M) - E\nThe Only Exception - Paramore (F) - B",
+                "_has_video": 0,
+                "_has_photo": 0,
+                "_has_dj": 1,
+                "_quote_options": "Band (5 piece): £1500",
+                "Quote": "Band (5 piece): £1500\nTravel: £125\n\nTotal: £1625\nDeposit (20%): £325\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hou...",
+                "Karaoke (cost)": 0,
+                "Subtotal": 1500,
+                "Discount Applied": 1500,
+                "End of the night": "I Believe in a Thing Called Love by The Darkness",
+                "Performer Fee (actual)": 0,
+                "Profit (Pot)": 325,
+                "Deposit Due (Calculated)": 325,
+                "set list (avoid)": "I write sins not tragedies - Panic at the disco (M) - Am",
+                "Set List Duration (seconds)": 0,
+                "Set List Total Duration": "0s",
+                "D Paid?": true,
+                "Balance Amount": 1300,
+                "GOTO interface": "https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=recsk8LMqZVQjABCN",
+                "payment notes": "Deposit received - check business account",
+                "Amount Paid (Turnover)": 325,
+                "Profit (current)": 0,
+                "Amount Paid (current)": 0,
+                "Profit (theoretical)": 1625,
+                "Profit (theoretical/current)": 0,
+                "Profit (theoretical/pot)": 325,
+                "Name (from Performers)": [
+                    "Scott Bruce",
+                    "Michelle",
+                    "Joe Nichols",
+                    "Craig Harkness",
+                    "Pete Wall"
+                ]
+            }
+        }
+    ],
+    "offset": "itrziw6igA7Zx5hX3/recsk8LMqZVQjABCN"
+}
+ 
+Iteration may timeout due to client inactivity or server restarts. In that case, the client will receive a 422 response with error message LIST_RECORDS_ITERATOR_NOT_AVAILABLE. It may then restart iteration from the beginning.
+
+ 
+Retrieve a Gigs record
+To retrieve an existing record in Gigs table, issue a GET request to the record endpoint.
+Any "empty" fields (e.g. "", [], or false) in the record will not be returned.
+
+In attachment objects included in the retrieved record (Invoices and other documents), only id, url, and filename are always returned. Other attachment properties may not be included. Note: Attachment URLs returned will expire 2 hours after being returned from our API. If you want to persist the attachments, we recommend downloading them instead of saving the URL. See our support article for more information.
+
+ 
+Example request
+curl https://api.airtable.com/v0/appZXteLrpESv7H8X/Gigs/rec9VwxF80ZhND3gh \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "id": "rec9VwxF80ZhND3gh",
+    "createdTime": "2025-06-09T20:13:39.000Z",
+    "fields": {
+        "Name": "16/05/26 - Hannah Pearson - Piersland house hotel",
+        "event": [
+            "recPSuJp0ex1GSlHr"
+        ],
+        "Date (from event)": [
+            "2026-05-16T00:00:00.000Z"
+        ],
+        "Options": [
+            "recKQDzOTXYTUcKPE"
+        ],
+        "Early Arrival (Hours)": 0,
+        "Late Finish (Hours)": 0,
+        "Attribution": [
+            "recWdZGPI5RwyhoTB"
+        ],
+        "Options Price": 1500,
+        "Options Fees": 1125,
+        "Early Arrival Price": 0,
+        "Late Finish Price": 0,
+        "Total Due (calculated)": 1500,
+        "Total Charge (actual)": 1525,
+        "Profit (projected)": 375,
+        "Invoices": [
+            {
+                "id": "attZHpDxCnU99hu3G",
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/2F9yPv8K9u7hvF-vBqS1rg/qRsy_0Td4najn5I1GCdNjY4U88Wy4AuLsYkgPlyLxn0hVX3gjT19Ylw4WkrI6hrXgkSnlQUbrRCf8pBQWEnBTUB24qd_2iCOsg3yqTJMLl_c6LFSR2O5F1sjBvkcdASX75ero-eCNkfyGEGu6YU7QJ1ZdSSjoMJ_6Sr88kbIonalNAkx_dUvt6tR2li-_q7l/dQY37CBHZnU4j4MGzzzcp-wWx-EEBVXoVJ5TNXK8Wlo",
+                "filename": "Invoice - Hannah Pearson - 16 05 2026.pdf",
+                "size": 206093,
+                "type": "application/pdf",
+                "thumbnails": {
+                    "small": {
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/fFHs7e4xVlNaIZNBliYOaw/j8LrZdcil34hhtw4DDLRWnWkH1C4Y86bVebkjbVpx93rabMWlwaswcjrxjoqGXNDvt8K5uQgt3Itd8DFBJUKTyA2eZ6VLlQG8i0qKVCSo5v090SNWuNA3j89xDysUsfuS6BRnTKONkO42e2P7cgp5g/eZRMkNHi_UNDQAxjg9e88XpJzZOz7kOu8wE2Y5wbCCg",
+                        "width": 25,
+                        "height": 35
+                    },
+                    "large": {
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/oI2iHjgAuAthvR8ZOohO8Q/n85e9oB8SKI_ufQlKFx9940v1T4QNhKnmcui5J3fsfOUjD5DiRY_cnEb_24Hcf3j0XDrgM6H7ECxfCGMtDbWwzW3ck9LPt-7wmr0nZ1qpDQEUwpgme_9Krv-EoN7njf24jq5fFjuIgDfhhCmjTtQPw/qwGRHq2YKC1W0I6UFFdkrHA9kbPXvLc9oePnNeplt90",
+                        "width": 512,
+                        "height": 724
+                    }
+                }
+            }
+        ],
+        "Totals": [
+            "recruuTrjJzTlgAoZ",
+            "recLFQM0Cc9JIDLVU"
+        ],
+        "Date": "2026-05-16",
+        "Travel": 0,
+        "Deposit Amount": 305,
+        "is_done": 0,
+        "Venue": "Piersland house hotel",
+        "Performers": [
+            "recrcRCn2wnq0yv48",
+            "rec9gIHH139eMqQAR",
+            "rec5vduwT4m1t9UHw",
+            "reckue0FzIkpeymGz",
+            "recNuaBB2j7ves5vT"
+        ],
+        "Client Name(s)": "Hannah Pearson",
+        "Email": "hannah_pearson14393@hotmail.co.uk",
+        "Song Choices": [
+            "recOyLH8RnhaYuhJi",
+            "recMqkkpvdl0ShH4g",
+            "recmejNvytP4IIFri",
+            "rec0Q4afxENLqiNL2",
+            "recreA7L4RswXTl1n",
+            "reccQLrXSPXJFm6oO",
+            "recLQANOgeGVd0Ofn",
+            "recucdKhQWbPbrWW8",
+            "reclI2b7LhE0SZ6z7",
+            "recUrUDa0NHnVIKZJ",
+            "recxvBERwaOhXtDG7",
+            "recuKhakHuQXTF98t",
+            "recIhBdEVXvU12uh6",
+            "rectrMJ2iNckJjS1k",
+            "rec9tKWWBNH8dbizU",
+            "recfNUlX3XUJyAfoL",
+            "rec9FfWlVzZiwKNtf",
+            "recNOAnRBt1NvXeBl",
+            "recnzeqPgLNRT4ZS6",
+            "recMF2s9vxKPA2gO8",
+            "rect7IULVY9erZLpK",
+            "recm0deniXPQNFE4e",
+            "recP1cPUWuVTs0ZOI",
+            "recns99WABr9oNzLW",
+            "recoIt5VRLXPzDIwq",
+            "recfXNSWBDgOSx2Lb",
+            "recuzu9grxDE160QQ",
+            "recuvRjqPKkkkUHcO",
+            "recRLl7oxCduLSNnR",
+            "recIFBgLu9lOHH55n",
+            "recj5qmYJEyT3rfky",
+            "recQwRCxWq49bgOUE",
+            "recgclGfzwKnFckPK",
+            "recHUMzoqJRTiauOD",
+            "recw8iQJImsfkYr8D",
+            "recKGa87GShqZ46eP",
+            "recn9APYQtkheKpRX"
+        ],
+        "fillout - song selection": "https://everyangle.fillout.com/t/bCbSagn1zhus?id=rec9VwxF80ZhND3gh",
+        "Must-have song Choices": [
+            "recnzeqPgLNRT4ZS6",
+            "rect7IULVY9erZLpK"
+        ],
+        "options_ids": [
+            "recKQDzOTXYTUcKPE"
+        ],
+        "fillout - gig details": "https://everyangle.fillout.com/t/ne4TPPm5Deus?id=rec9VwxF80ZhND3gh",
+        "Formatted Date": "16 May 2026",
+        "Timings": "Not yet confirmed, have meeting with venue on 7th March\nEstimated timings below:\n2pm- ceremony\n2:30pm- drinks reception and photos\n4/4:30pm- invited i...",
+        "Contact Number (on the day)": "My number: 07496043684\ngrooms number: 07706609115\nbridemaids number (Bethany): 07585334859\nMOB number: 07855850197",
+        "_has_band?": 1,
+        "First Dance/Song Request (if required)": "Wonderful tonight Eric Clapton",
+        "Parking Info": "Venue has large carpark spaces right beside front door of venue",
+        "GOTO emails": "https://mail.google.com/mail/u/0/#search/from:hannah_pearson14393@hotmail.co.uk+OR+to:hannah_pearson14393@hotmail.co.uk",
+        "Playlist": "Bruno Mars- Mary You\nTrue- Spandau Ballet\nHero- Enrique\nGirls just wanna have fun- Cyndi Lauper\nHey Ya- OutKast\nShot through the heart- Bon Jovi\nBaba ...",
+        "set list (favourites)": "Loch Lomond - Runrig (M) - ?\nTake on me - Aha (M) - A\nDancing Queen - ABBA (F) - A\nDon’t You Want Me - The Human League (Both) - Am\nSweet Caroline - N...",
+        "set list (must-play)": "Get Lucky - Daft Punk (M) - Bm (Dorian)\nMr Brightside - The Killers (M) - Db",
+        "_has_video": 0,
+        "_has_photo": 0,
+        "_has_dj": 1,
+        "_quote_options": "Band (5 piece): £1500",
+        "Quote": "Band (5 piece): £1500\n\nTotal: £1500\nDeposit (20%): £300\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hours of live mu...",
+        "Karaoke (cost)": 0,
+        "Subtotal": 1500,
+        "Discount Applied": 1500,
+        "End of the night": "Loch Lomond- Runrig",
+        "Performer Fee (actual)": 0,
+        "Profit (Pot)": 305,
+        "Deposit Due (Calculated)": 300,
+        "Performers copy": "Scott Bruce, Jasmin Galvin, Dean Anderson, Louise Grant, Craig Harkness",
+        "Set List Items": [
+            "recW9iEp7shW2qnRt",
+            "rectz7I7s7iTHOkjC",
+            "rec1OsGxUe1ESFbpg",
+            "rec6zbM8Com4itBK7",
+            "rectIIo2E8yMG73ll",
+            "recaFcGi208KCCXbr",
+            "recHa0ExcvLlS7cUq",
+            "recME6sj6PutbPtPr",
+            "recvkezcRZtliwdfz",
+            "recLS27bVc4fqk0Ln",
+            "recva871XGfBb7XCv",
+            "recMTXkMtucWKLoBu",
+            "rec6ipMp9mNQ3u5bZ",
+            "reco05F3SoV6MeLEE",
+            "recOtTunUeZlilzYb",
+            "recHOfcCltUbBzu8b",
+            "recpz4iKYomez1bMZ",
+            "rec6VV1VBINy7ZVal",
+            "rec1LF3XHlRKduip3",
+            "reckd9EzyVIjpMvMM",
+            "recHtEl8s5bvrEiYN",
+            "recj5rZhJLdSh09td",
+            "recpGDYSviwux5xUf",
+            "recujE9zYnhxPNnLt",
+            "rec12Vt77p61YMzJD",
+            "reco8bgkdjQtNI8Td",
+            "recKwAz3o2TBX6uSn",
+            "recFo2Mie97Hf4S1m",
+            "recYNGLkXHku9VKvv",
+            "recqtVQHduqt9G1fo",
+            "recZkrar8ZhJtObpx",
+            "recDxnLnkHCWIj7Ov",
+            "recxKPdONxkKu6ehs",
+            "recMamX5kN6Hqu6r0",
+            "recGqGJgpOvloNJGh",
+            "recDuWrZNDzzIqv4B",
+            "recKBtlr1dYITIMRi",
+            "recldS5yJ00J5nQl7",
+            "recbmd5UuO0GkCZ4W"
+        ],
+        "Set List Duration (seconds)": 9196,
+        "Set List Total Duration": "2h 33m 16s",
+        "set list built (copyable)": "Get Lucky - Daft Punk (M) - Bm (Dorian)\nMr Brightside - The Killers (M) - Db\nDancing Queen - ABBA (F) - A\nMamma Mia - ABBA (F) - D\nDoes your Mother Kn...",
+        "D Paid?": true,
+        "Balance Amount": 1220,
+        "GOTO interface": "https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=rec9VwxF80ZhND3gh",
+        "Amount Paid (Turnover)": 305,
+        "Profit (current)": 0,
+        "Amount Paid (current)": 0,
+        "Profit (theoretical)": 1525,
+        "Profit (theoretical/current)": 0,
+        "Profit (theoretical/pot)": 305,
+        "Songs (from Set List Items)": [
+            "recRLl7oxCduLSNnR",
+            "reccQLrXSPXJFm6oO",
+            "recm0deniXPQNFE4e",
+            "rec9FfWlVzZiwKNtf",
+            "recuKhakHuQXTF98t",
+            "recgclGfzwKnFckPK",
+            "recQwRCxWq49bgOUE",
+            "recfXNSWBDgOSx2Lb",
+            "recOyLH8RnhaYuhJi",
+            "recmejNvytP4IIFri",
+            "rectrMJ2iNckJjS1k",
+            "recuzu9grxDE160QQ",
+            "recxvBERwaOhXtDG7",
+            "reclI2b7LhE0SZ6z7",
+            "recnzeqPgLNRT4ZS6",
+            "recnzeqPgLNRT4ZS6",
+            "recns99WABr9oNzLW",
+            "rec0Q4afxENLqiNL2",
+            "recMF2s9vxKPA2gO8",
+            "recUrUDa0NHnVIKZJ",
+            "recNOAnRBt1NvXeBl",
+            "recP1cPUWuVTs0ZOI",
+            "recKGa87GShqZ46eP",
+            "recMqkkpvdl0ShH4g",
+            "recj5qmYJEyT3rfky",
+            "rect7IULVY9erZLpK",
+            "rect7IULVY9erZLpK",
+            "recLQANOgeGVd0Ofn",
+            "rec9tKWWBNH8dbizU",
+            "recucdKhQWbPbrWW8",
+            "recreA7L4RswXTl1n",
+            "recuvRjqPKkkkUHcO",
+            "recHUMzoqJRTiauOD",
+            "recoIt5VRLXPzDIwq",
+            "recIhBdEVXvU12uh6",
+            "recn9APYQtkheKpRX",
+            "recw8iQJImsfkYr8D",
+            "recfNUlX3XUJyAfoL",
+            "recIFBgLu9lOHH55n"
+        ],
+        "Name (from Performers)": [
+            "Scott Bruce",
+            "Louise Grant",
+            "Jasmin Galvin",
+            "Craig Harkness",
+            "Frazer Smith"
+        ]
+    }
+}
+Create Gigs records
+To create new records, issue a POST request to the Gigs endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request body should include an array of up to 10 record objects. Each of these objects should have one key whose value is an inner object containing your record's cell values, keyed by either field name or field id.
+
+Returns an array of record objects created if the call succeeded, including record IDs which will uniquely identify the records within Every Angle.
+
+To create new attachments in Invoices and other documents, set the field value to an array of attachment objects. When creating an attachment, url is required, and filename is optional. Airtable will download the file at the given url and keep its own copy of it. All other attachment object properties will be generated server-side soon afterward.
+
+Note that in most cases the API does not currently return an error code for failed attachment object creation given attachment uploading happens in an asynchronous manner, such cases will manifest with the attachment object either being cleared from the cell or persisted with generated URLs that return error responses when queried. If the same attachment URL fails to upload multiple times in a short time interval then * the API may return an ATTACHMENTS_FAILED_UPLOADING error code in the details field of the response and the attachment object will * be cleared from the cell synchronously.
+
+We also require URLs used to upload have the https:// or http:// protocol (Note: http:// support will be removed in the near future), have a limit of 3 max redirects, and a file size limit of 1GB. In addition, URLs must be publicly accessible, in cases where cookie authentication or logging in to access the file is required, the login page HTML will be downloaded instead of the file.
+
+Attachment URLs returned will expire 2 hours after being returned from our API. If you want to persist the attachments, we recommend downloading them instead of saving the URL.
+
+If too many attachments are uploaded within a short period of time, the server may return a partial failure on record creation with an "Attachment Upload Rate Too High" error. See our support article for more information.
+
+Values for Name, Balance Amount, Amount Paid (Turnover), Amount Paid (current), options_ids, Options Price, Options Fees, Description (from event), Early Arrival Price, Late Finish Price, Subtotal, Discount Applied, Date (from event), Total Due (calculated), Deposit Due (Calculated), Profit (projected), Performer Fee (actual), Profit (Pot), is_done, Name (from Performers), fillout - song selection, Formatted Date, _has_band?, _has_video, _has_photo, _has_dj, set list (favourites), set list (must-play), set list (avoid), amount (from Gig Payment), _quote_options, Quote, Karaoke (cost), Songs (from Set List Items), Set List Duration (seconds), Set List Total Duration, set list built (copyable), GOTO emails, fillout - gig details, GOTO interface, Profit (current), Profit (theoretical), Profit (theoretical/current) and Profit (theoretical/pot) are automatically computed by Airtable and cannot be directly created.
+
+The Airtable API will perform best-effort automatic data conversion from string values if the typecast parameter is passed in (click to show example). Automatic conversion is disabled by default to ensure data integrity, but it may be helpful for integrating with 3rd party data sources.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X POST https://api.airtable.com/v0/appZXteLrpESv7H8X/Gigs \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "fields": {
+        "Date": "2026-05-16",
+        "Client Name(s)": "Hannah Pearson",
+        "Venue": "Piersland house hotel",
+        "D Paid?": true,
+        "Total Charge (actual)": 1525,
+        "Deposit Amount": 305,
+        "event": [
+          "recPSuJp0ex1GSlHr"
+        ],
+        "Attribution": [
+          "recWdZGPI5RwyhoTB"
+        ],
+        "Options": [
+          "recKQDzOTXYTUcKPE"
+        ],
+        "Early Arrival (Hours)": 0,
+        "Late Finish (Hours)": 0,
+        "Travel": 0,
+        "Totals": [
+          "recruuTrjJzTlgAoZ",
+          "recLFQM0Cc9JIDLVU"
+        ],
+        "Invoices": [
+          {
+            "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/2F9yPv8K9u7hvF-vBqS1rg/qRsy_0Td4najn5I1GCdNjY4U88Wy4AuLsYkgPlyLxn0hVX3gjT19Ylw4WkrI6hrXgkSnlQUbrRCf8pBQWEnBTUB24qd_2iCOsg3yqTJMLl_c6LFSR2O5F1sjBvkcdASX75ero-eCNkfyGEGu6YU7QJ1ZdSSjoMJ_6Sr88kbIonalNAkx_dUvt6tR2li-_q7l/dQY37CBHZnU4j4MGzzzcp-wWx-EEBVXoVJ5TNXK8Wlo"
+          }
+        ],
+        "Performers": [
+          "recrcRCn2wnq0yv48",
+          "rec9gIHH139eMqQAR",
+          "rec5vduwT4m1t9UHw",
+          "reckue0FzIkpeymGz",
+          "recNuaBB2j7ves5vT"
+        ],
+        "Email": "hannah_pearson14393@hotmail.co.uk",
+        "Song Choices": [
+          "recOyLH8RnhaYuhJi",
+          "recMqkkpvdl0ShH4g",
+          "recmejNvytP4IIFri",
+          "rec0Q4afxENLqiNL2",
+          "recreA7L4RswXTl1n",
+          "reccQLrXSPXJFm6oO",
+          "recLQANOgeGVd0Ofn",
+          "recucdKhQWbPbrWW8",
+          "reclI2b7LhE0SZ6z7",
+          "recUrUDa0NHnVIKZJ",
+          "recxvBERwaOhXtDG7",
+          "recuKhakHuQXTF98t",
+          "recIhBdEVXvU12uh6",
+          "rectrMJ2iNckJjS1k",
+          "rec9tKWWBNH8dbizU",
+          "recfNUlX3XUJyAfoL",
+          "rec9FfWlVzZiwKNtf",
+          "recNOAnRBt1NvXeBl",
+          "recnzeqPgLNRT4ZS6",
+          "recMF2s9vxKPA2gO8",
+          "rect7IULVY9erZLpK",
+          "recm0deniXPQNFE4e",
+          "recP1cPUWuVTs0ZOI",
+          "recns99WABr9oNzLW",
+          "recoIt5VRLXPzDIwq",
+          "recfXNSWBDgOSx2Lb",
+          "recuzu9grxDE160QQ",
+          "recuvRjqPKkkkUHcO",
+          "recRLl7oxCduLSNnR",
+          "recIFBgLu9lOHH55n",
+          "recj5qmYJEyT3rfky",
+          "recQwRCxWq49bgOUE",
+          "recgclGfzwKnFckPK",
+          "recHUMzoqJRTiauOD",
+          "recw8iQJImsfkYr8D",
+          "recKGa87GShqZ46eP",
+          "recn9APYQtkheKpRX"
+        ],
+        "Must-have song Choices": [
+          "recnzeqPgLNRT4ZS6",
+          "rect7IULVY9erZLpK"
+        ],
+        "Timings": "Not yet confirmed, have meeting with venue on 7th March\nEstimated timings below:\n2pm- ceremony\n2:30pm- drinks reception and photos\n4/4:30pm- invited i...",
+        "Contact Number (on the day)": "My number: 07496043684\ngrooms number: 07706609115\nbridemaids number (Bethany): 07585334859\nMOB number: 07855850197",
+        "First Dance/Song Request (if required)": "Wonderful tonight Eric Clapton",
+        "Parking Info": "Venue has large carpark spaces right beside front door of venue",
+        "Playlist": "Bruno Mars- Mary You\nTrue- Spandau Ballet\nHero- Enrique\nGirls just wanna have fun- Cyndi Lauper\nHey Ya- OutKast\nShot through the heart- Bon Jovi\nBaba ...",
+        "End of the night": "Loch Lomond- Runrig",
+        "Performers copy": "Scott Bruce, Jasmin Galvin, Dean Anderson, Louise Grant, Craig Harkness",
+        "Set List Items": [
+          "recW9iEp7shW2qnRt",
+          "rectz7I7s7iTHOkjC",
+          "rec1OsGxUe1ESFbpg",
+          "rec6zbM8Com4itBK7",
+          "rectIIo2E8yMG73ll",
+          "recaFcGi208KCCXbr",
+          "recHa0ExcvLlS7cUq",
+          "recME6sj6PutbPtPr",
+          "recvkezcRZtliwdfz",
+          "recLS27bVc4fqk0Ln",
+          "recva871XGfBb7XCv",
+          "recMTXkMtucWKLoBu",
+          "rec6ipMp9mNQ3u5bZ",
+          "reco05F3SoV6MeLEE",
+          "recOtTunUeZlilzYb",
+          "recHOfcCltUbBzu8b",
+          "recpz4iKYomez1bMZ",
+          "rec6VV1VBINy7ZVal",
+          "rec1LF3XHlRKduip3",
+          "reckd9EzyVIjpMvMM",
+          "recHtEl8s5bvrEiYN",
+          "recj5rZhJLdSh09td",
+          "recpGDYSviwux5xUf",
+          "recujE9zYnhxPNnLt",
+          "rec12Vt77p61YMzJD",
+          "reco8bgkdjQtNI8Td",
+          "recKwAz3o2TBX6uSn",
+          "recFo2Mie97Hf4S1m",
+          "recYNGLkXHku9VKvv",
+          "recqtVQHduqt9G1fo",
+          "recZkrar8ZhJtObpx",
+          "recDxnLnkHCWIj7Ov",
+          "recxKPdONxkKu6ehs",
+          "recMamX5kN6Hqu6r0",
+          "recGqGJgpOvloNJGh",
+          "recDuWrZNDzzIqv4B",
+          "recKBtlr1dYITIMRi",
+          "recldS5yJ00J5nQl7",
+          "recbmd5UuO0GkCZ4W"
+        ]
+      }
+    },
+    {
+      "fields": {
+        "Date": "2026-05-27",
+        "Client Name(s)": "Megan Gorton",
+        "Venue": "Fingask Castle in Perthshire",
+        "D Paid?": true,
+        "Total Charge (actual)": 810,
+        "Deposit Amount": 162,
+        "event": [
+          "recJr1sdRkGgjW38N"
+        ],
+        "Attribution": [
+          "rec7KVr1XNkzwYYGf"
+        ],
+        "Options": [
+          "rec6gmlxv5hNvu0MW"
+        ],
+        "Early Arrival (Hours)": 0,
+        "Late Finish (Hours)": 0,
+        "Travel": 0,
+        "Totals": [
+          "recruuTrjJzTlgAoZ",
+          "recLFQM0Cc9JIDLVU"
+        ],
+        "Invoices": [
+          {
+            "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/6H8nhhopZAoFdyTF1ESnPg/CxlAHnk3d0OSjMBR81Mx6Oy78rMyfZW40kNYe_LnftRleMdbZcm-x_LACnZlAdHNGPDrMe7xDngl3NDIMAVeOg9roV4rDB8TIECfqyIo9C0U5GQd0a36prbybS-u1MAUNgHruvbIXJdKu8euzhfa1wvZZnzpraGeSHxEEUi5gPIJyCJY_QOY8uKCmRdlDaTr/7qVfc9co-t3VWjUM8b2ZQXWeK8PtUU56JtqnJXbi2fI"
+          }
+        ],
+        "Performers": [
+          "recrcRCn2wnq0yv48",
+          "reckue0FzIkpeymGz"
+        ],
+        "Email": "GortonBryce24@outlook.com",
+        "Song Choices": [
+          "rec0k2BYIgDIUHt2X",
+          "rec6gh8qAPPUJABxH",
+          "rec8qYinZ8kNqEqYn",
+          "recAxb8DRdAXu0CiI",
+          "recDyNJoFcCbzzd7T",
+          "recIhBdEVXvU12uh6",
+          "recLQANOgeGVd0Ofn",
+          "recMqkkpvdl0ShH4g",
+          "rec9FfWlVzZiwKNtf",
+          "rechKoo0zTvvSPZDa",
+          "reclI2b7LhE0SZ6z7",
+          "receXkcTK4WfplnaG",
+          "recnzeqPgLNRT4ZS6",
+          "rec9wZbmJ8hmmeew9",
+          "recGWlHw0HW0VXe4X",
+          "recgimWQArgOJhBhi",
+          "recbUhGT4ON6AUKIG",
+          "recm0deniXPQNFE4e",
+          "recn9APYQtkheKpRX",
+          "recOIl15CxWt6tnDe",
+          "recebcyxT1oL9uiDf",
+          "rec5GGlmKrSMJuNUu",
+          "recHUMzoqJRTiauOD",
+          "rec3oaWzFKCEIiGD0",
+          "recFPFgnCE0HKDm4w",
+          "recOWVKYX7JJhytg0",
+          "rec94OpAmkvJh7Nmh",
+          "recdonMCBvmy6tBDj",
+          "recjx6KyxDmfunwxs",
+          "reclVkbDv4afzAy4Y",
+          "recmgm6Ayrt6NW0es",
+          "recKGa87GShqZ46eP"
+        ],
+        "Must-have song Choices": [
+          "recns99WABr9oNzLW",
+          "rec6Vk3j1yX6KKmDN",
+          "recAnB8C8kriX8WnW"
+        ],
+        "Timings": "ceremony at 1400\ncall for dinner at 1630\nband starts at 2000 ",
+        "Contact Number (on the day)": "charlie bryce +44 7854 015945\nbecca gorton +447794 289951",
+        "First Dance/Song Request (if required)": "You'\''re my best friend by Queen",
+        "Parking Info": "plenty of parking on site, directions from entry. ",
+        "Client Notes": "Is is possible for one of the guests to play along side you for the first song?",
+        "End of the night": "Loch lomond by Runrig",
+        "Performers copy": "Scott Bruce, Dean Anderson, Craig Harkness",
+        "Set List Items": [
+          "recHXjeVRy6w4VySz",
+          "recAKRLUdp2LfQiCn",
+          "recSeGjrwWpy5eMow",
+          "rechmw79HOA0vT5dL",
+          "recuy1F4lS6tKecLP",
+          "reci1jkZ19hZUZGLm",
+          "recoXvwUSjpxvHyiQ",
+          "reclPomcVBppgvedG",
+          "rec9CHL5NFAmlUYLz",
+          "recp4KgeWLaSoOTSq",
+          "rec5xM3u0K3FTOASC",
+          "rec7mulXl6jRkYqSA",
+          "recrYvqLyNmopprZV",
+          "recdvJoZPrmwZodxE",
+          "recPblSI5OTtF5iwu",
+          "rec2EAzm8w7IsPaZy",
+          "rec1zjxuFdVzVnfuK",
+          "rechMwYmxP5VcGEZX",
+          "rec7wjkU0jV4GTVA3",
+          "recScYavVfQYNyK7U",
+          "recsTErmKFxXo6LBP",
+          "rec3j4K7xPPeCfOEZ",
+          "recqqZPh4jcLDDDrg",
+          "recVr6pYDGvwpKS8a",
+          "recjkYBIFII1KLo0Z",
+          "rechjG7bIcCExkGwi",
+          "rec44rXThMAUJpMPP",
+          "recSx1wlJCj8J7Zan",
+          "recIwqKMoyuKMmv0f",
+          "recvUTB5LOps589YR",
+          "recr06nSuukQZSJgG",
+          "rec4GDkrg9rbkHZxR",
+          "recTT8MkLq2qUV2QG",
+          "reck5Y8QnFWsjliYe",
+          "recYdRgaybNo7chBu"
+        ]
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "rec9VwxF80ZhND3gh",
+            "createdTime": "2025-06-09T20:13:39.000Z",
+            "fields": {
+                "Name": "16/05/26 - Hannah Pearson - Piersland house hotel",
+                "event": [
+                    "recPSuJp0ex1GSlHr"
+                ],
+                "Date (from event)": [
+                    "2026-05-16T00:00:00.000Z"
+                ],
+                "Options": [
+                    "recKQDzOTXYTUcKPE"
+                ],
+                "Early Arrival (Hours)": 0,
+                "Late Finish (Hours)": 0,
+                "Attribution": [
+                    "recWdZGPI5RwyhoTB"
+                ],
+                "Options Price": 1500,
+                "Options Fees": 1125,
+                "Early Arrival Price": 0,
+                "Late Finish Price": 0,
+                "Total Due (calculated)": 1500,
+                "Total Charge (actual)": 1525,
+                "Profit (projected)": 375,
+                "Invoices": [
+                    {
+                        "id": "attZHpDxCnU99hu3G",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/2F9yPv8K9u7hvF-vBqS1rg/qRsy_0Td4najn5I1GCdNjY4U88Wy4AuLsYkgPlyLxn0hVX3gjT19Ylw4WkrI6hrXgkSnlQUbrRCf8pBQWEnBTUB24qd_2iCOsg3yqTJMLl_c6LFSR2O5F1sjBvkcdASX75ero-eCNkfyGEGu6YU7QJ1ZdSSjoMJ_6Sr88kbIonalNAkx_dUvt6tR2li-_q7l/dQY37CBHZnU4j4MGzzzcp-wWx-EEBVXoVJ5TNXK8Wlo",
+                        "filename": "Invoice - Hannah Pearson - 16 05 2026.pdf",
+                        "size": 206093,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/fFHs7e4xVlNaIZNBliYOaw/j8LrZdcil34hhtw4DDLRWnWkH1C4Y86bVebkjbVpx93rabMWlwaswcjrxjoqGXNDvt8K5uQgt3Itd8DFBJUKTyA2eZ6VLlQG8i0qKVCSo5v090SNWuNA3j89xDysUsfuS6BRnTKONkO42e2P7cgp5g/eZRMkNHi_UNDQAxjg9e88XpJzZOz7kOu8wE2Y5wbCCg",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/oI2iHjgAuAthvR8ZOohO8Q/n85e9oB8SKI_ufQlKFx9940v1T4QNhKnmcui5J3fsfOUjD5DiRY_cnEb_24Hcf3j0XDrgM6H7ECxfCGMtDbWwzW3ck9LPt-7wmr0nZ1qpDQEUwpgme_9Krv-EoN7njf24jq5fFjuIgDfhhCmjTtQPw/qwGRHq2YKC1W0I6UFFdkrHA9kbPXvLc9oePnNeplt90",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "Totals": [
+                    "recruuTrjJzTlgAoZ",
+                    "recLFQM0Cc9JIDLVU"
+                ],
+                "Date": "2026-05-16",
+                "Travel": 0,
+                "Deposit Amount": 305,
+                "is_done": 0,
+                "Venue": "Piersland house hotel",
+                "Performers": [
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "rec5vduwT4m1t9UHw",
+                    "reckue0FzIkpeymGz",
+                    "recNuaBB2j7ves5vT"
+                ],
+                "Client Name(s)": "Hannah Pearson",
+                "Email": "hannah_pearson14393@hotmail.co.uk",
+                "Song Choices": [
+                    "recOyLH8RnhaYuhJi",
+                    "recMqkkpvdl0ShH4g",
+                    "recmejNvytP4IIFri",
+                    "rec0Q4afxENLqiNL2",
+                    "recreA7L4RswXTl1n",
+                    "reccQLrXSPXJFm6oO",
+                    "recLQANOgeGVd0Ofn",
+                    "recucdKhQWbPbrWW8",
+                    "reclI2b7LhE0SZ6z7",
+                    "recUrUDa0NHnVIKZJ",
+                    "recxvBERwaOhXtDG7",
+                    "recuKhakHuQXTF98t",
+                    "recIhBdEVXvU12uh6",
+                    "rectrMJ2iNckJjS1k",
+                    "rec9tKWWBNH8dbizU",
+                    "recfNUlX3XUJyAfoL",
+                    "rec9FfWlVzZiwKNtf",
+                    "recNOAnRBt1NvXeBl",
+                    "recnzeqPgLNRT4ZS6",
+                    "recMF2s9vxKPA2gO8",
+                    "rect7IULVY9erZLpK",
+                    "recm0deniXPQNFE4e",
+                    "recP1cPUWuVTs0ZOI",
+                    "recns99WABr9oNzLW",
+                    "recoIt5VRLXPzDIwq",
+                    "recfXNSWBDgOSx2Lb",
+                    "recuzu9grxDE160QQ",
+                    "recuvRjqPKkkkUHcO",
+                    "recRLl7oxCduLSNnR",
+                    "recIFBgLu9lOHH55n",
+                    "recj5qmYJEyT3rfky",
+                    "recQwRCxWq49bgOUE",
+                    "recgclGfzwKnFckPK",
+                    "recHUMzoqJRTiauOD",
+                    "recw8iQJImsfkYr8D",
+                    "recKGa87GShqZ46eP",
+                    "recn9APYQtkheKpRX"
+                ],
+                "fillout - song selection": "https://everyangle.fillout.com/t/bCbSagn1zhus?id=rec9VwxF80ZhND3gh",
+                "Must-have song Choices": [
+                    "recnzeqPgLNRT4ZS6",
+                    "rect7IULVY9erZLpK"
+                ],
+                "options_ids": [
+                    "recKQDzOTXYTUcKPE"
+                ],
+                "fillout - gig details": "https://everyangle.fillout.com/t/ne4TPPm5Deus?id=rec9VwxF80ZhND3gh",
+                "Formatted Date": "16 May 2026",
+                "Timings": "Not yet confirmed, have meeting with venue on 7th March\nEstimated timings below:\n2pm- ceremony\n2:30pm- drinks reception and photos\n4/4:30pm- invited i...",
+                "Contact Number (on the day)": "My number: 07496043684\ngrooms number: 07706609115\nbridemaids number (Bethany): 07585334859\nMOB number: 07855850197",
+                "_has_band?": 1,
+                "First Dance/Song Request (if required)": "Wonderful tonight Eric Clapton",
+                "Parking Info": "Venue has large carpark spaces right beside front door of venue",
+                "GOTO emails": "https://mail.google.com/mail/u/0/#search/from:hannah_pearson14393@hotmail.co.uk+OR+to:hannah_pearson14393@hotmail.co.uk",
+                "Playlist": "Bruno Mars- Mary You\nTrue- Spandau Ballet\nHero- Enrique\nGirls just wanna have fun- Cyndi Lauper\nHey Ya- OutKast\nShot through the heart- Bon Jovi\nBaba ...",
+                "set list (favourites)": "Loch Lomond - Runrig (M) - ?\nTake on me - Aha (M) - A\nDancing Queen - ABBA (F) - A\nDon’t You Want Me - The Human League (Both) - Am\nSweet Caroline - N...",
+                "set list (must-play)": "Get Lucky - Daft Punk (M) - Bm (Dorian)\nMr Brightside - The Killers (M) - Db",
+                "_has_video": 0,
+                "_has_photo": 0,
+                "_has_dj": 1,
+                "_quote_options": "Band (5 piece): £1500",
+                "Quote": "Band (5 piece): £1500\n\nTotal: £1500\nDeposit (20%): £300\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hours of live mu...",
+                "Karaoke (cost)": 0,
+                "Subtotal": 1500,
+                "Discount Applied": 1500,
+                "End of the night": "Loch Lomond- Runrig",
+                "Performer Fee (actual)": 0,
+                "Profit (Pot)": 305,
+                "Deposit Due (Calculated)": 300,
+                "Performers copy": "Scott Bruce, Jasmin Galvin, Dean Anderson, Louise Grant, Craig Harkness",
+                "Set List Items": [
+                    "recW9iEp7shW2qnRt",
+                    "rectz7I7s7iTHOkjC",
+                    "rec1OsGxUe1ESFbpg",
+                    "rec6zbM8Com4itBK7",
+                    "rectIIo2E8yMG73ll",
+                    "recaFcGi208KCCXbr",
+                    "recHa0ExcvLlS7cUq",
+                    "recME6sj6PutbPtPr",
+                    "recvkezcRZtliwdfz",
+                    "recLS27bVc4fqk0Ln",
+                    "recva871XGfBb7XCv",
+                    "recMTXkMtucWKLoBu",
+                    "rec6ipMp9mNQ3u5bZ",
+                    "reco05F3SoV6MeLEE",
+                    "recOtTunUeZlilzYb",
+                    "recHOfcCltUbBzu8b",
+                    "recpz4iKYomez1bMZ",
+                    "rec6VV1VBINy7ZVal",
+                    "rec1LF3XHlRKduip3",
+                    "reckd9EzyVIjpMvMM",
+                    "recHtEl8s5bvrEiYN",
+                    "recj5rZhJLdSh09td",
+                    "recpGDYSviwux5xUf",
+                    "recujE9zYnhxPNnLt",
+                    "rec12Vt77p61YMzJD",
+                    "reco8bgkdjQtNI8Td",
+                    "recKwAz3o2TBX6uSn",
+                    "recFo2Mie97Hf4S1m",
+                    "recYNGLkXHku9VKvv",
+                    "recqtVQHduqt9G1fo",
+                    "recZkrar8ZhJtObpx",
+                    "recDxnLnkHCWIj7Ov",
+                    "recxKPdONxkKu6ehs",
+                    "recMamX5kN6Hqu6r0",
+                    "recGqGJgpOvloNJGh",
+                    "recDuWrZNDzzIqv4B",
+                    "recKBtlr1dYITIMRi",
+                    "recldS5yJ00J5nQl7",
+                    "recbmd5UuO0GkCZ4W"
+                ],
+                "Set List Duration (seconds)": 9196,
+                "Set List Total Duration": "2h 33m 16s",
+                "set list built (copyable)": "Get Lucky - Daft Punk (M) - Bm (Dorian)\nMr Brightside - The Killers (M) - Db\nDancing Queen - ABBA (F) - A\nMamma Mia - ABBA (F) - D\nDoes your Mother Kn...",
+                "D Paid?": true,
+                "Balance Amount": 1220,
+                "GOTO interface": "https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=rec9VwxF80ZhND3gh",
+                "Amount Paid (Turnover)": 305,
+                "Profit (current)": 0,
+                "Amount Paid (current)": 0,
+                "Profit (theoretical)": 1525,
+                "Profit (theoretical/current)": 0,
+                "Profit (theoretical/pot)": 305,
+                "Songs (from Set List Items)": [
+                    "recRLl7oxCduLSNnR",
+                    "reccQLrXSPXJFm6oO",
+                    "recm0deniXPQNFE4e",
+                    "rec9FfWlVzZiwKNtf",
+                    "recuKhakHuQXTF98t",
+                    "recgclGfzwKnFckPK",
+                    "recQwRCxWq49bgOUE",
+                    "recfXNSWBDgOSx2Lb",
+                    "recOyLH8RnhaYuhJi",
+                    "recmejNvytP4IIFri",
+                    "rectrMJ2iNckJjS1k",
+                    "recuzu9grxDE160QQ",
+                    "recxvBERwaOhXtDG7",
+                    "reclI2b7LhE0SZ6z7",
+                    "recnzeqPgLNRT4ZS6",
+                    "recnzeqPgLNRT4ZS6",
+                    "recns99WABr9oNzLW",
+                    "rec0Q4afxENLqiNL2",
+                    "recMF2s9vxKPA2gO8",
+                    "recUrUDa0NHnVIKZJ",
+                    "recNOAnRBt1NvXeBl",
+                    "recP1cPUWuVTs0ZOI",
+                    "recKGa87GShqZ46eP",
+                    "recMqkkpvdl0ShH4g",
+                    "recj5qmYJEyT3rfky",
+                    "rect7IULVY9erZLpK",
+                    "rect7IULVY9erZLpK",
+                    "recLQANOgeGVd0Ofn",
+                    "rec9tKWWBNH8dbizU",
+                    "recucdKhQWbPbrWW8",
+                    "recreA7L4RswXTl1n",
+                    "recuvRjqPKkkkUHcO",
+                    "recHUMzoqJRTiauOD",
+                    "recoIt5VRLXPzDIwq",
+                    "recIhBdEVXvU12uh6",
+                    "recn9APYQtkheKpRX",
+                    "recw8iQJImsfkYr8D",
+                    "recfNUlX3XUJyAfoL",
+                    "recIFBgLu9lOHH55n"
+                ],
+                "Name (from Performers)": [
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jasmin Galvin",
+                    "Craig Harkness",
+                    "Frazer Smith"
+                ]
+            }
+        },
+        {
+            "id": "recjswXFP97UPS0lW",
+            "createdTime": "2025-06-09T20:32:32.000Z",
+            "fields": {
+                "Name": "27/05/26 - Megan Gorton - Fingask Castle in Perthshire",
+                "event": [
+                    "recJr1sdRkGgjW38N"
+                ],
+                "Date (from event)": [
+                    "2026-05-27T00:00:00.000Z"
+                ],
+                "Options": [
+                    "rec6gmlxv5hNvu0MW"
+                ],
+                "Early Arrival (Hours)": 0,
+                "Late Finish (Hours)": 0,
+                "Attribution": [
+                    "rec7KVr1XNkzwYYGf"
+                ],
+                "Options Price": 900,
+                "Options Fees": 675,
+                "Early Arrival Price": 0,
+                "Late Finish Price": 0,
+                "Total Due (calculated)": 900,
+                "Total Charge (actual)": 810,
+                "Profit (projected)": 225,
+                "Invoices": [
+                    {
+                        "id": "attDQtXnP4KpmipPA",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/6H8nhhopZAoFdyTF1ESnPg/CxlAHnk3d0OSjMBR81Mx6Oy78rMyfZW40kNYe_LnftRleMdbZcm-x_LACnZlAdHNGPDrMe7xDngl3NDIMAVeOg9roV4rDB8TIECfqyIo9C0U5GQd0a36prbybS-u1MAUNgHruvbIXJdKu8euzhfa1wvZZnzpraGeSHxEEUi5gPIJyCJY_QOY8uKCmRdlDaTr/7qVfc9co-t3VWjUM8b2ZQXWeK8PtUU56JtqnJXbi2fI",
+                        "filename": "Invoice - Megan Gorton - 27 05 2026.pdf",
+                        "size": 210135,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/k7BMlZjvSmM1POaEMU31ww/yAwEAiLONzyw5hy4alqHQdaM-4WHB7N1e6Tpggb0kXkgta_yGn4iN3eJOKjWhXGvrNgoKETTcYGkqy_VfoPfMCC5NbOV7vlJh0tEpLH6q8DImt9g9YWLbqs4WaBvgDO2wFb78VWaKZzKvZp7HFn0BA/R_GdmzrSzpfxaW3UX2ZN-8mOM6Gisgoy3CgN3lZ0hRs",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/ljh-CxatUV7Q1VPaaOtK5Q/bSOTAsR1Jc9jLJ4l-h0dY347VysCKg56CxED20x06pSMa35nXXzqcSvTCtOCTCZwLYH0CcjMr2Byrl-Svf6JA9T7aErsNp8IlOsafzd7arviSZHU-OvLMOGpLEV1jmk9deRVt49pkIkPE1in8mv9RQ/SH_XYOO0eKW4okgHhhdWQPobelJxPKZWV5W35A5GCz4",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "Totals": [
+                    "recruuTrjJzTlgAoZ",
+                    "recLFQM0Cc9JIDLVU"
+                ],
+                "Date": "2026-05-27",
+                "Travel": 0,
+                "Deposit Amount": 162,
+                "is_done": 0,
+                "Venue": "Fingask Castle in Perthshire",
+                "Performers": [
+                    "recrcRCn2wnq0yv48",
+                    "reckue0FzIkpeymGz"
+                ],
+                "Client Name(s)": "Megan Gorton",
+                "Email": "GortonBryce24@outlook.com",
+                "Song Choices": [
+                    "rec0k2BYIgDIUHt2X",
+                    "rec6gh8qAPPUJABxH",
+                    "rec8qYinZ8kNqEqYn",
+                    "recAxb8DRdAXu0CiI",
+                    "recDyNJoFcCbzzd7T",
+                    "recIhBdEVXvU12uh6",
+                    "recLQANOgeGVd0Ofn",
+                    "recMqkkpvdl0ShH4g",
+                    "rec9FfWlVzZiwKNtf",
+                    "rechKoo0zTvvSPZDa",
+                    "reclI2b7LhE0SZ6z7",
+                    "receXkcTK4WfplnaG",
+                    "recnzeqPgLNRT4ZS6",
+                    "rec9wZbmJ8hmmeew9",
+                    "recGWlHw0HW0VXe4X",
+                    "recgimWQArgOJhBhi",
+                    "recbUhGT4ON6AUKIG",
+                    "recm0deniXPQNFE4e",
+                    "recn9APYQtkheKpRX",
+                    "recOIl15CxWt6tnDe",
+                    "recebcyxT1oL9uiDf",
+                    "rec5GGlmKrSMJuNUu",
+                    "recHUMzoqJRTiauOD",
+                    "rec3oaWzFKCEIiGD0",
+                    "recFPFgnCE0HKDm4w",
+                    "recOWVKYX7JJhytg0",
+                    "rec94OpAmkvJh7Nmh",
+                    "recdonMCBvmy6tBDj",
+                    "recjx6KyxDmfunwxs",
+                    "reclVkbDv4afzAy4Y",
+                    "recmgm6Ayrt6NW0es",
+                    "recKGa87GShqZ46eP"
+                ],
+                "fillout - song selection": "https://everyangle.fillout.com/t/bCbSagn1zhus?id=recjswXFP97UPS0lW",
+                "Must-have song Choices": [
+                    "recns99WABr9oNzLW",
+                    "rec6Vk3j1yX6KKmDN",
+                    "recAnB8C8kriX8WnW"
+                ],
+                "options_ids": [
+                    "rec6gmlxv5hNvu0MW"
+                ],
+                "fillout - gig details": "https://everyangle.fillout.com/t/ne4TPPm5Deus?id=recjswXFP97UPS0lW",
+                "Formatted Date": "27 May 2026",
+                "Timings": "ceremony at 1400\ncall for dinner at 1630\nband starts at 2000 ",
+                "Contact Number (on the day)": "charlie bryce +44 7854 015945\nbecca gorton +447794 289951",
+                "_has_band?": 1,
+                "First Dance/Song Request (if required)": "You're my best friend by Queen",
+                "Parking Info": "plenty of parking on site, directions from entry. ",
+                "Client Notes": "Is is possible for one of the guests to play along side you for the first song?",
+                "GOTO emails": "https://mail.google.com/mail/u/0/#search/from:GortonBryce24@outlook.com+OR+to:GortonBryce24@outlook.com",
+                "set list (favourites)": "Loch Lomond - Runrig (M) - ?\nTake on me - Aha (M) - A\nCountry Roads - John Denver (M) - A\nWagon Wheel - Darious Tucker (M) - A\nAre you gonna be my gir...",
+                "set list (must-play)": "I Believe in a Thing Called Love - The Darkness (M) - Eb (-1) \nBad Moon Rising - Creedence Clearwater revival (M) - D\nI’m a Believer - The Monkees (M)...",
+                "_has_video": 0,
+                "_has_photo": 0,
+                "_has_dj": 1,
+                "_quote_options": "Band (3 piece): £900",
+                "Quote": "Band (3 piece): £900\n\nTotal: £900\nDeposit (20%): £180\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hours of live musi...",
+                "Karaoke (cost)": 0,
+                "Subtotal": 900,
+                "Discount Applied": 900,
+                "End of the night": "Loch lomond by Runrig",
+                "Performer Fee (actual)": 0,
+                "Profit (Pot)": 162,
+                "Deposit Due (Calculated)": 180,
+                "Performers copy": "Scott Bruce, Dean Anderson, Craig Harkness",
+                "Set List Items": [
+                    "recHXjeVRy6w4VySz",
+                    "recAKRLUdp2LfQiCn",
+                    "recSeGjrwWpy5eMow",
+                    "rechmw79HOA0vT5dL",
+                    "recuy1F4lS6tKecLP",
+                    "reci1jkZ19hZUZGLm",
+                    "recoXvwUSjpxvHyiQ",
+                    "reclPomcVBppgvedG",
+                    "rec9CHL5NFAmlUYLz",
+                    "recp4KgeWLaSoOTSq",
+                    "rec5xM3u0K3FTOASC",
+                    "rec7mulXl6jRkYqSA",
+                    "recrYvqLyNmopprZV",
+                    "recdvJoZPrmwZodxE",
+                    "recPblSI5OTtF5iwu",
+                    "rec2EAzm8w7IsPaZy",
+                    "rec1zjxuFdVzVnfuK",
+                    "rechMwYmxP5VcGEZX",
+                    "rec7wjkU0jV4GTVA3",
+                    "recScYavVfQYNyK7U",
+                    "recsTErmKFxXo6LBP",
+                    "rec3j4K7xPPeCfOEZ",
+                    "recqqZPh4jcLDDDrg",
+                    "recVr6pYDGvwpKS8a",
+                    "recjkYBIFII1KLo0Z",
+                    "rechjG7bIcCExkGwi",
+                    "rec44rXThMAUJpMPP",
+                    "recSx1wlJCj8J7Zan",
+                    "recIwqKMoyuKMmv0f",
+                    "recvUTB5LOps589YR",
+                    "recr06nSuukQZSJgG",
+                    "rec4GDkrg9rbkHZxR",
+                    "recTT8MkLq2qUV2QG",
+                    "reck5Y8QnFWsjliYe",
+                    "recYdRgaybNo7chBu"
+                ],
+                "Set List Duration (seconds)": 7831,
+                "Set List Total Duration": "2h 10m 31s",
+                "set list built (copyable)": "I Believe in a Thing Called Love - The Darkness (M) - Eb (-1) \nBad Moon Rising - Creedence Clearwater revival (M) - D\nI’m a Believer - The Monkees (M)...",
+                "D Paid?": true,
+                "Balance Amount": 648,
+                "GOTO interface": "https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=recjswXFP97UPS0lW",
+                "Amount Paid (Turnover)": 162,
+                "Profit (current)": 0,
+                "Amount Paid (current)": 0,
+                "Profit (theoretical)": 810,
+                "Profit (theoretical/current)": 0,
+                "Profit (theoretical/pot)": 162,
+                "Songs (from Set List Items)": [
+                    "recFPFgnCE0HKDm4w",
+                    "recAxb8DRdAXu0CiI",
+                    "recDyNJoFcCbzzd7T",
+                    "receXkcTK4WfplnaG",
+                    "rec5GGlmKrSMJuNUu",
+                    "recm0deniXPQNFE4e",
+                    "rec94OpAmkvJh7Nmh",
+                    "rec9FfWlVzZiwKNtf",
+                    "reclVkbDv4afzAy4Y",
+                    "rec6Vk3j1yX6KKmDN",
+                    "rec3oaWzFKCEIiGD0",
+                    "recOWVKYX7JJhytg0",
+                    "recjx6KyxDmfunwxs",
+                    "recOIl15CxWt6tnDe",
+                    "rechKoo0zTvvSPZDa",
+                    "rec0k2BYIgDIUHt2X",
+                    "reclI2b7LhE0SZ6z7",
+                    "recnzeqPgLNRT4ZS6",
+                    "recGWlHw0HW0VXe4X",
+                    "recmgm6Ayrt6NW0es",
+                    "recdonMCBvmy6tBDj",
+                    "rec8qYinZ8kNqEqYn",
+                    "recns99WABr9oNzLW",
+                    "recAnB8C8kriX8WnW",
+                    "recKGa87GShqZ46eP",
+                    "recMqkkpvdl0ShH4g",
+                    "recLQANOgeGVd0Ofn",
+                    "rec9wZbmJ8hmmeew9",
+                    "rec6gh8qAPPUJABxH",
+                    "recgimWQArgOJhBhi",
+                    "recHUMzoqJRTiauOD",
+                    "recIhBdEVXvU12uh6",
+                    "recn9APYQtkheKpRX",
+                    "recbUhGT4ON6AUKIG",
+                    "recebcyxT1oL9uiDf"
+                ],
+                "Name (from Performers)": [
+                    "Scott Bruce",
+                    "Craig Harkness"
+                ]
+            }
+        }
+    ]
+}
+Update/Upsert Gigs records
+To update Gigs records, issue a request to the Gigs endpoint. Table names and table IDs can be used interchangeably. Using table IDs means table name changes won't require modifying your API request code. A PATCH request will only update the fields included in the request. Fields not included in the request will be unchanged. A PUT request will perform a destructive update and clear all unincluded cell values.
+Your request body should include an array of up to 10 record objects. Each of these objects should have an id property representing the record ID and a fields property which contains all of your record's cell values by field name or field id for all of your record's cell values by field name.
+Upsert behavior can be enabled by including a performUpsert object with a fieldsToMergeOn array in your request. Upserts will treat fieldsToMergeOn as an external ID to find existing records in Airtable. If a match is found, that record will be updated. If no matches are found, a new record will be created. For more details, visit our API reference.
+Click here to show an example.
+
+fieldsToMergeOn should be an array with 1-3 field names or field IDs which uniquely identify a record. These cannot be computed fields and must be of the following field types: number, text, long text, single select, multiple select, date.
+
+The API response for upsert requests will additionally include createdRecords and updatedRecords. These are arrays of record IDs, identifying the records from the response's records array that were created or updated.
+
+Airtable reserves the right to throttle upsert requests differently from the standard rate limit throttling policy.
+
+To add attachments to Invoices and other documents, add new attachment objects to the existing array. Be sure to include all existing attachment objects that you wish to retain, to keep preexisting attachments providing id is required (which can be retrieved using the retrieve endpoint), other fields are ignored. For the new attachments being added, url is required, and filename is optional. To remove attachments, include the existing array of attachment objects, excluding any that you wish to remove.
+
+Note that in most cases the API does not currently return an error code for failed attachment object creation given attachment uploading happens in an asynchronous manner, such cases will manifest with the attachment object either being cleared from the cell or persisted with generated URLs that return error responses when queried. If the same attachment URL fails to upload multiple times in a short time interval then * the API may return an ATTACHMENTS_FAILED_UPLOADING error code in the details field of the response and the attachment object will * be cleared from the cell synchronously.
+
+We also require URLs used to upload have the https:// or http:// protocol (Note: http:// support will be removed in the near future), have a limit of 3 max redirects, and a file size limit of 1GB. In addition, URLs must be publicly accessible, in cases where cookie authentication or logging in to access the file is required, the login page HTML will be downloaded instead of the file.
+
+If too many attachments are uploaded within a short period of time, the server may return a partial failure on record creation with an "Attachment Upload Rate Too High" error.
+
+To link to new records in event, Attribution, Options, Totals, Performers, Song Choices, Must-have song Choices, Avoid playing, Gig Payment, Set List Items, Rehearsal and Totals 2, add new linked record IDs to the existing array. Be sure to include all existing linked record IDs that you wish to retain. To unlink records, include the existing array of record IDs, excluding any that you wish to unlink.
+
+To select new options in song, add new option names to the existing array. Be sure to include all existing option names that you wish to retain. To deselect options, include the existing array of option names, excluding any that you wish to deselect.
+
+Venue, Timings, Contact Number (on the day), First Dance/Song Request (if required), Parking Info, Client Notes, Internal notes, Playlist, Meal details, End of the night and payment notes may contain "mention tokens". A mention token corresponds to a "@mention" in Airtable's user interface; here in the API it will look like <airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>. Mention tokens cannot be created via this API and should be left intact (or wholly removed) when updating long text fields.
+
+Values for Name, Balance Amount, Amount Paid (Turnover), Amount Paid (current), options_ids, Options Price, Options Fees, Description (from event), Early Arrival Price, Late Finish Price, Subtotal, Discount Applied, Date (from event), Total Due (calculated), Deposit Due (Calculated), Profit (projected), Performer Fee (actual), Profit (Pot), is_done, Name (from Performers), fillout - song selection, Formatted Date, _has_band?, _has_video, _has_photo, _has_dj, set list (favourites), set list (must-play), set list (avoid), amount (from Gig Payment), _quote_options, Quote, Karaoke (cost), Songs (from Set List Items), Set List Duration (seconds), Set List Total Duration, set list built (copyable), GOTO emails, fillout - gig details, GOTO interface, Profit (current), Profit (theoretical), Profit (theoretical/current) and Profit (theoretical/pot) are automatically computed by Airtable and cannot be directly updated. You cannot clear these, even with a PUT request.
+Automatic data conversion for update actions can be enabled via typecast parameter. See create record for details.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X PATCH https://api.airtable.com/v0/appZXteLrpESv7H8X/Gigs \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "id": "rec9VwxF80ZhND3gh",
+      "fields": {
+        "Date": "2026-05-16",
+        "Client Name(s)": "Hannah Pearson",
+        "Venue": "Piersland house hotel",
+        "D Paid?": true,
+        "Total Charge (actual)": 1525,
+        "Deposit Amount": 305,
+        "event": [
+          "recPSuJp0ex1GSlHr"
+        ],
+        "Attribution": [
+          "recWdZGPI5RwyhoTB"
+        ],
+        "Options": [
+          "recKQDzOTXYTUcKPE"
+        ],
+        "Early Arrival (Hours)": 0,
+        "Late Finish (Hours)": 0,
+        "Travel": 0,
+        "Totals": [
+          "recruuTrjJzTlgAoZ",
+          "recLFQM0Cc9JIDLVU"
+        ],
+        "Invoices": [
+          {
+            "id": "attZHpDxCnU99hu3G"
+          }
+        ],
+        "Performers": [
+          "recrcRCn2wnq0yv48",
+          "rec9gIHH139eMqQAR",
+          "rec5vduwT4m1t9UHw",
+          "reckue0FzIkpeymGz",
+          "recNuaBB2j7ves5vT"
+        ],
+        "Email": "hannah_pearson14393@hotmail.co.uk",
+        "Song Choices": [
+          "recOyLH8RnhaYuhJi",
+          "recMqkkpvdl0ShH4g",
+          "recmejNvytP4IIFri",
+          "rec0Q4afxENLqiNL2",
+          "recreA7L4RswXTl1n",
+          "reccQLrXSPXJFm6oO",
+          "recLQANOgeGVd0Ofn",
+          "recucdKhQWbPbrWW8",
+          "reclI2b7LhE0SZ6z7",
+          "recUrUDa0NHnVIKZJ",
+          "recxvBERwaOhXtDG7",
+          "recuKhakHuQXTF98t",
+          "recIhBdEVXvU12uh6",
+          "rectrMJ2iNckJjS1k",
+          "rec9tKWWBNH8dbizU",
+          "recfNUlX3XUJyAfoL",
+          "rec9FfWlVzZiwKNtf",
+          "recNOAnRBt1NvXeBl",
+          "recnzeqPgLNRT4ZS6",
+          "recMF2s9vxKPA2gO8",
+          "rect7IULVY9erZLpK",
+          "recm0deniXPQNFE4e",
+          "recP1cPUWuVTs0ZOI",
+          "recns99WABr9oNzLW",
+          "recoIt5VRLXPzDIwq",
+          "recfXNSWBDgOSx2Lb",
+          "recuzu9grxDE160QQ",
+          "recuvRjqPKkkkUHcO",
+          "recRLl7oxCduLSNnR",
+          "recIFBgLu9lOHH55n",
+          "recj5qmYJEyT3rfky",
+          "recQwRCxWq49bgOUE",
+          "recgclGfzwKnFckPK",
+          "recHUMzoqJRTiauOD",
+          "recw8iQJImsfkYr8D",
+          "recKGa87GShqZ46eP",
+          "recn9APYQtkheKpRX"
+        ],
+        "Must-have song Choices": [
+          "recnzeqPgLNRT4ZS6",
+          "rect7IULVY9erZLpK"
+        ],
+        "Timings": "Not yet confirmed, have meeting with venue on 7th March\nEstimated timings below:\n2pm- ceremony\n2:30pm- drinks reception and photos\n4/4:30pm- invited i...",
+        "Contact Number (on the day)": "My number: 07496043684\ngrooms number: 07706609115\nbridemaids number (Bethany): 07585334859\nMOB number: 07855850197",
+        "First Dance/Song Request (if required)": "Wonderful tonight Eric Clapton",
+        "Parking Info": "Venue has large carpark spaces right beside front door of venue",
+        "Playlist": "Bruno Mars- Mary You\nTrue- Spandau Ballet\nHero- Enrique\nGirls just wanna have fun- Cyndi Lauper\nHey Ya- OutKast\nShot through the heart- Bon Jovi\nBaba ...",
+        "End of the night": "Loch Lomond- Runrig",
+        "Performers copy": "Scott Bruce, Jasmin Galvin, Dean Anderson, Louise Grant, Craig Harkness",
+        "Set List Items": [
+          "recW9iEp7shW2qnRt",
+          "rectz7I7s7iTHOkjC",
+          "rec1OsGxUe1ESFbpg",
+          "rec6zbM8Com4itBK7",
+          "rectIIo2E8yMG73ll",
+          "recaFcGi208KCCXbr",
+          "recHa0ExcvLlS7cUq",
+          "recME6sj6PutbPtPr",
+          "recvkezcRZtliwdfz",
+          "recLS27bVc4fqk0Ln",
+          "recva871XGfBb7XCv",
+          "recMTXkMtucWKLoBu",
+          "rec6ipMp9mNQ3u5bZ",
+          "reco05F3SoV6MeLEE",
+          "recOtTunUeZlilzYb",
+          "recHOfcCltUbBzu8b",
+          "recpz4iKYomez1bMZ",
+          "rec6VV1VBINy7ZVal",
+          "rec1LF3XHlRKduip3",
+          "reckd9EzyVIjpMvMM",
+          "recHtEl8s5bvrEiYN",
+          "recj5rZhJLdSh09td",
+          "recpGDYSviwux5xUf",
+          "recujE9zYnhxPNnLt",
+          "rec12Vt77p61YMzJD",
+          "reco8bgkdjQtNI8Td",
+          "recKwAz3o2TBX6uSn",
+          "recFo2Mie97Hf4S1m",
+          "recYNGLkXHku9VKvv",
+          "recqtVQHduqt9G1fo",
+          "recZkrar8ZhJtObpx",
+          "recDxnLnkHCWIj7Ov",
+          "recxKPdONxkKu6ehs",
+          "recMamX5kN6Hqu6r0",
+          "recGqGJgpOvloNJGh",
+          "recDuWrZNDzzIqv4B",
+          "recKBtlr1dYITIMRi",
+          "recldS5yJ00J5nQl7",
+          "recbmd5UuO0GkCZ4W"
+        ]
+      }
+    },
+    {
+      "id": "recjswXFP97UPS0lW",
+      "fields": {
+        "Date": "2026-05-27",
+        "Client Name(s)": "Megan Gorton",
+        "Venue": "Fingask Castle in Perthshire",
+        "D Paid?": true,
+        "Total Charge (actual)": 810,
+        "Deposit Amount": 162,
+        "event": [
+          "recJr1sdRkGgjW38N"
+        ],
+        "Attribution": [
+          "rec7KVr1XNkzwYYGf"
+        ],
+        "Options": [
+          "rec6gmlxv5hNvu0MW"
+        ],
+        "Early Arrival (Hours)": 0,
+        "Late Finish (Hours)": 0,
+        "Travel": 0,
+        "Totals": [
+          "recruuTrjJzTlgAoZ",
+          "recLFQM0Cc9JIDLVU"
+        ],
+        "Invoices": [
+          {
+            "id": "attDQtXnP4KpmipPA"
+          }
+        ],
+        "Performers": [
+          "recrcRCn2wnq0yv48",
+          "reckue0FzIkpeymGz"
+        ],
+        "Email": "GortonBryce24@outlook.com",
+        "Song Choices": [
+          "rec0k2BYIgDIUHt2X",
+          "rec6gh8qAPPUJABxH",
+          "rec8qYinZ8kNqEqYn",
+          "recAxb8DRdAXu0CiI",
+          "recDyNJoFcCbzzd7T",
+          "recIhBdEVXvU12uh6",
+          "recLQANOgeGVd0Ofn",
+          "recMqkkpvdl0ShH4g",
+          "rec9FfWlVzZiwKNtf",
+          "rechKoo0zTvvSPZDa",
+          "reclI2b7LhE0SZ6z7",
+          "receXkcTK4WfplnaG",
+          "recnzeqPgLNRT4ZS6",
+          "rec9wZbmJ8hmmeew9",
+          "recGWlHw0HW0VXe4X",
+          "recgimWQArgOJhBhi",
+          "recbUhGT4ON6AUKIG",
+          "recm0deniXPQNFE4e",
+          "recn9APYQtkheKpRX",
+          "recOIl15CxWt6tnDe",
+          "recebcyxT1oL9uiDf",
+          "rec5GGlmKrSMJuNUu",
+          "recHUMzoqJRTiauOD",
+          "rec3oaWzFKCEIiGD0",
+          "recFPFgnCE0HKDm4w",
+          "recOWVKYX7JJhytg0",
+          "rec94OpAmkvJh7Nmh",
+          "recdonMCBvmy6tBDj",
+          "recjx6KyxDmfunwxs",
+          "reclVkbDv4afzAy4Y",
+          "recmgm6Ayrt6NW0es",
+          "recKGa87GShqZ46eP"
+        ],
+        "Must-have song Choices": [
+          "recns99WABr9oNzLW",
+          "rec6Vk3j1yX6KKmDN",
+          "recAnB8C8kriX8WnW"
+        ],
+        "Timings": "ceremony at 1400\ncall for dinner at 1630\nband starts at 2000 ",
+        "Contact Number (on the day)": "charlie bryce +44 7854 015945\nbecca gorton +447794 289951",
+        "First Dance/Song Request (if required)": "You'\''re my best friend by Queen",
+        "Parking Info": "plenty of parking on site, directions from entry. ",
+        "Client Notes": "Is is possible for one of the guests to play along side you for the first song?",
+        "End of the night": "Loch lomond by Runrig",
+        "Performers copy": "Scott Bruce, Dean Anderson, Craig Harkness",
+        "Set List Items": [
+          "recHXjeVRy6w4VySz",
+          "recAKRLUdp2LfQiCn",
+          "recSeGjrwWpy5eMow",
+          "rechmw79HOA0vT5dL",
+          "recuy1F4lS6tKecLP",
+          "reci1jkZ19hZUZGLm",
+          "recoXvwUSjpxvHyiQ",
+          "reclPomcVBppgvedG",
+          "rec9CHL5NFAmlUYLz",
+          "recp4KgeWLaSoOTSq",
+          "rec5xM3u0K3FTOASC",
+          "rec7mulXl6jRkYqSA",
+          "recrYvqLyNmopprZV",
+          "recdvJoZPrmwZodxE",
+          "recPblSI5OTtF5iwu",
+          "rec2EAzm8w7IsPaZy",
+          "rec1zjxuFdVzVnfuK",
+          "rechMwYmxP5VcGEZX",
+          "rec7wjkU0jV4GTVA3",
+          "recScYavVfQYNyK7U",
+          "recsTErmKFxXo6LBP",
+          "rec3j4K7xPPeCfOEZ",
+          "recqqZPh4jcLDDDrg",
+          "recVr6pYDGvwpKS8a",
+          "recjkYBIFII1KLo0Z",
+          "rechjG7bIcCExkGwi",
+          "rec44rXThMAUJpMPP",
+          "recSx1wlJCj8J7Zan",
+          "recIwqKMoyuKMmv0f",
+          "recvUTB5LOps589YR",
+          "recr06nSuukQZSJgG",
+          "rec4GDkrg9rbkHZxR",
+          "recTT8MkLq2qUV2QG",
+          "reck5Y8QnFWsjliYe",
+          "recYdRgaybNo7chBu"
+        ]
+      }
+    },
+    {
+      "id": "recsk8LMqZVQjABCN",
+      "fields": {
+        "Date": "2026-06-13",
+        "Client Name(s)": "Abbie Phillips & Will Hand",
+        "Venue": "Culdees Castle, Muthill, PH5 2BA",
+        "D Paid?": true,
+        "Total Charge (actual)": 1625,
+        "Deposit Amount": 325,
+        "event": [
+          "recufTensYzFcw4fe"
+        ],
+        "Attribution": [
+          "recHyW5LlysJtFQDw"
+        ],
+        "Options": [
+          "recKQDzOTXYTUcKPE"
+        ],
+        "Early Arrival (Hours)": 0,
+        "Late Finish (Hours)": 0,
+        "Travel": 125,
+        "Totals": [
+          "recruuTrjJzTlgAoZ",
+          "recLFQM0Cc9JIDLVU"
+        ],
+        "Invoices": [
+          {
+            "id": "attJxnJQdaxUDYITd"
+          }
+        ],
+        "Performers": [
+          "recrcRCn2wnq0yv48",
+          "recxh0Y2WxlXsJPpe",
+          "rec5b6oJshqzoFDQB",
+          "reckue0FzIkpeymGz",
+          "recTZfee5MgWhvQrK"
+        ],
+        "Email": "abbie3@hotmail.co.uk",
+        "Song Choices": [
+          "rec0AQMQx3LDB9Bws",
+          "reczdToigMNTZchu0",
+          "recm0deniXPQNFE4e",
+          "recRLl7oxCduLSNnR",
+          "recj5qmYJEyT3rfky",
+          "rec5GGlmKrSMJuNUu",
+          "rec3oaWzFKCEIiGD0",
+          "recNif7hpaTfHxwtN",
+          "recZ2DHTWsFRpk4jC",
+          "recAnB8C8kriX8WnW",
+          "recHCNOyeZPThLa3F",
+          "recJqLQUs9N2suCW9",
+          "recOWVKYX7JJhytg0",
+          "reclVkbDv4afzAy4Y",
+          "recqLuOXhrttugKlY",
+          "rect7IULVY9erZLpK",
+          "recuzu9grxDE160QQ",
+          "rec0K6NtxqV2MDyM2",
+          "rec0Q4afxENLqiNL2",
+          "rec53DMBTp0v9hFsv",
+          "rec6gh8qAPPUJABxH",
+          "recAxb8DRdAXu0CiI",
+          "recBkRkAG9AVNwC5U",
+          "recLQANOgeGVd0Ofn",
+          "recfNUlX3XUJyAfoL",
+          "recreA7L4RswXTl1n",
+          "recsA8OJZfLaeOSVw",
+          "recyEHLJAL7pfmuQM",
+          "rec3TQw3tpXjZEEVj",
+          "rec9FfWlVzZiwKNtf"
+        ],
+        "Must-have song Choices": [
+          "recbUhGT4ON6AUKIG",
+          "recn9APYQtkheKpRX",
+          "recnEDAn8SMxf3PsP"
+        ],
+        "ceilidh?": true,
+        "Ceilidh style": "Mash-Up",
+        "Ceilidh Length": "30 mins",
+        "Timings": "4pm: Wedding breakfast served\n6.45pm: Cake cutting\n7pm: First dance & band to begin\n8.15pm: Band break & evening buffet served\n11pm: Band to finish (a...",
+        "Contact Number (on the day)": "Tracey (Venue): 07585308567 or 07586726108\nGraeme (Groomsman): 07725577293\nJacky (Bridesmaid): 07399476123",
+        "First Dance/Song Request (if required)": "Don'\''t Delete the Kisses by Wolf Alice",
+        "Parking Info": "The venue has a car park to the side of the castle and to the front. Some suppliers might be able to drive around the side depending on equipment - Tr...",
+        "Client Notes": "Please don'\''t play anything by The 1975.",
+        "Avoid playing": [
+          "recV3OaMJneBhgGbH"
+        ],
+        "Playlist": "https://open.spotify.com/playlist/5vt7MYQZl0ghVLDhdSuKpu?si=RlH23xUoTh-QQ8_lXMDmBA&pi=2PIjQtkJR3-Ux",
+        "End of the night": "I Believe in a Thing Called Love by The Darkness",
+        "payment notes": "Deposit received - check business account"
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "rec9VwxF80ZhND3gh",
+            "createdTime": "2025-06-09T20:13:39.000Z",
+            "fields": {
+                "Name": "16/05/26 - Hannah Pearson - Piersland house hotel",
+                "event": [
+                    "recPSuJp0ex1GSlHr"
+                ],
+                "Date (from event)": [
+                    "2026-05-16T00:00:00.000Z"
+                ],
+                "Options": [
+                    "recKQDzOTXYTUcKPE"
+                ],
+                "Early Arrival (Hours)": 0,
+                "Late Finish (Hours)": 0,
+                "Attribution": [
+                    "recWdZGPI5RwyhoTB"
+                ],
+                "Options Price": 1500,
+                "Options Fees": 1125,
+                "Early Arrival Price": 0,
+                "Late Finish Price": 0,
+                "Total Due (calculated)": 1500,
+                "Total Charge (actual)": 1525,
+                "Profit (projected)": 375,
+                "Invoices": [
+                    {
+                        "id": "attZHpDxCnU99hu3G",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/2F9yPv8K9u7hvF-vBqS1rg/qRsy_0Td4najn5I1GCdNjY4U88Wy4AuLsYkgPlyLxn0hVX3gjT19Ylw4WkrI6hrXgkSnlQUbrRCf8pBQWEnBTUB24qd_2iCOsg3yqTJMLl_c6LFSR2O5F1sjBvkcdASX75ero-eCNkfyGEGu6YU7QJ1ZdSSjoMJ_6Sr88kbIonalNAkx_dUvt6tR2li-_q7l/dQY37CBHZnU4j4MGzzzcp-wWx-EEBVXoVJ5TNXK8Wlo",
+                        "filename": "Invoice - Hannah Pearson - 16 05 2026.pdf",
+                        "size": 206093,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/fFHs7e4xVlNaIZNBliYOaw/j8LrZdcil34hhtw4DDLRWnWkH1C4Y86bVebkjbVpx93rabMWlwaswcjrxjoqGXNDvt8K5uQgt3Itd8DFBJUKTyA2eZ6VLlQG8i0qKVCSo5v090SNWuNA3j89xDysUsfuS6BRnTKONkO42e2P7cgp5g/eZRMkNHi_UNDQAxjg9e88XpJzZOz7kOu8wE2Y5wbCCg",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/oI2iHjgAuAthvR8ZOohO8Q/n85e9oB8SKI_ufQlKFx9940v1T4QNhKnmcui5J3fsfOUjD5DiRY_cnEb_24Hcf3j0XDrgM6H7ECxfCGMtDbWwzW3ck9LPt-7wmr0nZ1qpDQEUwpgme_9Krv-EoN7njf24jq5fFjuIgDfhhCmjTtQPw/qwGRHq2YKC1W0I6UFFdkrHA9kbPXvLc9oePnNeplt90",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "Totals": [
+                    "recruuTrjJzTlgAoZ",
+                    "recLFQM0Cc9JIDLVU"
+                ],
+                "Date": "2026-05-16",
+                "Travel": 0,
+                "Deposit Amount": 305,
+                "is_done": 0,
+                "Venue": "Piersland house hotel",
+                "Performers": [
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "rec5vduwT4m1t9UHw",
+                    "reckue0FzIkpeymGz",
+                    "recNuaBB2j7ves5vT"
+                ],
+                "Client Name(s)": "Hannah Pearson",
+                "Email": "hannah_pearson14393@hotmail.co.uk",
+                "Song Choices": [
+                    "recOyLH8RnhaYuhJi",
+                    "recMqkkpvdl0ShH4g",
+                    "recmejNvytP4IIFri",
+                    "rec0Q4afxENLqiNL2",
+                    "recreA7L4RswXTl1n",
+                    "reccQLrXSPXJFm6oO",
+                    "recLQANOgeGVd0Ofn",
+                    "recucdKhQWbPbrWW8",
+                    "reclI2b7LhE0SZ6z7",
+                    "recUrUDa0NHnVIKZJ",
+                    "recxvBERwaOhXtDG7",
+                    "recuKhakHuQXTF98t",
+                    "recIhBdEVXvU12uh6",
+                    "rectrMJ2iNckJjS1k",
+                    "rec9tKWWBNH8dbizU",
+                    "recfNUlX3XUJyAfoL",
+                    "rec9FfWlVzZiwKNtf",
+                    "recNOAnRBt1NvXeBl",
+                    "recnzeqPgLNRT4ZS6",
+                    "recMF2s9vxKPA2gO8",
+                    "rect7IULVY9erZLpK",
+                    "recm0deniXPQNFE4e",
+                    "recP1cPUWuVTs0ZOI",
+                    "recns99WABr9oNzLW",
+                    "recoIt5VRLXPzDIwq",
+                    "recfXNSWBDgOSx2Lb",
+                    "recuzu9grxDE160QQ",
+                    "recuvRjqPKkkkUHcO",
+                    "recRLl7oxCduLSNnR",
+                    "recIFBgLu9lOHH55n",
+                    "recj5qmYJEyT3rfky",
+                    "recQwRCxWq49bgOUE",
+                    "recgclGfzwKnFckPK",
+                    "recHUMzoqJRTiauOD",
+                    "recw8iQJImsfkYr8D",
+                    "recKGa87GShqZ46eP",
+                    "recn9APYQtkheKpRX"
+                ],
+                "fillout - song selection": "https://everyangle.fillout.com/t/bCbSagn1zhus?id=rec9VwxF80ZhND3gh",
+                "Must-have song Choices": [
+                    "recnzeqPgLNRT4ZS6",
+                    "rect7IULVY9erZLpK"
+                ],
+                "options_ids": [
+                    "recKQDzOTXYTUcKPE"
+                ],
+                "fillout - gig details": "https://everyangle.fillout.com/t/ne4TPPm5Deus?id=rec9VwxF80ZhND3gh",
+                "Formatted Date": "16 May 2026",
+                "Timings": "Not yet confirmed, have meeting with venue on 7th March\nEstimated timings below:\n2pm- ceremony\n2:30pm- drinks reception and photos\n4/4:30pm- invited i...",
+                "Contact Number (on the day)": "My number: 07496043684\ngrooms number: 07706609115\nbridemaids number (Bethany): 07585334859\nMOB number: 07855850197",
+                "_has_band?": 1,
+                "First Dance/Song Request (if required)": "Wonderful tonight Eric Clapton",
+                "Parking Info": "Venue has large carpark spaces right beside front door of venue",
+                "GOTO emails": "https://mail.google.com/mail/u/0/#search/from:hannah_pearson14393@hotmail.co.uk+OR+to:hannah_pearson14393@hotmail.co.uk",
+                "Playlist": "Bruno Mars- Mary You\nTrue- Spandau Ballet\nHero- Enrique\nGirls just wanna have fun- Cyndi Lauper\nHey Ya- OutKast\nShot through the heart- Bon Jovi\nBaba ...",
+                "set list (favourites)": "Loch Lomond - Runrig (M) - ?\nTake on me - Aha (M) - A\nDancing Queen - ABBA (F) - A\nDon’t You Want Me - The Human League (Both) - Am\nSweet Caroline - N...",
+                "set list (must-play)": "Get Lucky - Daft Punk (M) - Bm (Dorian)\nMr Brightside - The Killers (M) - Db",
+                "_has_video": 0,
+                "_has_photo": 0,
+                "_has_dj": 1,
+                "_quote_options": "Band (5 piece): £1500",
+                "Quote": "Band (5 piece): £1500\n\nTotal: £1500\nDeposit (20%): £300\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hours of live mu...",
+                "Karaoke (cost)": 0,
+                "Subtotal": 1500,
+                "Discount Applied": 1500,
+                "End of the night": "Loch Lomond- Runrig",
+                "Performer Fee (actual)": 0,
+                "Profit (Pot)": 305,
+                "Deposit Due (Calculated)": 300,
+                "Performers copy": "Scott Bruce, Jasmin Galvin, Dean Anderson, Louise Grant, Craig Harkness",
+                "Set List Items": [
+                    "recW9iEp7shW2qnRt",
+                    "rectz7I7s7iTHOkjC",
+                    "rec1OsGxUe1ESFbpg",
+                    "rec6zbM8Com4itBK7",
+                    "rectIIo2E8yMG73ll",
+                    "recaFcGi208KCCXbr",
+                    "recHa0ExcvLlS7cUq",
+                    "recME6sj6PutbPtPr",
+                    "recvkezcRZtliwdfz",
+                    "recLS27bVc4fqk0Ln",
+                    "recva871XGfBb7XCv",
+                    "recMTXkMtucWKLoBu",
+                    "rec6ipMp9mNQ3u5bZ",
+                    "reco05F3SoV6MeLEE",
+                    "recOtTunUeZlilzYb",
+                    "recHOfcCltUbBzu8b",
+                    "recpz4iKYomez1bMZ",
+                    "rec6VV1VBINy7ZVal",
+                    "rec1LF3XHlRKduip3",
+                    "reckd9EzyVIjpMvMM",
+                    "recHtEl8s5bvrEiYN",
+                    "recj5rZhJLdSh09td",
+                    "recpGDYSviwux5xUf",
+                    "recujE9zYnhxPNnLt",
+                    "rec12Vt77p61YMzJD",
+                    "reco8bgkdjQtNI8Td",
+                    "recKwAz3o2TBX6uSn",
+                    "recFo2Mie97Hf4S1m",
+                    "recYNGLkXHku9VKvv",
+                    "recqtVQHduqt9G1fo",
+                    "recZkrar8ZhJtObpx",
+                    "recDxnLnkHCWIj7Ov",
+                    "recxKPdONxkKu6ehs",
+                    "recMamX5kN6Hqu6r0",
+                    "recGqGJgpOvloNJGh",
+                    "recDuWrZNDzzIqv4B",
+                    "recKBtlr1dYITIMRi",
+                    "recldS5yJ00J5nQl7",
+                    "recbmd5UuO0GkCZ4W"
+                ],
+                "Set List Duration (seconds)": 9196,
+                "Set List Total Duration": "2h 33m 16s",
+                "set list built (copyable)": "Get Lucky - Daft Punk (M) - Bm (Dorian)\nMr Brightside - The Killers (M) - Db\nDancing Queen - ABBA (F) - A\nMamma Mia - ABBA (F) - D\nDoes your Mother Kn...",
+                "D Paid?": true,
+                "Balance Amount": 1220,
+                "GOTO interface": "https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=rec9VwxF80ZhND3gh",
+                "Amount Paid (Turnover)": 305,
+                "Profit (current)": 0,
+                "Amount Paid (current)": 0,
+                "Profit (theoretical)": 1525,
+                "Profit (theoretical/current)": 0,
+                "Profit (theoretical/pot)": 305,
+                "Songs (from Set List Items)": [
+                    "recRLl7oxCduLSNnR",
+                    "reccQLrXSPXJFm6oO",
+                    "recm0deniXPQNFE4e",
+                    "rec9FfWlVzZiwKNtf",
+                    "recuKhakHuQXTF98t",
+                    "recgclGfzwKnFckPK",
+                    "recQwRCxWq49bgOUE",
+                    "recfXNSWBDgOSx2Lb",
+                    "recOyLH8RnhaYuhJi",
+                    "recmejNvytP4IIFri",
+                    "rectrMJ2iNckJjS1k",
+                    "recuzu9grxDE160QQ",
+                    "recxvBERwaOhXtDG7",
+                    "reclI2b7LhE0SZ6z7",
+                    "recnzeqPgLNRT4ZS6",
+                    "recnzeqPgLNRT4ZS6",
+                    "recns99WABr9oNzLW",
+                    "rec0Q4afxENLqiNL2",
+                    "recMF2s9vxKPA2gO8",
+                    "recUrUDa0NHnVIKZJ",
+                    "recNOAnRBt1NvXeBl",
+                    "recP1cPUWuVTs0ZOI",
+                    "recKGa87GShqZ46eP",
+                    "recMqkkpvdl0ShH4g",
+                    "recj5qmYJEyT3rfky",
+                    "rect7IULVY9erZLpK",
+                    "rect7IULVY9erZLpK",
+                    "recLQANOgeGVd0Ofn",
+                    "rec9tKWWBNH8dbizU",
+                    "recucdKhQWbPbrWW8",
+                    "recreA7L4RswXTl1n",
+                    "recuvRjqPKkkkUHcO",
+                    "recHUMzoqJRTiauOD",
+                    "recoIt5VRLXPzDIwq",
+                    "recIhBdEVXvU12uh6",
+                    "recn9APYQtkheKpRX",
+                    "recw8iQJImsfkYr8D",
+                    "recfNUlX3XUJyAfoL",
+                    "recIFBgLu9lOHH55n"
+                ],
+                "Name (from Performers)": [
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jasmin Galvin",
+                    "Craig Harkness",
+                    "Frazer Smith"
+                ]
+            }
+        },
+        {
+            "id": "recjswXFP97UPS0lW",
+            "createdTime": "2025-06-09T20:32:32.000Z",
+            "fields": {
+                "Name": "27/05/26 - Megan Gorton - Fingask Castle in Perthshire",
+                "event": [
+                    "recJr1sdRkGgjW38N"
+                ],
+                "Date (from event)": [
+                    "2026-05-27T00:00:00.000Z"
+                ],
+                "Options": [
+                    "rec6gmlxv5hNvu0MW"
+                ],
+                "Early Arrival (Hours)": 0,
+                "Late Finish (Hours)": 0,
+                "Attribution": [
+                    "rec7KVr1XNkzwYYGf"
+                ],
+                "Options Price": 900,
+                "Options Fees": 675,
+                "Early Arrival Price": 0,
+                "Late Finish Price": 0,
+                "Total Due (calculated)": 900,
+                "Total Charge (actual)": 810,
+                "Profit (projected)": 225,
+                "Invoices": [
+                    {
+                        "id": "attDQtXnP4KpmipPA",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/6H8nhhopZAoFdyTF1ESnPg/CxlAHnk3d0OSjMBR81Mx6Oy78rMyfZW40kNYe_LnftRleMdbZcm-x_LACnZlAdHNGPDrMe7xDngl3NDIMAVeOg9roV4rDB8TIECfqyIo9C0U5GQd0a36prbybS-u1MAUNgHruvbIXJdKu8euzhfa1wvZZnzpraGeSHxEEUi5gPIJyCJY_QOY8uKCmRdlDaTr/7qVfc9co-t3VWjUM8b2ZQXWeK8PtUU56JtqnJXbi2fI",
+                        "filename": "Invoice - Megan Gorton - 27 05 2026.pdf",
+                        "size": 210135,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/k7BMlZjvSmM1POaEMU31ww/yAwEAiLONzyw5hy4alqHQdaM-4WHB7N1e6Tpggb0kXkgta_yGn4iN3eJOKjWhXGvrNgoKETTcYGkqy_VfoPfMCC5NbOV7vlJh0tEpLH6q8DImt9g9YWLbqs4WaBvgDO2wFb78VWaKZzKvZp7HFn0BA/R_GdmzrSzpfxaW3UX2ZN-8mOM6Gisgoy3CgN3lZ0hRs",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/ljh-CxatUV7Q1VPaaOtK5Q/bSOTAsR1Jc9jLJ4l-h0dY347VysCKg56CxED20x06pSMa35nXXzqcSvTCtOCTCZwLYH0CcjMr2Byrl-Svf6JA9T7aErsNp8IlOsafzd7arviSZHU-OvLMOGpLEV1jmk9deRVt49pkIkPE1in8mv9RQ/SH_XYOO0eKW4okgHhhdWQPobelJxPKZWV5W35A5GCz4",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "Totals": [
+                    "recruuTrjJzTlgAoZ",
+                    "recLFQM0Cc9JIDLVU"
+                ],
+                "Date": "2026-05-27",
+                "Travel": 0,
+                "Deposit Amount": 162,
+                "is_done": 0,
+                "Venue": "Fingask Castle in Perthshire",
+                "Performers": [
+                    "recrcRCn2wnq0yv48",
+                    "reckue0FzIkpeymGz"
+                ],
+                "Client Name(s)": "Megan Gorton",
+                "Email": "GortonBryce24@outlook.com",
+                "Song Choices": [
+                    "rec0k2BYIgDIUHt2X",
+                    "rec6gh8qAPPUJABxH",
+                    "rec8qYinZ8kNqEqYn",
+                    "recAxb8DRdAXu0CiI",
+                    "recDyNJoFcCbzzd7T",
+                    "recIhBdEVXvU12uh6",
+                    "recLQANOgeGVd0Ofn",
+                    "recMqkkpvdl0ShH4g",
+                    "rec9FfWlVzZiwKNtf",
+                    "rechKoo0zTvvSPZDa",
+                    "reclI2b7LhE0SZ6z7",
+                    "receXkcTK4WfplnaG",
+                    "recnzeqPgLNRT4ZS6",
+                    "rec9wZbmJ8hmmeew9",
+                    "recGWlHw0HW0VXe4X",
+                    "recgimWQArgOJhBhi",
+                    "recbUhGT4ON6AUKIG",
+                    "recm0deniXPQNFE4e",
+                    "recn9APYQtkheKpRX",
+                    "recOIl15CxWt6tnDe",
+                    "recebcyxT1oL9uiDf",
+                    "rec5GGlmKrSMJuNUu",
+                    "recHUMzoqJRTiauOD",
+                    "rec3oaWzFKCEIiGD0",
+                    "recFPFgnCE0HKDm4w",
+                    "recOWVKYX7JJhytg0",
+                    "rec94OpAmkvJh7Nmh",
+                    "recdonMCBvmy6tBDj",
+                    "recjx6KyxDmfunwxs",
+                    "reclVkbDv4afzAy4Y",
+                    "recmgm6Ayrt6NW0es",
+                    "recKGa87GShqZ46eP"
+                ],
+                "fillout - song selection": "https://everyangle.fillout.com/t/bCbSagn1zhus?id=recjswXFP97UPS0lW",
+                "Must-have song Choices": [
+                    "recns99WABr9oNzLW",
+                    "rec6Vk3j1yX6KKmDN",
+                    "recAnB8C8kriX8WnW"
+                ],
+                "options_ids": [
+                    "rec6gmlxv5hNvu0MW"
+                ],
+                "fillout - gig details": "https://everyangle.fillout.com/t/ne4TPPm5Deus?id=recjswXFP97UPS0lW",
+                "Formatted Date": "27 May 2026",
+                "Timings": "ceremony at 1400\ncall for dinner at 1630\nband starts at 2000 ",
+                "Contact Number (on the day)": "charlie bryce +44 7854 015945\nbecca gorton +447794 289951",
+                "_has_band?": 1,
+                "First Dance/Song Request (if required)": "You're my best friend by Queen",
+                "Parking Info": "plenty of parking on site, directions from entry. ",
+                "Client Notes": "Is is possible for one of the guests to play along side you for the first song?",
+                "GOTO emails": "https://mail.google.com/mail/u/0/#search/from:GortonBryce24@outlook.com+OR+to:GortonBryce24@outlook.com",
+                "set list (favourites)": "Loch Lomond - Runrig (M) - ?\nTake on me - Aha (M) - A\nCountry Roads - John Denver (M) - A\nWagon Wheel - Darious Tucker (M) - A\nAre you gonna be my gir...",
+                "set list (must-play)": "I Believe in a Thing Called Love - The Darkness (M) - Eb (-1) \nBad Moon Rising - Creedence Clearwater revival (M) - D\nI’m a Believer - The Monkees (M)...",
+                "_has_video": 0,
+                "_has_photo": 0,
+                "_has_dj": 1,
+                "_quote_options": "Band (3 piece): £900",
+                "Quote": "Band (3 piece): £900\n\nTotal: £900\nDeposit (20%): £180\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hours of live musi...",
+                "Karaoke (cost)": 0,
+                "Subtotal": 900,
+                "Discount Applied": 900,
+                "End of the night": "Loch lomond by Runrig",
+                "Performer Fee (actual)": 0,
+                "Profit (Pot)": 162,
+                "Deposit Due (Calculated)": 180,
+                "Performers copy": "Scott Bruce, Dean Anderson, Craig Harkness",
+                "Set List Items": [
+                    "recHXjeVRy6w4VySz",
+                    "recAKRLUdp2LfQiCn",
+                    "recSeGjrwWpy5eMow",
+                    "rechmw79HOA0vT5dL",
+                    "recuy1F4lS6tKecLP",
+                    "reci1jkZ19hZUZGLm",
+                    "recoXvwUSjpxvHyiQ",
+                    "reclPomcVBppgvedG",
+                    "rec9CHL5NFAmlUYLz",
+                    "recp4KgeWLaSoOTSq",
+                    "rec5xM3u0K3FTOASC",
+                    "rec7mulXl6jRkYqSA",
+                    "recrYvqLyNmopprZV",
+                    "recdvJoZPrmwZodxE",
+                    "recPblSI5OTtF5iwu",
+                    "rec2EAzm8w7IsPaZy",
+                    "rec1zjxuFdVzVnfuK",
+                    "rechMwYmxP5VcGEZX",
+                    "rec7wjkU0jV4GTVA3",
+                    "recScYavVfQYNyK7U",
+                    "recsTErmKFxXo6LBP",
+                    "rec3j4K7xPPeCfOEZ",
+                    "recqqZPh4jcLDDDrg",
+                    "recVr6pYDGvwpKS8a",
+                    "recjkYBIFII1KLo0Z",
+                    "rechjG7bIcCExkGwi",
+                    "rec44rXThMAUJpMPP",
+                    "recSx1wlJCj8J7Zan",
+                    "recIwqKMoyuKMmv0f",
+                    "recvUTB5LOps589YR",
+                    "recr06nSuukQZSJgG",
+                    "rec4GDkrg9rbkHZxR",
+                    "recTT8MkLq2qUV2QG",
+                    "reck5Y8QnFWsjliYe",
+                    "recYdRgaybNo7chBu"
+                ],
+                "Set List Duration (seconds)": 7831,
+                "Set List Total Duration": "2h 10m 31s",
+                "set list built (copyable)": "I Believe in a Thing Called Love - The Darkness (M) - Eb (-1) \nBad Moon Rising - Creedence Clearwater revival (M) - D\nI’m a Believer - The Monkees (M)...",
+                "D Paid?": true,
+                "Balance Amount": 648,
+                "GOTO interface": "https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=recjswXFP97UPS0lW",
+                "Amount Paid (Turnover)": 162,
+                "Profit (current)": 0,
+                "Amount Paid (current)": 0,
+                "Profit (theoretical)": 810,
+                "Profit (theoretical/current)": 0,
+                "Profit (theoretical/pot)": 162,
+                "Songs (from Set List Items)": [
+                    "recFPFgnCE0HKDm4w",
+                    "recAxb8DRdAXu0CiI",
+                    "recDyNJoFcCbzzd7T",
+                    "receXkcTK4WfplnaG",
+                    "rec5GGlmKrSMJuNUu",
+                    "recm0deniXPQNFE4e",
+                    "rec94OpAmkvJh7Nmh",
+                    "rec9FfWlVzZiwKNtf",
+                    "reclVkbDv4afzAy4Y",
+                    "rec6Vk3j1yX6KKmDN",
+                    "rec3oaWzFKCEIiGD0",
+                    "recOWVKYX7JJhytg0",
+                    "recjx6KyxDmfunwxs",
+                    "recOIl15CxWt6tnDe",
+                    "rechKoo0zTvvSPZDa",
+                    "rec0k2BYIgDIUHt2X",
+                    "reclI2b7LhE0SZ6z7",
+                    "recnzeqPgLNRT4ZS6",
+                    "recGWlHw0HW0VXe4X",
+                    "recmgm6Ayrt6NW0es",
+                    "recdonMCBvmy6tBDj",
+                    "rec8qYinZ8kNqEqYn",
+                    "recns99WABr9oNzLW",
+                    "recAnB8C8kriX8WnW",
+                    "recKGa87GShqZ46eP",
+                    "recMqkkpvdl0ShH4g",
+                    "recLQANOgeGVd0Ofn",
+                    "rec9wZbmJ8hmmeew9",
+                    "rec6gh8qAPPUJABxH",
+                    "recgimWQArgOJhBhi",
+                    "recHUMzoqJRTiauOD",
+                    "recIhBdEVXvU12uh6",
+                    "recn9APYQtkheKpRX",
+                    "recbUhGT4ON6AUKIG",
+                    "recebcyxT1oL9uiDf"
+                ],
+                "Name (from Performers)": [
+                    "Scott Bruce",
+                    "Craig Harkness"
+                ]
+            }
+        },
+        {
+            "id": "recsk8LMqZVQjABCN",
+            "createdTime": "2026-01-08T20:02:44.000Z",
+            "fields": {
+                "Name": "13/06/26 - Abbie Phillips & Will Hand - Culdees Castle, Muthill, PH5 2BA",
+                "event": [
+                    "recufTensYzFcw4fe"
+                ],
+                "Date (from event)": [
+                    "2026-06-06T00:00:00.000Z"
+                ],
+                "Options": [
+                    "recKQDzOTXYTUcKPE"
+                ],
+                "Early Arrival (Hours)": 0,
+                "Late Finish (Hours)": 0,
+                "Attribution": [
+                    "recHyW5LlysJtFQDw"
+                ],
+                "Options Price": 1500,
+                "Options Fees": 1125,
+                "Early Arrival Price": 0,
+                "Late Finish Price": 0,
+                "Total Due (calculated)": 1625,
+                "Total Charge (actual)": 1625,
+                "Profit (projected)": 375,
+                "Invoices": [
+                    {
+                        "id": "attJxnJQdaxUDYITd",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/j33-6icAQjfjnhqktLQKyg/AJYcgTedgmQuE2BdJbIYCPprYMR7cI41wWpEhVoWliMlguL5cYB8F9kS1pb3d5pzlddZAjr-K-rkyw1oQXDk9zS6VhQAPWabx0iAGNAu-Gr5V1aX_kaJR2ZVFTFyRd5fXarpUmSxYxFb8O7a3dELkXFCn4kP3BOHouAm_0O3jV4/AKANOA021cHPiMeihsH7VVVEfrFaWWV8D78JNFafgBw",
+                        "filename": "invoice-0139.pdf",
+                        "size": 46538,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/slJwueQQup3gZtKBuf4vIQ/W9jn0rNoUEtuhzbgp_CsAAi69e-MU88hx4qahLwdPIsBkL0psLFx6mLi3FF4KaNaW3GeC3jThAT2VdLOoL4LdSrtU3OLer5hoZfbr_FBUNSse6S9RJCSDODKC66XWx2yqUzIhDdeqPl_vHZrq1kvmg/5A5F-9oXBqDpbK1PYz2Av_NPVvW_pvZ0sO4A0htUnb8",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776247200000/xfLcftutagATbEHIVm1wcw/Q450Ktov2kcTI8NA72bNmfTdrZQoeGX6e-yD1wHU0WLDm3hixCI1NSF5JM8t7SKR6dV0Pp0keRAUaGym6cyH-Z8lmgJQ2CfV8kDl8JEBIUDMv9nS8MhxDRdXjUJbKToF4Gkm3QifbXnbzaJt9wSWEg/lsHw0fQmxD_-ym3vixbBoyRS8FQAxICVXOn3cYWTM8Q",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "Totals": [
+                    "recruuTrjJzTlgAoZ",
+                    "recLFQM0Cc9JIDLVU"
+                ],
+                "Date": "2026-06-13",
+                "Travel": 125,
+                "Deposit Amount": 325,
+                "is_done": 0,
+                "Venue": "Culdees Castle, Muthill, PH5 2BA",
+                "Performers": [
+                    "recrcRCn2wnq0yv48",
+                    "recxh0Y2WxlXsJPpe",
+                    "rec5b6oJshqzoFDQB",
+                    "reckue0FzIkpeymGz",
+                    "recTZfee5MgWhvQrK"
+                ],
+                "Client Name(s)": "Abbie Phillips & Will Hand",
+                "Email": "abbie3@hotmail.co.uk",
+                "Song Choices": [
+                    "rec0AQMQx3LDB9Bws",
+                    "reczdToigMNTZchu0",
+                    "recm0deniXPQNFE4e",
+                    "recRLl7oxCduLSNnR",
+                    "recj5qmYJEyT3rfky",
+                    "rec5GGlmKrSMJuNUu",
+                    "rec3oaWzFKCEIiGD0",
+                    "recNif7hpaTfHxwtN",
+                    "recZ2DHTWsFRpk4jC",
+                    "recAnB8C8kriX8WnW",
+                    "recHCNOyeZPThLa3F",
+                    "recJqLQUs9N2suCW9",
+                    "recOWVKYX7JJhytg0",
+                    "reclVkbDv4afzAy4Y",
+                    "recqLuOXhrttugKlY",
+                    "rect7IULVY9erZLpK",
+                    "recuzu9grxDE160QQ",
+                    "rec0K6NtxqV2MDyM2",
+                    "rec0Q4afxENLqiNL2",
+                    "rec53DMBTp0v9hFsv",
+                    "rec6gh8qAPPUJABxH",
+                    "recAxb8DRdAXu0CiI",
+                    "recBkRkAG9AVNwC5U",
+                    "recLQANOgeGVd0Ofn",
+                    "recfNUlX3XUJyAfoL",
+                    "recreA7L4RswXTl1n",
+                    "recsA8OJZfLaeOSVw",
+                    "recyEHLJAL7pfmuQM",
+                    "rec3TQw3tpXjZEEVj",
+                    "rec9FfWlVzZiwKNtf"
+                ],
+                "fillout - song selection": "https://everyangle.fillout.com/t/bCbSagn1zhus?id=recsk8LMqZVQjABCN",
+                "Must-have song Choices": [
+                    "recbUhGT4ON6AUKIG",
+                    "recn9APYQtkheKpRX",
+                    "recnEDAn8SMxf3PsP"
+                ],
+                "ceilidh?": true,
+                "Ceilidh style": "Mash-Up",
+                "Ceilidh Length": "30 mins",
+                "options_ids": [
+                    "recKQDzOTXYTUcKPE"
+                ],
+                "fillout - gig details": "https://everyangle.fillout.com/t/ne4TPPm5Deus?id=recsk8LMqZVQjABCN",
+                "Formatted Date": "13 June 2026",
+                "Timings": "4pm: Wedding breakfast served\n6.45pm: Cake cutting\n7pm: First dance & band to begin\n8.15pm: Band break & evening buffet served\n11pm: Band to finish (a...",
+                "Contact Number (on the day)": "Tracey (Venue): 07585308567 or 07586726108\nGraeme (Groomsman): 07725577293\nJacky (Bridesmaid): 07399476123",
+                "_has_band?": 1,
+                "First Dance/Song Request (if required)": "Don't Delete the Kisses by Wolf Alice",
+                "Parking Info": "The venue has a car park to the side of the castle and to the front. Some suppliers might be able to drive around the side depending on equipment - Tr...",
+                "Client Notes": "Please don't play anything by The 1975.",
+                "GOTO emails": "https://mail.google.com/mail/u/0/#search/from:abbie3@hotmail.co.uk+OR+to:abbie3@hotmail.co.uk",
+                "Avoid playing": [
+                    "recV3OaMJneBhgGbH"
+                ],
+                "Playlist": "https://open.spotify.com/playlist/5vt7MYQZl0ghVLDhdSuKpu?si=RlH23xUoTh-QQ8_lXMDmBA&pi=2PIjQtkJR3-Ux",
+                "set list (favourites)": "Are you gonna be my girl - Jet (M) - A blues\nBelter - Gerry Cinnamon (M) - Am\nAint No Mountain High Enough - Marvin Gaye (Both) - Am/Bbm\nWannabe - The...",
+                "set list (must-play)": "The Middle - Jimmy Eat World (M) - D\nTeenage Dirtbag - Wheatus (M) - E\nThe Only Exception - Paramore (F) - B",
+                "_has_video": 0,
+                "_has_photo": 0,
+                "_has_dj": 1,
+                "_quote_options": "Band (5 piece): £1500",
+                "Quote": "Band (5 piece): £1500\nTravel: £125\n\nTotal: £1625\nDeposit (20%): £325\n\nOur standard package covers up to 4 hours on site, which includes around 2.5 hou...",
+                "Karaoke (cost)": 0,
+                "Subtotal": 1500,
+                "Discount Applied": 1500,
+                "End of the night": "I Believe in a Thing Called Love by The Darkness",
+                "Performer Fee (actual)": 0,
+                "Profit (Pot)": 325,
+                "Deposit Due (Calculated)": 325,
+                "set list (avoid)": "I write sins not tragedies - Panic at the disco (M) - Am",
+                "Set List Duration (seconds)": 0,
+                "Set List Total Duration": "0s",
+                "D Paid?": true,
+                "Balance Amount": 1300,
+                "GOTO interface": "https://airtable.com/appZXteLrpESv7H8X/pagjhByaitDpObq63?Rcaa6=recsk8LMqZVQjABCN",
+                "payment notes": "Deposit received - check business account",
+                "Amount Paid (Turnover)": 325,
+                "Profit (current)": 0,
+                "Amount Paid (current)": 0,
+                "Profit (theoretical)": 1625,
+                "Profit (theoretical/current)": 0,
+                "Profit (theoretical/pot)": 325,
+                "Name (from Performers)": [
+                    "Scott Bruce",
+                    "Michelle",
+                    "Joe Nichols",
+                    "Craig Harkness",
+                    "Pete Wall"
+                ]
+            }
+        }
+    ]
+}
+Delete Gigs records
+To delete Gigs records, issue a DELETE request to the Gigs endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request should include a URL-encoded array of up to 10 record IDs to delete.
+
+You can also issue a DELETE request to the record endpoint to delete a single record. Click here to show an example.
+
+ 
+Example request
+curl -X DELETE https://api.airtable.com/v0/appZXteLrpESv7H8X/Gigs \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -G \
+  --data-urlencode 'records[]=rec9VwxF80ZhND3gh' \
+  --data-urlencode 'records[]=recjswXFP97UPS0lW'
+Example response
+{
+    "records": [
+        {
+            "id": "rec9VwxF80ZhND3gh",
+            "deleted": true
+        },
+        {
+            "id": "recjswXFP97UPS0lW",
+            "deleted": true
+        }
+    ]
+}

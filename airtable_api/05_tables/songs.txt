@@ -1,0 +1,2244 @@
+Songs Table
+The id for Songs is tblF8qYCklXITKZSG. Table ids and table names can be used interchangeably in API requests. Using table ids means table name changes do not require modifications to your API request.
+
+Fields
+Each record in the Songs table contains the following fields:
+
+Field names and field ids can be used interchangeably. Using field ids means field name changes do not require modifications to your API request. We recommend using field ids over field names where possible, to reduce modifications to your API request if the user changes the field name later.
+
+Field NameField IDTypeDescription
+NamefldTtEgXOPILozXp8Formula
+number, string, array of numbers or strings
+Computed value: Title & " - " & Artist.
+ 
+Example values
+"\"About Damn time - Lizzo\""
+
+"\"Shut up and Dance - Walk The Moon\""
+
+"\"Juice - Lizzo\""
+
+"\"Royals - Lorde\""
+
+"\"Valerie - Mark Ronson\""
+
+TitlefldNrjJvObF3hoO3GText
+string
+A single line of text.
+ 
+Example values
+"About Damn time"
+
+"Shut up and Dance"
+
+"Juice"
+
+"Royals"
+
+"Valerie"
+
+ArtistfldWV4DvkvQz2lGFIText
+string
+A single line of text.
+ 
+Example values
+"Lizzo"
+
+"Walk The Moon"
+
+"Lizzo"
+
+"Lorde"
+
+"Mark Ronson"
+
+GenrefldMCaVvweHjdOVTj
+Single select
+string
+Selected option name.
+
+When creating or updating records, if the choice string does not exactly match an existing option, the request will fail with an INVALID_MULTIPLE_CHOICE_OPTIONS error unless the typecast parameter is enabled. If typecast is enabled, a new choice will be created if one does not exactly match.
+
+ 
+Possible values
+[
+    "Pop (80s/90’s/Modern)",
+    "R&B",
+    "Hip Hop",
+    "Dance",
+    "Motown/Funk",
+    "Disco",
+    "Emo /Pop Punk",
+    "Country",
+    "Soul",
+    "Classics",
+    "Reggae/Ska",
+    "Scottish",
+    "Ceilidh",
+    "Garage",
+    "Rock (Classic/Heavy/Pop Rock)"
+]
+GigsfldtjuqoZ6dXQVk0N
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Gigs table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Must Playsfld192CjP0rgyBZP6
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Gigs table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Keyfld33b79Vl4BTKWTVText
+string
+A single line of text.
+ 
+Example values
+"Ebm"
+
+"Db"
+
+"Dm"
+
+"D (Mixolydian)"
+
+"Eb"
+
+cut?fld7ILzaH37rOirkj
+Checkbox
+boolean
+This field is "true" when checked and otherwise empty.
+ 
+Example value
+true
+
+❗️on holdfld9NExdb4OBAlHlB
+Checkbox
+boolean
+This field is "true" when checked and otherwise empty.
+ 
+Example value
+true
+
+Scott vetofldWd8FpMz1qbsEPV
+Checkbox
+boolean
+This field is "true" when checked and otherwise empty.
+ 
+Example value
+true
+
+Times requestedfldk3lHzaIDgS5zZa
+Rollup
+number or string
+Computed value: COUNTALL(values) for Name in Gigs.
+ 
+Example values
+7
+
+16
+
+2
+
+1
+
+15
+
+AVOID GigsfldJLL96GVkbQyjew
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Gigs table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+M/FfldfVjTlUMw487nRE
+Single select
+string
+Selected option name.
+
+When creating or updating records, if the choice string does not exactly match an existing option, the request will fail with an INVALID_MULTIPLE_CHOICE_OPTIONS error unless the typecast parameter is enabled. If typecast is enabled, a new choice will be created if one does not exactly match.
+
+ 
+Possible values
+[
+    "M",
+    "F",
+    "Both",
+    "Instrumental"
+]
+set list namefldeqzZEDjrZB8fvPFormula
+number, string, array of numbers or strings
+Computed value: Title & " - " & Artist & " (" & {M/F} & ") - " & {Key}.
+ 
+Example values
+"\"About Damn time - Lizzo (F) - Ebm\""
+
+"\"Shut up and Dance - Walk The Moon (M) - Db\""
+
+"\"Juice - Lizzo (F) - Dm\""
+
+"\"Royals - Lorde (F) - D (Mixolydian)\""
+
+"\"Valerie - Mark Ronson (F) - Eb\""
+
+Gigs 4fld5TXHB5inrttS59Text
+string
+A single line of text.
+ 
+Example values
+"foo", "bar"
+
+Set List Itemsfld2W4EcYWV4QwbQP
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Set List Items table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Name (from Performers) (from Gigs) (from Set List Items)fld3zgZUJOg7r0Pd7
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Name (from Performers) (from Gigs) fields in linked Set List Items records.
+ 
+Example values
+[
+    "Frazer Smith",
+    "Craig Harkness",
+    "Joe Nichols",
+    "Matthew Cowan ",
+    "Keli Thomson",
+    "Scott Bruce",
+    "Jasmine Dey",
+    "Katie Lindsay",
+    "Frazer Smith"
+]
+
+[
+    "Katie Lindsay",
+    "Jasmine Dey",
+    "Ben Vaughan",
+    "Craig Harkness",
+    "Martin Walker",
+    "Katie Lindsay",
+    "Scott Bruce",
+    "Louise Grant",
+    "Jonnie Wallace",
+    "Kev Smith",
+    "Martin Walker",
+    "Taylor Bruce",
+    "Connor Honeyball",
+    "Katie Lindsay",
+    "Scott Bruce",
+    "Louise Grant",
+    "Jonnie Wallace",
+    "Kev Smith",
+    "Connor Honeyball",
+    "Martin Walker",
+    "Euan Allardyce ",
+    "Ben Vaughan",
+    "Zoe Downs",
+    "Taylor Bruce",
+    "Kev Moulds",
+    "Scott Bruce",
+    "Louise Grant",
+    "Katie Lindsay",
+    "Craig Harkness",
+    "Stefan Celosia",
+    "Scott Bruce",
+    "Louise Grant",
+    "Katie Lindsay",
+    "Craig Harkness",
+    "Stefan Celosia",
+    "Scott Bruce",
+    "Katie Lindsay",
+    "Katie Wills",
+    "Craig Harkness",
+    "Stefan Celosia",
+    "Scott Bruce",
+    "Louise Grant",
+    "Ciaran Whyte",
+    "Ben Vaughan",
+    "Connor Honeyball",
+    "Joe Nichols",
+    "Scott Bruce",
+    "Katie Lindsay",
+    "Louise Grant",
+    "Ben Vaughan",
+    "Jack O'Rourke",
+    "Louise Grant",
+    "Craig Harkness",
+    "Greg Rammage",
+    "Pete Wall",
+    "Kieran Imray",
+    "Keli Thomson",
+    "Pete Wall",
+    "Joe Nichols",
+    "Euan Allardyce ",
+    "Craig Harkness",
+    "Sam Irvine",
+    "Craig Stoddart",
+    "Scott Bruce",
+    "Pete Wall",
+    "Joe Nichols",
+    "Michelle"
+]
+
+[
+    "Scott Bruce",
+    "Katie Lindsay",
+    "Katie Wills",
+    "Craig Harkness",
+    "Stefan Celosia",
+    "Scott Bruce",
+    "Jasmine Dey",
+    "Katie Lindsay",
+    "Frazer Smith"
+]
+
+[
+    "Katie Lindsay",
+    "Scott Bruce",
+    "Louise Grant",
+    "Jonnie Wallace",
+    "Kev Smith",
+    "Martin Walker",
+    "Taylor Bruce",
+    "Connor Honeyball",
+    "Scott Bruce",
+    "Jonnie Wallace",
+    "Martin Walker",
+    "Katie Lindsay",
+    "Scott Bruce",
+    "Louise Grant",
+    "Jonnie Wallace",
+    "Kev Smith",
+    "Connor Honeyball",
+    "Martin Walker",
+    "Euan Allardyce ",
+    "Ben Vaughan",
+    "Zoe Downs",
+    "Taylor Bruce",
+    "Kev Moulds",
+    "Scott Bruce",
+    "Louise Grant",
+    "Katie Lindsay",
+    "Craig Harkness",
+    "Stefan Celosia",
+    "Scott Bruce",
+    "Louise Grant",
+    "Connor Honeyball",
+    "Katie Lindsay",
+    "Ben Vaughan",
+    "Craig Harkness",
+    "Scott Bruce",
+    "Louise Grant",
+    "Ciaran Whyte",
+    "Ben Vaughan",
+    "Connor Honeyball",
+    "Joe Nichols",
+    "Katie Lindsay",
+    "Ciaran Whyte",
+    "Euan Allardyce ",
+    "Jasmine Dey",
+    "chats",
+    "Zoe Downs",
+    "Calvin Krenbrenk",
+    "Louise Grant",
+    "Craig Harkness",
+    "Greg Rammage",
+    "Pete Wall",
+    "Kieran Imray",
+    "Scott Bruce",
+    "Pete Wall",
+    "Joe Nichols",
+    "Michelle"
+]
+
+[
+    "Scott Bruce",
+    "Jonnie Wallace",
+    "Martin Walker",
+    "Katie Lindsay",
+    "Jasmine Dey",
+    "Ben Vaughan",
+    "Craig Harkness",
+    "Martin Walker",
+    "Laura Takala",
+    "Craig Harkness",
+    "Joe Nichols",
+    "Martin Walker",
+    "Lewis Cunningham ",
+    "Katie Lindsay",
+    "Scott Bruce",
+    "Mark Norris",
+    "Louise Grant",
+    "Martin Walker",
+    "Katie Lindsay",
+    "Scott Bruce",
+    "Louise Grant",
+    "Jonnie Wallace",
+    "Kev Smith",
+    "Martin Walker",
+    "Taylor Bruce",
+    "Connor Honeyball",
+    "Scott Bruce",
+    "Katie Lindsay",
+    "Katie Wills",
+    "Craig Harkness",
+    "Stefan Celosia",
+    "Katie Lindsay",
+    "Scott Bruce",
+    "Louise Grant",
+    "Jonnie Wallace",
+    "Kev Smith",
+    "Connor Honeyball",
+    "Martin Walker",
+    "Euan Allardyce ",
+    "Ben Vaughan",
+    "Zoe Downs",
+    "Taylor Bruce",
+    "Kev Moulds",
+    "Katie Lindsay",
+    "Ciaran Whyte",
+    "Euan Allardyce ",
+    "Jasmine Dey",
+    "chats",
+    "Zoe Downs",
+    "Calvin Krenbrenk",
+    "Katie Lindsay",
+    "Ben Vaughan",
+    "Louise Grant",
+    "Ciaran Whyte",
+    "Alex Findlay",
+    "Louise Grant",
+    "Craig Harkness",
+    "Greg Rammage",
+    "Pete Wall",
+    "Kieran Imray",
+    "Keli Thomson",
+    "Pete Wall",
+    "Joe Nichols",
+    "Euan Allardyce ",
+    "Craig Harkness",
+    "Sam Irvine",
+    "Craig Stoddart",
+    "Frazer Smith",
+    "Craig Harkness",
+    "Joe Nichols",
+    "Matthew Cowan ",
+    "Keli Thomson",
+    "Scott Bruce",
+    "Louise Grant",
+    "Jasmin Galvin",
+    "Craig Harkness",
+    "Frazer Smith",
+    "Louise Grant",
+    "Scott Bruce",
+    "Joe Nichols",
+    "Calvin Krenbrenk",
+    "Frazer Smith",
+    "Scott Bruce",
+    "Joe Nichols",
+    "Craig Harkness",
+    "Louise Grant",
+    "Pete Wall"
+]
+
+Performers (from Gigs) (from Set List Items)fldfcHut00I9BMQNR
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Performers (from Gigs) fields in linked Set List Items records.
+ 
+Example values
+[
+    "recNuaBB2j7ves5vT",
+    "reckue0FzIkpeymGz",
+    "rec5b6oJshqzoFDQB",
+    "recBAaVXafi9bV6dc",
+    "recIdIeIRdZCb8q2R",
+    "recrcRCn2wnq0yv48",
+    "recy9hM4XRnY9MvQV",
+    "recb1UoPng4CdvO8P",
+    "recNuaBB2j7ves5vT"
+]
+
+[
+    "recb1UoPng4CdvO8P",
+    "recy9hM4XRnY9MvQV",
+    "recbftpXAuNuCiq4X",
+    "reckue0FzIkpeymGz",
+    "recXMMomspfUSKAEz",
+    "recb1UoPng4CdvO8P",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "recC5SxcPcBpYMzmr",
+    "recVzl5rVcFvXe5Op",
+    "recXMMomspfUSKAEz",
+    "reca2A9hKUa8J6XDc",
+    "rec94gwxP0DhITt7n",
+    "recb1UoPng4CdvO8P",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "recC5SxcPcBpYMzmr",
+    "recVzl5rVcFvXe5Op",
+    "rec94gwxP0DhITt7n",
+    "recXMMomspfUSKAEz",
+    "recLZGFRfcI6x8FPK",
+    "recbftpXAuNuCiq4X",
+    "recQ0sDzsgRfmzGKs",
+    "reca2A9hKUa8J6XDc",
+    "rectJP6GkSKDmVG0n",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "recb1UoPng4CdvO8P",
+    "reckue0FzIkpeymGz",
+    "reckcYdmNpegr50Cu",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "recb1UoPng4CdvO8P",
+    "reckue0FzIkpeymGz",
+    "reckcYdmNpegr50Cu",
+    "recrcRCn2wnq0yv48",
+    "recb1UoPng4CdvO8P",
+    "recnKKUTtzQD6OUTu",
+    "reckue0FzIkpeymGz",
+    "reckcYdmNpegr50Cu",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "recIzGxdU99o3bS8C",
+    "recbftpXAuNuCiq4X",
+    "rec94gwxP0DhITt7n",
+    "rec5b6oJshqzoFDQB",
+    "recrcRCn2wnq0yv48",
+    "recb1UoPng4CdvO8P",
+    "rec9gIHH139eMqQAR",
+    "recbftpXAuNuCiq4X",
+    "recdAPA8zRw1XTi5U",
+    "rec9gIHH139eMqQAR",
+    "reckue0FzIkpeymGz",
+    "recfJPGC2lhVBzTad",
+    "recTZfee5MgWhvQrK",
+    "recOof8ozeozAr1vp",
+    "recIdIeIRdZCb8q2R",
+    "recTZfee5MgWhvQrK",
+    "rec5b6oJshqzoFDQB",
+    "recLZGFRfcI6x8FPK",
+    "reckue0FzIkpeymGz",
+    "recpXCCdKbIpbk2dW",
+    "recBUnReEhygcetPz",
+    "recrcRCn2wnq0yv48",
+    "recTZfee5MgWhvQrK",
+    "rec5b6oJshqzoFDQB",
+    "recxh0Y2WxlXsJPpe"
+]
+
+[
+    "recrcRCn2wnq0yv48",
+    "recb1UoPng4CdvO8P",
+    "recnKKUTtzQD6OUTu",
+    "reckue0FzIkpeymGz",
+    "reckcYdmNpegr50Cu",
+    "recrcRCn2wnq0yv48",
+    "recy9hM4XRnY9MvQV",
+    "recb1UoPng4CdvO8P",
+    "recNuaBB2j7ves5vT"
+]
+
+[
+    "recb1UoPng4CdvO8P",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "recC5SxcPcBpYMzmr",
+    "recVzl5rVcFvXe5Op",
+    "recXMMomspfUSKAEz",
+    "reca2A9hKUa8J6XDc",
+    "rec94gwxP0DhITt7n",
+    "recrcRCn2wnq0yv48",
+    "recC5SxcPcBpYMzmr",
+    "recXMMomspfUSKAEz",
+    "recb1UoPng4CdvO8P",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "recC5SxcPcBpYMzmr",
+    "recVzl5rVcFvXe5Op",
+    "rec94gwxP0DhITt7n",
+    "recXMMomspfUSKAEz",
+    "recLZGFRfcI6x8FPK",
+    "recbftpXAuNuCiq4X",
+    "recQ0sDzsgRfmzGKs",
+    "reca2A9hKUa8J6XDc",
+    "rectJP6GkSKDmVG0n",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "recb1UoPng4CdvO8P",
+    "reckue0FzIkpeymGz",
+    "reckcYdmNpegr50Cu",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "rec94gwxP0DhITt7n",
+    "recb1UoPng4CdvO8P",
+    "recbftpXAuNuCiq4X",
+    "reckue0FzIkpeymGz",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "recIzGxdU99o3bS8C",
+    "recbftpXAuNuCiq4X",
+    "rec94gwxP0DhITt7n",
+    "rec5b6oJshqzoFDQB",
+    "recb1UoPng4CdvO8P",
+    "recIzGxdU99o3bS8C",
+    "recLZGFRfcI6x8FPK",
+    "recy9hM4XRnY9MvQV",
+    "recvG3AqVs6epWlNF",
+    "recQ0sDzsgRfmzGKs",
+    "reccXTtZBBmzIyNGJ",
+    "rec9gIHH139eMqQAR",
+    "reckue0FzIkpeymGz",
+    "recfJPGC2lhVBzTad",
+    "recTZfee5MgWhvQrK",
+    "recOof8ozeozAr1vp",
+    "recrcRCn2wnq0yv48",
+    "recTZfee5MgWhvQrK",
+    "rec5b6oJshqzoFDQB",
+    "recxh0Y2WxlXsJPpe"
+]
+
+[
+    "recrcRCn2wnq0yv48",
+    "recC5SxcPcBpYMzmr",
+    "recXMMomspfUSKAEz",
+    "recb1UoPng4CdvO8P",
+    "recy9hM4XRnY9MvQV",
+    "recbftpXAuNuCiq4X",
+    "reckue0FzIkpeymGz",
+    "recXMMomspfUSKAEz",
+    "recqvid8xcXvE4MFT",
+    "reckue0FzIkpeymGz",
+    "rec5b6oJshqzoFDQB",
+    "recXMMomspfUSKAEz",
+    "rec4OIP8q7Rui1SpS",
+    "recb1UoPng4CdvO8P",
+    "recrcRCn2wnq0yv48",
+    "rectCdMZp9i8qPhdt",
+    "rec9gIHH139eMqQAR",
+    "recXMMomspfUSKAEz",
+    "recb1UoPng4CdvO8P",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "recC5SxcPcBpYMzmr",
+    "recVzl5rVcFvXe5Op",
+    "recXMMomspfUSKAEz",
+    "reca2A9hKUa8J6XDc",
+    "rec94gwxP0DhITt7n",
+    "recrcRCn2wnq0yv48",
+    "recb1UoPng4CdvO8P",
+    "recnKKUTtzQD6OUTu",
+    "reckue0FzIkpeymGz",
+    "reckcYdmNpegr50Cu",
+    "recb1UoPng4CdvO8P",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "recC5SxcPcBpYMzmr",
+    "recVzl5rVcFvXe5Op",
+    "rec94gwxP0DhITt7n",
+    "recXMMomspfUSKAEz",
+    "recLZGFRfcI6x8FPK",
+    "recbftpXAuNuCiq4X",
+    "recQ0sDzsgRfmzGKs",
+    "reca2A9hKUa8J6XDc",
+    "rectJP6GkSKDmVG0n",
+    "recb1UoPng4CdvO8P",
+    "recIzGxdU99o3bS8C",
+    "recLZGFRfcI6x8FPK",
+    "recy9hM4XRnY9MvQV",
+    "recvG3AqVs6epWlNF",
+    "recQ0sDzsgRfmzGKs",
+    "reccXTtZBBmzIyNGJ",
+    "recb1UoPng4CdvO8P",
+    "recbftpXAuNuCiq4X",
+    "rec9gIHH139eMqQAR",
+    "recIzGxdU99o3bS8C",
+    "recNS1PXFfAt28KMA",
+    "rec9gIHH139eMqQAR",
+    "reckue0FzIkpeymGz",
+    "recfJPGC2lhVBzTad",
+    "recTZfee5MgWhvQrK",
+    "recOof8ozeozAr1vp",
+    "recIdIeIRdZCb8q2R",
+    "recTZfee5MgWhvQrK",
+    "rec5b6oJshqzoFDQB",
+    "recLZGFRfcI6x8FPK",
+    "reckue0FzIkpeymGz",
+    "recpXCCdKbIpbk2dW",
+    "recBUnReEhygcetPz",
+    "recNuaBB2j7ves5vT",
+    "reckue0FzIkpeymGz",
+    "rec5b6oJshqzoFDQB",
+    "recBAaVXafi9bV6dc",
+    "recIdIeIRdZCb8q2R",
+    "recrcRCn2wnq0yv48",
+    "rec9gIHH139eMqQAR",
+    "rec5vduwT4m1t9UHw",
+    "reckue0FzIkpeymGz",
+    "recNuaBB2j7ves5vT",
+    "rec9gIHH139eMqQAR",
+    "recrcRCn2wnq0yv48",
+    "rec5b6oJshqzoFDQB",
+    "reccXTtZBBmzIyNGJ",
+    "recNuaBB2j7ves5vT",
+    "recrcRCn2wnq0yv48",
+    "rec5b6oJshqzoFDQB",
+    "reckue0FzIkpeymGz",
+    "rec9gIHH139eMqQAR",
+    "recTZfee5MgWhvQrK"
+]
+
+duration (seconds)fld4mj4QQVln4rAj0Number
+number
+A decimal number showing 1 decimal digit. This field only allows positive numbers.
+ 
+Example values
+191.0
+
+199.0
+
+195.0
+
+219.0
+
+291.0
+
+durationfldfExgbWxtT6aPMbFormula
+number, string, array of numbers or strings
+Computed value: FLOOR({duration (seconds)} / 60) & ":" & IF( MOD({duration (seconds)}, 60) < 10, "0" & MOD({duration (seconds)}, 60), MOD({duration (seconds)}, 60) ) .
+ 
+Example values
+"\"3:11\""
+
+"\"3:19\""
+
+"\"3:15\""
+
+"\"0:NaN\""
+
+"\"3:39\""
+
+record_ idfldGmrwXoEDwnM0c1Formula
+number, string, array of numbers or strings
+Computed value: RECORD_ID().
+ 
+Example values
+"\"recE8bkgnydVmFVtO\""
+
+"\"recLXVpmCwgWXS7V2\""
+
+"\"recpkSOuKPbvoQAlu\""
+
+"\"recZrfaZsPz19IhV2\""
+
+"\"rec0K6NtxqV2MDyM2\""
+
+Performers (from Gigs) Rollup (from Set List Items)fld3Ss4rxa50DcRIi
+Rollup
+number or string
+Computed value: ARRAYJOIN(values, ",") for Performers (from Gigs) in Set List Items.
+ 
+Example values
+"\"Frazer Smith, Craig Harkness, Joe Nichols, Matthew Cowan , Keli Thomson,Scott Bruce, Jasmine Dey, Katie Lindsay, Frazer Smith\""
+
+"\"Katie Lindsay, Jasmine Dey, Ben Vaughan, Craig Harkness, Martin Walker,Katie Lindsay, Scott Bruce, Louise Grant, Jonnie Wallace, Kev Smith, Martin Wal...\""
+
+"\"Scott Bruce, Katie Lindsay, Katie Wills, Craig Harkness, Stefan Celosia,Scott Bruce, Jasmine Dey, Katie Lindsay, Frazer Smith\""
+
+"\"Katie Lindsay, Scott Bruce, Louise Grant, Jonnie Wallace, Kev Smith, Martin Walker, Taylor Bruce, Connor Honeyball, Scott Bruce, Jonnie Wallace, Marti...\""
+
+"\"Scott Bruce, Jonnie Wallace, Martin Walker,Katie Lindsay, Jasmine Dey, Ben Vaughan, Craig Harkness, Martin Walker,Laura Takala, Craig Harkness, Joe Ni...\""
+
+Performed ByfldCgvRkaRa74EK2rFormula
+number, string, array of numbers or strings
+Computed value: ARRAYUNIQUE(ARRAYFLATTEN({Name (from Performers) (from Gigs) (from Set List Items)})) .
+ 
+Example values
+"\"Frazer Smith,Craig Harkness,Joe Nichols,Matthew Cowan ,Keli Thomson,Scott Bruce,Jasmine Dey,Katie Lindsay\""
+
+"\"Katie Lindsay,Jasmine Dey,Ben Vaughan,Craig Harkness,Martin Walker,Scott Bruce,Louise Grant,Jonnie Wallace,Kev Smith,Taylor Bruce,Connor Honeyball,Euan Allardyce ,Zoe Downs,Kev Moulds,Stefan Celosia,Katie Wills,Ciaran Whyte,Joe Nichols,Jack O'Rourke,Greg Rammage,Pete Wall,Kieran Imray,Keli Thomson,Sam Irvine,Craig Stoddart,Michelle\""
+
+"\"Scott Bruce,Katie Lindsay,Katie Wills,Craig Harkness,Stefan Celosia,Jasmine Dey,Frazer Smith\""
+
+"\"\""
+
+"\"Katie Lindsay,Scott Bruce,Louise Grant,Jonnie Wallace,Kev Smith,Martin Walker,Taylor Bruce,Connor Honeyball,Euan Allardyce ,Ben Vaughan,Zoe Downs,Kev Moulds,Craig Harkness,Stefan Celosia,Ciaran Whyte,Joe Nichols,Jasmine Dey,chats,Calvin Krenbrenk,Greg Rammage,Pete Wall,Kieran Imray,Michelle\""
+
+List Songs records
+To list records in Songs, issue a GET request to the Songs endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Returned records do not include any fields with "empty" values, e.g. "", [], or false.
+
+You can filter, sort, and format the results with the following query parameters. Note that these parameters need to be URL encoded. You can use our API URL encoder tool to help with this. If you are using a helper library like Airtable.js, these parameters will be automatically encoded.
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+fields
+array of strings
+optional
+Only data for fields whose names are in this list will be included in the result. If you don't need every field, you can use this parameter to reduce the amount of data transferred.
+
+For example, to only return data from Name and Title, send these two query parameters:
+
+fields%5B%5D=Name&fields%5B%5D=Title
+You can also perform the same action with field ids (they can be found in the fields section):
+
+fields%5B%5D=fldTtEgXOPILozXp8&fields%5B%5D=fldNrjJvObF3hoO3G
+Note: %5B%5D may be omitted when specifying multiple fields, but must always be included when specifying only a single field.
+
+filterByFormula
+string
+optional
+A formula used to filter records. The formula will be evaluated for each record, and if the result is not 0, false, "", NaN, [], or #Error! the record will be included in the response. We recommend testing your formula in the Formula field UI before using it in your API request.
+
+If combined with the view parameter, only records in that view which satisfy the formula will be returned.
+
+The formula must be encoded first before passing it as a value. You can use this tool to not only encode the formula but also create the entire url you need. For example, to only include records where Name isn't empty, pass in NOT({Name} = '') as a parameter like this:
+
+filterByFormula=NOT%28%7BName%7D%20%3D%20%27%27%29
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+maxRecords
+number
+optional
+The maximum total number of records that will be returned in your requests. If this value is larger than pageSize (which is 100 by default), you may have to load multiple pages to reach this total. See the Pagination section below for more.pageSize
+number
+optional
+The number of records returned in each request. Must be less than or equal to 100. Default is 100. See the Pagination section below for more.sort
+array of objects
+optional
+A list of sort objects that specifies how the records will be ordered. Each sort object must have a field key specifying the name of the field to sort on, and an optional direction key that is either "asc" or "desc". The default direction is "asc".
+
+The sort parameter overrides the sorting of the view specified in the view parameter. If neither the sort nor the view parameter is included, the order of records is arbitrary.
+
+For example, to sort records by Name in descending order, send these two query parameters:
+
+sort%5B0%5D%5Bfield%5D=Name
+sort%5B0%5D%5Bdirection%5D=desc
+For example, to sort records by Name in descending order, pass in:
+
+[{field: "Name", direction: "desc"}]
+view
+string
+optional
+The name or ID of a view in the Songs table. If set, only the records in that view will be returned. The records will be sorted according to the order of the view unless the sort parameter is included, which overrides that order. Fields hidden in this view will be returned in the results. To only return a subset of fields, use the fields parameter.cellFormat
+string
+optional
+The format that should be used for cell values. Supported values are:
+
+json: cells will be formatted as JSON, depending on the field type.
+
+string: cells will be formatted as user-facing strings, regardless of the field type. The timeZone and userLocale parameters are required when using string as the cellFormat.
+
+Note: You should not rely on the format of these strings, as it is subject to change.
+The default is json.
+
+timeZone
+string
+optional
+The time zone that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+userLocale
+string
+optional
+The user locale that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+returnFieldsByFieldId
+boolean
+optional
+An optional boolean value that lets you return field objects where the key is the field id.
+
+This defaults to false, which returns field objects where the key is the field name.
+
+recordMetadata
+array of strings
+optional
+An optional field that, if includes commentCount, adds a commentCount read only property on each record returned.
+
+These parameters need to be URL encoded. If you are using a helper library like Airtable.js, they will be automatically encoded.
+
+Pagination
+The server returns one page of records at a time. Each page will contain pageSize records, which is 100 by default.
+
+If there are more records, the response will contain an offset. To fetch the next page of records, include offset in the next request's parameters.
+
+Pagination will stop when you've reached the end of your table. If the maxRecords parameter is passed, pagination will stop once you've reached this maximum.
+
+ 
+Example request
+curl "https://api.airtable.com/v0/appZXteLrpESv7H8X/Songs?maxRecords=3&view=Grid%20view" \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "records": [
+        {
+            "id": "recE8bkgnydVmFVtO",
+            "createdTime": "2025-03-13T08:31:03.000Z",
+            "fields": {
+                "Name": "About Damn time - Lizzo",
+                "Title": "About Damn time",
+                "Artist": "Lizzo",
+                "Genre": "Pop (80s/90’s/Modern)",
+                "Gigs": [
+                    "recsHx1GH4FHOJOKV",
+                    "recZSLYqoqJAmotkl",
+                    "recq9pq39ke0oV0mp",
+                    "rec7RQuYD81fAtp0N",
+                    "recAKZ3fFEcPzusfy",
+                    "recijT582UARrRmiB",
+                    "recfDOm1NDsJCujKF"
+                ],
+                "Key": "Ebm",
+                "Times requested": 7,
+                "AVOID Gigs": [
+                    "rec6Udu8Z3uHdOxjG",
+                    "recgxbgfjMDumnHHG",
+                    "recTIRp3lqjPATcmd",
+                    "recwlg8K6gIlxzJWo"
+                ],
+                "M/F": "F",
+                "set list name": "About Damn time - Lizzo (F) - Ebm",
+                "Set List Items": [
+                    "recQoxKeUzmpcTX2G",
+                    "recProfY9qirvtEld"
+                ],
+                "duration (seconds)": 191,
+                "duration": "3:11",
+                "record_ id": "recE8bkgnydVmFVtO",
+                "Performers (from Gigs) (from Set List Items)": [
+                    "recNuaBB2j7ves5vT",
+                    "reckue0FzIkpeymGz",
+                    "rec5b6oJshqzoFDQB",
+                    "recBAaVXafi9bV6dc",
+                    "recIdIeIRdZCb8q2R",
+                    "recrcRCn2wnq0yv48",
+                    "recy9hM4XRnY9MvQV",
+                    "recb1UoPng4CdvO8P",
+                    "recNuaBB2j7ves5vT"
+                ],
+                "Performers (from Gigs) Rollup (from Set List Items)": "Frazer Smith, Craig Harkness, Joe Nichols, Matthew Cowan , Keli Thomson,Scott Bruce, Jasmine Dey, Katie Lindsay, Frazer Smith",
+                "Performed By": [
+                    "Frazer Smith",
+                    "Craig Harkness",
+                    "Joe Nichols",
+                    "Matthew Cowan ",
+                    "Keli Thomson",
+                    "Scott Bruce",
+                    "Jasmine Dey",
+                    "Katie Lindsay"
+                ],
+                "Name (from Performers) (from Gigs) (from Set List Items)": [
+                    "Frazer Smith",
+                    "Craig Harkness",
+                    "Joe Nichols",
+                    "Matthew Cowan ",
+                    "Keli Thomson",
+                    "Scott Bruce",
+                    "Jasmine Dey",
+                    "Katie Lindsay",
+                    "Frazer Smith"
+                ]
+            }
+        },
+        {
+            "id": "recLXVpmCwgWXS7V2",
+            "createdTime": "2025-03-13T08:31:03.000Z",
+            "fields": {
+                "Name": "Shut up and Dance - Walk The Moon",
+                "Title": "Shut up and Dance",
+                "Artist": "Walk The Moon",
+                "Genre": "Pop (80s/90’s/Modern)",
+                "Gigs": [
+                    "rectqJUhgiNJ6NEYa",
+                    "recpOnUHcWOYDXgOJ",
+                    "recLyxD1hlGZ3TTi8",
+                    "recpLgXLCNQsjIXdd",
+                    "recZSLYqoqJAmotkl",
+                    "rec84wiGWNK9p3np8",
+                    "recwr1mIMwKVdNZL4",
+                    "recgxbgfjMDumnHHG",
+                    "recmxDibV31pGiM7e",
+                    "reco0a0a0PhDItam9",
+                    "recq9pq39ke0oV0mp",
+                    "rec2y9actSMiXVVjz",
+                    "recfDOm1NDsJCujKF",
+                    "rec0SksrhE02oguIC",
+                    "recOkwK0866X6JIMv",
+                    "recEdUEAPwLxzjjqK"
+                ],
+                "Must Plays": [
+                    "recLyxD1hlGZ3TTi8",
+                    "recgxbgfjMDumnHHG"
+                ],
+                "Key": "Db",
+                "Times requested": 16,
+                "AVOID Gigs": [
+                    "rec2qgnXxWjguEESN"
+                ],
+                "M/F": "M",
+                "set list name": "Shut up and Dance - Walk The Moon (M) - Db",
+                "Set List Items": [
+                    "recUe4E2T6cA4EkZJ",
+                    "recVJ4FBY8fvrHzNR",
+                    "recIRHVp5FK1cOSh8",
+                    "recosEVbldJ0PQiFx",
+                    "rec4nljQrKpyuyjL8",
+                    "recIy6FOyEURJ7GHO",
+                    "recrV5KnjyYgI5Pdj",
+                    "recdhoHQtRjmslLc0",
+                    "rec1nRVFfrrceZDLY",
+                    "recuG9CjebvxFSU17",
+                    "recFaewKY3TnFHvRY"
+                ],
+                "duration (seconds)": 199,
+                "duration": "3:19",
+                "record_ id": "recLXVpmCwgWXS7V2",
+                "Performers (from Gigs) (from Set List Items)": [
+                    "recb1UoPng4CdvO8P",
+                    "recy9hM4XRnY9MvQV",
+                    "recbftpXAuNuCiq4X",
+                    "reckue0FzIkpeymGz",
+                    "recXMMomspfUSKAEz",
+                    "recb1UoPng4CdvO8P",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recC5SxcPcBpYMzmr",
+                    "recVzl5rVcFvXe5Op",
+                    "recXMMomspfUSKAEz",
+                    "reca2A9hKUa8J6XDc",
+                    "rec94gwxP0DhITt7n",
+                    "recb1UoPng4CdvO8P",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recC5SxcPcBpYMzmr",
+                    "recVzl5rVcFvXe5Op",
+                    "rec94gwxP0DhITt7n",
+                    "recXMMomspfUSKAEz",
+                    "recLZGFRfcI6x8FPK",
+                    "recbftpXAuNuCiq4X",
+                    "recQ0sDzsgRfmzGKs",
+                    "reca2A9hKUa8J6XDc",
+                    "rectJP6GkSKDmVG0n",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recb1UoPng4CdvO8P",
+                    "reckue0FzIkpeymGz",
+                    "reckcYdmNpegr50Cu",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recb1UoPng4CdvO8P",
+                    "reckue0FzIkpeymGz",
+                    "reckcYdmNpegr50Cu",
+                    "recrcRCn2wnq0yv48",
+                    "recb1UoPng4CdvO8P",
+                    "recnKKUTtzQD6OUTu",
+                    "reckue0FzIkpeymGz",
+                    "reckcYdmNpegr50Cu",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recIzGxdU99o3bS8C",
+                    "recbftpXAuNuCiq4X",
+                    "rec94gwxP0DhITt7n",
+                    "rec5b6oJshqzoFDQB",
+                    "recrcRCn2wnq0yv48",
+                    "recb1UoPng4CdvO8P",
+                    "rec9gIHH139eMqQAR",
+                    "recbftpXAuNuCiq4X",
+                    "recdAPA8zRw1XTi5U",
+                    "rec9gIHH139eMqQAR",
+                    "reckue0FzIkpeymGz",
+                    "recfJPGC2lhVBzTad",
+                    "recTZfee5MgWhvQrK",
+                    "recOof8ozeozAr1vp",
+                    "recIdIeIRdZCb8q2R",
+                    "recTZfee5MgWhvQrK",
+                    "rec5b6oJshqzoFDQB",
+                    "recLZGFRfcI6x8FPK",
+                    "reckue0FzIkpeymGz",
+                    "recpXCCdKbIpbk2dW",
+                    "recBUnReEhygcetPz",
+                    "recrcRCn2wnq0yv48",
+                    "recTZfee5MgWhvQrK",
+                    "rec5b6oJshqzoFDQB",
+                    "recxh0Y2WxlXsJPpe"
+                ],
+                "Performers (from Gigs) Rollup (from Set List Items)": "Katie Lindsay, Jasmine Dey, Ben Vaughan, Craig Harkness, Martin Walker,Katie Lindsay, Scott Bruce, Louise Grant, Jonnie Wallace, Kev Smith, Martin Wal...",
+                "Performed By": [
+                    "Katie Lindsay",
+                    "Jasmine Dey",
+                    "Ben Vaughan",
+                    "Craig Harkness",
+                    "Martin Walker",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jonnie Wallace",
+                    "Kev Smith",
+                    "Taylor Bruce",
+                    "Connor Honeyball",
+                    "Euan Allardyce ",
+                    "Zoe Downs",
+                    "Kev Moulds",
+                    "Stefan Celosia",
+                    "Katie Wills",
+                    "Ciaran Whyte",
+                    "Joe Nichols",
+                    "Jack O'Rourke",
+                    "Greg Rammage",
+                    "Pete Wall",
+                    "Kieran Imray",
+                    "Keli Thomson",
+                    "Sam Irvine",
+                    "Craig Stoddart",
+                    "Michelle"
+                ],
+                "Name (from Performers) (from Gigs) (from Set List Items)": [
+                    "Katie Lindsay",
+                    "Jasmine Dey",
+                    "Ben Vaughan",
+                    "Craig Harkness",
+                    "Martin Walker",
+                    "Katie Lindsay",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jonnie Wallace",
+                    "Kev Smith",
+                    "Martin Walker",
+                    "Taylor Bruce",
+                    "Connor Honeyball",
+                    "Katie Lindsay",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jonnie Wallace",
+                    "Kev Smith",
+                    "Connor Honeyball",
+                    "Martin Walker",
+                    "Euan Allardyce ",
+                    "Ben Vaughan",
+                    "Zoe Downs",
+                    "Taylor Bruce",
+                    "Kev Moulds",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Katie Lindsay",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Katie Lindsay",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Scott Bruce",
+                    "Katie Lindsay",
+                    "Katie Wills",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Ciaran Whyte",
+                    "Ben Vaughan",
+                    "Connor Honeyball",
+                    "Joe Nichols",
+                    "Scott Bruce",
+                    "Katie Lindsay",
+                    "Louise Grant",
+                    "Ben Vaughan",
+                    "Jack O'Rourke",
+                    "Louise Grant",
+                    "Craig Harkness",
+                    "Greg Rammage",
+                    "Pete Wall",
+                    "Kieran Imray",
+                    "Keli Thomson",
+                    "Pete Wall",
+                    "Joe Nichols",
+                    "Euan Allardyce ",
+                    "Craig Harkness",
+                    "Sam Irvine",
+                    "Craig Stoddart",
+                    "Scott Bruce",
+                    "Pete Wall",
+                    "Joe Nichols",
+                    "Michelle"
+                ]
+            }
+        },
+        {
+            "id": "recpkSOuKPbvoQAlu",
+            "createdTime": "2025-03-13T08:31:03.000Z",
+            "fields": {
+                "Name": "Juice - Lizzo",
+                "Title": "Juice",
+                "Artist": "Lizzo",
+                "Genre": "Pop (80s/90’s/Modern)",
+                "Gigs": [
+                    "rec84wiGWNK9p3np8",
+                    "recijT582UARrRmiB"
+                ],
+                "Key": "Dm",
+                "Scott veto": true,
+                "Times requested": 2,
+                "AVOID Gigs": [
+                    "rec6Udu8Z3uHdOxjG",
+                    "recgxbgfjMDumnHHG",
+                    "recV7SplUdIshpvtX",
+                    "recwlg8K6gIlxzJWo",
+                    "recfa0mkdosFeZCs8"
+                ],
+                "M/F": "F",
+                "set list name": "Juice - Lizzo (F) - Dm",
+                "Set List Items": [
+                    "recv30emzOhBWvgeJ",
+                    "recNIDpnlpuiBUQ9e"
+                ],
+                "duration (seconds)": 195,
+                "duration": "3:15",
+                "record_ id": "recpkSOuKPbvoQAlu",
+                "Performers (from Gigs) (from Set List Items)": [
+                    "recrcRCn2wnq0yv48",
+                    "recb1UoPng4CdvO8P",
+                    "recnKKUTtzQD6OUTu",
+                    "reckue0FzIkpeymGz",
+                    "reckcYdmNpegr50Cu",
+                    "recrcRCn2wnq0yv48",
+                    "recy9hM4XRnY9MvQV",
+                    "recb1UoPng4CdvO8P",
+                    "recNuaBB2j7ves5vT"
+                ],
+                "Performers (from Gigs) Rollup (from Set List Items)": "Scott Bruce, Katie Lindsay, Katie Wills, Craig Harkness, Stefan Celosia,Scott Bruce, Jasmine Dey, Katie Lindsay, Frazer Smith",
+                "Performed By": [
+                    "Scott Bruce",
+                    "Katie Lindsay",
+                    "Katie Wills",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Jasmine Dey",
+                    "Frazer Smith"
+                ],
+                "Name (from Performers) (from Gigs) (from Set List Items)": [
+                    "Scott Bruce",
+                    "Katie Lindsay",
+                    "Katie Wills",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Scott Bruce",
+                    "Jasmine Dey",
+                    "Katie Lindsay",
+                    "Frazer Smith"
+                ]
+            }
+        }
+    ],
+    "offset": "itrmnjZLO3J5zO9N2/recpkSOuKPbvoQAlu"
+}
+ 
+Iteration may timeout due to client inactivity or server restarts. In that case, the client will receive a 422 response with error message LIST_RECORDS_ITERATOR_NOT_AVAILABLE. It may then restart iteration from the beginning.
+
+ 
+Retrieve a Songs record
+To retrieve an existing record in Songs table, issue a GET request to the record endpoint.
+Any "empty" fields (e.g. "", [], or false) in the record will not be returned.
+
+ 
+Example request
+curl https://api.airtable.com/v0/appZXteLrpESv7H8X/Songs/recE8bkgnydVmFVtO \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "id": "recE8bkgnydVmFVtO",
+    "createdTime": "2025-03-13T08:31:03.000Z",
+    "fields": {
+        "Name": "About Damn time - Lizzo",
+        "Title": "About Damn time",
+        "Artist": "Lizzo",
+        "Genre": "Pop (80s/90’s/Modern)",
+        "Gigs": [
+            "recsHx1GH4FHOJOKV",
+            "recZSLYqoqJAmotkl",
+            "recq9pq39ke0oV0mp",
+            "rec7RQuYD81fAtp0N",
+            "recAKZ3fFEcPzusfy",
+            "recijT582UARrRmiB",
+            "recfDOm1NDsJCujKF"
+        ],
+        "Key": "Ebm",
+        "Times requested": 7,
+        "AVOID Gigs": [
+            "rec6Udu8Z3uHdOxjG",
+            "recgxbgfjMDumnHHG",
+            "recTIRp3lqjPATcmd",
+            "recwlg8K6gIlxzJWo"
+        ],
+        "M/F": "F",
+        "set list name": "About Damn time - Lizzo (F) - Ebm",
+        "Set List Items": [
+            "recQoxKeUzmpcTX2G",
+            "recProfY9qirvtEld"
+        ],
+        "duration (seconds)": 191,
+        "duration": "3:11",
+        "record_ id": "recE8bkgnydVmFVtO",
+        "Performers (from Gigs) (from Set List Items)": [
+            "recNuaBB2j7ves5vT",
+            "reckue0FzIkpeymGz",
+            "rec5b6oJshqzoFDQB",
+            "recBAaVXafi9bV6dc",
+            "recIdIeIRdZCb8q2R",
+            "recrcRCn2wnq0yv48",
+            "recy9hM4XRnY9MvQV",
+            "recb1UoPng4CdvO8P",
+            "recNuaBB2j7ves5vT"
+        ],
+        "Performers (from Gigs) Rollup (from Set List Items)": "Frazer Smith, Craig Harkness, Joe Nichols, Matthew Cowan , Keli Thomson,Scott Bruce, Jasmine Dey, Katie Lindsay, Frazer Smith",
+        "Performed By": [
+            "Frazer Smith",
+            "Craig Harkness",
+            "Joe Nichols",
+            "Matthew Cowan ",
+            "Keli Thomson",
+            "Scott Bruce",
+            "Jasmine Dey",
+            "Katie Lindsay"
+        ],
+        "Name (from Performers) (from Gigs) (from Set List Items)": [
+            "Frazer Smith",
+            "Craig Harkness",
+            "Joe Nichols",
+            "Matthew Cowan ",
+            "Keli Thomson",
+            "Scott Bruce",
+            "Jasmine Dey",
+            "Katie Lindsay",
+            "Frazer Smith"
+        ]
+    }
+}
+Create Songs records
+To create new records, issue a POST request to the Songs endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request body should include an array of up to 10 record objects. Each of these objects should have one key whose value is an inner object containing your record's cell values, keyed by either field name or field id.
+
+Returns an array of record objects created if the call succeeded, including record IDs which will uniquely identify the records within Every Angle.
+
+Values for Name, Times requested, set list name, Name (from Performers) (from Gigs) (from Set List Items), Performers (from Gigs) (from Set List Items), duration, record_ id, Performers (from Gigs) Rollup (from Set List Items) and Performed By are automatically computed by Airtable and cannot be directly created.
+
+The Airtable API will perform best-effort automatic data conversion from string values if the typecast parameter is passed in (click to show example). Automatic conversion is disabled by default to ensure data integrity, but it may be helpful for integrating with 3rd party data sources.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X POST https://api.airtable.com/v0/appZXteLrpESv7H8X/Songs \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "fields": {
+        "Title": "About Damn time",
+        "Artist": "Lizzo",
+        "Genre": "Pop (80s/90’s/Modern)",
+        "Gigs": [
+          "recsHx1GH4FHOJOKV",
+          "recZSLYqoqJAmotkl",
+          "recq9pq39ke0oV0mp",
+          "rec7RQuYD81fAtp0N",
+          "recAKZ3fFEcPzusfy",
+          "recijT582UARrRmiB",
+          "recfDOm1NDsJCujKF"
+        ],
+        "Key": "Ebm",
+        "AVOID Gigs": [
+          "rec6Udu8Z3uHdOxjG",
+          "recgxbgfjMDumnHHG",
+          "recTIRp3lqjPATcmd",
+          "recwlg8K6gIlxzJWo"
+        ],
+        "M/F": "F",
+        "Set List Items": [
+          "recQoxKeUzmpcTX2G",
+          "recProfY9qirvtEld"
+        ],
+        "duration (seconds)": 191
+      }
+    },
+    {
+      "fields": {
+        "Title": "Shut up and Dance",
+        "Artist": "Walk The Moon",
+        "Genre": "Pop (80s/90’s/Modern)",
+        "Gigs": [
+          "rectqJUhgiNJ6NEYa",
+          "recpOnUHcWOYDXgOJ",
+          "recLyxD1hlGZ3TTi8",
+          "recpLgXLCNQsjIXdd",
+          "recZSLYqoqJAmotkl",
+          "rec84wiGWNK9p3np8",
+          "recwr1mIMwKVdNZL4",
+          "recgxbgfjMDumnHHG",
+          "recmxDibV31pGiM7e",
+          "reco0a0a0PhDItam9",
+          "recq9pq39ke0oV0mp",
+          "rec2y9actSMiXVVjz",
+          "recfDOm1NDsJCujKF",
+          "rec0SksrhE02oguIC",
+          "recOkwK0866X6JIMv",
+          "recEdUEAPwLxzjjqK"
+        ],
+        "Must Plays": [
+          "recLyxD1hlGZ3TTi8",
+          "recgxbgfjMDumnHHG"
+        ],
+        "Key": "Db",
+        "AVOID Gigs": [
+          "rec2qgnXxWjguEESN"
+        ],
+        "M/F": "M",
+        "Set List Items": [
+          "recUe4E2T6cA4EkZJ",
+          "recVJ4FBY8fvrHzNR",
+          "recIRHVp5FK1cOSh8",
+          "recosEVbldJ0PQiFx",
+          "rec4nljQrKpyuyjL8",
+          "recIy6FOyEURJ7GHO",
+          "recrV5KnjyYgI5Pdj",
+          "recdhoHQtRjmslLc0",
+          "rec1nRVFfrrceZDLY",
+          "recuG9CjebvxFSU17",
+          "recFaewKY3TnFHvRY"
+        ],
+        "duration (seconds)": 199
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "recE8bkgnydVmFVtO",
+            "createdTime": "2025-03-13T08:31:03.000Z",
+            "fields": {
+                "Name": "About Damn time - Lizzo",
+                "Title": "About Damn time",
+                "Artist": "Lizzo",
+                "Genre": "Pop (80s/90’s/Modern)",
+                "Gigs": [
+                    "recsHx1GH4FHOJOKV",
+                    "recZSLYqoqJAmotkl",
+                    "recq9pq39ke0oV0mp",
+                    "rec7RQuYD81fAtp0N",
+                    "recAKZ3fFEcPzusfy",
+                    "recijT582UARrRmiB",
+                    "recfDOm1NDsJCujKF"
+                ],
+                "Key": "Ebm",
+                "Times requested": 7,
+                "AVOID Gigs": [
+                    "rec6Udu8Z3uHdOxjG",
+                    "recgxbgfjMDumnHHG",
+                    "recTIRp3lqjPATcmd",
+                    "recwlg8K6gIlxzJWo"
+                ],
+                "M/F": "F",
+                "set list name": "About Damn time - Lizzo (F) - Ebm",
+                "Set List Items": [
+                    "recQoxKeUzmpcTX2G",
+                    "recProfY9qirvtEld"
+                ],
+                "duration (seconds)": 191,
+                "duration": "3:11",
+                "record_ id": "recE8bkgnydVmFVtO",
+                "Performers (from Gigs) (from Set List Items)": [
+                    "recNuaBB2j7ves5vT",
+                    "reckue0FzIkpeymGz",
+                    "rec5b6oJshqzoFDQB",
+                    "recBAaVXafi9bV6dc",
+                    "recIdIeIRdZCb8q2R",
+                    "recrcRCn2wnq0yv48",
+                    "recy9hM4XRnY9MvQV",
+                    "recb1UoPng4CdvO8P",
+                    "recNuaBB2j7ves5vT"
+                ],
+                "Performers (from Gigs) Rollup (from Set List Items)": "Frazer Smith, Craig Harkness, Joe Nichols, Matthew Cowan , Keli Thomson,Scott Bruce, Jasmine Dey, Katie Lindsay, Frazer Smith",
+                "Performed By": [
+                    "Frazer Smith",
+                    "Craig Harkness",
+                    "Joe Nichols",
+                    "Matthew Cowan ",
+                    "Keli Thomson",
+                    "Scott Bruce",
+                    "Jasmine Dey",
+                    "Katie Lindsay"
+                ],
+                "Name (from Performers) (from Gigs) (from Set List Items)": [
+                    "Frazer Smith",
+                    "Craig Harkness",
+                    "Joe Nichols",
+                    "Matthew Cowan ",
+                    "Keli Thomson",
+                    "Scott Bruce",
+                    "Jasmine Dey",
+                    "Katie Lindsay",
+                    "Frazer Smith"
+                ]
+            }
+        },
+        {
+            "id": "recLXVpmCwgWXS7V2",
+            "createdTime": "2025-03-13T08:31:03.000Z",
+            "fields": {
+                "Name": "Shut up and Dance - Walk The Moon",
+                "Title": "Shut up and Dance",
+                "Artist": "Walk The Moon",
+                "Genre": "Pop (80s/90’s/Modern)",
+                "Gigs": [
+                    "rectqJUhgiNJ6NEYa",
+                    "recpOnUHcWOYDXgOJ",
+                    "recLyxD1hlGZ3TTi8",
+                    "recpLgXLCNQsjIXdd",
+                    "recZSLYqoqJAmotkl",
+                    "rec84wiGWNK9p3np8",
+                    "recwr1mIMwKVdNZL4",
+                    "recgxbgfjMDumnHHG",
+                    "recmxDibV31pGiM7e",
+                    "reco0a0a0PhDItam9",
+                    "recq9pq39ke0oV0mp",
+                    "rec2y9actSMiXVVjz",
+                    "recfDOm1NDsJCujKF",
+                    "rec0SksrhE02oguIC",
+                    "recOkwK0866X6JIMv",
+                    "recEdUEAPwLxzjjqK"
+                ],
+                "Must Plays": [
+                    "recLyxD1hlGZ3TTi8",
+                    "recgxbgfjMDumnHHG"
+                ],
+                "Key": "Db",
+                "Times requested": 16,
+                "AVOID Gigs": [
+                    "rec2qgnXxWjguEESN"
+                ],
+                "M/F": "M",
+                "set list name": "Shut up and Dance - Walk The Moon (M) - Db",
+                "Set List Items": [
+                    "recUe4E2T6cA4EkZJ",
+                    "recVJ4FBY8fvrHzNR",
+                    "recIRHVp5FK1cOSh8",
+                    "recosEVbldJ0PQiFx",
+                    "rec4nljQrKpyuyjL8",
+                    "recIy6FOyEURJ7GHO",
+                    "recrV5KnjyYgI5Pdj",
+                    "recdhoHQtRjmslLc0",
+                    "rec1nRVFfrrceZDLY",
+                    "recuG9CjebvxFSU17",
+                    "recFaewKY3TnFHvRY"
+                ],
+                "duration (seconds)": 199,
+                "duration": "3:19",
+                "record_ id": "recLXVpmCwgWXS7V2",
+                "Performers (from Gigs) (from Set List Items)": [
+                    "recb1UoPng4CdvO8P",
+                    "recy9hM4XRnY9MvQV",
+                    "recbftpXAuNuCiq4X",
+                    "reckue0FzIkpeymGz",
+                    "recXMMomspfUSKAEz",
+                    "recb1UoPng4CdvO8P",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recC5SxcPcBpYMzmr",
+                    "recVzl5rVcFvXe5Op",
+                    "recXMMomspfUSKAEz",
+                    "reca2A9hKUa8J6XDc",
+                    "rec94gwxP0DhITt7n",
+                    "recb1UoPng4CdvO8P",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recC5SxcPcBpYMzmr",
+                    "recVzl5rVcFvXe5Op",
+                    "rec94gwxP0DhITt7n",
+                    "recXMMomspfUSKAEz",
+                    "recLZGFRfcI6x8FPK",
+                    "recbftpXAuNuCiq4X",
+                    "recQ0sDzsgRfmzGKs",
+                    "reca2A9hKUa8J6XDc",
+                    "rectJP6GkSKDmVG0n",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recb1UoPng4CdvO8P",
+                    "reckue0FzIkpeymGz",
+                    "reckcYdmNpegr50Cu",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recb1UoPng4CdvO8P",
+                    "reckue0FzIkpeymGz",
+                    "reckcYdmNpegr50Cu",
+                    "recrcRCn2wnq0yv48",
+                    "recb1UoPng4CdvO8P",
+                    "recnKKUTtzQD6OUTu",
+                    "reckue0FzIkpeymGz",
+                    "reckcYdmNpegr50Cu",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recIzGxdU99o3bS8C",
+                    "recbftpXAuNuCiq4X",
+                    "rec94gwxP0DhITt7n",
+                    "rec5b6oJshqzoFDQB",
+                    "recrcRCn2wnq0yv48",
+                    "recb1UoPng4CdvO8P",
+                    "rec9gIHH139eMqQAR",
+                    "recbftpXAuNuCiq4X",
+                    "recdAPA8zRw1XTi5U",
+                    "rec9gIHH139eMqQAR",
+                    "reckue0FzIkpeymGz",
+                    "recfJPGC2lhVBzTad",
+                    "recTZfee5MgWhvQrK",
+                    "recOof8ozeozAr1vp",
+                    "recIdIeIRdZCb8q2R",
+                    "recTZfee5MgWhvQrK",
+                    "rec5b6oJshqzoFDQB",
+                    "recLZGFRfcI6x8FPK",
+                    "reckue0FzIkpeymGz",
+                    "recpXCCdKbIpbk2dW",
+                    "recBUnReEhygcetPz",
+                    "recrcRCn2wnq0yv48",
+                    "recTZfee5MgWhvQrK",
+                    "rec5b6oJshqzoFDQB",
+                    "recxh0Y2WxlXsJPpe"
+                ],
+                "Performers (from Gigs) Rollup (from Set List Items)": "Katie Lindsay, Jasmine Dey, Ben Vaughan, Craig Harkness, Martin Walker,Katie Lindsay, Scott Bruce, Louise Grant, Jonnie Wallace, Kev Smith, Martin Wal...",
+                "Performed By": [
+                    "Katie Lindsay",
+                    "Jasmine Dey",
+                    "Ben Vaughan",
+                    "Craig Harkness",
+                    "Martin Walker",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jonnie Wallace",
+                    "Kev Smith",
+                    "Taylor Bruce",
+                    "Connor Honeyball",
+                    "Euan Allardyce ",
+                    "Zoe Downs",
+                    "Kev Moulds",
+                    "Stefan Celosia",
+                    "Katie Wills",
+                    "Ciaran Whyte",
+                    "Joe Nichols",
+                    "Jack O'Rourke",
+                    "Greg Rammage",
+                    "Pete Wall",
+                    "Kieran Imray",
+                    "Keli Thomson",
+                    "Sam Irvine",
+                    "Craig Stoddart",
+                    "Michelle"
+                ],
+                "Name (from Performers) (from Gigs) (from Set List Items)": [
+                    "Katie Lindsay",
+                    "Jasmine Dey",
+                    "Ben Vaughan",
+                    "Craig Harkness",
+                    "Martin Walker",
+                    "Katie Lindsay",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jonnie Wallace",
+                    "Kev Smith",
+                    "Martin Walker",
+                    "Taylor Bruce",
+                    "Connor Honeyball",
+                    "Katie Lindsay",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jonnie Wallace",
+                    "Kev Smith",
+                    "Connor Honeyball",
+                    "Martin Walker",
+                    "Euan Allardyce ",
+                    "Ben Vaughan",
+                    "Zoe Downs",
+                    "Taylor Bruce",
+                    "Kev Moulds",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Katie Lindsay",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Katie Lindsay",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Scott Bruce",
+                    "Katie Lindsay",
+                    "Katie Wills",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Ciaran Whyte",
+                    "Ben Vaughan",
+                    "Connor Honeyball",
+                    "Joe Nichols",
+                    "Scott Bruce",
+                    "Katie Lindsay",
+                    "Louise Grant",
+                    "Ben Vaughan",
+                    "Jack O'Rourke",
+                    "Louise Grant",
+                    "Craig Harkness",
+                    "Greg Rammage",
+                    "Pete Wall",
+                    "Kieran Imray",
+                    "Keli Thomson",
+                    "Pete Wall",
+                    "Joe Nichols",
+                    "Euan Allardyce ",
+                    "Craig Harkness",
+                    "Sam Irvine",
+                    "Craig Stoddart",
+                    "Scott Bruce",
+                    "Pete Wall",
+                    "Joe Nichols",
+                    "Michelle"
+                ]
+            }
+        }
+    ]
+}
+Update/Upsert Songs records
+To update Songs records, issue a request to the Songs endpoint. Table names and table IDs can be used interchangeably. Using table IDs means table name changes won't require modifying your API request code. A PATCH request will only update the fields included in the request. Fields not included in the request will be unchanged. A PUT request will perform a destructive update and clear all unincluded cell values.
+Your request body should include an array of up to 10 record objects. Each of these objects should have an id property representing the record ID and a fields property which contains all of your record's cell values by field name or field id for all of your record's cell values by field name.
+Upsert behavior can be enabled by including a performUpsert object with a fieldsToMergeOn array in your request. Upserts will treat fieldsToMergeOn as an external ID to find existing records in Airtable. If a match is found, that record will be updated. If no matches are found, a new record will be created. For more details, visit our API reference.
+Click here to show an example.
+
+fieldsToMergeOn should be an array with 1-3 field names or field IDs which uniquely identify a record. These cannot be computed fields and must be of the following field types: number, text, long text, single select, multiple select, date.
+
+The API response for upsert requests will additionally include createdRecords and updatedRecords. These are arrays of record IDs, identifying the records from the response's records array that were created or updated.
+
+Airtable reserves the right to throttle upsert requests differently from the standard rate limit throttling policy.
+
+To link to new records in Gigs, Must Plays, AVOID Gigs and Set List Items, add new linked record IDs to the existing array. Be sure to include all existing linked record IDs that you wish to retain. To unlink records, include the existing array of record IDs, excluding any that you wish to unlink.
+
+Values for Name, Times requested, set list name, Name (from Performers) (from Gigs) (from Set List Items), Performers (from Gigs) (from Set List Items), duration, record_ id, Performers (from Gigs) Rollup (from Set List Items) and Performed By are automatically computed by Airtable and cannot be directly updated. You cannot clear these, even with a PUT request.
+Automatic data conversion for update actions can be enabled via typecast parameter. See create record for details.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X PATCH https://api.airtable.com/v0/appZXteLrpESv7H8X/Songs \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "id": "recE8bkgnydVmFVtO",
+      "fields": {
+        "Title": "About Damn time",
+        "Artist": "Lizzo",
+        "Genre": "Pop (80s/90’s/Modern)",
+        "Gigs": [
+          "recsHx1GH4FHOJOKV",
+          "recZSLYqoqJAmotkl",
+          "recq9pq39ke0oV0mp",
+          "rec7RQuYD81fAtp0N",
+          "recAKZ3fFEcPzusfy",
+          "recijT582UARrRmiB",
+          "recfDOm1NDsJCujKF"
+        ],
+        "Key": "Ebm",
+        "AVOID Gigs": [
+          "rec6Udu8Z3uHdOxjG",
+          "recgxbgfjMDumnHHG",
+          "recTIRp3lqjPATcmd",
+          "recwlg8K6gIlxzJWo"
+        ],
+        "M/F": "F",
+        "Set List Items": [
+          "recQoxKeUzmpcTX2G",
+          "recProfY9qirvtEld"
+        ],
+        "duration (seconds)": 191
+      }
+    },
+    {
+      "id": "recLXVpmCwgWXS7V2",
+      "fields": {
+        "Title": "Shut up and Dance",
+        "Artist": "Walk The Moon",
+        "Genre": "Pop (80s/90’s/Modern)",
+        "Gigs": [
+          "rectqJUhgiNJ6NEYa",
+          "recpOnUHcWOYDXgOJ",
+          "recLyxD1hlGZ3TTi8",
+          "recpLgXLCNQsjIXdd",
+          "recZSLYqoqJAmotkl",
+          "rec84wiGWNK9p3np8",
+          "recwr1mIMwKVdNZL4",
+          "recgxbgfjMDumnHHG",
+          "recmxDibV31pGiM7e",
+          "reco0a0a0PhDItam9",
+          "recq9pq39ke0oV0mp",
+          "rec2y9actSMiXVVjz",
+          "recfDOm1NDsJCujKF",
+          "rec0SksrhE02oguIC",
+          "recOkwK0866X6JIMv",
+          "recEdUEAPwLxzjjqK"
+        ],
+        "Must Plays": [
+          "recLyxD1hlGZ3TTi8",
+          "recgxbgfjMDumnHHG"
+        ],
+        "Key": "Db",
+        "AVOID Gigs": [
+          "rec2qgnXxWjguEESN"
+        ],
+        "M/F": "M",
+        "Set List Items": [
+          "recUe4E2T6cA4EkZJ",
+          "recVJ4FBY8fvrHzNR",
+          "recIRHVp5FK1cOSh8",
+          "recosEVbldJ0PQiFx",
+          "rec4nljQrKpyuyjL8",
+          "recIy6FOyEURJ7GHO",
+          "recrV5KnjyYgI5Pdj",
+          "recdhoHQtRjmslLc0",
+          "rec1nRVFfrrceZDLY",
+          "recuG9CjebvxFSU17",
+          "recFaewKY3TnFHvRY"
+        ],
+        "duration (seconds)": 199
+      }
+    },
+    {
+      "id": "recpkSOuKPbvoQAlu",
+      "fields": {
+        "Title": "Juice",
+        "Artist": "Lizzo",
+        "Genre": "Pop (80s/90’s/Modern)",
+        "Gigs": [
+          "rec84wiGWNK9p3np8",
+          "recijT582UARrRmiB"
+        ],
+        "Key": "Dm",
+        "Scott veto": true,
+        "AVOID Gigs": [
+          "rec6Udu8Z3uHdOxjG",
+          "recgxbgfjMDumnHHG",
+          "recV7SplUdIshpvtX",
+          "recwlg8K6gIlxzJWo",
+          "recfa0mkdosFeZCs8"
+        ],
+        "M/F": "F",
+        "Set List Items": [
+          "recv30emzOhBWvgeJ",
+          "recNIDpnlpuiBUQ9e"
+        ],
+        "duration (seconds)": 195
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "recE8bkgnydVmFVtO",
+            "createdTime": "2025-03-13T08:31:03.000Z",
+            "fields": {
+                "Name": "About Damn time - Lizzo",
+                "Title": "About Damn time",
+                "Artist": "Lizzo",
+                "Genre": "Pop (80s/90’s/Modern)",
+                "Gigs": [
+                    "recsHx1GH4FHOJOKV",
+                    "recZSLYqoqJAmotkl",
+                    "recq9pq39ke0oV0mp",
+                    "rec7RQuYD81fAtp0N",
+                    "recAKZ3fFEcPzusfy",
+                    "recijT582UARrRmiB",
+                    "recfDOm1NDsJCujKF"
+                ],
+                "Key": "Ebm",
+                "Times requested": 7,
+                "AVOID Gigs": [
+                    "rec6Udu8Z3uHdOxjG",
+                    "recgxbgfjMDumnHHG",
+                    "recTIRp3lqjPATcmd",
+                    "recwlg8K6gIlxzJWo"
+                ],
+                "M/F": "F",
+                "set list name": "About Damn time - Lizzo (F) - Ebm",
+                "Set List Items": [
+                    "recQoxKeUzmpcTX2G",
+                    "recProfY9qirvtEld"
+                ],
+                "duration (seconds)": 191,
+                "duration": "3:11",
+                "record_ id": "recE8bkgnydVmFVtO",
+                "Performers (from Gigs) (from Set List Items)": [
+                    "recNuaBB2j7ves5vT",
+                    "reckue0FzIkpeymGz",
+                    "rec5b6oJshqzoFDQB",
+                    "recBAaVXafi9bV6dc",
+                    "recIdIeIRdZCb8q2R",
+                    "recrcRCn2wnq0yv48",
+                    "recy9hM4XRnY9MvQV",
+                    "recb1UoPng4CdvO8P",
+                    "recNuaBB2j7ves5vT"
+                ],
+                "Performers (from Gigs) Rollup (from Set List Items)": "Frazer Smith, Craig Harkness, Joe Nichols, Matthew Cowan , Keli Thomson,Scott Bruce, Jasmine Dey, Katie Lindsay, Frazer Smith",
+                "Performed By": [
+                    "Frazer Smith",
+                    "Craig Harkness",
+                    "Joe Nichols",
+                    "Matthew Cowan ",
+                    "Keli Thomson",
+                    "Scott Bruce",
+                    "Jasmine Dey",
+                    "Katie Lindsay"
+                ],
+                "Name (from Performers) (from Gigs) (from Set List Items)": [
+                    "Frazer Smith",
+                    "Craig Harkness",
+                    "Joe Nichols",
+                    "Matthew Cowan ",
+                    "Keli Thomson",
+                    "Scott Bruce",
+                    "Jasmine Dey",
+                    "Katie Lindsay",
+                    "Frazer Smith"
+                ]
+            }
+        },
+        {
+            "id": "recLXVpmCwgWXS7V2",
+            "createdTime": "2025-03-13T08:31:03.000Z",
+            "fields": {
+                "Name": "Shut up and Dance - Walk The Moon",
+                "Title": "Shut up and Dance",
+                "Artist": "Walk The Moon",
+                "Genre": "Pop (80s/90’s/Modern)",
+                "Gigs": [
+                    "rectqJUhgiNJ6NEYa",
+                    "recpOnUHcWOYDXgOJ",
+                    "recLyxD1hlGZ3TTi8",
+                    "recpLgXLCNQsjIXdd",
+                    "recZSLYqoqJAmotkl",
+                    "rec84wiGWNK9p3np8",
+                    "recwr1mIMwKVdNZL4",
+                    "recgxbgfjMDumnHHG",
+                    "recmxDibV31pGiM7e",
+                    "reco0a0a0PhDItam9",
+                    "recq9pq39ke0oV0mp",
+                    "rec2y9actSMiXVVjz",
+                    "recfDOm1NDsJCujKF",
+                    "rec0SksrhE02oguIC",
+                    "recOkwK0866X6JIMv",
+                    "recEdUEAPwLxzjjqK"
+                ],
+                "Must Plays": [
+                    "recLyxD1hlGZ3TTi8",
+                    "recgxbgfjMDumnHHG"
+                ],
+                "Key": "Db",
+                "Times requested": 16,
+                "AVOID Gigs": [
+                    "rec2qgnXxWjguEESN"
+                ],
+                "M/F": "M",
+                "set list name": "Shut up and Dance - Walk The Moon (M) - Db",
+                "Set List Items": [
+                    "recUe4E2T6cA4EkZJ",
+                    "recVJ4FBY8fvrHzNR",
+                    "recIRHVp5FK1cOSh8",
+                    "recosEVbldJ0PQiFx",
+                    "rec4nljQrKpyuyjL8",
+                    "recIy6FOyEURJ7GHO",
+                    "recrV5KnjyYgI5Pdj",
+                    "recdhoHQtRjmslLc0",
+                    "rec1nRVFfrrceZDLY",
+                    "recuG9CjebvxFSU17",
+                    "recFaewKY3TnFHvRY"
+                ],
+                "duration (seconds)": 199,
+                "duration": "3:19",
+                "record_ id": "recLXVpmCwgWXS7V2",
+                "Performers (from Gigs) (from Set List Items)": [
+                    "recb1UoPng4CdvO8P",
+                    "recy9hM4XRnY9MvQV",
+                    "recbftpXAuNuCiq4X",
+                    "reckue0FzIkpeymGz",
+                    "recXMMomspfUSKAEz",
+                    "recb1UoPng4CdvO8P",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recC5SxcPcBpYMzmr",
+                    "recVzl5rVcFvXe5Op",
+                    "recXMMomspfUSKAEz",
+                    "reca2A9hKUa8J6XDc",
+                    "rec94gwxP0DhITt7n",
+                    "recb1UoPng4CdvO8P",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recC5SxcPcBpYMzmr",
+                    "recVzl5rVcFvXe5Op",
+                    "rec94gwxP0DhITt7n",
+                    "recXMMomspfUSKAEz",
+                    "recLZGFRfcI6x8FPK",
+                    "recbftpXAuNuCiq4X",
+                    "recQ0sDzsgRfmzGKs",
+                    "reca2A9hKUa8J6XDc",
+                    "rectJP6GkSKDmVG0n",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recb1UoPng4CdvO8P",
+                    "reckue0FzIkpeymGz",
+                    "reckcYdmNpegr50Cu",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recb1UoPng4CdvO8P",
+                    "reckue0FzIkpeymGz",
+                    "reckcYdmNpegr50Cu",
+                    "recrcRCn2wnq0yv48",
+                    "recb1UoPng4CdvO8P",
+                    "recnKKUTtzQD6OUTu",
+                    "reckue0FzIkpeymGz",
+                    "reckcYdmNpegr50Cu",
+                    "recrcRCn2wnq0yv48",
+                    "rec9gIHH139eMqQAR",
+                    "recIzGxdU99o3bS8C",
+                    "recbftpXAuNuCiq4X",
+                    "rec94gwxP0DhITt7n",
+                    "rec5b6oJshqzoFDQB",
+                    "recrcRCn2wnq0yv48",
+                    "recb1UoPng4CdvO8P",
+                    "rec9gIHH139eMqQAR",
+                    "recbftpXAuNuCiq4X",
+                    "recdAPA8zRw1XTi5U",
+                    "rec9gIHH139eMqQAR",
+                    "reckue0FzIkpeymGz",
+                    "recfJPGC2lhVBzTad",
+                    "recTZfee5MgWhvQrK",
+                    "recOof8ozeozAr1vp",
+                    "recIdIeIRdZCb8q2R",
+                    "recTZfee5MgWhvQrK",
+                    "rec5b6oJshqzoFDQB",
+                    "recLZGFRfcI6x8FPK",
+                    "reckue0FzIkpeymGz",
+                    "recpXCCdKbIpbk2dW",
+                    "recBUnReEhygcetPz",
+                    "recrcRCn2wnq0yv48",
+                    "recTZfee5MgWhvQrK",
+                    "rec5b6oJshqzoFDQB",
+                    "recxh0Y2WxlXsJPpe"
+                ],
+                "Performers (from Gigs) Rollup (from Set List Items)": "Katie Lindsay, Jasmine Dey, Ben Vaughan, Craig Harkness, Martin Walker,Katie Lindsay, Scott Bruce, Louise Grant, Jonnie Wallace, Kev Smith, Martin Wal...",
+                "Performed By": [
+                    "Katie Lindsay",
+                    "Jasmine Dey",
+                    "Ben Vaughan",
+                    "Craig Harkness",
+                    "Martin Walker",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jonnie Wallace",
+                    "Kev Smith",
+                    "Taylor Bruce",
+                    "Connor Honeyball",
+                    "Euan Allardyce ",
+                    "Zoe Downs",
+                    "Kev Moulds",
+                    "Stefan Celosia",
+                    "Katie Wills",
+                    "Ciaran Whyte",
+                    "Joe Nichols",
+                    "Jack O'Rourke",
+                    "Greg Rammage",
+                    "Pete Wall",
+                    "Kieran Imray",
+                    "Keli Thomson",
+                    "Sam Irvine",
+                    "Craig Stoddart",
+                    "Michelle"
+                ],
+                "Name (from Performers) (from Gigs) (from Set List Items)": [
+                    "Katie Lindsay",
+                    "Jasmine Dey",
+                    "Ben Vaughan",
+                    "Craig Harkness",
+                    "Martin Walker",
+                    "Katie Lindsay",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jonnie Wallace",
+                    "Kev Smith",
+                    "Martin Walker",
+                    "Taylor Bruce",
+                    "Connor Honeyball",
+                    "Katie Lindsay",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Jonnie Wallace",
+                    "Kev Smith",
+                    "Connor Honeyball",
+                    "Martin Walker",
+                    "Euan Allardyce ",
+                    "Ben Vaughan",
+                    "Zoe Downs",
+                    "Taylor Bruce",
+                    "Kev Moulds",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Katie Lindsay",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Katie Lindsay",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Scott Bruce",
+                    "Katie Lindsay",
+                    "Katie Wills",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Scott Bruce",
+                    "Louise Grant",
+                    "Ciaran Whyte",
+                    "Ben Vaughan",
+                    "Connor Honeyball",
+                    "Joe Nichols",
+                    "Scott Bruce",
+                    "Katie Lindsay",
+                    "Louise Grant",
+                    "Ben Vaughan",
+                    "Jack O'Rourke",
+                    "Louise Grant",
+                    "Craig Harkness",
+                    "Greg Rammage",
+                    "Pete Wall",
+                    "Kieran Imray",
+                    "Keli Thomson",
+                    "Pete Wall",
+                    "Joe Nichols",
+                    "Euan Allardyce ",
+                    "Craig Harkness",
+                    "Sam Irvine",
+                    "Craig Stoddart",
+                    "Scott Bruce",
+                    "Pete Wall",
+                    "Joe Nichols",
+                    "Michelle"
+                ]
+            }
+        },
+        {
+            "id": "recpkSOuKPbvoQAlu",
+            "createdTime": "2025-03-13T08:31:03.000Z",
+            "fields": {
+                "Name": "Juice - Lizzo",
+                "Title": "Juice",
+                "Artist": "Lizzo",
+                "Genre": "Pop (80s/90’s/Modern)",
+                "Gigs": [
+                    "rec84wiGWNK9p3np8",
+                    "recijT582UARrRmiB"
+                ],
+                "Key": "Dm",
+                "Scott veto": true,
+                "Times requested": 2,
+                "AVOID Gigs": [
+                    "rec6Udu8Z3uHdOxjG",
+                    "recgxbgfjMDumnHHG",
+                    "recV7SplUdIshpvtX",
+                    "recwlg8K6gIlxzJWo",
+                    "recfa0mkdosFeZCs8"
+                ],
+                "M/F": "F",
+                "set list name": "Juice - Lizzo (F) - Dm",
+                "Set List Items": [
+                    "recv30emzOhBWvgeJ",
+                    "recNIDpnlpuiBUQ9e"
+                ],
+                "duration (seconds)": 195,
+                "duration": "3:15",
+                "record_ id": "recpkSOuKPbvoQAlu",
+                "Performers (from Gigs) (from Set List Items)": [
+                    "recrcRCn2wnq0yv48",
+                    "recb1UoPng4CdvO8P",
+                    "recnKKUTtzQD6OUTu",
+                    "reckue0FzIkpeymGz",
+                    "reckcYdmNpegr50Cu",
+                    "recrcRCn2wnq0yv48",
+                    "recy9hM4XRnY9MvQV",
+                    "recb1UoPng4CdvO8P",
+                    "recNuaBB2j7ves5vT"
+                ],
+                "Performers (from Gigs) Rollup (from Set List Items)": "Scott Bruce, Katie Lindsay, Katie Wills, Craig Harkness, Stefan Celosia,Scott Bruce, Jasmine Dey, Katie Lindsay, Frazer Smith",
+                "Performed By": [
+                    "Scott Bruce",
+                    "Katie Lindsay",
+                    "Katie Wills",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Jasmine Dey",
+                    "Frazer Smith"
+                ],
+                "Name (from Performers) (from Gigs) (from Set List Items)": [
+                    "Scott Bruce",
+                    "Katie Lindsay",
+                    "Katie Wills",
+                    "Craig Harkness",
+                    "Stefan Celosia",
+                    "Scott Bruce",
+                    "Jasmine Dey",
+                    "Katie Lindsay",
+                    "Frazer Smith"
+                ]
+            }
+        }
+    ]
+}
+Delete Songs records
+To delete Songs records, issue a DELETE request to the Songs endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request should include a URL-encoded array of up to 10 record IDs to delete.
+
+You can also issue a DELETE request to the record endpoint to delete a single record. Click here to show an example.
+
+ 
+Example request
+curl -X DELETE https://api.airtable.com/v0/appZXteLrpESv7H8X/Songs \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -G \
+  --data-urlencode 'records[]=recE8bkgnydVmFVtO' \
+  --data-urlencode 'records[]=recLXVpmCwgWXS7V2'
+Example response
+{
+    "records": [
+        {
+            "id": "recE8bkgnydVmFVtO",
+            "deleted": true
+        },
+        {
+            "id": "recLXVpmCwgWXS7V2",
+            "deleted": true
+        }
+    ]
+}

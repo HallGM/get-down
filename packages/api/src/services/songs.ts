@@ -60,6 +60,7 @@ const AddUnlinkedSchema = z.object({
   unlinkedArtist: z.string().max(255).optional(),
   unlinkedKey: z.string().max(50).optional(),
   unlinkedVocalType: z.string().max(50).optional(),
+  unlinkedDuration: z.number().int().nonnegative().optional(),
   position: z.number().int().positive().optional(),
   notes: z.string().optional(),
 });
@@ -82,6 +83,7 @@ export async function addSetListItem(
       unlinkedArtist: null,
       unlinkedKey: null,
       unlinkedVocalType: null,
+      unlinkedDuration: null,
     });
     const row = await songsRepo.readSetListItemById(inserted.id, gigId);
     if (!row) throw new NotFoundError("SetListItem not found after insert");
@@ -98,6 +100,7 @@ export async function addSetListItem(
       unlinkedArtist: input.unlinkedArtist?.trim() ?? null,
       unlinkedKey: input.unlinkedKey?.trim() ?? null,
       unlinkedVocalType: input.unlinkedVocalType?.trim() ?? null,
+      unlinkedDuration: input.unlinkedDuration ?? null,
     });
     const row = await songsRepo.readSetListItemById(inserted.id, gigId);
     if (!row) throw new NotFoundError("SetListItem not found after insert");
@@ -130,10 +133,12 @@ export async function reorderSetList(gigId: number, input: ReorderSetListRequest
 const UpdateSetListItemSchema = z.object({
   overrideKey:        z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
   overrideVocalType:  z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  overrideDuration:   z.number().int().nonnegative().nullable().optional(),
   unlinkedTitle:      z.string().max(255).transform(v => v.trim() || null).nullable().optional(),
   unlinkedArtist:     z.string().max(255).transform(v => v.trim() || null).nullable().optional(),
   unlinkedKey:        z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
   unlinkedVocalType:  z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  unlinkedDuration:   z.number().int().nonnegative().nullable().optional(),
 });
 
 export async function updateSetListItem(
@@ -148,18 +153,22 @@ export async function updateSetListItem(
 
   const newKey =          input.overrideKey         !== undefined ? input.overrideKey         : existing.override_key;
   const newVocalType =    input.overrideVocalType    !== undefined ? input.overrideVocalType    : existing.override_vocal_type;
+  const newOverrideDur =  input.overrideDuration     !== undefined ? input.overrideDuration     : existing.override_duration;
   const newUnlTitle =     input.unlinkedTitle        !== undefined ? input.unlinkedTitle        : existing.unlinked_title;
   const newUnlArtist =    input.unlinkedArtist       !== undefined ? input.unlinkedArtist       : existing.unlinked_artist;
   const newUnlKey =       input.unlinkedKey          !== undefined ? input.unlinkedKey          : existing.unlinked_key;
   const newUnlVocalType = input.unlinkedVocalType    !== undefined ? input.unlinkedVocalType    : existing.unlinked_vocal_type;
+  const newUnlDuration =  input.unlinkedDuration     !== undefined ? input.unlinkedDuration     : existing.unlinked_duration;
 
   await songsRepo.updateSetListItem(itemId, gigId, {
     overrideKey: newKey,
     overrideVocalType: newVocalType,
+    overrideDuration: newOverrideDur,
     unlinkedTitle: newUnlTitle,
     unlinkedArtist: newUnlArtist,
     unlinkedKey: newUnlKey,
     unlinkedVocalType: newUnlVocalType,
+    unlinkedDuration: newUnlDuration,
   });
 
   const updated = await songsRepo.readSetListItemById(itemId, gigId);
@@ -190,6 +199,7 @@ export async function bulkImportFromPreferences(gigId: number): Promise<SetListI
           unlinkedArtist: null,
           unlinkedKey: null,
           unlinkedVocalType: null,
+          unlinkedDuration: null,
         });
       }
     });
@@ -310,11 +320,13 @@ function mapSong(row: songsRepo.SongRow): Song {
     id: row.id,
     title: row.title,
     artist: row.artist ?? undefined,
-    genre: row.genre ?? undefined,
+    genre: row.genre_name ?? undefined,
+    genreId: row.genre_id ?? undefined,
     musicalKey: row.musical_key ?? undefined,
     bpm: row.bpm ?? undefined,
     vocalType: row.vocal_type ?? undefined,
     airtableId: row.airtable_id ?? undefined,
+    duration: row.duration ?? undefined,
   };
 }
 
@@ -327,14 +339,17 @@ function mapSetListItemWithSong(row: songsRepo.SetListItemWithSongRow): SetListI
     notes: row.notes ?? undefined,
     overrideKey: row.override_key ?? undefined,
     overrideVocalType: row.override_vocal_type ?? undefined,
+    overrideDuration: row.override_duration ?? undefined,
     unlinkedTitle: row.unlinked_title ?? undefined,
     unlinkedArtist: row.unlinked_artist ?? undefined,
     unlinkedKey: row.unlinked_key ?? undefined,
     unlinkedVocalType: row.unlinked_vocal_type ?? undefined,
+    unlinkedDuration: row.unlinked_duration ?? undefined,
     title: row.title,
     artist: row.artist ?? undefined,
     musicalKey: row.musical_key ?? undefined,
     vocalType: row.vocal_type ?? undefined,
+    duration: row.duration ?? undefined,
     isMustPlay: row.is_must_play,
     isFavourite: row.is_favourite,
     isDoNotPlay: row.is_do_not_play,
@@ -350,10 +365,11 @@ function buildSongMutationInput(
   return {
     title,
     artist: input.artist?.trim() ?? existing?.artist,
-    genre: input.genre?.trim() ?? existing?.genre,
+    genreId: input.genreId ?? existing?.genreId,
     musicalKey: input.musicalKey?.trim() ?? existing?.musicalKey,
     bpm: input.bpm ?? existing?.bpm,
     vocalType: input.vocalType ?? existing?.vocalType,
     airtableId: input.airtableId ?? existing?.airtableId,
+    duration: input.duration ?? existing?.duration,
   };
 }

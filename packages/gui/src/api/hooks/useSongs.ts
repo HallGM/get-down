@@ -135,7 +135,7 @@ export function useUpdateSetListItem() {
       ...body
     }: { gigId: number; itemId: number } & UpdateSetListItemRequest) =>
       apiFetch<SetListItemWithSong>("PATCH", `/gigs/${gigId}/set-list/${itemId}`, body),
-    onMutate: async ({ gigId, itemId, overrideKey, overrideVocalType }) => {
+    onMutate: async ({ gigId, itemId, overrideKey, overrideVocalType, overrideDuration }) => {
       await qc.cancelQueries({ queryKey: [SET_LIST_KEY, gigId] });
       const previous = qc.getQueryData<SetListItemWithSong[]>([SET_LIST_KEY, gigId]);
       qc.setQueryData<SetListItemWithSong[]>([SET_LIST_KEY, gigId], old =>
@@ -145,6 +145,7 @@ export function useUpdateSetListItem() {
                 ...item,
                 overrideKey: overrideKey === undefined ? item.overrideKey : (overrideKey ?? undefined),
                 overrideVocalType: overrideVocalType === undefined ? item.overrideVocalType : (overrideVocalType ?? undefined),
+                overrideDuration: overrideDuration === undefined ? item.overrideDuration : (overrideDuration ?? undefined),
               }
             : item
         )

@@ -260,15 +260,21 @@ Table attribution_fees_expenses {
   expense_id int [ref: > expenses.id, not null]
 }
 
+Table genres {
+  id   serial        [pk, increment]
+  name varchar(255)  [not null, unique]
+}
+
 Table songs {
   id          serial [pk, increment]
   title       varchar(255) [not null]
   artist      varchar(255)
-  genre       varchar(255)
+  genre_id    int [ref: > genres.id]
   musical_key varchar(50)
   bpm         int
   vocal_type  varchar(20)
   airtable_id varchar(255)
+  duration    int
 }
 
 Table set_list_items {
@@ -279,10 +285,12 @@ Table set_list_items {
   notes text
   override_key varchar(50)
   override_vocal_type varchar(50)
+  override_duration int
   unlinked_title varchar(255)
   unlinked_artist varchar(255)
   unlinked_key varchar(50)
   unlinked_vocal_type varchar(50)
+  unlinked_duration int
 }
 
 Table gig_song_favourites {

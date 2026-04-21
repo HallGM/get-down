@@ -113,6 +113,19 @@ export async function createThing(input: ...) {
 
 `render.yaml` — Render.com: managed Postgres, Node API (migrations run on startup), Vite static site, Flask invoice service.
 
+## Airtable API Reference
+
+Local documentation lives in `airtable_api/`. Consult it whenever reading from or writing to Airtable.
+
+| File / Folder | Contents |
+| --- | --- |
+| `01_introduction.txt` | Base overview; base ID `appZXteLrpESv7H8X`; available client libraries |
+| `02_metadata.txt` | Listing bases, tables, fields, and views |
+| `03_rate limits.txt` | 5 req/s per base; 429 → wait 30 s before retrying |
+| `04_authentication.txt` | Bearer token (personal access token) in `Authorization` header; HTTPS required |
+| `05_tables/` | Per-table CRUD docs for all 12 tables: `expenses`, `gig_payment`, `gigs`, `invoices`, `people`, `recipient`, `rehearsals`, `services`, `set_list_items`, `showcase_payment`, `showcases`, `songs` |
+| `06_errors.txt` | HTTP status codes: 200 success; 400/401/403/404/422/429 client errors; 500/502/503 server errors |
+
 ## Removed Features
 
 - **Todos** — the `todos` table, `repository/todos.ts`, and any todo-related service/controller/hook have been removed and must not be re-added. Migration `004_drop_todos.sql` drops the table.

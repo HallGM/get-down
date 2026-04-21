@@ -1,0 +1,20 @@
+Introduction
+The Every Angle API provides an easy way to integrate your Every Angle data in Airtable with any external system. The API closely follows REST semantics, uses JSON to encode objects, and relies on standard HTTP codes to signal operation outcomes.
+
+The API documentation below is specifically generated for your base. We recommend that you use the graphical Airtable interface to add a few records of example data for each table. These records will be displayed in the documentation examples generated below.
+
+To view documentation for all available endpoints, as well as documentation that has not been generated specific to your base, please visit here.
+
+The ID of this base is appZXteLrpESv7H8X.
+
+Please note: if you make changes to a field (column) name or type, the API interface for those fields will change correspondingly. Therefore, please make sure to update your API implementation accordingly whenever you make changes to your Airtable schema from the graphical interface.
+
+Official API client:
+
+JavaScript: airtable.js (Node.js + browser)
+Community-built API clients:
+
+Ruby: airrecord
+.NET: airtable.net
+Python 3: pyairtable
+Python 2/3: airtable.py

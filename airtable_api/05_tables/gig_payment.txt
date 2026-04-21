@@ -1,0 +1,1175 @@
+Gig Payment Table
+The id for Gig Payment is tblmoq1Xt57MR5p4X. Table ids and table names can be used interchangeably in API requests. Using table ids means table name changes do not require modifications to your API request.
+
+Fields
+Each record in the Gig Payment table contains the following fields:
+
+Field names and field ids can be used interchangeably. Using field ids means field name changes do not require modifications to your API request. We recommend using field ids over field names where possible, to reduce modifications to your API request if the user changes the field name later.
+
+Field NameField IDTypeDescription
+Namefld32CTpN7rkTMdoJFormula
+number, string, array of numbers or strings
+Computed value: DATETIME_FORMAT({Gig Date},'YY-MM-DD') & " - " & {Name (from person)}.
+ 
+Example values
+"\"25-05-31 - Katie Lindsay\""
+
+"\"24-12-14 - Katie Wills\""
+
+"\"25-05-17 - Katie Wills\""
+
+"\"25-05-31 - Drew Lesslie\""
+
+"\"25-08-02 - Drew Lesslie\""
+
+personfldVC81qdEnvC43zK
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the People table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+GigfldcNhjbDOBJOdY14
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Gigs table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Gig DatefldvLzXdv2rRzEAIH
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Date fields in linked Gigs records.
+ 
+Example values
+[
+    "2025-05-31"
+]
+
+[
+    "2024-12-14"
+]
+
+[
+    "2025-05-17"
+]
+
+[
+    "2025-05-31"
+]
+
+[
+    "2025-08-02"
+]
+
+Invoicesfldb0WsDsVR4HgBl3
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Invoices table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+amountfldnqei8DiNa2m8AwCurrency
+number
+Currency value. This field only allows positive numbers.
+ 
+Example values
+275.00
+
+250.00
+
+175.00
+
+275.00
+
+100.00
+
+Gigs (from person)fld5W2qokEAm9Fshf
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Gigs fields in linked People records.
+ 
+Example values
+[
+    "rectqJUhgiNJ6NEYa",
+    "recLyxD1hlGZ3TTi8",
+    "recTdmjJwU8jApztW",
+    "recq9pq39ke0oV0mp",
+    "recmxDibV31pGiM7e",
+    "rec6Udu8Z3uHdOxjG",
+    "recfa0mkdosFeZCs8",
+    "recEdUEAPwLxzjjqK",
+    "recR6B29i3oXkgPSL",
+    "recfyet4XXpUzhlsA",
+    "recmzUwWbksYEghwi",
+    "recuiRKZeN8DCyKlK",
+    "recYkKtlK6nMIb9CE",
+    "rec8OqyUpeOdLadkj",
+    "rec2y9actSMiXVVjz",
+    "rec3daAZM3uBIXi0W",
+    "recXYIcQjkVelnIil",
+    "recf2KueCLnDTAmqT",
+    "recgxbgfjMDumnHHG",
+    "rec84wiGWNK9p3np8",
+    "recwr1mIMwKVdNZL4",
+    "recj3PRxxpVk0ABAn",
+    "reclWkKMJthuaGOWC",
+    "recKnFANazcXFIgVa",
+    "recMfVI6ncjWwiB8b",
+    "recwlg8K6gIlxzJWo",
+    "recijT582UARrRmiB",
+    "recLtxvbfBUjBwLu7",
+    "rec8mHCI1FJfbg7WO",
+    "recBsEN7DD8dOy2ot",
+    "rec0SksrhE02oguIC",
+    "recOkwK0866X6JIMv",
+    "recQBp5cxcYw6Sf5Q"
+]
+
+[
+    "recgqBHzT84LJNJMN",
+    "recs0RF6ZOlOZwSfK",
+    "rec84wiGWNK9p3np8",
+    "recR4c0BKY5FWkHmy",
+    "reciD95pzUJT70kSS",
+    "recMn4Bg1qxWK4qjH"
+]
+
+[
+    "recgqBHzT84LJNJMN",
+    "recs0RF6ZOlOZwSfK",
+    "rec84wiGWNK9p3np8",
+    "recR4c0BKY5FWkHmy",
+    "reciD95pzUJT70kSS",
+    "recMn4Bg1qxWK4qjH"
+]
+
+[
+    "recYkKtlK6nMIb9CE",
+    "recTrYQgIy7uoEn0o",
+    "recevkJ0TzGGv5E4o",
+    "recHFNg3h7jo1GxCL"
+]
+
+[
+    "recYkKtlK6nMIb9CE",
+    "recTrYQgIy7uoEn0o",
+    "recevkJ0TzGGv5E4o",
+    "recHFNg3h7jo1GxCL"
+]
+
+notesfldUcZ4xERgOhYLNULong text
+string
+Multiple lines of text, which may contain "mention tokens", e.g.
+<airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>
+ 
+Example values
+"accidental prepaid - invoice is for £250"
+
+Name (from person)fld0DxG8M3rp3KQFp
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Name fields in linked People records.
+ 
+Example values
+[
+    "Katie Lindsay"
+]
+
+[
+    "Katie Wills"
+]
+
+[
+    "Katie Wills"
+]
+
+[
+    "Drew Lesslie"
+]
+
+[
+    "Drew Lesslie"
+]
+
+Invoice (from Invoices)fldACh1tDgW2r8I9C
+Lookup
+array of numbers, strings, booleans, or objects
+Array of Invoice fields in linked Invoices records.
+ 
+Example values
+[
+    {
+        "id": "attS8OjPJEVHga5l2",
+        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/TqVfGPTueKavNGFJsWj5yQ/LZEsZ84sfONUaaHAHLCQF04IzTkTmd2WGZ3get8T3qwLc2u1Ndqv4mclHzO-ZkGgJI9VDDvw-u4dRpiSkA9b0TZ83LyYAj3weFdYEzsq3I2ELfL-fTupP6zlEgagkospyV4Ykuj_Xa02NKrIo0iAN8P1II5ynUAbHnYBEu28xp8/r_9FeiKiIYELh3pEpOK5-9ErRjlcpRjKpjOmzVNYlvY",
+        "filename": "31_05_2025 INVOICE KL.pdf",
+        "size": 66327,
+        "type": "application/pdf",
+        "thumbnails": {
+            "small": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/g6rs92SYblGpk1Y-xoCbQA/tFkytZeAmykhfr7ulm1tBdb6suaOeplnyJmWDPb8D1gpbk6mXUh1FsQ1-F6ykVZftjREi_shh6tHehsf9R8T-QWhD9oU1186nGVI8lxy3Ra8OegBoTJyhHmebbdlqNfpkeGnrFyKbnvSerWYkMyF9g/Z_WnV8iXbdd5PVrBAyU-nAihhEH1Hfh_yhZAry8xSi0",
+                "width": 25,
+                "height": 35
+            },
+            "large": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/drEg270uObMza_dGqMqbrw/z6A1roKYC8kBjv22GNqcj1pOEoDK1xSB_1UMYKaLVsC0tfzRRa_STGLMS7REobCEE_OcpX9_gBy-8HIO1a6MrDfc5C-gmpgyKISMSCj4oRdIXUDsbgmD6GQBRtOsXA8LfwXKchBtI4Vrukh7NoB2Lw/EXoq3jSVyPyWr2sb-I3H6Ux9m4oHD3-76iy_gjvTOhQ",
+                "width": 512,
+                "height": 724
+            }
+        }
+    }
+]
+
+[
+    {
+        "id": "attWmw35VAurYrlRn",
+        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/HJtOBqi4EE8ym6ruwtuk8Q/MXczxTOSPXvV2gjhF0U4Ht9_qGiNj6wXgvEojHRacov4GVU6rVUnYPqE3fpVgpudcl3zanKS5_vDqYuyXaQEj-GaAVshskJgfe8R5H1MtN_XueCogRcf9Qhx2yOzUrvlbZzrZWwadjT49KY9korqZpinf8FkgZzvKEeodiKyeIE/hqMQzo4fv1mdiyYCnzLxZXOpjO18hRFIgCC4HiflQTg",
+        "filename": "141224 Invoice -2.pdf",
+        "size": 67329,
+        "type": "application/pdf",
+        "thumbnails": {
+            "small": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/-ystGiq2J9vb9RN27MF61A/jpVeuBtZfX4AaxyHPSUhKPD9G3ANgj2YG0zagCM4mtf5ukZVUq1_s3Gcq3jwKOLZR898haKS3RDtp8t1y_vQIsMmXYoKMUYRKmoZ60Vb2d5Rn6oru2huMmBbhUSKpxfxtGGPeKgL_8XbXmcUwAsMfg/P3lKpwbgKByzo--qFJHcUl1CuVX609c_59tvRVKOxcA",
+                "width": 25,
+                "height": 35
+            },
+            "large": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/JeiMgdPM-OMyFbr2NlgVEQ/5BN2nt3mcj1YOnub9pLH5Cco1qfFkCx8U4y-9QxHoOLfucKXPSiod-dAPXJV2g2X37TVPmaX2aTo8uv4vh56g9fz4JMKa4mV2FuuvdaMWkvqs9H3SbBkxc5KRrd8dQ_pqOwwSILPwfJuQOf8Ah_ATQ/NUGh2A1dkx8pI8PDzagyo1t8h6fA8fNW0zi-wlCIBTs",
+                "width": 512,
+                "height": 724
+            }
+        }
+    }
+]
+
+[
+    {
+        "id": "attfSu8xtzZNBEtMR",
+        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/q005yaRyXPSM31NubtPCeQ/2QV4e3XEgY4JY_LN2WiCL1KbBmpiELRe08y842OX1uo2s2crPcl91sI4eMB14jwZFBMiJPS49jcKwS1Pav96t2URVV2_7-ozhUtIB3E_uppO1Duc7vbVRQu709dPGcmNewdm5ZsexEtrtugHavGX2pfluXMoUv__J-2BsDxWJsyjXTEk8M0mUHkV_3F_IUud/oER4qzcKT6rgM5wUpXWT_eu8Kr9xWkp-iTBVSl3Zp9s",
+        "filename": "170525 Daytime Wedding Invoice.pdf",
+        "size": 66062,
+        "type": "application/pdf",
+        "thumbnails": {
+            "small": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/gP5XyJzKS2i7SrB7v8J-Eg/jRbXin-be_Xyunadr1_06Xt9gPvW2V-bmAg7dbLqYstJFmSqnuHDLRpYplkRxFL95lNxZDEch3NeWh69_HkTAY3P-SE6ZKYXVvANgvVaZO_fFLftROcp1rml-29TNrJfG6zBGWPlwTeGRae-qa-afQ/V4rT0-m9w4LsoTGZ4_zW5nea6Fr0rQmtRQHMa-9N25g",
+                "width": 25,
+                "height": 35
+            },
+            "large": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/KLrqanY8CVqw5sTFZrzTew/2TS8vjg7h9Wwcn_rdNp-TZC9uCvXFDCJJErDZ1YJstFmg8SyOgQkZxIZPR1o9TMWCS1A15ly7P2mMLITogqYxlPMleBMieym1q0Jwfj7p2jPfW9wuOOkxLaub-zc6zuz5XdkEzNRNgEBKrStyXrBkg/yC_AlB92nHSuRAMTaDWsmmq47Psk-kiA2cs0v8NFzPE",
+                "width": 512,
+                "height": 724
+            }
+        }
+    }
+]
+
+[
+    {
+        "id": "attwPeF7Iq4Wsl2n5",
+        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/X2_0H_HO-b9a6YZvWBFOOw/dzWBXCVPFPVL0CmZk_oMFw65w_9betNM1kQDZ-iz65ErhSOV4Yr1NUpATDvV7RZbhbMhniiAm-oFXAJqJ2ImqY1yisDsGgD2V6uTdOWjDopUWGodhM0IoqOCUr0ZtndxaRYvj8oATeRXM_2Y8h4kCf7fRmduH9bSrJdaslC9ZOr_MoYZUIn9mfi52wyorF5r/93FKNtKWoT6kEcikfuXD-OagZf5PQC2T8C6xRY4_eB0",
+        "filename": "DL Invoice EVA-005 31.05.2025.pdf",
+        "size": 55187,
+        "type": "application/pdf",
+        "thumbnails": {
+            "small": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/WtfxSFnQL9_F4HERsvYsCg/Y4J9xSY3TrOIz8I126lMDvQJilWGK-qEM6EijIxYBoDyJztrWQOHvTNJgoPvzKK5Hv1NM6mMZVXmfYwfNfhNDncSCPy6584KHXpNLGGMOZGy6cKJlIlFKUPaXfKwOCNn1iyTjq-tTbseeiDxirAIIg/vJ2jp6fV-DcrxIn9YKpQtqdp94vK6aG3wUklaeY2QJc",
+                "width": 25,
+                "height": 35
+            },
+            "large": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/SSMy0vORA0q5O06WVpu32g/gs3sn4w116EjuhEQpCZTV4RDngNRBqX2kp2VMSE7Je4Vv07Y8ZcaPJJanWz8ipW9l_UrZWQ4Ay7Lee7tw2Dkk8aE-1ybYNM-NC29xa2iaqRsAJV4LjbeJkGtyrE7AnNImVcCZpVcf72LXv4fvOjDcQ/uJvUGX9w7qspDpSEtu-8FHnQk869tdOH7ClF2uhv4Ow",
+                "width": 512,
+                "height": 724
+            }
+        }
+    }
+]
+
+[
+    {
+        "id": "attLUOcFBgraCheGm",
+        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/XSKdS95wVfgMNQ1SoBajXA/WjXvZWEkLhacN4JFoEVasqAXkm3_kiH-aX_wJqKcIia4mcjrOVLrAOniiCx6Wupc32zr_RN4OLsgqnb7arayPFMr0GyfyQ1TMxIA-rO2dc2_IrnS_txQ9tMvVT4hRSLdFQqWR3ftz1TPalkQ_Ewf6_EVadcTk92PGdTg41qFybWGeBA_1JrW9BhQpzBkeFip/7HOtic1zPo4Ko8UMlpw4vI_3K19StRH9QFxRt8OKwNM",
+        "filename": "DL Invoice EVA-006 31.05.2025.pdf",
+        "size": 53350,
+        "type": "application/pdf",
+        "thumbnails": {
+            "small": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/0EpYQpcgIbHIgCU-_-tCIQ/5lERJjh54JjUx3-6SC8Kkz1D6y8Rh0vrc9ZaZ67XnB2xgmXwIVQaxr-YzVHaqrT0pSOKo1gjgEXXY3vz4MiM8VOPGdonTMm3N5DTs0HUeE-53-Xk33NeQgFfGan0r53mySMiyqBnjgOWtxMmzxr_Uw/6nkKUJQFwT-XmQZRExVoE2R4gUoVXqXT4XSgQh1XY-A",
+                "width": 25,
+                "height": 35
+            },
+            "large": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/aJ9Eoei_SqUI95bb3MD8Xg/iWyZ97lc4tsNbv9O2K6ZTCywJ6qr9OYVhhK7MUdBcWZT-ycvmd1SaKIHa-OUYeZ39QX63ZGqgWH6It0SBdUMlZLKH4gmReBVt13_1LriTkQjItA5hilP8QbvnJqjNZEJwduJWPl0dnNUQgRH-VS_Sw/Y5OySPpng3YRFrTY-Ozo2PUlh4lLHn4c3ZGdX5Q0zr4",
+                "width": 512,
+                "height": 724
+            }
+        }
+    }
+]
+
+List Gig Payment records
+To list records in Gig Payment, issue a GET request to the Gig Payment endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Returned records do not include any fields with "empty" values, e.g. "", [], or false.
+
+You can filter, sort, and format the results with the following query parameters. Note that these parameters need to be URL encoded. You can use our API URL encoder tool to help with this. If you are using a helper library like Airtable.js, these parameters will be automatically encoded.
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+fields
+array of strings
+optional
+Only data for fields whose names are in this list will be included in the result. If you don't need every field, you can use this parameter to reduce the amount of data transferred.
+
+For example, to only return data from Name and person, send these two query parameters:
+
+fields%5B%5D=Name&fields%5B%5D=person
+You can also perform the same action with field ids (they can be found in the fields section):
+
+fields%5B%5D=fld32CTpN7rkTMdoJ&fields%5B%5D=fldVC81qdEnvC43zK
+Note: %5B%5D may be omitted when specifying multiple fields, but must always be included when specifying only a single field.
+
+filterByFormula
+string
+optional
+A formula used to filter records. The formula will be evaluated for each record, and if the result is not 0, false, "", NaN, [], or #Error! the record will be included in the response. We recommend testing your formula in the Formula field UI before using it in your API request.
+
+If combined with the view parameter, only records in that view which satisfy the formula will be returned.
+
+The formula must be encoded first before passing it as a value. You can use this tool to not only encode the formula but also create the entire url you need. For example, to only include records where Name isn't empty, pass in NOT({Name} = '') as a parameter like this:
+
+filterByFormula=NOT%28%7BName%7D%20%3D%20%27%27%29
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+maxRecords
+number
+optional
+The maximum total number of records that will be returned in your requests. If this value is larger than pageSize (which is 100 by default), you may have to load multiple pages to reach this total. See the Pagination section below for more.pageSize
+number
+optional
+The number of records returned in each request. Must be less than or equal to 100. Default is 100. See the Pagination section below for more.sort
+array of objects
+optional
+A list of sort objects that specifies how the records will be ordered. Each sort object must have a field key specifying the name of the field to sort on, and an optional direction key that is either "asc" or "desc". The default direction is "asc".
+
+The sort parameter overrides the sorting of the view specified in the view parameter. If neither the sort nor the view parameter is included, the order of records is arbitrary.
+
+For example, to sort records by Name in descending order, send these two query parameters:
+
+sort%5B0%5D%5Bfield%5D=Name
+sort%5B0%5D%5Bdirection%5D=desc
+For example, to sort records by Name in descending order, pass in:
+
+[{field: "Name", direction: "desc"}]
+view
+string
+optional
+The name or ID of a view in the Gig Payment table. If set, only the records in that view will be returned. The records will be sorted according to the order of the view unless the sort parameter is included, which overrides that order. Fields hidden in this view will be returned in the results. To only return a subset of fields, use the fields parameter.cellFormat
+string
+optional
+The format that should be used for cell values. Supported values are:
+
+json: cells will be formatted as JSON, depending on the field type.
+
+string: cells will be formatted as user-facing strings, regardless of the field type. The timeZone and userLocale parameters are required when using string as the cellFormat.
+
+Note: You should not rely on the format of these strings, as it is subject to change.
+The default is json.
+
+timeZone
+string
+optional
+The time zone that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+userLocale
+string
+optional
+The user locale that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+returnFieldsByFieldId
+boolean
+optional
+An optional boolean value that lets you return field objects where the key is the field id.
+
+This defaults to false, which returns field objects where the key is the field name.
+
+recordMetadata
+array of strings
+optional
+An optional field that, if includes commentCount, adds a commentCount read only property on each record returned.
+
+These parameters need to be URL encoded. If you are using a helper library like Airtable.js, they will be automatically encoded.
+
+Pagination
+The server returns one page of records at a time. Each page will contain pageSize records, which is 100 by default.
+
+If there are more records, the response will contain an offset. To fetch the next page of records, include offset in the next request's parameters.
+
+Pagination will stop when you've reached the end of your table. If the maxRecords parameter is passed, pagination will stop once you've reached this maximum.
+
+ 
+Example request
+curl "https://api.airtable.com/v0/appZXteLrpESv7H8X/Gig%20Payment?maxRecords=3&view=Play" \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "records": [
+        {
+            "id": "recF7WBv8R7bzfTIN",
+            "createdTime": "2025-06-19T07:41:56.000Z",
+            "fields": {
+                "Name": "25-05-31 - Katie Lindsay",
+                "person": [
+                    "recb1UoPng4CdvO8P"
+                ],
+                "Gig": [
+                    "recYkKtlK6nMIb9CE"
+                ],
+                "Name (from person)": [
+                    "Katie Lindsay"
+                ],
+                "Gig Date": [
+                    "2025-05-31"
+                ],
+                "Invoices": [
+                    "recg41t8cdb3fB7cM"
+                ],
+                "Invoice (from Invoices)": [
+                    {
+                        "id": "attS8OjPJEVHga5l2",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/TqVfGPTueKavNGFJsWj5yQ/LZEsZ84sfONUaaHAHLCQF04IzTkTmd2WGZ3get8T3qwLc2u1Ndqv4mclHzO-ZkGgJI9VDDvw-u4dRpiSkA9b0TZ83LyYAj3weFdYEzsq3I2ELfL-fTupP6zlEgagkospyV4Ykuj_Xa02NKrIo0iAN8P1II5ynUAbHnYBEu28xp8/r_9FeiKiIYELh3pEpOK5-9ErRjlcpRjKpjOmzVNYlvY",
+                        "filename": "31_05_2025 INVOICE KL.pdf",
+                        "size": 66327,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/g6rs92SYblGpk1Y-xoCbQA/tFkytZeAmykhfr7ulm1tBdb6suaOeplnyJmWDPb8D1gpbk6mXUh1FsQ1-F6ykVZftjREi_shh6tHehsf9R8T-QWhD9oU1186nGVI8lxy3Ra8OegBoTJyhHmebbdlqNfpkeGnrFyKbnvSerWYkMyF9g/Z_WnV8iXbdd5PVrBAyU-nAihhEH1Hfh_yhZAry8xSi0",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/drEg270uObMza_dGqMqbrw/z6A1roKYC8kBjv22GNqcj1pOEoDK1xSB_1UMYKaLVsC0tfzRRa_STGLMS7REobCEE_OcpX9_gBy-8HIO1a6MrDfc5C-gmpgyKISMSCj4oRdIXUDsbgmD6GQBRtOsXA8LfwXKchBtI4Vrukh7NoB2Lw/EXoq3jSVyPyWr2sb-I3H6Ux9m4oHD3-76iy_gjvTOhQ",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "amount": 275,
+                "Gigs (from person)": [
+                    "rectqJUhgiNJ6NEYa",
+                    "recLyxD1hlGZ3TTi8",
+                    "recTdmjJwU8jApztW",
+                    "recq9pq39ke0oV0mp",
+                    "recmxDibV31pGiM7e",
+                    "rec6Udu8Z3uHdOxjG",
+                    "recfa0mkdosFeZCs8",
+                    "recEdUEAPwLxzjjqK",
+                    "recR6B29i3oXkgPSL",
+                    "recfyet4XXpUzhlsA",
+                    "recmzUwWbksYEghwi",
+                    "recuiRKZeN8DCyKlK",
+                    "recYkKtlK6nMIb9CE",
+                    "rec8OqyUpeOdLadkj",
+                    "rec2y9actSMiXVVjz",
+                    "rec3daAZM3uBIXi0W",
+                    "recXYIcQjkVelnIil",
+                    "recf2KueCLnDTAmqT",
+                    "recgxbgfjMDumnHHG",
+                    "rec84wiGWNK9p3np8",
+                    "recwr1mIMwKVdNZL4",
+                    "recj3PRxxpVk0ABAn",
+                    "reclWkKMJthuaGOWC",
+                    "recKnFANazcXFIgVa",
+                    "recMfVI6ncjWwiB8b",
+                    "recwlg8K6gIlxzJWo",
+                    "recijT582UARrRmiB",
+                    "recLtxvbfBUjBwLu7",
+                    "rec8mHCI1FJfbg7WO",
+                    "recBsEN7DD8dOy2ot",
+                    "rec0SksrhE02oguIC",
+                    "recOkwK0866X6JIMv",
+                    "recQBp5cxcYw6Sf5Q"
+                ]
+            }
+        },
+        {
+            "id": "recNcUruh9f49CYTw",
+            "createdTime": "2025-06-19T07:43:47.000Z",
+            "fields": {
+                "Name": "24-12-14 - Katie Wills",
+                "person": [
+                    "recnKKUTtzQD6OUTu"
+                ],
+                "Gig": [
+                    "recR4c0BKY5FWkHmy"
+                ],
+                "Name (from person)": [
+                    "Katie Wills"
+                ],
+                "Gig Date": [
+                    "2024-12-14"
+                ],
+                "Invoices": [
+                    "recm8QGfNhRM32c7C"
+                ],
+                "Invoice (from Invoices)": [
+                    {
+                        "id": "attWmw35VAurYrlRn",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/HJtOBqi4EE8ym6ruwtuk8Q/MXczxTOSPXvV2gjhF0U4Ht9_qGiNj6wXgvEojHRacov4GVU6rVUnYPqE3fpVgpudcl3zanKS5_vDqYuyXaQEj-GaAVshskJgfe8R5H1MtN_XueCogRcf9Qhx2yOzUrvlbZzrZWwadjT49KY9korqZpinf8FkgZzvKEeodiKyeIE/hqMQzo4fv1mdiyYCnzLxZXOpjO18hRFIgCC4HiflQTg",
+                        "filename": "141224 Invoice -2.pdf",
+                        "size": 67329,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/-ystGiq2J9vb9RN27MF61A/jpVeuBtZfX4AaxyHPSUhKPD9G3ANgj2YG0zagCM4mtf5ukZVUq1_s3Gcq3jwKOLZR898haKS3RDtp8t1y_vQIsMmXYoKMUYRKmoZ60Vb2d5Rn6oru2huMmBbhUSKpxfxtGGPeKgL_8XbXmcUwAsMfg/P3lKpwbgKByzo--qFJHcUl1CuVX609c_59tvRVKOxcA",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/JeiMgdPM-OMyFbr2NlgVEQ/5BN2nt3mcj1YOnub9pLH5Cco1qfFkCx8U4y-9QxHoOLfucKXPSiod-dAPXJV2g2X37TVPmaX2aTo8uv4vh56g9fz4JMKa4mV2FuuvdaMWkvqs9H3SbBkxc5KRrd8dQ_pqOwwSILPwfJuQOf8Ah_ATQ/NUGh2A1dkx8pI8PDzagyo1t8h6fA8fNW0zi-wlCIBTs",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "amount": 250,
+                "Gigs (from person)": [
+                    "recgqBHzT84LJNJMN",
+                    "recs0RF6ZOlOZwSfK",
+                    "rec84wiGWNK9p3np8",
+                    "recR4c0BKY5FWkHmy",
+                    "reciD95pzUJT70kSS",
+                    "recMn4Bg1qxWK4qjH"
+                ]
+            }
+        },
+        {
+            "id": "recQjF0DkuIAhkD3I",
+            "createdTime": "2025-06-19T07:45:37.000Z",
+            "fields": {
+                "Name": "25-05-17 - Katie Wills",
+                "person": [
+                    "recnKKUTtzQD6OUTu"
+                ],
+                "Gig": [
+                    "recgqBHzT84LJNJMN"
+                ],
+                "Name (from person)": [
+                    "Katie Wills"
+                ],
+                "Gig Date": [
+                    "2025-05-17"
+                ],
+                "Invoices": [
+                    "rec7goadtpTL2hw7B"
+                ],
+                "Invoice (from Invoices)": [
+                    {
+                        "id": "attfSu8xtzZNBEtMR",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/q005yaRyXPSM31NubtPCeQ/2QV4e3XEgY4JY_LN2WiCL1KbBmpiELRe08y842OX1uo2s2crPcl91sI4eMB14jwZFBMiJPS49jcKwS1Pav96t2URVV2_7-ozhUtIB3E_uppO1Duc7vbVRQu709dPGcmNewdm5ZsexEtrtugHavGX2pfluXMoUv__J-2BsDxWJsyjXTEk8M0mUHkV_3F_IUud/oER4qzcKT6rgM5wUpXWT_eu8Kr9xWkp-iTBVSl3Zp9s",
+                        "filename": "170525 Daytime Wedding Invoice.pdf",
+                        "size": 66062,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/gP5XyJzKS2i7SrB7v8J-Eg/jRbXin-be_Xyunadr1_06Xt9gPvW2V-bmAg7dbLqYstJFmSqnuHDLRpYplkRxFL95lNxZDEch3NeWh69_HkTAY3P-SE6ZKYXVvANgvVaZO_fFLftROcp1rml-29TNrJfG6zBGWPlwTeGRae-qa-afQ/V4rT0-m9w4LsoTGZ4_zW5nea6Fr0rQmtRQHMa-9N25g",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/KLrqanY8CVqw5sTFZrzTew/2TS8vjg7h9Wwcn_rdNp-TZC9uCvXFDCJJErDZ1YJstFmg8SyOgQkZxIZPR1o9TMWCS1A15ly7P2mMLITogqYxlPMleBMieym1q0Jwfj7p2jPfW9wuOOkxLaub-zc6zuz5XdkEzNRNgEBKrStyXrBkg/yC_AlB92nHSuRAMTaDWsmmq47Psk-kiA2cs0v8NFzPE",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "amount": 175,
+                "Gigs (from person)": [
+                    "recgqBHzT84LJNJMN",
+                    "recs0RF6ZOlOZwSfK",
+                    "rec84wiGWNK9p3np8",
+                    "recR4c0BKY5FWkHmy",
+                    "reciD95pzUJT70kSS",
+                    "recMn4Bg1qxWK4qjH"
+                ]
+            }
+        }
+    ],
+    "offset": "itrmnjZLO3J5zO9N2/recQjF0DkuIAhkD3I"
+}
+ 
+Iteration may timeout due to client inactivity or server restarts. In that case, the client will receive a 422 response with error message LIST_RECORDS_ITERATOR_NOT_AVAILABLE. It may then restart iteration from the beginning.
+
+ 
+Retrieve a Gig Payment record
+To retrieve an existing record in Gig Payment table, issue a GET request to the record endpoint.
+Any "empty" fields (e.g. "", [], or false) in the record will not be returned.
+
+ 
+Example request
+curl https://api.airtable.com/v0/appZXteLrpESv7H8X/Gig%20Payment/recF7WBv8R7bzfTIN \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "id": "recF7WBv8R7bzfTIN",
+    "createdTime": "2025-06-19T07:41:56.000Z",
+    "fields": {
+        "Name": "25-05-31 - Katie Lindsay",
+        "person": [
+            "recb1UoPng4CdvO8P"
+        ],
+        "Gig": [
+            "recYkKtlK6nMIb9CE"
+        ],
+        "Name (from person)": [
+            "Katie Lindsay"
+        ],
+        "Gig Date": [
+            "2025-05-31"
+        ],
+        "Invoices": [
+            "recg41t8cdb3fB7cM"
+        ],
+        "Invoice (from Invoices)": [
+            {
+                "id": "attS8OjPJEVHga5l2",
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/TqVfGPTueKavNGFJsWj5yQ/LZEsZ84sfONUaaHAHLCQF04IzTkTmd2WGZ3get8T3qwLc2u1Ndqv4mclHzO-ZkGgJI9VDDvw-u4dRpiSkA9b0TZ83LyYAj3weFdYEzsq3I2ELfL-fTupP6zlEgagkospyV4Ykuj_Xa02NKrIo0iAN8P1II5ynUAbHnYBEu28xp8/r_9FeiKiIYELh3pEpOK5-9ErRjlcpRjKpjOmzVNYlvY",
+                "filename": "31_05_2025 INVOICE KL.pdf",
+                "size": 66327,
+                "type": "application/pdf",
+                "thumbnails": {
+                    "small": {
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/g6rs92SYblGpk1Y-xoCbQA/tFkytZeAmykhfr7ulm1tBdb6suaOeplnyJmWDPb8D1gpbk6mXUh1FsQ1-F6ykVZftjREi_shh6tHehsf9R8T-QWhD9oU1186nGVI8lxy3Ra8OegBoTJyhHmebbdlqNfpkeGnrFyKbnvSerWYkMyF9g/Z_WnV8iXbdd5PVrBAyU-nAihhEH1Hfh_yhZAry8xSi0",
+                        "width": 25,
+                        "height": 35
+                    },
+                    "large": {
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/drEg270uObMza_dGqMqbrw/z6A1roKYC8kBjv22GNqcj1pOEoDK1xSB_1UMYKaLVsC0tfzRRa_STGLMS7REobCEE_OcpX9_gBy-8HIO1a6MrDfc5C-gmpgyKISMSCj4oRdIXUDsbgmD6GQBRtOsXA8LfwXKchBtI4Vrukh7NoB2Lw/EXoq3jSVyPyWr2sb-I3H6Ux9m4oHD3-76iy_gjvTOhQ",
+                        "width": 512,
+                        "height": 724
+                    }
+                }
+            }
+        ],
+        "amount": 275,
+        "Gigs (from person)": [
+            "rectqJUhgiNJ6NEYa",
+            "recLyxD1hlGZ3TTi8",
+            "recTdmjJwU8jApztW",
+            "recq9pq39ke0oV0mp",
+            "recmxDibV31pGiM7e",
+            "rec6Udu8Z3uHdOxjG",
+            "recfa0mkdosFeZCs8",
+            "recEdUEAPwLxzjjqK",
+            "recR6B29i3oXkgPSL",
+            "recfyet4XXpUzhlsA",
+            "recmzUwWbksYEghwi",
+            "recuiRKZeN8DCyKlK",
+            "recYkKtlK6nMIb9CE",
+            "rec8OqyUpeOdLadkj",
+            "rec2y9actSMiXVVjz",
+            "rec3daAZM3uBIXi0W",
+            "recXYIcQjkVelnIil",
+            "recf2KueCLnDTAmqT",
+            "recgxbgfjMDumnHHG",
+            "rec84wiGWNK9p3np8",
+            "recwr1mIMwKVdNZL4",
+            "recj3PRxxpVk0ABAn",
+            "reclWkKMJthuaGOWC",
+            "recKnFANazcXFIgVa",
+            "recMfVI6ncjWwiB8b",
+            "recwlg8K6gIlxzJWo",
+            "recijT582UARrRmiB",
+            "recLtxvbfBUjBwLu7",
+            "rec8mHCI1FJfbg7WO",
+            "recBsEN7DD8dOy2ot",
+            "rec0SksrhE02oguIC",
+            "recOkwK0866X6JIMv",
+            "recQBp5cxcYw6Sf5Q"
+        ]
+    }
+}
+Create Gig Payment records
+To create new records, issue a POST request to the Gig Payment endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request body should include an array of up to 10 record objects. Each of these objects should have one key whose value is an inner object containing your record's cell values, keyed by either field name or field id.
+
+Returns an array of record objects created if the call succeeded, including record IDs which will uniquely identify the records within Every Angle.
+
+Values for Name, Gig Date, Gigs (from person), Name (from person) and Invoice (from Invoices) are automatically computed by Airtable and cannot be directly created.
+
+The Airtable API will perform best-effort automatic data conversion from string values if the typecast parameter is passed in (click to show example). Automatic conversion is disabled by default to ensure data integrity, but it may be helpful for integrating with 3rd party data sources.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X POST https://api.airtable.com/v0/appZXteLrpESv7H8X/Gig%20Payment \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "fields": {
+        "person": [
+          "recb1UoPng4CdvO8P"
+        ],
+        "Gig": [
+          "recYkKtlK6nMIb9CE"
+        ],
+        "Invoices": [
+          "recg41t8cdb3fB7cM"
+        ],
+        "amount": 275
+      }
+    },
+    {
+      "fields": {
+        "person": [
+          "recnKKUTtzQD6OUTu"
+        ],
+        "Gig": [
+          "recR4c0BKY5FWkHmy"
+        ],
+        "Invoices": [
+          "recm8QGfNhRM32c7C"
+        ],
+        "amount": 250
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "recF7WBv8R7bzfTIN",
+            "createdTime": "2025-06-19T07:41:56.000Z",
+            "fields": {
+                "Name": "25-05-31 - Katie Lindsay",
+                "person": [
+                    "recb1UoPng4CdvO8P"
+                ],
+                "Gig": [
+                    "recYkKtlK6nMIb9CE"
+                ],
+                "Name (from person)": [
+                    "Katie Lindsay"
+                ],
+                "Gig Date": [
+                    "2025-05-31"
+                ],
+                "Invoices": [
+                    "recg41t8cdb3fB7cM"
+                ],
+                "Invoice (from Invoices)": [
+                    {
+                        "id": "attS8OjPJEVHga5l2",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/TqVfGPTueKavNGFJsWj5yQ/LZEsZ84sfONUaaHAHLCQF04IzTkTmd2WGZ3get8T3qwLc2u1Ndqv4mclHzO-ZkGgJI9VDDvw-u4dRpiSkA9b0TZ83LyYAj3weFdYEzsq3I2ELfL-fTupP6zlEgagkospyV4Ykuj_Xa02NKrIo0iAN8P1II5ynUAbHnYBEu28xp8/r_9FeiKiIYELh3pEpOK5-9ErRjlcpRjKpjOmzVNYlvY",
+                        "filename": "31_05_2025 INVOICE KL.pdf",
+                        "size": 66327,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/g6rs92SYblGpk1Y-xoCbQA/tFkytZeAmykhfr7ulm1tBdb6suaOeplnyJmWDPb8D1gpbk6mXUh1FsQ1-F6ykVZftjREi_shh6tHehsf9R8T-QWhD9oU1186nGVI8lxy3Ra8OegBoTJyhHmebbdlqNfpkeGnrFyKbnvSerWYkMyF9g/Z_WnV8iXbdd5PVrBAyU-nAihhEH1Hfh_yhZAry8xSi0",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/drEg270uObMza_dGqMqbrw/z6A1roKYC8kBjv22GNqcj1pOEoDK1xSB_1UMYKaLVsC0tfzRRa_STGLMS7REobCEE_OcpX9_gBy-8HIO1a6MrDfc5C-gmpgyKISMSCj4oRdIXUDsbgmD6GQBRtOsXA8LfwXKchBtI4Vrukh7NoB2Lw/EXoq3jSVyPyWr2sb-I3H6Ux9m4oHD3-76iy_gjvTOhQ",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "amount": 275,
+                "Gigs (from person)": [
+                    "rectqJUhgiNJ6NEYa",
+                    "recLyxD1hlGZ3TTi8",
+                    "recTdmjJwU8jApztW",
+                    "recq9pq39ke0oV0mp",
+                    "recmxDibV31pGiM7e",
+                    "rec6Udu8Z3uHdOxjG",
+                    "recfa0mkdosFeZCs8",
+                    "recEdUEAPwLxzjjqK",
+                    "recR6B29i3oXkgPSL",
+                    "recfyet4XXpUzhlsA",
+                    "recmzUwWbksYEghwi",
+                    "recuiRKZeN8DCyKlK",
+                    "recYkKtlK6nMIb9CE",
+                    "rec8OqyUpeOdLadkj",
+                    "rec2y9actSMiXVVjz",
+                    "rec3daAZM3uBIXi0W",
+                    "recXYIcQjkVelnIil",
+                    "recf2KueCLnDTAmqT",
+                    "recgxbgfjMDumnHHG",
+                    "rec84wiGWNK9p3np8",
+                    "recwr1mIMwKVdNZL4",
+                    "recj3PRxxpVk0ABAn",
+                    "reclWkKMJthuaGOWC",
+                    "recKnFANazcXFIgVa",
+                    "recMfVI6ncjWwiB8b",
+                    "recwlg8K6gIlxzJWo",
+                    "recijT582UARrRmiB",
+                    "recLtxvbfBUjBwLu7",
+                    "rec8mHCI1FJfbg7WO",
+                    "recBsEN7DD8dOy2ot",
+                    "rec0SksrhE02oguIC",
+                    "recOkwK0866X6JIMv",
+                    "recQBp5cxcYw6Sf5Q"
+                ]
+            }
+        },
+        {
+            "id": "recNcUruh9f49CYTw",
+            "createdTime": "2025-06-19T07:43:47.000Z",
+            "fields": {
+                "Name": "24-12-14 - Katie Wills",
+                "person": [
+                    "recnKKUTtzQD6OUTu"
+                ],
+                "Gig": [
+                    "recR4c0BKY5FWkHmy"
+                ],
+                "Name (from person)": [
+                    "Katie Wills"
+                ],
+                "Gig Date": [
+                    "2024-12-14"
+                ],
+                "Invoices": [
+                    "recm8QGfNhRM32c7C"
+                ],
+                "Invoice (from Invoices)": [
+                    {
+                        "id": "attWmw35VAurYrlRn",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/HJtOBqi4EE8ym6ruwtuk8Q/MXczxTOSPXvV2gjhF0U4Ht9_qGiNj6wXgvEojHRacov4GVU6rVUnYPqE3fpVgpudcl3zanKS5_vDqYuyXaQEj-GaAVshskJgfe8R5H1MtN_XueCogRcf9Qhx2yOzUrvlbZzrZWwadjT49KY9korqZpinf8FkgZzvKEeodiKyeIE/hqMQzo4fv1mdiyYCnzLxZXOpjO18hRFIgCC4HiflQTg",
+                        "filename": "141224 Invoice -2.pdf",
+                        "size": 67329,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/-ystGiq2J9vb9RN27MF61A/jpVeuBtZfX4AaxyHPSUhKPD9G3ANgj2YG0zagCM4mtf5ukZVUq1_s3Gcq3jwKOLZR898haKS3RDtp8t1y_vQIsMmXYoKMUYRKmoZ60Vb2d5Rn6oru2huMmBbhUSKpxfxtGGPeKgL_8XbXmcUwAsMfg/P3lKpwbgKByzo--qFJHcUl1CuVX609c_59tvRVKOxcA",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/JeiMgdPM-OMyFbr2NlgVEQ/5BN2nt3mcj1YOnub9pLH5Cco1qfFkCx8U4y-9QxHoOLfucKXPSiod-dAPXJV2g2X37TVPmaX2aTo8uv4vh56g9fz4JMKa4mV2FuuvdaMWkvqs9H3SbBkxc5KRrd8dQ_pqOwwSILPwfJuQOf8Ah_ATQ/NUGh2A1dkx8pI8PDzagyo1t8h6fA8fNW0zi-wlCIBTs",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "amount": 250,
+                "Gigs (from person)": [
+                    "recgqBHzT84LJNJMN",
+                    "recs0RF6ZOlOZwSfK",
+                    "rec84wiGWNK9p3np8",
+                    "recR4c0BKY5FWkHmy",
+                    "reciD95pzUJT70kSS",
+                    "recMn4Bg1qxWK4qjH"
+                ]
+            }
+        }
+    ]
+}
+Update/Upsert Gig Payment records
+To update Gig Payment records, issue a request to the Gig Payment endpoint. Table names and table IDs can be used interchangeably. Using table IDs means table name changes won't require modifying your API request code. A PATCH request will only update the fields included in the request. Fields not included in the request will be unchanged. A PUT request will perform a destructive update and clear all unincluded cell values.
+Your request body should include an array of up to 10 record objects. Each of these objects should have an id property representing the record ID and a fields property which contains all of your record's cell values by field name or field id for all of your record's cell values by field name.
+Upsert behavior can be enabled by including a performUpsert object with a fieldsToMergeOn array in your request. Upserts will treat fieldsToMergeOn as an external ID to find existing records in Airtable. If a match is found, that record will be updated. If no matches are found, a new record will be created. For more details, visit our API reference.
+Click here to show an example.
+
+fieldsToMergeOn should be an array with 1-3 field names or field IDs which uniquely identify a record. These cannot be computed fields and must be of the following field types: number, text, long text, single select, multiple select, date.
+
+The API response for upsert requests will additionally include createdRecords and updatedRecords. These are arrays of record IDs, identifying the records from the response's records array that were created or updated.
+
+Airtable reserves the right to throttle upsert requests differently from the standard rate limit throttling policy.
+
+To link to new records in person, Gig and Invoices, add new linked record IDs to the existing array. Be sure to include all existing linked record IDs that you wish to retain. To unlink records, include the existing array of record IDs, excluding any that you wish to unlink.
+
+notes may contain "mention tokens". A mention token corresponds to a "@mention" in Airtable's user interface; here in the API it will look like <airtable:mention id="menE1i9oBaGX3DseR">@Alex</airtable:mention>. Mention tokens cannot be created via this API and should be left intact (or wholly removed) when updating long text fields.
+
+Values for Name, Gig Date, Gigs (from person), Name (from person) and Invoice (from Invoices) are automatically computed by Airtable and cannot be directly updated. You cannot clear these, even with a PUT request.
+Automatic data conversion for update actions can be enabled via typecast parameter. See create record for details.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X PATCH https://api.airtable.com/v0/appZXteLrpESv7H8X/Gig%20Payment \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "id": "recF7WBv8R7bzfTIN",
+      "fields": {
+        "person": [
+          "recb1UoPng4CdvO8P"
+        ],
+        "Gig": [
+          "recYkKtlK6nMIb9CE"
+        ],
+        "Invoices": [
+          "recg41t8cdb3fB7cM"
+        ],
+        "amount": 275
+      }
+    },
+    {
+      "id": "recNcUruh9f49CYTw",
+      "fields": {
+        "person": [
+          "recnKKUTtzQD6OUTu"
+        ],
+        "Gig": [
+          "recR4c0BKY5FWkHmy"
+        ],
+        "Invoices": [
+          "recm8QGfNhRM32c7C"
+        ],
+        "amount": 250
+      }
+    },
+    {
+      "id": "recQjF0DkuIAhkD3I",
+      "fields": {
+        "person": [
+          "recnKKUTtzQD6OUTu"
+        ],
+        "Gig": [
+          "recgqBHzT84LJNJMN"
+        ],
+        "Invoices": [
+          "rec7goadtpTL2hw7B"
+        ],
+        "amount": 175
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "recF7WBv8R7bzfTIN",
+            "createdTime": "2025-06-19T07:41:56.000Z",
+            "fields": {
+                "Name": "25-05-31 - Katie Lindsay",
+                "person": [
+                    "recb1UoPng4CdvO8P"
+                ],
+                "Gig": [
+                    "recYkKtlK6nMIb9CE"
+                ],
+                "Name (from person)": [
+                    "Katie Lindsay"
+                ],
+                "Gig Date": [
+                    "2025-05-31"
+                ],
+                "Invoices": [
+                    "recg41t8cdb3fB7cM"
+                ],
+                "Invoice (from Invoices)": [
+                    {
+                        "id": "attS8OjPJEVHga5l2",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/TqVfGPTueKavNGFJsWj5yQ/LZEsZ84sfONUaaHAHLCQF04IzTkTmd2WGZ3get8T3qwLc2u1Ndqv4mclHzO-ZkGgJI9VDDvw-u4dRpiSkA9b0TZ83LyYAj3weFdYEzsq3I2ELfL-fTupP6zlEgagkospyV4Ykuj_Xa02NKrIo0iAN8P1II5ynUAbHnYBEu28xp8/r_9FeiKiIYELh3pEpOK5-9ErRjlcpRjKpjOmzVNYlvY",
+                        "filename": "31_05_2025 INVOICE KL.pdf",
+                        "size": 66327,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/g6rs92SYblGpk1Y-xoCbQA/tFkytZeAmykhfr7ulm1tBdb6suaOeplnyJmWDPb8D1gpbk6mXUh1FsQ1-F6ykVZftjREi_shh6tHehsf9R8T-QWhD9oU1186nGVI8lxy3Ra8OegBoTJyhHmebbdlqNfpkeGnrFyKbnvSerWYkMyF9g/Z_WnV8iXbdd5PVrBAyU-nAihhEH1Hfh_yhZAry8xSi0",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/drEg270uObMza_dGqMqbrw/z6A1roKYC8kBjv22GNqcj1pOEoDK1xSB_1UMYKaLVsC0tfzRRa_STGLMS7REobCEE_OcpX9_gBy-8HIO1a6MrDfc5C-gmpgyKISMSCj4oRdIXUDsbgmD6GQBRtOsXA8LfwXKchBtI4Vrukh7NoB2Lw/EXoq3jSVyPyWr2sb-I3H6Ux9m4oHD3-76iy_gjvTOhQ",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "amount": 275,
+                "Gigs (from person)": [
+                    "rectqJUhgiNJ6NEYa",
+                    "recLyxD1hlGZ3TTi8",
+                    "recTdmjJwU8jApztW",
+                    "recq9pq39ke0oV0mp",
+                    "recmxDibV31pGiM7e",
+                    "rec6Udu8Z3uHdOxjG",
+                    "recfa0mkdosFeZCs8",
+                    "recEdUEAPwLxzjjqK",
+                    "recR6B29i3oXkgPSL",
+                    "recfyet4XXpUzhlsA",
+                    "recmzUwWbksYEghwi",
+                    "recuiRKZeN8DCyKlK",
+                    "recYkKtlK6nMIb9CE",
+                    "rec8OqyUpeOdLadkj",
+                    "rec2y9actSMiXVVjz",
+                    "rec3daAZM3uBIXi0W",
+                    "recXYIcQjkVelnIil",
+                    "recf2KueCLnDTAmqT",
+                    "recgxbgfjMDumnHHG",
+                    "rec84wiGWNK9p3np8",
+                    "recwr1mIMwKVdNZL4",
+                    "recj3PRxxpVk0ABAn",
+                    "reclWkKMJthuaGOWC",
+                    "recKnFANazcXFIgVa",
+                    "recMfVI6ncjWwiB8b",
+                    "recwlg8K6gIlxzJWo",
+                    "recijT582UARrRmiB",
+                    "recLtxvbfBUjBwLu7",
+                    "rec8mHCI1FJfbg7WO",
+                    "recBsEN7DD8dOy2ot",
+                    "rec0SksrhE02oguIC",
+                    "recOkwK0866X6JIMv",
+                    "recQBp5cxcYw6Sf5Q"
+                ]
+            }
+        },
+        {
+            "id": "recNcUruh9f49CYTw",
+            "createdTime": "2025-06-19T07:43:47.000Z",
+            "fields": {
+                "Name": "24-12-14 - Katie Wills",
+                "person": [
+                    "recnKKUTtzQD6OUTu"
+                ],
+                "Gig": [
+                    "recR4c0BKY5FWkHmy"
+                ],
+                "Name (from person)": [
+                    "Katie Wills"
+                ],
+                "Gig Date": [
+                    "2024-12-14"
+                ],
+                "Invoices": [
+                    "recm8QGfNhRM32c7C"
+                ],
+                "Invoice (from Invoices)": [
+                    {
+                        "id": "attWmw35VAurYrlRn",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/HJtOBqi4EE8ym6ruwtuk8Q/MXczxTOSPXvV2gjhF0U4Ht9_qGiNj6wXgvEojHRacov4GVU6rVUnYPqE3fpVgpudcl3zanKS5_vDqYuyXaQEj-GaAVshskJgfe8R5H1MtN_XueCogRcf9Qhx2yOzUrvlbZzrZWwadjT49KY9korqZpinf8FkgZzvKEeodiKyeIE/hqMQzo4fv1mdiyYCnzLxZXOpjO18hRFIgCC4HiflQTg",
+                        "filename": "141224 Invoice -2.pdf",
+                        "size": 67329,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/-ystGiq2J9vb9RN27MF61A/jpVeuBtZfX4AaxyHPSUhKPD9G3ANgj2YG0zagCM4mtf5ukZVUq1_s3Gcq3jwKOLZR898haKS3RDtp8t1y_vQIsMmXYoKMUYRKmoZ60Vb2d5Rn6oru2huMmBbhUSKpxfxtGGPeKgL_8XbXmcUwAsMfg/P3lKpwbgKByzo--qFJHcUl1CuVX609c_59tvRVKOxcA",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/JeiMgdPM-OMyFbr2NlgVEQ/5BN2nt3mcj1YOnub9pLH5Cco1qfFkCx8U4y-9QxHoOLfucKXPSiod-dAPXJV2g2X37TVPmaX2aTo8uv4vh56g9fz4JMKa4mV2FuuvdaMWkvqs9H3SbBkxc5KRrd8dQ_pqOwwSILPwfJuQOf8Ah_ATQ/NUGh2A1dkx8pI8PDzagyo1t8h6fA8fNW0zi-wlCIBTs",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "amount": 250,
+                "Gigs (from person)": [
+                    "recgqBHzT84LJNJMN",
+                    "recs0RF6ZOlOZwSfK",
+                    "rec84wiGWNK9p3np8",
+                    "recR4c0BKY5FWkHmy",
+                    "reciD95pzUJT70kSS",
+                    "recMn4Bg1qxWK4qjH"
+                ]
+            }
+        },
+        {
+            "id": "recQjF0DkuIAhkD3I",
+            "createdTime": "2025-06-19T07:45:37.000Z",
+            "fields": {
+                "Name": "25-05-17 - Katie Wills",
+                "person": [
+                    "recnKKUTtzQD6OUTu"
+                ],
+                "Gig": [
+                    "recgqBHzT84LJNJMN"
+                ],
+                "Name (from person)": [
+                    "Katie Wills"
+                ],
+                "Gig Date": [
+                    "2025-05-17"
+                ],
+                "Invoices": [
+                    "rec7goadtpTL2hw7B"
+                ],
+                "Invoice (from Invoices)": [
+                    {
+                        "id": "attfSu8xtzZNBEtMR",
+                        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/q005yaRyXPSM31NubtPCeQ/2QV4e3XEgY4JY_LN2WiCL1KbBmpiELRe08y842OX1uo2s2crPcl91sI4eMB14jwZFBMiJPS49jcKwS1Pav96t2URVV2_7-ozhUtIB3E_uppO1Duc7vbVRQu709dPGcmNewdm5ZsexEtrtugHavGX2pfluXMoUv__J-2BsDxWJsyjXTEk8M0mUHkV_3F_IUud/oER4qzcKT6rgM5wUpXWT_eu8Kr9xWkp-iTBVSl3Zp9s",
+                        "filename": "170525 Daytime Wedding Invoice.pdf",
+                        "size": 66062,
+                        "type": "application/pdf",
+                        "thumbnails": {
+                            "small": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/gP5XyJzKS2i7SrB7v8J-Eg/jRbXin-be_Xyunadr1_06Xt9gPvW2V-bmAg7dbLqYstJFmSqnuHDLRpYplkRxFL95lNxZDEch3NeWh69_HkTAY3P-SE6ZKYXVvANgvVaZO_fFLftROcp1rml-29TNrJfG6zBGWPlwTeGRae-qa-afQ/V4rT0-m9w4LsoTGZ4_zW5nea6Fr0rQmtRQHMa-9N25g",
+                                "width": 25,
+                                "height": 35
+                            },
+                            "large": {
+                                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/KLrqanY8CVqw5sTFZrzTew/2TS8vjg7h9Wwcn_rdNp-TZC9uCvXFDCJJErDZ1YJstFmg8SyOgQkZxIZPR1o9TMWCS1A15ly7P2mMLITogqYxlPMleBMieym1q0Jwfj7p2jPfW9wuOOkxLaub-zc6zuz5XdkEzNRNgEBKrStyXrBkg/yC_AlB92nHSuRAMTaDWsmmq47Psk-kiA2cs0v8NFzPE",
+                                "width": 512,
+                                "height": 724
+                            }
+                        }
+                    }
+                ],
+                "amount": 175,
+                "Gigs (from person)": [
+                    "recgqBHzT84LJNJMN",
+                    "recs0RF6ZOlOZwSfK",
+                    "rec84wiGWNK9p3np8",
+                    "recR4c0BKY5FWkHmy",
+                    "reciD95pzUJT70kSS",
+                    "recMn4Bg1qxWK4qjH"
+                ]
+            }
+        }
+    ]
+}
+Delete Gig Payment records
+To delete Gig Payment records, issue a DELETE request to the Gig Payment endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request should include a URL-encoded array of up to 10 record IDs to delete.
+
+You can also issue a DELETE request to the record endpoint to delete a single record. Click here to show an example.
+
+ 
+Example request
+curl -X DELETE https://api.airtable.com/v0/appZXteLrpESv7H8X/Gig%20Payment \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -G \
+  --data-urlencode 'records[]=recF7WBv8R7bzfTIN' \
+  --data-urlencode 'records[]=recNcUruh9f49CYTw'
+Example response
+{
+    "records": [
+        {
+            "id": "recF7WBv8R7bzfTIN",
+            "deleted": true
+        },
+        {
+            "id": "recNcUruh9f49CYTw",
+            "deleted": true
+        }
+    ]
+}

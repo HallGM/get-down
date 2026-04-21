@@ -1,0 +1,666 @@
+Expenses Table
+The id for Expenses is tbljLOEDbueq51OTs. Table ids and table names can be used interchangeably in API requests. Using table ids means table name changes do not require modifications to your API request.
+
+Fields
+Each record in the Expenses table contains the following fields:
+
+Field names and field ids can be used interchangeably. Using field ids means field name changes do not require modifications to your API request. We recommend using field ids over field names where possible, to reduce modifications to your API request if the user changes the field name later.
+
+Field NameField IDTypeDescription
+NamefldXXA3ONdcc3eWqXFormula
+number, string, array of numbers or strings
+Computed value: IF(Recipient, Recipient & IF(Reference," - " & {Reference}, ""), Reference).
+ 
+Example values
+"\"Squarespace\""
+
+"\"Scott Bathgate - mixing\""
+
+"\"Logo\""
+
+"\"Tom Mcguire - stall at sec event\""
+
+"\"MARK MORROW\""
+
+DatefldBmSqX9bK38OLVn
+Date
+string (ISO 8601 formatted date)
+UTC date, e.g. "2014-09-05".
+ 
+Example values
+"2023-01-01"
+
+"2023-01-01"
+
+"2023-01-01"
+
+"2023-01-01"
+
+"2023-01-06"
+
+RecipientfldUzZj8UJUgW0VdCText
+string
+A single line of text.
+ 
+Example values
+"Scott Bathgate"
+
+"Tom Mcguire"
+
+"MARK MORROW"
+
+"COLIN SNEDDON"
+
+"COLIN SNEDDON"
+
+ReferencefldfpQZnDdcRpUc5vText
+string
+A single line of text.
+ 
+Example values
+"Squarespace"
+
+"mixing"
+
+"Logo"
+
+"stall at sec event"
+
+"banners and cards"
+
+CostfldPU3b0NRhd2GLbRCurrency
+number
+Currency value. This field only allows positive numbers.
+ 
+Example values
+340.00
+
+625.00
+
+350.00
+
+50.00
+
+200.00
+
+Invoice/Receipt/Otherfldm7tJkb6OkR1Yw4
+Attachment
+array of attachment objects
+Each attachment object may contain the following properties. To see which fields are required or optional, please consult the relevant section: retrieve, create, update, or delete.
+
+idstring
+unique attachment id
+urlstring
+url, e.g. "https://v5.airtableusercontent.com/foo".
+
+Note: URLs returned will expire 2 hours after being returned from our API. If you want to persist the attachments, we recommend downloading them instead of saving the URL. See our support article for more information.
+filenamestring
+filename, e.g. "foo.jpg"
+sizenumber
+file size, in bytes
+typestring
+content type, e.g. "image/jpeg"
+widthnumberheightnumber
+width/height, in pixels (these may be available if the attachment is an image)
+thumbnails.small.urlstringthumbnails.large.urlstring
+url of small/large thumbnails (these may be available if the attachment is an image or document). See notes under url about the lifetime of these URLs.
+thumbnails.small.widthnumberthumbnails.small.heightnumberthumbnails.large.widthnumberthumbnails.large.heightnumber
+width/height of small/large thumbnails, in pixels (these will be available if the corresponding thumbnail url is available)
+ 
+Example values
+[
+    {
+        "id": "attX5kDqqlTeSvMwQ",
+        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/J5Qw2ybCAaMVJPUWuLns1w/p1CjBKjC7EwA0YrNOwZMMbRHXP0jVKapnXpj5ucnI5ZKWk4i1_asDsyfRYQOCT985UKRfE6cAS54oiKDqOB5vl4GgIbRKirc5m3QUlvik7I-x89NhDWefu52g9IUUrr89Zl8mgVSBqrXjS4KGvyaFD8loDzegWrfnY2wpmxueB60AeoZoW0u6FJtxJKnJXbAFFNc-US_A4ZfA0Fpa9gzQw/pbUqS8Zskbv4Dlc99Mj7NEC1zxsSgcXVh6SQeYiNKuU",
+        "filename": "Contract Booking Form Wedding Fayre 23 (1).docx",
+        "size": 70531,
+        "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "thumbnails": {
+            "small": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/hr_8wXUZqg7K_fSAazKEJQ/jG4vb5aT3L6jvorT-p2d_-IHQlDCNHm6fYxHlieVsjVvYcm999zJ3hQCUvP3OsHRmm8eCVSBCg0h4rzdqRuR4m6G0lqCrTXFzNYocmJMMlVtEj774Qz_AUKtYO5QJLt2FuUAon6S7WAaVF3mmH-3gg/tRyiBdWYe4jYVx9Gh6qxisNslLvWD5wBGt3PEfo6uec",
+                "width": 25,
+                "height": 35
+            },
+            "large": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/vFlHx0zVwvjYMe_mSyfGDg/Rl6mtGWLm5YReJ4JAzEwRvRVgUBXsxP4av5v2NCiW702ZQ657pCta9UtsbH6Q9vCALh9ZN7mAhKfz_vkXL0yN9q8JQLm-AetwmtU_y9VI2E2Qx1shKc4TvOh_cE05nTWUVr24uF2KAXOF4NrBixbgA/WCa63l_EOXoYH9gjhb-KrwQiaTKq537yngnLZnnGkQM",
+                "width": 512,
+                "height": 724
+            }
+        }
+    }
+]
+
+[
+    {
+        "id": "attysOYCbGypEyBQ6",
+        "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/C1PlSEHixxjpO2kBFa8aOw/wViDMglXgIxeP7HbabLqrPHXhp36VINeSgTMo6QHFPVhD-Ot9K1hOT4F5tpi0SWuPDxwe0AydCfQASL-eiq9CSAicLVmF8StnNT73uSRyInNL4bVdiHxoplp4vDV6I69KIUi_3Gr10imsi1QROqVo389gj54Co2T364Lkhq6popg5oESlGCQOeyv4TtSW4y9/TpyCIeQKKprnj8sqaYA7PGE6eUKg7a0aqScyN8lIRtI",
+        "filename": "Sales Invoice SI056367.pdf",
+        "size": 303620,
+        "type": "application/pdf",
+        "thumbnails": {
+            "small": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/JThWWjijPdpa5-JBVCm6rQ/N_tlRIkNZpZLFfawPQaIRtjXbKuC3geyRdDTEH2RygufkuA05dWx6mmlRdmB2pPg1EzWd2OX40Y-PSMa773Dik7YOaNpuwVmMcNznqabv7h42KOYvklG0bv4NxStkeb9LvQiKznr2yNepudOM6tMTA/4DZNprRTWZoC08VyMa2mUTInAWdJfhwrTasUENMpJNc",
+                "width": 25,
+                "height": 35
+            },
+            "large": {
+                "url": "https://v5.airtableusercontent.com/v3/u/52/52/1776297600000/JpJDr79-pwwEcD4fgJurLw/hMv0OEF03wIs87ZeqJyGRnr8MjJW9AtuLPyGJ0dV9FyHRew8i5LbYYrHbcDCmX7wsaSpva4l15k5qdWRuCsJguVdCpw56Bewlb59PqiwTcQcYUs8KAuDGFm30V0qckFLOaGcDbmI-l-EUQzDpoU12A/rUrbRrFvQcnBF1RX0VO6vwP3Ce2L3_xrgvenrAsm8jk",
+                "width": 512,
+                "height": 724
+            }
+        }
+    }
+]
+
+TotalsfldtDHyur0KShw4q8
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Totals table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Paid for byfldXhQb7KK1iktQP8
+Single select
+string
+Selected option name.
+
+When creating or updating records, if the choice string does not exactly match an existing option, the request will fail with an INVALID_MULTIPLE_CHOICE_OPTIONS error unless the typecast parameter is enabled. If typecast is enabled, a new choice will be created if one does not exactly match.
+
+ 
+Possible values
+[
+    "Garry",
+    "Scott"
+]
+Showcasesfld0cjNjn9cx6IRjn
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Showcases table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+Payment MethodfldL9BoQ1MqZlWpIbText
+string
+A single line of text.
+ 
+Example values
+"BACS"
+
+"BACS"
+
+"bank transfer"
+
+"Paypal"
+
+"BACS"
+
+RehearsalfldJUeNp7O7Em9uns
+Link to another record
+array of record IDs (strings)
+Array of linked records IDs from the Rehearsal table.
+ 
+Example value
+["rec8116cdd76088af", "rec245db9343f55e8", "rec4f3bade67ff565"]
+
+in scott's tablefldDBnZg3Qp93M3xb
+Checkbox
+boolean
+This field is "true" when checked and otherwise empty.
+ 
+Example value
+true
+
+Createdfldopan7z6WNogRZTCreated time
+string
+The time the record was created in UTC, e.g. "2015-08-29T07:00:00.000Z".
+ 
+Example values
+"2024-05-09T15:03:10.000Z"
+
+"2024-05-09T15:03:10.000Z"
+
+"2024-05-09T15:03:10.000Z"
+
+"2024-05-09T15:03:10.000Z"
+
+"2024-05-09T15:02:05.000Z"
+
+Name (from Recipient)fldna87QmHlSTEmHA
+Lookup
+array of numbers, strings, booleans, or objects
+Array of fields in linked records.
+ 
+Example values
+To see example values, try adding some data to Expenses.
+
+List Expenses records
+To list records in Expenses, issue a GET request to the Expenses endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Returned records do not include any fields with "empty" values, e.g. "", [], or false.
+
+You can filter, sort, and format the results with the following query parameters. Note that these parameters need to be URL encoded. You can use our API URL encoder tool to help with this. If you are using a helper library like Airtable.js, these parameters will be automatically encoded.
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+fields
+array of strings
+optional
+Only data for fields whose names are in this list will be included in the result. If you don't need every field, you can use this parameter to reduce the amount of data transferred.
+
+For example, to only return data from Name and Date, send these two query parameters:
+
+fields%5B%5D=Name&fields%5B%5D=Date
+You can also perform the same action with field ids (they can be found in the fields section):
+
+fields%5B%5D=fldXXA3ONdcc3eWqX&fields%5B%5D=fldBmSqX9bK38OLVn
+Note: %5B%5D may be omitted when specifying multiple fields, but must always be included when specifying only a single field.
+
+filterByFormula
+string
+optional
+A formula used to filter records. The formula will be evaluated for each record, and if the result is not 0, false, "", NaN, [], or #Error! the record will be included in the response. We recommend testing your formula in the Formula field UI before using it in your API request.
+
+If combined with the view parameter, only records in that view which satisfy the formula will be returned.
+
+The formula must be encoded first before passing it as a value. You can use this tool to not only encode the formula but also create the entire url you need. For example, to only include records where Name isn't empty, pass in NOT({Name} = '') as a parameter like this:
+
+filterByFormula=NOT%28%7BName%7D%20%3D%20%27%27%29
+
+Note: Airtable's API only accepts request with a URL shorter than 16,000 characters. Encoded formulas may cause your requests to exceed this limit. To fix this issue you can instead make a POST request to /v0/{baseId}/{tableIdOrName}/listRecords while passing the parameters within the body of the request instead of the query parameters. See our support article on this for more information.
+
+maxRecords
+number
+optional
+The maximum total number of records that will be returned in your requests. If this value is larger than pageSize (which is 100 by default), you may have to load multiple pages to reach this total. See the Pagination section below for more.pageSize
+number
+optional
+The number of records returned in each request. Must be less than or equal to 100. Default is 100. See the Pagination section below for more.sort
+array of objects
+optional
+A list of sort objects that specifies how the records will be ordered. Each sort object must have a field key specifying the name of the field to sort on, and an optional direction key that is either "asc" or "desc". The default direction is "asc".
+
+The sort parameter overrides the sorting of the view specified in the view parameter. If neither the sort nor the view parameter is included, the order of records is arbitrary.
+
+For example, to sort records by Name in descending order, send these two query parameters:
+
+sort%5B0%5D%5Bfield%5D=Name
+sort%5B0%5D%5Bdirection%5D=desc
+For example, to sort records by Name in descending order, pass in:
+
+[{field: "Name", direction: "desc"}]
+view
+string
+optional
+The name or ID of a view in the Expenses table. If set, only the records in that view will be returned. The records will be sorted according to the order of the view unless the sort parameter is included, which overrides that order. Fields hidden in this view will be returned in the results. To only return a subset of fields, use the fields parameter.cellFormat
+string
+optional
+The format that should be used for cell values. Supported values are:
+
+json: cells will be formatted as JSON, depending on the field type.
+
+string: cells will be formatted as user-facing strings, regardless of the field type. The timeZone and userLocale parameters are required when using string as the cellFormat.
+
+Note: You should not rely on the format of these strings, as it is subject to change.
+The default is json.
+
+timeZone
+string
+optional
+The time zone that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+userLocale
+string
+optional
+The user locale that should be used to format dates when using string as the cellFormat. This parameter is required when using string as the cellFormat.
+
+returnFieldsByFieldId
+boolean
+optional
+An optional boolean value that lets you return field objects where the key is the field id.
+
+This defaults to false, which returns field objects where the key is the field name.
+
+recordMetadata
+array of strings
+optional
+An optional field that, if includes commentCount, adds a commentCount read only property on each record returned.
+
+These parameters need to be URL encoded. If you are using a helper library like Airtable.js, they will be automatically encoded.
+
+Pagination
+The server returns one page of records at a time. Each page will contain pageSize records, which is 100 by default.
+
+If there are more records, the response will contain an offset. To fetch the next page of records, include offset in the next request's parameters.
+
+Pagination will stop when you've reached the end of your table. If the maxRecords parameter is passed, pagination will stop once you've reached this maximum.
+
+ 
+Example request
+curl "https://api.airtable.com/v0/appZXteLrpESv7H8X/Expenses?maxRecords=3&view=Grid%20view" \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "records": [
+        {
+            "id": "rec1YG6MgCitUzTOP",
+            "createdTime": "2024-05-09T15:03:10.000Z",
+            "fields": {
+                "Name": "Squarespace",
+                "Date": "2023-01-01",
+                "Reference": "Squarespace",
+                "Cost": 340,
+                "Totals": [
+                    "recruuTrjJzTlgAoZ"
+                ],
+                "Paid for by": "Scott",
+                "Created": "2024-05-09T15:03:10.000Z"
+            }
+        },
+        {
+            "id": "recWvwsybufTVaGhU",
+            "createdTime": "2024-05-09T15:03:10.000Z",
+            "fields": {
+                "Name": "Scott Bathgate - mixing",
+                "Date": "2023-01-01",
+                "Reference": "mixing",
+                "Cost": 625,
+                "Totals": [
+                    "recruuTrjJzTlgAoZ"
+                ],
+                "Paid for by": "Scott",
+                "Recipient": "Scott Bathgate",
+                "Created": "2024-05-09T15:03:10.000Z"
+            }
+        },
+        {
+            "id": "rec9tuqaf5kl2YyqM",
+            "createdTime": "2024-05-09T15:03:10.000Z",
+            "fields": {
+                "Name": "Logo",
+                "Date": "2023-01-01",
+                "Reference": "Logo",
+                "Cost": 350,
+                "Totals": [
+                    "recruuTrjJzTlgAoZ"
+                ],
+                "Paid for by": "Scott",
+                "Created": "2024-05-09T15:03:10.000Z"
+            }
+        }
+    ],
+    "offset": "itrmnjZLO3J5zO9N2/rec9tuqaf5kl2YyqM"
+}
+ 
+Iteration may timeout due to client inactivity or server restarts. In that case, the client will receive a 422 response with error message LIST_RECORDS_ITERATOR_NOT_AVAILABLE. It may then restart iteration from the beginning.
+
+ 
+Retrieve a Expenses record
+To retrieve an existing record in Expenses table, issue a GET request to the record endpoint.
+Any "empty" fields (e.g. "", [], or false) in the record will not be returned.
+
+In attachment objects included in the retrieved record (Invoice/Receipt/Other), only id, url, and filename are always returned. Other attachment properties may not be included. Note: Attachment URLs returned will expire 2 hours after being returned from our API. If you want to persist the attachments, we recommend downloading them instead of saving the URL. See our support article for more information.
+
+ 
+Example request
+curl https://api.airtable.com/v0/appZXteLrpESv7H8X/Expenses/rec1YG6MgCitUzTOP \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN"
+Example response
+{
+    "id": "rec1YG6MgCitUzTOP",
+    "createdTime": "2024-05-09T15:03:10.000Z",
+    "fields": {
+        "Name": "Squarespace",
+        "Date": "2023-01-01",
+        "Reference": "Squarespace",
+        "Cost": 340,
+        "Totals": [
+            "recruuTrjJzTlgAoZ"
+        ],
+        "Paid for by": "Scott",
+        "Created": "2024-05-09T15:03:10.000Z"
+    }
+}
+Create Expenses records
+To create new records, issue a POST request to the Expenses endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request body should include an array of up to 10 record objects. Each of these objects should have one key whose value is an inner object containing your record's cell values, keyed by either field name or field id.
+
+Returns an array of record objects created if the call succeeded, including record IDs which will uniquely identify the records within Every Angle.
+
+To create new attachments in Invoice/Receipt/Other, set the field value to an array of attachment objects. When creating an attachment, url is required, and filename is optional. Airtable will download the file at the given url and keep its own copy of it. All other attachment object properties will be generated server-side soon afterward.
+
+Note that in most cases the API does not currently return an error code for failed attachment object creation given attachment uploading happens in an asynchronous manner, such cases will manifest with the attachment object either being cleared from the cell or persisted with generated URLs that return error responses when queried. If the same attachment URL fails to upload multiple times in a short time interval then * the API may return an ATTACHMENTS_FAILED_UPLOADING error code in the details field of the response and the attachment object will * be cleared from the cell synchronously.
+
+We also require URLs used to upload have the https:// or http:// protocol (Note: http:// support will be removed in the near future), have a limit of 3 max redirects, and a file size limit of 1GB. In addition, URLs must be publicly accessible, in cases where cookie authentication or logging in to access the file is required, the login page HTML will be downloaded instead of the file.
+
+Attachment URLs returned will expire 2 hours after being returned from our API. If you want to persist the attachments, we recommend downloading them instead of saving the URL.
+
+If too many attachments are uploaded within a short period of time, the server may return a partial failure on record creation with an "Attachment Upload Rate Too High" error. See our support article for more information.
+
+Values for Name, Created and Name (from Recipient) are automatically computed by Airtable and cannot be directly created.
+
+The Airtable API will perform best-effort automatic data conversion from string values if the typecast parameter is passed in (click to show example). Automatic conversion is disabled by default to ensure data integrity, but it may be helpful for integrating with 3rd party data sources.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X POST https://api.airtable.com/v0/appZXteLrpESv7H8X/Expenses \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "fields": {
+        "Date": "2023-01-01",
+        "Reference": "Squarespace",
+        "Cost": 340,
+        "Totals": [
+          "recruuTrjJzTlgAoZ"
+        ],
+        "Paid for by": "Scott"
+      }
+    },
+    {
+      "fields": {
+        "Date": "2023-01-01",
+        "Recipient": "Scott Bathgate",
+        "Reference": "mixing",
+        "Cost": 625,
+        "Totals": [
+          "recruuTrjJzTlgAoZ"
+        ],
+        "Paid for by": "Scott"
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "rec1YG6MgCitUzTOP",
+            "createdTime": "2024-05-09T15:03:10.000Z",
+            "fields": {
+                "Name": "Squarespace",
+                "Date": "2023-01-01",
+                "Reference": "Squarespace",
+                "Cost": 340,
+                "Totals": [
+                    "recruuTrjJzTlgAoZ"
+                ],
+                "Paid for by": "Scott",
+                "Created": "2024-05-09T15:03:10.000Z"
+            }
+        },
+        {
+            "id": "recWvwsybufTVaGhU",
+            "createdTime": "2024-05-09T15:03:10.000Z",
+            "fields": {
+                "Name": "Scott Bathgate - mixing",
+                "Date": "2023-01-01",
+                "Reference": "mixing",
+                "Cost": 625,
+                "Totals": [
+                    "recruuTrjJzTlgAoZ"
+                ],
+                "Paid for by": "Scott",
+                "Recipient": "Scott Bathgate",
+                "Created": "2024-05-09T15:03:10.000Z"
+            }
+        }
+    ]
+}
+Update/Upsert Expenses records
+To update Expenses records, issue a request to the Expenses endpoint. Table names and table IDs can be used interchangeably. Using table IDs means table name changes won't require modifying your API request code. A PATCH request will only update the fields included in the request. Fields not included in the request will be unchanged. A PUT request will perform a destructive update and clear all unincluded cell values.
+Your request body should include an array of up to 10 record objects. Each of these objects should have an id property representing the record ID and a fields property which contains all of your record's cell values by field name or field id for all of your record's cell values by field name.
+Upsert behavior can be enabled by including a performUpsert object with a fieldsToMergeOn array in your request. Upserts will treat fieldsToMergeOn as an external ID to find existing records in Airtable. If a match is found, that record will be updated. If no matches are found, a new record will be created. For more details, visit our API reference.
+Click here to show an example.
+
+fieldsToMergeOn should be an array with 1-3 field names or field IDs which uniquely identify a record. These cannot be computed fields and must be of the following field types: number, text, long text, single select, multiple select, date.
+
+The API response for upsert requests will additionally include createdRecords and updatedRecords. These are arrays of record IDs, identifying the records from the response's records array that were created or updated.
+
+Airtable reserves the right to throttle upsert requests differently from the standard rate limit throttling policy.
+
+To add attachments to Invoice/Receipt/Other, add new attachment objects to the existing array. Be sure to include all existing attachment objects that you wish to retain, to keep preexisting attachments providing id is required (which can be retrieved using the retrieve endpoint), other fields are ignored. For the new attachments being added, url is required, and filename is optional. To remove attachments, include the existing array of attachment objects, excluding any that you wish to remove.
+
+Note that in most cases the API does not currently return an error code for failed attachment object creation given attachment uploading happens in an asynchronous manner, such cases will manifest with the attachment object either being cleared from the cell or persisted with generated URLs that return error responses when queried. If the same attachment URL fails to upload multiple times in a short time interval then * the API may return an ATTACHMENTS_FAILED_UPLOADING error code in the details field of the response and the attachment object will * be cleared from the cell synchronously.
+
+We also require URLs used to upload have the https:// or http:// protocol (Note: http:// support will be removed in the near future), have a limit of 3 max redirects, and a file size limit of 1GB. In addition, URLs must be publicly accessible, in cases where cookie authentication or logging in to access the file is required, the login page HTML will be downloaded instead of the file.
+
+If too many attachments are uploaded within a short period of time, the server may return a partial failure on record creation with an "Attachment Upload Rate Too High" error.
+
+To link to new records in Totals, Showcases and Rehearsal, add new linked record IDs to the existing array. Be sure to include all existing linked record IDs that you wish to retain. To unlink records, include the existing array of record IDs, excluding any that you wish to unlink.
+
+Values for Name, Created and Name (from Recipient) are automatically computed by Airtable and cannot be directly updated. You cannot clear these, even with a PUT request.
+Automatic data conversion for update actions can be enabled via typecast parameter. See create record for details.
+
+You can also include a single record object at the top level. Click here to show an example.
+
+ 
+Example request
+curl -X PATCH https://api.airtable.com/v0/appZXteLrpESv7H8X/Expenses \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+  "records": [
+    {
+      "id": "rec1YG6MgCitUzTOP",
+      "fields": {
+        "Date": "2023-01-01",
+        "Reference": "Squarespace",
+        "Cost": 340,
+        "Totals": [
+          "recruuTrjJzTlgAoZ"
+        ],
+        "Paid for by": "Scott"
+      }
+    },
+    {
+      "id": "recWvwsybufTVaGhU",
+      "fields": {
+        "Date": "2023-01-01",
+        "Recipient": "Scott Bathgate",
+        "Reference": "mixing",
+        "Cost": 625,
+        "Totals": [
+          "recruuTrjJzTlgAoZ"
+        ],
+        "Paid for by": "Scott"
+      }
+    },
+    {
+      "id": "rec9tuqaf5kl2YyqM",
+      "fields": {
+        "Date": "2023-01-01",
+        "Reference": "Logo",
+        "Cost": 350,
+        "Totals": [
+          "recruuTrjJzTlgAoZ"
+        ],
+        "Paid for by": "Scott"
+      }
+    }
+  ]
+}'
+Example response
+{
+    "records": [
+        {
+            "id": "rec1YG6MgCitUzTOP",
+            "createdTime": "2024-05-09T15:03:10.000Z",
+            "fields": {
+                "Name": "Squarespace",
+                "Date": "2023-01-01",
+                "Reference": "Squarespace",
+                "Cost": 340,
+                "Totals": [
+                    "recruuTrjJzTlgAoZ"
+                ],
+                "Paid for by": "Scott",
+                "Created": "2024-05-09T15:03:10.000Z"
+            }
+        },
+        {
+            "id": "recWvwsybufTVaGhU",
+            "createdTime": "2024-05-09T15:03:10.000Z",
+            "fields": {
+                "Name": "Scott Bathgate - mixing",
+                "Date": "2023-01-01",
+                "Reference": "mixing",
+                "Cost": 625,
+                "Totals": [
+                    "recruuTrjJzTlgAoZ"
+                ],
+                "Paid for by": "Scott",
+                "Recipient": "Scott Bathgate",
+                "Created": "2024-05-09T15:03:10.000Z"
+            }
+        },
+        {
+            "id": "rec9tuqaf5kl2YyqM",
+            "createdTime": "2024-05-09T15:03:10.000Z",
+            "fields": {
+                "Name": "Logo",
+                "Date": "2023-01-01",
+                "Reference": "Logo",
+                "Cost": 350,
+                "Totals": [
+                    "recruuTrjJzTlgAoZ"
+                ],
+                "Paid for by": "Scott",
+                "Created": "2024-05-09T15:03:10.000Z"
+            }
+        }
+    ]
+}
+Delete Expenses records
+To delete Expenses records, issue a DELETE request to the Expenses endpoint. Note that table names and table ids can be used interchangeably. Using table ids means table name changes do not require modifications to your API request.
+
+Your request should include a URL-encoded array of up to 10 record IDs to delete.
+
+You can also issue a DELETE request to the record endpoint to delete a single record. Click here to show an example.
+
+ 
+Example request
+curl -X DELETE https://api.airtable.com/v0/appZXteLrpESv7H8X/Expenses \
+  -H "Authorization: Bearer YOUR_SECRET_API_TOKEN" \
+  -G \
+  --data-urlencode 'records[]=rec1YG6MgCitUzTOP' \
+  --data-urlencode 'records[]=recWvwsybufTVaGhU'
+Example response
+{
+    "records": [
+        {
+            "id": "rec1YG6MgCitUzTOP",
+            "deleted": true
+        },
+        {
+            "id": "recWvwsybufTVaGhU",
+            "deleted": true
+        }
+    ]
+}

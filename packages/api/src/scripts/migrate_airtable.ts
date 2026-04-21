@@ -268,23 +268,38 @@ async function main(): Promise<void> {
   console.log(`   ${atPeople.length} records\n`);
 
   // ── 3. Songs ────────────────────────────────────────────────────────────────
-  console.log("→ songs");
+  console.log("→ genres");
   const existingSongs = await callApi<{ id: number; airtableId?: string }[]>("GET", "/songs");
   const songsByAirtableId = new Map(existingSongs.filter(s => s.airtableId).map(s => [s.airtableId!, s.id]));
 
   const atSongs = await fetchTable(TABLES.songs);
+
+  // Collect unique non-null genre strings from Airtable song records
+  const uniqueGenreNames = [...new Set(
+    atSongs.map(r => str(r.fields["Genre"])).filter((g): g is string => g !== null)
+  )];
+  const genreNameToId = new Map<string, number>();
+  if (uniqueGenreNames.length > 0) {
+    const allGenres = await callApi<{ id: number; name: string }[]>("POST", "/genres/bulk", { names: uniqueGenreNames });
+    for (const g of allGenres) genreNameToId.set(g.name, g.id);
+  }
+  console.log(`   ${uniqueGenreNames.length} genres upserted\n`);
+
+  console.log("→ songs");
   for (const r of atSongs) {
     const f = r.fields;
     const title = String(f["Title"] ?? "").trim();
     if (!title) continue;
 
+    const genreName = str(f["Genre"]);
     const payload = {
       title,
       artist: str(f["Artist"]) ?? undefined,
-      genre: str(f["Genre"]) ?? undefined,
+      genreId: genreName ? (genreNameToId.get(genreName) ?? undefined) : undefined,
       musicalKey: str(f["Key"]) ?? undefined,
       vocalType: str(f["M/F"]) ?? undefined,
       airtableId: r.id,
+      duration: typeof f["duration (seconds)"] === "number" ? (f["duration (seconds)"] as number) : undefined,
     };
 
     const existingId = songsByAirtableId.get(r.id);
