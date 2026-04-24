@@ -239,7 +239,10 @@ export async function buildReceiptPayload(id: number): Promise<Record<string, un
 
   return {
     ...buildBaseFlaskPayload(invoice),
-    payment_made: linkedPayments.map(toFlaskPaymentItem),
+    payment_made: [
+      ...(invoice.paymentsMade ?? []).map(toFlaskPaymentItem),
+      ...linkedPayments.map(toFlaskPaymentItem),
+    ],
   };
 }
 
