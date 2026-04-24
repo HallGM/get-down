@@ -8,6 +8,7 @@ export interface PaymentRow {
   method: string | null;
   description: string | null;
   airtable_id: string | null;
+  invoice_id: number | null;
 }
 
 export interface PaymentMutationInput {
@@ -19,7 +20,7 @@ export interface PaymentMutationInput {
   airtableId?: string;
 }
 
-const SELECT_COLS = `id, gig_id, date, amount, method, description, airtable_id`;
+const SELECT_COLS = `id, gig_id, date, amount, method, description, airtable_id, invoice_id`;
 
 export async function createPayment(input: PaymentMutationInput): Promise<PaymentRow> {
   const rows = await run_query<PaymentRow>({
@@ -84,4 +85,22 @@ export async function deletePayment(id: number): Promise<boolean> {
     values: [id],
   });
   return rows.length > 0;
+}
+
+export async function readPaymentsByInvoiceId(invoiceId: number): Promise<PaymentRow[]> {
+  return run_query<PaymentRow>({
+    text: `SELECT ${SELECT_COLS} FROM payments WHERE invoice_id = $1 ORDER BY date, id;`,
+    values: [invoiceId],
+  });
+}
+
+export async function setPaymentInvoiceLink(
+  paymentId: number,
+  invoiceId: number | null
+): Promise<PaymentRow | null> {
+  const rows = await run_query<PaymentRow>({
+    text: `UPDATE payments SET invoice_id = $1 WHERE id = $2 RETURNING ${SELECT_COLS};`,
+    values: [invoiceId, paymentId],
+  });
+  return rows[0] ?? null;
 }
