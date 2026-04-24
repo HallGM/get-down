@@ -122,7 +122,7 @@
           <tr>
             <td {% if row.bold %}style="font-weight: bold" {% endif %}>{{ row.description }}</td>
             <td style="text-align: right{% if row.bold %}; font-weight: bold{% endif %}">
-              £{{ "%.2f"|format(row.price) }}
+              {{ "-" if row.price < 0 else "" }}£{{ "%.2f"|format(row.price|abs) }}
             </td>
           </tr>
           {% endfor %} {% endfor %}
