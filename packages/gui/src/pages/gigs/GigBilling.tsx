@@ -14,6 +14,9 @@ import {
   useInvoicePreview,
   useSavedInvoicePdf,
   useDeleteInvoice,
+  useLinkPayment,
+  useUnlinkPayment,
+  useGenerateReceipt,
 } from "../../api/hooks/useInvoices.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
@@ -23,7 +26,7 @@ import FormField from "../../components/FormField.js";
 import Modal from "../../components/Modal.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { penniesToPounds, poundsToPennies } from "../../utils/money.js";
-import type { CreatePaymentRequest, CreateGigLineItemRequest } from "@get-down/shared";
+import type { CreatePaymentRequest, CreateGigLineItemRequest, Invoice } from "@get-down/shared";
 
 export default function GigBilling() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +46,9 @@ export default function GigBilling() {
   const previewMutation = useInvoicePreview();
   const savedPdfMutation = useSavedInvoicePdf();
   const deleteInvoice = useDeleteInvoice();
+  const linkPayment = useLinkPayment();
+  const unlinkPayment = useUnlinkPayment();
+  const generateReceipt = useGenerateReceipt();
 
   // Billing settings inline editing
   const [editingBilling, setEditingBilling] = useState(false);
@@ -70,6 +76,16 @@ export default function GigBilling() {
   const [loadingInvoiceId, setLoadingInvoiceId] = useState<number | null>(null);
   const invoicePdfUrlRef = useRef<string | null>(null);
 
+  // Receipt PDF modal
+  const [showReceiptPdf, setShowReceiptPdf] = useState(false);
+  const [receiptPdfUrl, setReceiptPdfUrl] = useState<string | null>(null);
+  const [receiptInvoiceNumber, setReceiptInvoiceNumber] = useState<string>("");
+  const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
+  const receiptPdfUrlRef = useRef<string | null>(null);
+
+  // Link payment modal
+  const [linkPaymentTarget, setLinkPaymentTarget] = useState<Invoice | null>(null);
+
   // Delete invoice confirm
   const [deleteInvoiceTarget, setDeleteInvoiceTarget] = useState<{ id: number } | null>(null);
 
@@ -78,6 +94,7 @@ export default function GigBilling() {
     return () => {
       if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
       if (invoicePdfUrlRef.current) URL.revokeObjectURL(invoicePdfUrlRef.current);
+      if (receiptPdfUrlRef.current) URL.revokeObjectURL(receiptPdfUrlRef.current);
     };
   }, []);
 
@@ -172,11 +189,40 @@ export default function GigBilling() {
     }
   }
 
+  async function openReceiptPdf(inv: Invoice) {
+    if (receiptPdfUrlRef.current) URL.revokeObjectURL(receiptPdfUrlRef.current);
+    setReceiptPdfUrl(null);
+    setReceiptInvoiceNumber(inv.invoiceNumber);
+    setLoadingReceiptId(inv.id);
+    setShowReceiptPdf(true);
+    try {
+      const url = await generateReceipt.mutateAsync(inv.id);
+      receiptPdfUrlRef.current = url;
+      setReceiptPdfUrl(url);
+    } catch {
+      // error is surfaced via generateReceipt.error
+    } finally {
+      setLoadingReceiptId(null);
+    }
+  }
+
   async function handleDeleteInvoice() {
     if (!deleteInvoiceTarget) return;
     await deleteInvoice.mutateAsync({ id: deleteInvoiceTarget.id, gigId });
     setDeleteInvoiceTarget(null);
   }
+
+  async function handleLinkPayment(paymentId: number) {
+    if (!linkPaymentTarget) return;
+    await linkPayment.mutateAsync({ invoiceId: linkPaymentTarget.id, paymentId, gigId });
+  }
+
+  async function handleUnlinkPayment(invoiceId: number, paymentId: number) {
+    await unlinkPayment.mutateAsync({ invoiceId, paymentId, gigId });
+  }
+
+  // Payments not yet linked to any invoice
+  const unlinkedPayments = (payments ?? []).filter(p => !p.invoiceId);
 
   return (
     <main className="container">
@@ -280,24 +326,30 @@ export default function GigBilling() {
         </div>
         {payments && payments.length > 0 ? (
           <table>
-            <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Description</th><th aria-label="Actions"></th></tr></thead>
+            <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Description</th><th>Invoice</th><th aria-label="Actions"></th></tr></thead>
             <tbody>
-              {payments.map((p) => (
-                <tr key={p.id}>
-                  <td>{formatDate(p.date)}</td>
-                  <td><MoneyDisplay pennies={p.amount} /></td>
-                  <td>{p.method ?? "—"}</td>
-                  <td>{p.description ?? "—"}</td>
-                  <td>
-                    <button
-                      className="contrast outline"
-                      style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
-                      aria-label={`Delete payment of ${p.amount}p`}
-                      onClick={() => deletePayment.mutate({ id: p.id, gigId })}
-                    >✕</button>
-                  </td>
-                </tr>
-              ))}
+              {payments.map((p) => {
+                const linkedInvoice = p.invoiceId ? (invoices ?? []).find(inv => inv.id === p.invoiceId) : undefined;
+                return (
+                  <tr key={p.id}>
+                    <td>{formatDate(p.date)}</td>
+                    <td><MoneyDisplay pennies={p.amount} /></td>
+                    <td>{p.method ?? "—"}</td>
+                    <td>{p.description ?? "—"}</td>
+                    <td style={{ color: linkedInvoice ? undefined : "var(--pico-muted-color)" }}>
+                      {linkedInvoice ? linkedInvoice.invoiceNumber : "—"}
+                    </td>
+                    <td>
+                      <button
+                        className="contrast outline"
+                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                        aria-label={`Delete payment of ${p.amount}p`}
+                        onClick={() => deletePayment.mutate({ id: p.id, gigId })}
+                      >✕</button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         ) : <p style={{ color: "var(--pico-muted-color)" }}>No payments recorded.</p>}
@@ -332,34 +384,87 @@ export default function GigBilling() {
         </div>
         {invoices && invoices.length > 0 ? (
           <table>
-            <thead><tr><th>Invoice #</th><th>Date</th><th>Type</th><th>Total</th><th>Amount Due</th><th aria-label="Actions"></th></tr></thead>
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Total</th>
+                <th>Amount Due</th>
+                <th>Linked Payments</th>
+                <th aria-label="Actions"></th>
+              </tr>
+            </thead>
             <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id}>
-                  <td>{inv.invoiceNumber}</td>
-                  <td>{formatDate(inv.date)}</td>
-                  <td style={{ textTransform: "capitalize" }}>{inv.invoiceType}</td>
-                  <td><MoneyDisplay pennies={inv.totalAmount} /></td>
-                  <td><MoneyDisplay pennies={inv.amountDue} /></td>
-                  <td>
-                    <div style={{ display: "flex", gap: "0.25rem" }}>
-                      <button
-                        className="secondary outline"
-                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
-                        onClick={() => openInvoicePdf(inv.id)}
-                        aria-busy={loadingInvoiceId === inv.id}
-                        aria-label={`Open PDF for invoice ${inv.invoiceNumber}`}
-                      >PDF</button>
-                      <button
-                        className="contrast outline"
-                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
-                        aria-label={`Delete invoice ${inv.invoiceNumber}`}
-                        onClick={() => setDeleteInvoiceTarget({ id: inv.id })}
-                      >✕</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {invoices.map((inv) => {
+                const invPayments = (payments ?? []).filter(p => p.invoiceId === inv.id);
+                const hasLinkedPayments = invPayments.length > 0;
+                return (
+                  <tr key={inv.id}>
+                    <td>{inv.invoiceNumber}</td>
+                    <td>{formatDate(inv.date)}</td>
+                    <td style={{ textTransform: "capitalize" }}>{inv.invoiceType}</td>
+                    <td><MoneyDisplay pennies={inv.totalAmount} /></td>
+                    <td><MoneyDisplay pennies={inv.amountDue} /></td>
+                    <td>
+                      {invPayments.length > 0 ? (
+                        <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+                          {invPayments.map(p => (
+                            <li key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.2rem" }}>
+                              <span style={{ fontSize: "0.85em" }}>
+                                {formatDate(p.date)} — <MoneyDisplay pennies={p.amount} />
+                              </span>
+                              <button
+                                className="contrast outline"
+                                style={{ padding: "0.15em 0.4em", fontSize: "0.75em", minWidth: "unset", minHeight: "unset" }}
+                                aria-label={`Unlink payment from invoice ${inv.invoiceNumber}`}
+                                onClick={() => handleUnlinkPayment(inv.id, p.id)}
+                                disabled={unlinkPayment.isPending}
+                              >✕</button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span style={{ color: "var(--pico-muted-color)", fontSize: "0.85em" }}>None</span>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
+                        <button
+                          className="secondary outline"
+                          style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                          onClick={() => openInvoicePdf(inv.id)}
+                          aria-busy={loadingInvoiceId === inv.id}
+                          aria-label={`Open PDF for invoice ${inv.invoiceNumber}`}
+                        >PDF</button>
+                        <button
+                          className="secondary outline"
+                          style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                          onClick={() => setLinkPaymentTarget(inv)}
+                          aria-label={`Link payment to invoice ${inv.invoiceNumber}`}
+                          disabled={unlinkedPayments.length === 0}
+                          title={unlinkedPayments.length === 0 ? "No unlinked payments available" : "Link a payment to this invoice"}
+                        >Link</button>
+                        <button
+                          className="secondary outline"
+                          style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                          onClick={() => openReceiptPdf(inv)}
+                          aria-busy={loadingReceiptId === inv.id}
+                          aria-label={`Generate receipt for invoice ${inv.invoiceNumber}`}
+                          disabled={!hasLinkedPayments}
+                          title={!hasLinkedPayments ? "Link at least one payment to generate a receipt" : "Generate receipt PDF"}
+                        >Receipt</button>
+                        <button
+                          className="contrast outline"
+                          style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                          aria-label={`Delete invoice ${inv.invoiceNumber}`}
+                          onClick={() => setDeleteInvoiceTarget({ id: inv.id })}
+                        >✕</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         ) : <p style={{ color: "var(--pico-muted-color)" }}>No invoices yet. Use the buttons above to generate one.</p>}
@@ -430,6 +535,63 @@ export default function GigBilling() {
           {invoicePdfUrl && (
             <a href={invoicePdfUrl} download="invoice.pdf">Download PDF</a>
           )}
+        </footer>
+      </Modal>
+
+      {/* Receipt PDF Modal */}
+      <Modal open={showReceiptPdf} onClose={() => setShowReceiptPdf(false)} title="Receipt PDF">
+        {generateReceipt.isPending && <LoadingState />}
+        {generateReceipt.error && <ErrorBanner error={generateReceipt.error instanceof Error ? generateReceipt.error.message : "Failed to generate receipt"} />}
+        {receiptPdfUrl && (
+          <iframe
+            src={receiptPdfUrl}
+            title="Receipt PDF"
+            style={{ width: "100%", height: "70vh", border: "none", display: "block" }}
+          />
+        )}
+        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
+          <button className="secondary" onClick={() => setShowReceiptPdf(false)}>Close</button>
+          {receiptPdfUrl && (
+            <a href={receiptPdfUrl} download={`receipt-${receiptInvoiceNumber}.pdf`}>Download PDF</a>
+          )}
+        </footer>
+      </Modal>
+
+      {/* Link Payment Modal */}
+      <Modal
+        open={!!linkPaymentTarget}
+        onClose={() => setLinkPaymentTarget(null)}
+        title={`Link Payment to Invoice ${linkPaymentTarget?.invoiceNumber ?? ""}`}
+      >
+        {linkPayment.error && <ErrorBanner error={linkPayment.error instanceof Error ? linkPayment.error.message : "Failed to link payment"} />}
+        {unlinkedPayments.length === 0 ? (
+          <p style={{ color: "var(--pico-muted-color)" }}>No unlinked payments available for this gig.</p>
+        ) : (
+          <table>
+            <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Description</th><th aria-label="Actions"></th></tr></thead>
+            <tbody>
+              {unlinkedPayments.map(p => (
+                <tr key={p.id}>
+                  <td>{formatDate(p.date)}</td>
+                  <td><MoneyDisplay pennies={p.amount} /></td>
+                  <td>{p.method ?? "—"}</td>
+                  <td>{p.description ?? "—"}</td>
+                  <td>
+                    <button
+                      className="secondary outline"
+                      style={{ padding: "0.5em 0.75em" }}
+                      onClick={() => handleLinkPayment(p.id)}
+                      disabled={linkPayment.isPending}
+                      aria-busy={linkPayment.isPending}
+                    >Link</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <footer style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+          <button className="secondary" onClick={() => setLinkPaymentTarget(null)}>Close</button>
         </footer>
       </Modal>
 

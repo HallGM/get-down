@@ -104,7 +104,12 @@
     </div>
 
     <div class="main">
+      {% if data.document_type == 'receipt' %}
+      <h2 style="color: hsl(177.93deg 33.33% 17.06%); margin-bottom: 4px">Receipt of Payment</h2>
+      <p style="margin-top: 0; margin-bottom: 12px; color: #555">{{ data.title }}</p>
+      {% else %}
       <h2>{{ data.title }}</h2>
+      {% endif %}
       <p><strong>{{ data.customer_name }}</strong></p>
 
       <table style="margin-bottom: 24px">
@@ -124,6 +129,7 @@
         </tbody>
       </table>
 
+      {% if data.document_type != 'receipt' %}
       <div class="bank-details">
         <p><strong>Payment Details (Payable To):</strong></p>
         <p>{{ business.business_name }}</p>
@@ -131,13 +137,14 @@
         <p>Sort Code: {{ business.sort_code }}</p>
         <p class="gap">Please use Invoice Number as payment reference.</p>
       </div>
+      {% endif %}
 
       <p style="text-align: center; margin-top: 20px">
-        Got a question regarding this invoice? Contact
+        Got a question regarding this {% if data.document_type == 'receipt' %}receipt{% else %}invoice{% endif %}? Contact
         <a href="mailto:{{ business.email_address }}">{{ business.email_address }}</a>
       </p>
 
-      {% if data.linked_invoice_number %}
+      {% if data.linked_invoice_number and data.document_type != 'receipt' %}
       <p><strong>Related Invoice/Receipt:</strong> {{ data.linked_invoice_number }}</p>
       {% endif %}
     </div>

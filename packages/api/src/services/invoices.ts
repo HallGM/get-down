@@ -186,22 +186,60 @@ export async function buildPreviewPayloadForGig(
   const invoiceNumber = `${year}-${String(seq).padStart(4, "0")} (PREVIEW)`;
 
   return {
-    invoice_number: invoiceNumber,
-    customer_name: `${gig.first_name} ${gig.last_name}`,
-    event_date: toDateString(gig.date) ?? "",
-    venue: gig.venue_name ?? "",
-    custom_items: lineItems.map((li) => ({
-      description: li.description ?? "",
-      price: (li.amount ?? 0) / 100,
-    })),
-    additional_charges: [],
-    payment_made: payments.map((p) => ({
-      description: p.description ?? "",
-      price: p.amount / 100,
-    })),
-    ...(gig.discount_percent > 0 && { discount_percent: gig.discount_percent }),
-    ...(gig.travel_cost > 0 && { travel_cost: gig.travel_cost / 100 }),
+    ...buildBaseFlaskPayload({
+      invoiceNumber,
+      customerName: `${gig.first_name} ${gig.last_name}`,
+      eventDate: toDateString(gig.date) ?? undefined,
+      venue: gig.venue_name ?? undefined,
+      lineItems,
+      additionalCharges: [],
+      discountPercent: gig.discount_percent,
+      travelCost: gig.travel_cost,
+    }),
+    payment_made: payments.map(toFlaskPaymentItem),
     ...(invoiceType === 'deposit' && { deposit_only: true }),
+  };
+}
+
+export async function linkPayment(invoiceId: number, paymentId: number): Promise<void> {
+  const [invoice, payment] = await Promise.all([
+    invoicesRepo.readInvoiceById(invoiceId),
+    paymentsRepo.readPaymentById(paymentId),
+  ]);
+  if (!invoice) throw new NotFoundError("Invoice not found");
+  if (!payment) throw new NotFoundError("Payment not found");
+  if (invoice.gig_id !== payment.gig_id)
+    throw new BadRequestError("Payment does not belong to the same gig as this invoice");
+  await paymentsRepo.setPaymentInvoiceLink(paymentId, invoiceId);
+}
+
+export async function unlinkPayment(invoiceId: number, paymentId: number): Promise<void> {
+  const [invoice, payment] = await Promise.all([
+    invoicesRepo.readInvoiceById(invoiceId),
+    paymentsRepo.readPaymentById(paymentId),
+  ]);
+  if (!invoice) throw new NotFoundError("Invoice not found");
+  if (!payment) throw new NotFoundError("Payment not found");
+  if (payment.invoice_id !== invoiceId)
+    throw new BadRequestError("Payment is not linked to this invoice");
+  await paymentsRepo.setPaymentInvoiceLink(paymentId, null);
+}
+
+/**
+ * Build the Flask payload for receipt generation.
+ * Uses the real linked payments (from the payments table) rather than the
+ * snapshotted invoice_payments_made, so the receipt reflects actual received
+ * payments with their real dates and amounts.
+ */
+export async function buildReceiptPayload(id: number): Promise<Record<string, unknown>> {
+  const [invoice, linkedPayments] = await Promise.all([
+    getInvoiceById(id),
+    paymentsRepo.readPaymentsByInvoiceId(id),
+  ]);
+
+  return {
+    ...buildBaseFlaskPayload(invoice),
+    payment_made: linkedPayments.map(toFlaskPaymentItem),
   };
 }
 
@@ -213,27 +251,8 @@ export async function buildInvoicePayload(id: number): Promise<Record<string, un
   const invoice = await getInvoiceById(id);
 
   return {
-    invoice_number: invoice.invoiceNumber,
-    customer_name: invoice.customerName,
-    event_date: invoice.eventDate ?? "",
-    venue: invoice.venue ?? "",
-    custom_items:
-      invoice.lineItems?.map((li) => ({
-        description: li.description ?? "",
-        price: (li.amount ?? 0) / 100,
-      })) ?? [],
-    additional_charges:
-      invoice.additionalCharges?.map((ac) => ({
-        description: ac.description ?? "",
-        price: (ac.amount ?? 0) / 100,
-      })) ?? [],
-    payment_made:
-      invoice.paymentsMade?.map((pm) => ({
-        description: pm.description ?? "",
-        price: (pm.amount ?? 0) / 100,
-      })) ?? [],
-    discount_percent: invoice.discountPercent > 0 ? invoice.discountPercent : undefined,
-    travel_cost: invoice.travelCost > 0 ? invoice.travelCost / 100 : undefined,
+    ...buildBaseFlaskPayload(invoice),
+    payment_made: (invoice.paymentsMade ?? []).map(toFlaskPaymentItem),
     ...(invoice.invoiceType === 'deposit' && { deposit_only: true }),
   };
 }
@@ -301,6 +320,42 @@ async function withSubresources(invoice: Invoice): Promise<Invoice> {
     lineItems: lineItems.map(mapLineItem),
     additionalCharges: additionalCharges.map(mapAdditionalCharge),
     paymentsMade: paymentsMade.map(mapPaymentMade),
+  };
+}
+
+// ── Flask payload helpers ──────────────────────────────────────────────────
+
+function toFlaskLineItem(item: { description?: string | null; amount?: number | null }) {
+  return { description: item.description ?? "", price: (item.amount ?? 0) / 100 };
+}
+
+function toFlaskPaymentItem(item: { description?: string | null; amount?: number | null; date?: string | null }) {
+  return {
+    description: item.description || "Payment received",
+    price: (item.amount ?? 0) / 100,
+    ...(item.date != null && { date: item.date }),
+  };
+}
+
+function buildBaseFlaskPayload(invoice: {
+  invoiceNumber: string;
+  customerName: string;
+  eventDate?: string;
+  venue?: string;
+  lineItems?: Array<{ description?: string | null; amount?: number | null }>;
+  additionalCharges?: Array<{ description?: string | null; amount?: number | null }>;
+  discountPercent: number;
+  travelCost: number;
+}) {
+  return {
+    invoice_number: invoice.invoiceNumber,
+    customer_name: invoice.customerName,
+    event_date: invoice.eventDate ?? "",
+    venue: invoice.venue ?? "",
+    custom_items: (invoice.lineItems ?? []).map(toFlaskLineItem),
+    additional_charges: (invoice.additionalCharges ?? []).map(toFlaskLineItem),
+    discount_percent: invoice.discountPercent > 0 ? invoice.discountPercent : undefined,
+    travel_cost: invoice.travelCost > 0 ? invoice.travelCost / 100 : undefined,
   };
 }
 

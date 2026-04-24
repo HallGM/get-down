@@ -23,13 +23,19 @@ router.delete("/invoices/:id/additional-charges/:chargeId", handle(req => invoic
 router.post("/invoices/:id/payments-made",                  handle(req => invoicesService.addPaymentMade(+req.params.id, req.body), 201));
 router.delete("/invoices/:id/payments-made/:paymentMadeId", handle(req => invoicesService.removePaymentMade(+req.params.id, +req.params.paymentMadeId), 204));
 
-// These two routes cannot use handle() because they stream a PDF response
+// Link / unlink a gig payment to this invoice
+router.post("/invoices/:id/link-payment",
+  handle(req => invoicesService.linkPayment(+req.params.id, +req.body.paymentId), 204));
+router.delete("/invoices/:id/link-payment/:paymentId",
+  handle(req => invoicesService.unlinkPayment(+req.params.id, +req.params.paymentId), 204));
+
+// These routes cannot use handle() because they stream a PDF response
 // via proxyToFlask rather than returning a JSON-serialisable value.
 router.get("/gigs/:id/invoice-preview", async (req, res, next) => {
   try {
     const invoiceType = req.query.invoiceType === 'deposit' ? 'deposit' : 'balance';
     const payload = await invoicesService.buildPreviewPayloadForGig(+req.params.id, invoiceType);
-    await proxyToFlask(payload, "inline", res);
+    await proxyToFlask(payload, "/generate", "inline", res);
   } catch (err) {
     if (!res.headersSent) next(err);
   }
@@ -38,7 +44,19 @@ router.get("/gigs/:id/invoice-preview", async (req, res, next) => {
 router.post("/invoices/:id/generate-pdf", async (req, res, next) => {
   try {
     const payload = await invoicesService.buildInvoicePayload(Number(req.params.id));
-    await proxyToFlask(payload, "attachment", res);
+    await proxyToFlask(payload, "/generate", "attachment", res);
+  } catch (err) {
+    if (!res.headersSent) next(err);
+  }
+});
+
+router.post("/invoices/:id/generate-receipt", async (req, res, next) => {
+  try {
+    const invoiceId = Number(req.params.id);
+    const payload = await invoicesService.buildReceiptPayload(invoiceId);
+    // Use invoice number from payload for a descriptive filename
+    const invoiceNumber = String(payload["invoice_number"] ?? invoiceId);
+    await proxyToFlask(payload, "/generate-receipt", "attachment", res, `receipt-${invoiceNumber}.pdf`);
   } catch (err) {
     if (!res.headersSent) next(err);
   }
@@ -48,11 +66,13 @@ export default router;
 
 async function proxyToFlask(
   payload: Record<string, unknown>,
+  path: string,
   disposition: "inline" | "attachment",
-  res: Response
+  res: Response,
+  filename = "invoice.pdf"
 ): Promise<void> {
   await warmUpFlask();
-  return makeRequest(payload, disposition, res, 0);
+  return makeRequest(payload, path, disposition, res, filename, 0);
 }
 
 async function warmUpFlask(): Promise<void> {
@@ -76,12 +96,14 @@ async function warmUpFlask(): Promise<void> {
 
 function makeRequest(
   payload: Record<string, unknown>,
+  path: string,
   disposition: "inline" | "attachment",
   res: Response,
+  filename: string,
   attempt: number
 ): Promise<void> {
   const invoiceServiceUrl = process.env.INVOICE_SERVICE_URL || "http://localhost:5000";
-  const url = new URL("/generate", invoiceServiceUrl);
+  const url = new URL(path, invoiceServiceUrl);
   const transport = url.protocol === "https:" ? https : http;
   const body = JSON.stringify(payload);
 
@@ -107,7 +129,7 @@ function makeRequest(
               const baseDelayMs = proxyRes.statusCode === 429 ? 10000 : 1000;
               const delayMs = baseDelayMs * Math.pow(2, attempt);
               await new Promise(r => setTimeout(r, delayMs));
-              return makeRequest(payload, disposition, res, attempt + 1)
+              return makeRequest(payload, path, disposition, res, filename, attempt + 1)
                 .then(resolve)
                 .catch(reject);
             }
@@ -127,7 +149,7 @@ function makeRequest(
           return;
         }
         res.setHeader("Content-Type", proxyRes.headers["content-type"] ?? "application/pdf");
-        res.setHeader("Content-Disposition", `${disposition}; filename="invoice.pdf"`);
+        res.setHeader("Content-Disposition", `${disposition}; filename="${filename}"`);
         proxyRes.pipe(res);
         proxyRes.on("end", resolve);
       }
@@ -136,7 +158,7 @@ function makeRequest(
       if (attempt < 3) {
         const delayMs = Math.pow(2, attempt) * 1000;
         await new Promise(r => setTimeout(r, delayMs));
-        return makeRequest(payload, disposition, res, attempt + 1)
+        return makeRequest(payload, path, disposition, res, filename, attempt + 1)
           .then(resolve)
           .catch(reject);
       }

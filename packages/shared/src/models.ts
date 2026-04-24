@@ -498,6 +498,7 @@ export interface Payment {
   method?: string;
   description?: string;
   airtableId?: string;
+  invoiceId?: number;
 }
 
 export interface CreatePaymentRequest {

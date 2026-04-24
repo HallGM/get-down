@@ -50,6 +50,7 @@ function mapPayment(row: paymentsRepo.PaymentRow): Payment {
     method: row.method ?? undefined,
     description: row.description ?? undefined,
     airtableId: row.airtable_id ?? undefined,
+    invoiceId: row.invoice_id ?? undefined,
   };
 }
 

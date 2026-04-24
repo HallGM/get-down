@@ -240,6 +240,7 @@ Table payments {
   description varchar(255)
   gig_id      int [ref: > gigs.id, not null]
   airtable_id varchar(255)
+  invoice_id  int [ref: > invoices.id]
 }
 
 Table gig_services {

@@ -149,3 +149,41 @@ export function useSavedInvoicePdf() {
     },
   });
 }
+
+/** Link a gig payment to a specific invoice. */
+export function useLinkPayment() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ invoiceId, paymentId }: { invoiceId: number; paymentId: number; gigId: number }) =>
+      apiFetch<void>("POST", `/invoices/${invoiceId}/link-payment`, { paymentId }),
+    onSuccess: (_data, { invoiceId, gigId }) => {
+      qc.invalidateQueries({ queryKey: [KEY, invoiceId] });
+      qc.invalidateQueries({ queryKey: ["payments", gigId] });
+    },
+    successMessage: "Payment linked to invoice",
+  });
+}
+
+/** Unlink a gig payment from a specific invoice. */
+export function useUnlinkPayment() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ invoiceId, paymentId }: { invoiceId: number; paymentId: number; gigId: number }) =>
+      apiFetch<void>("DELETE", `/invoices/${invoiceId}/link-payment/${paymentId}`),
+    onSuccess: (_data, { invoiceId, gigId }) => {
+      qc.invalidateQueries({ queryKey: [KEY, invoiceId] });
+      qc.invalidateQueries({ queryKey: ["payments", gigId] });
+    },
+    successMessage: "Payment unlinked",
+  });
+}
+
+/** Generate a receipt PDF for a saved invoice. Returns a blob object URL. */
+export function useGenerateReceipt() {
+  return useApiMutation({
+    mutationFn: async (invoiceId: number) => {
+      const blob = await apiFetchBlob("POST", `/invoices/${invoiceId}/generate-receipt`);
+      return URL.createObjectURL(blob);
+    },
+  });
+}
