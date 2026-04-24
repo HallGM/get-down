@@ -7,6 +7,7 @@ export interface SongRow {
   genre_id: number | null;
   genre_name: string | null;
   musical_key: string | null;
+  key_change: string | null;
   bpm: number | null;
   vocal_type: string | null;
   airtable_id: string | null;
@@ -18,6 +19,7 @@ export interface SongMutationInput {
   artist?: string;
   genreId?: number;
   musicalKey?: string;
+  keyChange?: string;
   bpm?: number;
   vocalType?: string;
   airtableId?: string;
@@ -27,15 +29,16 @@ export interface SongMutationInput {
 export async function createSong(input: SongMutationInput): Promise<SongRow> {
   const rows = await run_query<SongRow>({
     text: `
-      INSERT INTO songs (title, artist, genre_id, musical_key, bpm, vocal_type, airtable_id, duration)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING id, title, artist, genre_id, musical_key, bpm, vocal_type, airtable_id, duration, NULL AS genre_name;
+      INSERT INTO songs (title, artist, genre_id, musical_key, key_change, bpm, vocal_type, airtable_id, duration)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING id, title, artist, genre_id, musical_key, key_change, bpm, vocal_type, airtable_id, duration, NULL AS genre_name;
     `,
     values: [
       input.title,
       input.artist ?? null,
       input.genreId ?? null,
       input.musicalKey ?? null,
+      input.keyChange ?? null,
       input.bpm ?? null,
       input.vocalType ?? null,
       input.airtableId ?? null,
@@ -47,7 +50,7 @@ export async function createSong(input: SongMutationInput): Promise<SongRow> {
 
 const SONG_SELECT = `
   SELECT s.id, s.title, s.artist, s.genre_id, g.name AS genre_name,
-         s.musical_key, s.bpm, s.vocal_type, s.airtable_id, s.duration
+         s.musical_key, s.key_change, s.bpm, s.vocal_type, s.airtable_id, s.duration
   FROM songs s
   LEFT JOIN genres g ON g.id = s.genre_id
 `;
@@ -70,15 +73,16 @@ export async function updateSong(id: number, input: SongMutationInput): Promise<
   const rows = await run_query<SongRow>({
     text: `
       UPDATE songs
-      SET title = $1, artist = $2, genre_id = $3, musical_key = $4, bpm = $5, vocal_type = $6, airtable_id = $7, duration = $8
-      WHERE id = $9
-      RETURNING id, title, artist, genre_id, musical_key, bpm, vocal_type, airtable_id, duration, NULL AS genre_name;
+      SET title = $1, artist = $2, genre_id = $3, musical_key = $4, key_change = $5, bpm = $6, vocal_type = $7, airtable_id = $8, duration = $9
+      WHERE id = $10
+      RETURNING id, title, artist, genre_id, musical_key, key_change, bpm, vocal_type, airtable_id, duration, NULL AS genre_name;
     `,
     values: [
       input.title,
       input.artist ?? null,
       input.genreId ?? null,
       input.musicalKey ?? null,
+      input.keyChange ?? null,
       input.bpm ?? null,
       input.vocalType ?? null,
       input.airtableId ?? null,
@@ -116,11 +120,13 @@ export interface SetListItemRow {
   position: number | null;
   notes: string | null;
   override_key: string | null;
+  override_key_change: string | null;
   override_vocal_type: string | null;
   override_duration: number | null;
   unlinked_title: string | null;
   unlinked_artist: string | null;
   unlinked_key: string | null;
+  unlinked_key_change: string | null;
   unlinked_vocal_type: string | null;
   unlinked_duration: number | null;
 }
@@ -129,6 +135,7 @@ export interface SetListItemWithSongRow extends SetListItemRow {
   title: string;
   artist: string | null;
   musical_key: string | null;
+  key_change: string | null;
   vocal_type: string | null;
   duration: number | null;
   is_must_play: boolean;
@@ -139,11 +146,12 @@ export interface SetListItemWithSongRow extends SetListItemRow {
 const SET_LIST_SELECT = `
   SELECT
     sli.id, sli.gig_id, sli.song_id, sli.position, sli.notes,
-    sli.override_key, sli.override_vocal_type, sli.override_duration,
-    sli.unlinked_title, sli.unlinked_artist, sli.unlinked_key, sli.unlinked_vocal_type, sli.unlinked_duration,
+    sli.override_key, sli.override_key_change, sli.override_vocal_type, sli.override_duration,
+    sli.unlinked_title, sli.unlinked_artist, sli.unlinked_key, sli.unlinked_key_change, sli.unlinked_vocal_type, sli.unlinked_duration,
     COALESCE(s.title, sli.unlinked_title, '') AS title,
     COALESCE(s.artist, sli.unlinked_artist)  AS artist,
     s.musical_key,
+    s.key_change,
     COALESCE(s.vocal_type, sli.unlinked_vocal_type) AS vocal_type,
     COALESCE(sli.override_duration, s.duration, sli.unlinked_duration) AS duration,
     EXISTS (SELECT 1 FROM gig_song_must_plays mp  WHERE mp.gig_id  = sli.gig_id AND mp.song_id  = sli.song_id) AS is_must_play,
@@ -179,6 +187,7 @@ export interface CreateSetListItemInput {
   unlinkedTitle: string | null;
   unlinkedArtist: string | null;
   unlinkedKey: string | null;
+  unlinkedKeyChange: string | null;
   unlinkedVocalType: string | null;
   unlinkedDuration: number | null;
 }
@@ -187,10 +196,10 @@ export async function createSetListItem(input: CreateSetListItemInput): Promise<
   const rows = await run_query<SetListItemRow>({
     text: `
       INSERT INTO set_list_items
-        (gig_id, song_id, position, notes, unlinked_title, unlinked_artist, unlinked_key, unlinked_vocal_type, unlinked_duration)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING id, gig_id, song_id, position, notes, override_key, override_vocal_type, override_duration,
-                unlinked_title, unlinked_artist, unlinked_key, unlinked_vocal_type, unlinked_duration;
+        (gig_id, song_id, position, notes, unlinked_title, unlinked_artist, unlinked_key, unlinked_key_change, unlinked_vocal_type, unlinked_duration)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING id, gig_id, song_id, position, notes, override_key, override_key_change, override_vocal_type, override_duration,
+                unlinked_title, unlinked_artist, unlinked_key, unlinked_key_change, unlinked_vocal_type, unlinked_duration;
     `,
     values: [
       input.gigId,
@@ -200,6 +209,7 @@ export async function createSetListItem(input: CreateSetListItemInput): Promise<
       input.unlinkedTitle,
       input.unlinkedArtist,
       input.unlinkedKey,
+      input.unlinkedKeyChange,
       input.unlinkedVocalType,
       input.unlinkedDuration,
     ],
@@ -209,11 +219,13 @@ export async function createSetListItem(input: CreateSetListItemInput): Promise<
 
 export interface UpdateSetListItemInput {
   overrideKey: string | null;
+  overrideKeyChange: string | null;
   overrideVocalType: string | null;
   overrideDuration: number | null;
   unlinkedTitle: string | null;
   unlinkedArtist: string | null;
   unlinkedKey: string | null;
+  unlinkedKeyChange: string | null;
   unlinkedVocalType: string | null;
   unlinkedDuration: number | null;
 }
@@ -226,20 +238,22 @@ export async function updateSetListItem(
   const rows = await run_query<SetListItemRow>({
     text: `
       UPDATE set_list_items
-      SET override_key = $1, override_vocal_type = $2, override_duration = $3,
-          unlinked_title = $4, unlinked_artist = $5, unlinked_key = $6, unlinked_vocal_type = $7,
-          unlinked_duration = $8
-      WHERE id = $9 AND gig_id = $10
-      RETURNING id, gig_id, song_id, position, notes, override_key, override_vocal_type, override_duration,
-                unlinked_title, unlinked_artist, unlinked_key, unlinked_vocal_type, unlinked_duration;
+      SET override_key = $1, override_key_change = $2, override_vocal_type = $3, override_duration = $4,
+          unlinked_title = $5, unlinked_artist = $6, unlinked_key = $7, unlinked_key_change = $8,
+          unlinked_vocal_type = $9, unlinked_duration = $10
+      WHERE id = $11 AND gig_id = $12
+      RETURNING id, gig_id, song_id, position, notes, override_key, override_key_change, override_vocal_type, override_duration,
+                unlinked_title, unlinked_artist, unlinked_key, unlinked_key_change, unlinked_vocal_type, unlinked_duration;
     `,
     values: [
       input.overrideKey,
+      input.overrideKeyChange,
       input.overrideVocalType,
       input.overrideDuration,
       input.unlinkedTitle,
       input.unlinkedArtist,
       input.unlinkedKey,
+      input.unlinkedKeyChange,
       input.unlinkedVocalType,
       input.unlinkedDuration,
       itemId,

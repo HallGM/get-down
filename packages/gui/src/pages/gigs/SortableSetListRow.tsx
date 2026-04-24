@@ -22,6 +22,9 @@ export default function SortableSetListRow({ item, index, onRemove, removing, se
   const displayKey = isUnlinked
     ? item.unlinkedKey
     : (item.overrideKey ?? item.musicalKey);
+  const displayKeyChange = isUnlinked
+    ? item.unlinkedKeyChange
+    : (item.overrideKeyChange ?? item.keyChange);
   const displayVocalType = isUnlinked
     ? item.unlinkedVocalType
     : (item.overrideVocalType ?? item.vocalType);
@@ -114,6 +117,11 @@ export default function SortableSetListRow({ item, index, onRemove, removing, se
           <span style={keyBadgeStyle}>{displayKey}</span>
         )}
 
+        {/* Key change badge */}
+        {displayKeyChange && (
+          <span style={keyChangeBadgeStyle}>{displayKeyChange}</span>
+        )}
+
         {/* Vocal type badge */}
         {displayVocalType && (
           <span style={vocalTypeBadgeStyle}>{displayVocalType}</span>
@@ -164,6 +172,19 @@ const keyBadgeStyle: React.CSSProperties = {
   background: "var(--pico-secondary-background)",
   color: "var(--pico-secondary-inverse)",
   border: "1px solid var(--pico-secondary-border)",
+  padding: "0.05em 0.45em",
+  borderRadius: "0.25em",
+  fontSize: "0.75rem",
+  fontWeight: 600,
+  letterSpacing: "0.02em",
+  whiteSpace: "nowrap",
+};
+
+const keyChangeBadgeStyle: React.CSSProperties = {
+  display: "inline-block",
+  background: "#f59e0b",
+  color: "#fff",
+  border: "1px solid transparent",
   padding: "0.05em 0.45em",
   borderRadius: "0.25em",
   fontSize: "0.75rem",

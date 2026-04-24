@@ -616,6 +616,7 @@ export interface Song {
   genre?: string;
   genreId?: number;
   musicalKey?: string;
+  keyChange?: string;
   bpm?: number;
   vocalType?: string;
   airtableId?: string;
@@ -627,6 +628,7 @@ export interface CreateSongRequest {
   artist?: string;
   genreId?: number;
   musicalKey?: string;
+  keyChange?: string;
   bpm?: number;
   vocalType?: string;
   airtableId?: string;
@@ -638,6 +640,7 @@ export interface UpdateSongRequest {
   artist?: string;
   genreId?: number;
   musicalKey?: string;
+  keyChange?: string;
   bpm?: number;
   vocalType?: string;
   airtableId?: string;
@@ -651,11 +654,13 @@ export interface SetListItem {
   position?: number;
   notes?: string;
   overrideKey?: string;
+  overrideKeyChange?: string;
   overrideVocalType?: string;
   overrideDuration?: number;
   unlinkedTitle?: string;
   unlinkedArtist?: string;
   unlinkedKey?: string;
+  unlinkedKeyChange?: string;
   unlinkedVocalType?: string;
   unlinkedDuration?: number;
 }
@@ -664,6 +669,7 @@ export interface SetListItemWithSong extends SetListItem {
   title: string;
   artist?: string;
   musicalKey?: string;
+  keyChange?: string;
   vocalType?: string;
   duration?: number;
   isMustPlay: boolean;
@@ -679,18 +685,21 @@ export interface CreateSetListItemRequest {
   unlinkedTitle?: string;
   unlinkedArtist?: string;
   unlinkedKey?: string;
+  unlinkedKeyChange?: string;
   unlinkedVocalType?: string;
   unlinkedDuration?: number;
 }
 
 export interface UpdateSetListItemRequest {
   overrideKey?: string | null;
+  overrideKeyChange?: string | null;
   overrideVocalType?: string | null;
   overrideDuration?: number | null;
   // Unlinked song fields
   unlinkedTitle?: string | null;
   unlinkedArtist?: string | null;
   unlinkedKey?: string | null;
+  unlinkedKeyChange?: string | null;
   unlinkedVocalType?: string | null;
   unlinkedDuration?: number | null;
 }

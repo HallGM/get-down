@@ -17,6 +17,7 @@ const COLUMNS: Column<Song>[] = [
   { key: "artist", header: "Artist", sortable: true, render: (s) => s.artist ?? "—" },
   { key: "genre", header: "Genre", sortable: true, render: (s) => s.genre ?? "—" },
   { key: "musicalKey", header: "Key", render: (s) => s.musicalKey ?? "—" },
+  { key: "keyChange", header: "Key change", render: (s) => s.keyChange ?? "—" },
   { key: "vocalType", header: "Vocal", sortable: true, render: (s) => s.vocalType ?? "—" },
   { key: "duration", header: "Duration", render: (s) => s.duration !== undefined ? formatDuration(s.duration) : "—" },
 ];
@@ -64,7 +65,7 @@ export default function SongsList() {
 
   function openEdit(s: Song) {
     setEditTarget(s);
-    setEditForm({ title: s.title, artist: s.artist, genreId: s.genreId, musicalKey: s.musicalKey, vocalType: s.vocalType, duration: s.duration });
+    setEditForm({ title: s.title, artist: s.artist, genreId: s.genreId, musicalKey: s.musicalKey, keyChange: s.keyChange, vocalType: s.vocalType, duration: s.duration });
   }
 
   async function handleAddGenre(e: React.FormEvent) {
@@ -140,6 +141,7 @@ export default function SongsList() {
               </select>
             </div>
             <FormField label="Key" value={form.musicalKey ?? ""} onChange={(e) => setForm((f) => ({ ...f, musicalKey: e.target.value }))} />
+            <FormField label="Key change" value={form.keyChange ?? ""} onChange={(e) => setForm((f) => ({ ...f, keyChange: e.target.value }))} placeholder="e.g. +3, -4" />
             <div>
               <label>Vocal Type</label>
               <select value={form.vocalType ?? ""} onChange={(e) => setForm((f) => ({ ...f, vocalType: e.target.value || undefined }))}>
@@ -176,6 +178,7 @@ export default function SongsList() {
               </select>
             </div>
             <FormField label="Key" value={editForm.musicalKey ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, musicalKey: e.target.value }))} />
+            <FormField label="Key change" value={editForm.keyChange ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, keyChange: e.target.value }))} placeholder="e.g. +3, -4" />
             <div>
               <label>Vocal Type</label>
               <select value={editForm.vocalType ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, vocalType: e.target.value || undefined }))}>

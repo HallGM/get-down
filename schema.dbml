@@ -271,6 +271,7 @@ Table songs {
   artist      varchar(255)
   genre_id    int [ref: > genres.id]
   musical_key varchar(50)
+  key_change  varchar(50)
   bpm         int
   vocal_type  varchar(20)
   airtable_id varchar(255)
@@ -284,11 +285,13 @@ Table set_list_items {
   position int
   notes text
   override_key varchar(50)
+  override_key_change varchar(50)
   override_vocal_type varchar(50)
   override_duration int
   unlinked_title varchar(255)
   unlinked_artist varchar(255)
   unlinked_key varchar(50)
+  unlinked_key_change varchar(50)
   unlinked_vocal_type varchar(50)
   unlinked_duration int
 }
