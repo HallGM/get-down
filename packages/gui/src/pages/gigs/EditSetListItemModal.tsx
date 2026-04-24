@@ -7,6 +7,7 @@ export interface EditSetListItemSubmit {
   title: string;
   artist: string;
   key: string;
+  keyChange: string;
   vocalType: string;
   durationMinutes: string;
   durationSeconds: string;
@@ -16,6 +17,7 @@ interface FormState {
   title: string;
   artist: string;
   key: string;
+  keyChange: string;
   vocalType: string;
   durationMinutes: string;
   durationSeconds: string;
@@ -25,6 +27,7 @@ const EMPTY: FormState = {
   title: "",
   artist: "",
   key: "",
+  keyChange: "",
   vocalType: "",
   durationMinutes: "",
   durationSeconds: "",
@@ -71,6 +74,9 @@ export default function EditSetListItemModal({
         key: (isLinked
           ? (item.overrideKey ?? item.musicalKey)
           : (item.unlinkedKey ?? item.musicalKey)) ?? "",
+        keyChange: (isLinked
+          ? (item.overrideKeyChange ?? item.keyChange)
+          : (item.unlinkedKeyChange ?? item.keyChange)) ?? "",
         vocalType: (isLinked
           ? (item.overrideVocalType ?? item.vocalType)
           : (item.unlinkedVocalType ?? item.vocalType)) ?? "",
@@ -111,6 +117,12 @@ export default function EditSetListItemModal({
             value={form.key}
             onChange={e => setForm(f => ({ ...f, key: e.target.value }))}
             placeholder="e.g. G"
+          />
+          <FormField
+            label="Key change"
+            value={form.keyChange}
+            onChange={e => setForm(f => ({ ...f, keyChange: e.target.value }))}
+            placeholder="e.g. +3, -4"
           />
           <FormField
             label="Vocal Type"

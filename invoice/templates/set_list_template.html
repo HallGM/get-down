@@ -40,6 +40,7 @@
       .num  { text-align: center; width: 2em; color: #666; }
       .vocal { text-align: center; width: 3em; }
       .key  { width: 4em; }
+      .key-change { width: 4em; }
     </style>
   </head>
   <body>
@@ -61,6 +62,7 @@
           <th>Title</th>
           <th>Artist</th>
           <th class="key">Key</th>
+          <th class="key-change">Key change</th>
           <th class="vocal">Vocal</th>
         </tr>
       </thead>
@@ -71,6 +73,7 @@
           <td>{{ song.title }}</td>
           <td>{{ song.artist or '—' }}</td>
           <td>{{ song.key or '—' }}</td>
+          <td>{{ song.key_change or '—' }}</td>
           <td class="vocal">{{ song.vocal_type or '—' }}</td>
         </tr>
         {% endfor %}

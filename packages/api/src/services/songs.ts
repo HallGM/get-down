@@ -59,6 +59,7 @@ const AddUnlinkedSchema = z.object({
   unlinkedTitle: z.string().min(1, "title is required").max(255),
   unlinkedArtist: z.string().max(255).optional(),
   unlinkedKey: z.string().max(50).optional(),
+  unlinkedKeyChange: z.string().max(50).optional(),
   unlinkedVocalType: z.string().max(50).optional(),
   unlinkedDuration: z.number().int().nonnegative().optional(),
   position: z.number().int().positive().optional(),
@@ -82,6 +83,7 @@ export async function addSetListItem(
       unlinkedTitle: null,
       unlinkedArtist: null,
       unlinkedKey: null,
+      unlinkedKeyChange: null,
       unlinkedVocalType: null,
       unlinkedDuration: null,
     });
@@ -99,6 +101,7 @@ export async function addSetListItem(
       unlinkedTitle: input.unlinkedTitle.trim(),
       unlinkedArtist: input.unlinkedArtist?.trim() ?? null,
       unlinkedKey: input.unlinkedKey?.trim() ?? null,
+      unlinkedKeyChange: input.unlinkedKeyChange?.trim() ?? null,
       unlinkedVocalType: input.unlinkedVocalType?.trim() ?? null,
       unlinkedDuration: input.unlinkedDuration ?? null,
     });
@@ -131,14 +134,16 @@ export async function reorderSetList(gigId: number, input: ReorderSetListRequest
 // Fields are optional (absent = don't touch), nullable (null = clear).
 // Empty/whitespace strings are normalised to null.
 const UpdateSetListItemSchema = z.object({
-  overrideKey:        z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
-  overrideVocalType:  z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
-  overrideDuration:   z.number().int().nonnegative().nullable().optional(),
-  unlinkedTitle:      z.string().max(255).transform(v => v.trim() || null).nullable().optional(),
-  unlinkedArtist:     z.string().max(255).transform(v => v.trim() || null).nullable().optional(),
-  unlinkedKey:        z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
-  unlinkedVocalType:  z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
-  unlinkedDuration:   z.number().int().nonnegative().nullable().optional(),
+  overrideKey:           z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  overrideKeyChange:     z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  overrideVocalType:     z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  overrideDuration:      z.number().int().nonnegative().nullable().optional(),
+  unlinkedTitle:         z.string().max(255).transform(v => v.trim() || null).nullable().optional(),
+  unlinkedArtist:        z.string().max(255).transform(v => v.trim() || null).nullable().optional(),
+  unlinkedKey:           z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  unlinkedKeyChange:     z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  unlinkedVocalType:     z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
+  unlinkedDuration:      z.number().int().nonnegative().nullable().optional(),
 });
 
 export async function updateSetListItem(
@@ -151,22 +156,26 @@ export async function updateSetListItem(
   const existing = await songsRepo.readSetListItemById(itemId, gigId);
   if (!existing) throw new NotFoundError("SetListItem not found");
 
-  const newKey =          input.overrideKey         !== undefined ? input.overrideKey         : existing.override_key;
-  const newVocalType =    input.overrideVocalType    !== undefined ? input.overrideVocalType    : existing.override_vocal_type;
-  const newOverrideDur =  input.overrideDuration     !== undefined ? input.overrideDuration     : existing.override_duration;
-  const newUnlTitle =     input.unlinkedTitle        !== undefined ? input.unlinkedTitle        : existing.unlinked_title;
-  const newUnlArtist =    input.unlinkedArtist       !== undefined ? input.unlinkedArtist       : existing.unlinked_artist;
-  const newUnlKey =       input.unlinkedKey          !== undefined ? input.unlinkedKey          : existing.unlinked_key;
-  const newUnlVocalType = input.unlinkedVocalType    !== undefined ? input.unlinkedVocalType    : existing.unlinked_vocal_type;
-  const newUnlDuration =  input.unlinkedDuration     !== undefined ? input.unlinkedDuration     : existing.unlinked_duration;
+  const newKey =              input.overrideKey         !== undefined ? input.overrideKey         : existing.override_key;
+  const newKeyChange =        input.overrideKeyChange   !== undefined ? input.overrideKeyChange   : existing.override_key_change;
+  const newVocalType =        input.overrideVocalType   !== undefined ? input.overrideVocalType   : existing.override_vocal_type;
+  const newOverrideDur =      input.overrideDuration    !== undefined ? input.overrideDuration    : existing.override_duration;
+  const newUnlTitle =         input.unlinkedTitle       !== undefined ? input.unlinkedTitle       : existing.unlinked_title;
+  const newUnlArtist =        input.unlinkedArtist      !== undefined ? input.unlinkedArtist      : existing.unlinked_artist;
+  const newUnlKey =           input.unlinkedKey         !== undefined ? input.unlinkedKey         : existing.unlinked_key;
+  const newUnlKeyChange =     input.unlinkedKeyChange   !== undefined ? input.unlinkedKeyChange   : existing.unlinked_key_change;
+  const newUnlVocalType =     input.unlinkedVocalType   !== undefined ? input.unlinkedVocalType   : existing.unlinked_vocal_type;
+  const newUnlDuration =      input.unlinkedDuration    !== undefined ? input.unlinkedDuration    : existing.unlinked_duration;
 
   await songsRepo.updateSetListItem(itemId, gigId, {
     overrideKey: newKey,
+    overrideKeyChange: newKeyChange,
     overrideVocalType: newVocalType,
     overrideDuration: newOverrideDur,
     unlinkedTitle: newUnlTitle,
     unlinkedArtist: newUnlArtist,
     unlinkedKey: newUnlKey,
+    unlinkedKeyChange: newUnlKeyChange,
     unlinkedVocalType: newUnlVocalType,
     unlinkedDuration: newUnlDuration,
   });
@@ -198,6 +207,7 @@ export async function bulkImportFromPreferences(gigId: number): Promise<SetListI
           unlinkedTitle: null,
           unlinkedArtist: null,
           unlinkedKey: null,
+          unlinkedKeyChange: null,
           unlinkedVocalType: null,
           unlinkedDuration: null,
         });
@@ -302,6 +312,7 @@ export async function buildSetListPdfPayload(gigId: number): Promise<Record<stri
     title: r.title,
     artist: r.artist ?? null,
     key: r.override_key ?? r.musical_key ?? r.unlinked_key ?? null,
+    key_change: r.override_key_change ?? r.key_change ?? r.unlinked_key_change ?? null,
     vocal_type: r.override_vocal_type ?? r.vocal_type ?? r.unlinked_vocal_type ?? null,
   }));
 
@@ -323,6 +334,7 @@ function mapSong(row: songsRepo.SongRow): Song {
     genre: row.genre_name ?? undefined,
     genreId: row.genre_id ?? undefined,
     musicalKey: row.musical_key ?? undefined,
+    keyChange: row.key_change ?? undefined,
     bpm: row.bpm ?? undefined,
     vocalType: row.vocal_type ?? undefined,
     airtableId: row.airtable_id ?? undefined,
@@ -338,16 +350,19 @@ function mapSetListItemWithSong(row: songsRepo.SetListItemWithSongRow): SetListI
     position: row.position ?? undefined,
     notes: row.notes ?? undefined,
     overrideKey: row.override_key ?? undefined,
+    overrideKeyChange: row.override_key_change ?? undefined,
     overrideVocalType: row.override_vocal_type ?? undefined,
     overrideDuration: row.override_duration ?? undefined,
     unlinkedTitle: row.unlinked_title ?? undefined,
     unlinkedArtist: row.unlinked_artist ?? undefined,
     unlinkedKey: row.unlinked_key ?? undefined,
+    unlinkedKeyChange: row.unlinked_key_change ?? undefined,
     unlinkedVocalType: row.unlinked_vocal_type ?? undefined,
     unlinkedDuration: row.unlinked_duration ?? undefined,
     title: row.title,
     artist: row.artist ?? undefined,
     musicalKey: row.musical_key ?? undefined,
+    keyChange: row.key_change ?? undefined,
     vocalType: row.vocal_type ?? undefined,
     duration: row.duration ?? undefined,
     isMustPlay: row.is_must_play,
@@ -367,6 +382,7 @@ function buildSongMutationInput(
     artist: input.artist?.trim() ?? existing?.artist,
     genreId: input.genreId ?? existing?.genreId,
     musicalKey: input.musicalKey?.trim() ?? existing?.musicalKey,
+    keyChange: input.keyChange?.trim() ?? existing?.keyChange,
     bpm: input.bpm ?? existing?.bpm,
     vocalType: input.vocalType ?? existing?.vocalType,
     airtableId: input.airtableId ?? existing?.airtableId,

@@ -152,6 +152,7 @@ export default function SetListBuilder() {
           gigId,
           itemId: editingItem.id,
           overrideKey: form.key || null,
+          overrideKeyChange: form.keyChange || null,
           overrideVocalType: form.vocalType || null,
           overrideDuration: duration,
         });
@@ -163,6 +164,7 @@ export default function SetListBuilder() {
           unlinkedTitle: form.title || null,
           unlinkedArtist: form.artist || null,
           unlinkedKey: form.key || null,
+          unlinkedKeyChange: form.keyChange || null,
           unlinkedVocalType: form.vocalType || null,
           unlinkedDuration: duration,
         });
@@ -174,6 +176,7 @@ export default function SetListBuilder() {
         unlinkedTitle: form.title,
         unlinkedArtist: form.artist || undefined,
         unlinkedKey: form.key || undefined,
+        unlinkedKeyChange: form.keyChange || undefined,
         unlinkedVocalType: form.vocalType || undefined,
         unlinkedDuration: duration ?? undefined,
       });
