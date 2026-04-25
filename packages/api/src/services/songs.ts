@@ -314,6 +314,7 @@ export async function buildSetListPdfPayload(gigId: number): Promise<Record<stri
     key: r.override_key ?? r.musical_key ?? r.unlinked_key ?? null,
     key_change: r.override_key_change ?? r.key_change ?? r.unlinked_key_change ?? null,
     vocal_type: r.override_vocal_type ?? r.vocal_type ?? r.unlinked_vocal_type ?? null,
+    is_must_play: r.is_must_play,
   }));
 
   return {
