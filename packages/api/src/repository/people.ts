@@ -1,4 +1,4 @@
-import { run_query, withTransaction } from "../db/init.js";
+import { run_query } from "../db/init.js";
 
 export interface PersonRow {
   id: number;
@@ -36,24 +36,6 @@ export interface PersonUpdateInput {
   isPartner: boolean;
   isActive: boolean;
   airtableId?: string;
-}
-
-async function syncPartnerAccount(
-  personId: number,
-  isPartner: boolean
-): Promise<void> {
-  if (isPartner) {
-    await run_query({
-      text: `INSERT INTO accounts (person_id) VALUES ($1) ON CONFLICT (person_id) DO NOTHING;`,
-      values: [personId],
-    });
-    return;
-  }
-
-  await run_query({
-    text: `DELETE FROM accounts WHERE person_id = $1;`,
-    values: [personId],
-  });
 }
 
 export async function readPeople(): Promise<PersonRow[]> {
@@ -94,71 +76,57 @@ export async function readPersonByPerformerToken(token: string): Promise<PersonR
 }
 
 export async function createPerson(input: PersonMutationInput): Promise<PersonRow> {
-  return withTransaction(async () => {
-    const rows = await run_query<PersonRow>({
-      text: `
-        INSERT INTO people (first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        RETURNING id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id, performer_token;
-      `,
-      values: [
-        input.firstName,
-        input.lastName ?? null,
-        input.displayName ?? null,
-        input.email ?? null,
-        input.phone ?? null,
-        input.bankDetails ?? null,
-        input.isPartner,
-        input.isActive,
-        input.airtableId ?? null,
-      ],
-    });
-
-    const person = rows[0];
-    await syncPartnerAccount(person.id, person.is_partner);
-    return person;
+  const rows = await run_query<PersonRow>({
+    text: `
+      INSERT INTO people (first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id, performer_token;
+    `,
+    values: [
+      input.firstName,
+      input.lastName ?? null,
+      input.displayName ?? null,
+      input.email ?? null,
+      input.phone ?? null,
+      input.bankDetails ?? null,
+      input.isPartner,
+      input.isActive,
+      input.airtableId ?? null,
+    ],
   });
+  return rows[0];
 }
 
 export async function updatePerson(id: number, input: PersonUpdateInput): Promise<PersonRow | null> {
-  return withTransaction(async () => {
-    const rows = await run_query<PersonRow>({
-      text: `
-        UPDATE people
-        SET first_name = $2,
-            last_name = $3,
-            display_name = $4,
-            email = $5,
-            phone = $6,
-            bank_details = $7,
-            is_partner = $8,
-            is_active = $9,
-            airtable_id = $10
-        WHERE id = $1
-        RETURNING id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id, performer_token;
-      `,
-      values: [
-        id,
-        input.firstName,
-        input.lastName ?? null,
-        input.displayName ?? null,
-        input.email ?? null,
-        input.phone ?? null,
-        input.bankDetails ?? null,
-        input.isPartner,
-        input.isActive,
-        input.airtableId ?? null,
-      ],
-    });
-
-    const person = rows[0] ?? null;
-    if (!person) {
-      return null;
-    }
-
-    await syncPartnerAccount(person.id, person.is_partner);
-    return person;
+  const rows = await run_query<PersonRow>({
+    text: `
+      UPDATE people
+      SET first_name = $2,
+          last_name = $3,
+          display_name = $4,
+          email = $5,
+          phone = $6,
+          bank_details = $7,
+          is_partner = $8,
+          is_active = $9,
+          airtable_id = $10
+      WHERE id = $1
+      RETURNING id, first_name, last_name, display_name, email, phone, bank_details, is_partner, is_active, airtable_id, performer_token;
+    `,
+    values: [
+      id,
+      input.firstName,
+      input.lastName ?? null,
+      input.displayName ?? null,
+      input.email ?? null,
+      input.phone ?? null,
+      input.bankDetails ?? null,
+      input.isPartner,
+      input.isActive,
+      input.airtableId ?? null,
+    ],
   });
+  return rows[0] ?? null;
 }
 
 export async function deletePerson(id: number): Promise<boolean> {

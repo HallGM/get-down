@@ -5,6 +5,13 @@ import { useApiMutation } from "./useApiMutation.js";
 
 const KEY = "fee-allocations";
 
+export function useFeeAllocations() {
+  return useQuery({
+    queryKey: [KEY],
+    queryFn: () => apiFetch<FeeAllocation[]>("GET", "/fee-allocations"),
+  });
+}
+
 export function useFeeAllocation(id: number) {
   return useQuery({
     queryKey: [KEY, id],

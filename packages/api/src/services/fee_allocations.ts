@@ -8,6 +8,11 @@ import type {
 import * as feeAllocationsRepo from "../repository/fee_allocations.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 
+export async function getAllFeeAllocations(): Promise<FeeAllocation[]> {
+  const rows = await feeAllocationsRepo.readAllFeeAllocations();
+  return rows.map(mapAllocation);
+}
+
 export async function getFeeAllocationById(id: number): Promise<FeeAllocation> {
   const row = await feeAllocationsRepo.readFeeAllocationById(id);
   if (!row) throw new NotFoundError("FeeAllocation not found");

@@ -44,6 +44,16 @@ export async function createFeeAllocation(
   return rows[0];
 }
 
+export async function readAllFeeAllocations(): Promise<FeeAllocationRow[]> {
+  return run_query<FeeAllocationRow>({
+    text: `
+      SELECT id, person_id, notes, is_invoiced, is_paid, invoice_ref
+      FROM fee_allocations
+      ORDER BY id DESC;
+    `,
+  });
+}
+
 export async function readFeeAllocationById(id: number): Promise<FeeAllocationRow | null> {
   const rows = await run_query<FeeAllocationRow>({
     text: `

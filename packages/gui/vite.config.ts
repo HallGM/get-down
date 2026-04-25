@@ -38,6 +38,8 @@ export default defineConfig({
       "/assigned-roles": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/calendar": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/fee-allocations": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
+      "/accounts": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
+      "/genres": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
     },
   },
 });
