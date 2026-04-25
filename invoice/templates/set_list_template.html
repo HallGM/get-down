@@ -41,6 +41,7 @@
       .vocal { text-align: center; width: 3em; }
       .key  { width: 4em; }
       .key-change { width: 4em; }
+      .must-play { text-align: center; width: 2em; color: #c8820a; font-size: 11pt; }
     </style>
   </head>
   <body>
@@ -64,6 +65,7 @@
           <th class="key">Key</th>
           <th class="key-change">Key change</th>
           <th class="vocal">Vocal</th>
+          <th class="must-play">★</th>
         </tr>
       </thead>
       <tbody>
@@ -75,6 +77,7 @@
           <td>{{ song.key or '—' }}</td>
           <td>{{ song.key_change or '—' }}</td>
           <td class="vocal">{{ song.vocal_type or '—' }}</td>
+          <td class="must-play">{% if song.is_must_play %}★{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
