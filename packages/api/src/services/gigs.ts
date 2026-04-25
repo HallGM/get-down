@@ -3,6 +3,10 @@ import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
 import * as paymentsRepo from "../repository/payments.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
+import * as songsRepo from "../repository/songs.js";
+import { withTransaction } from "../db/init.js";
+
+const DEFAULT_SECTION_NAME = "Set 1";
 
 export async function getGigs(): Promise<Gig[]> {
   const rows = await gigsRepo.readGigs();
@@ -37,8 +41,24 @@ export async function getGigById(id: number): Promise<Gig> {
 }
 
 export async function createGig(input: CreateGigRequest): Promise<Gig> {
-  const row = await gigsRepo.createGig(buildMutationInput(input));
-  return mapGig(row);
+  return withTransaction(async () => {
+    const row = await gigsRepo.createGig(buildMutationInput(input));
+    await songsRepo.createSetListItem({
+      gigId: row.id,
+      itemType: "section",
+      sectionName: DEFAULT_SECTION_NAME,
+      songId: null,
+      position: 0,
+      notes: null,
+      unlinkedTitle: null,
+      unlinkedArtist: null,
+      unlinkedKey: null,
+      unlinkedKeyChange: null,
+      unlinkedVocalType: null,
+      unlinkedDuration: null,
+    });
+    return mapGig(row);
+  });
 }
 
 export async function updateGig(id: number, input: UpdateGigRequest): Promise<Gig> {
@@ -99,21 +119,38 @@ export async function convertEnquiryToGig(enquiryId: number): Promise<Gig> {
   if (!enquiry.event_date) {
     throw new BadRequestError("Enquiry has no event date — cannot convert to gig");
   }
+  const eventDate = enquiry.event_date; // capture narrowed value before async closure
 
-  const row = await gigsRepo.createGig({
-    enquiryId: enquiry.id,
-    status: "draft",
-    firstName: enquiry.first_name,
-    lastName: enquiry.last_name,
-    partnerName: enquiry.partner_name ?? undefined,
-    email: enquiry.email,
-    phone: enquiry.phone ?? undefined,
-    date: toDateString(enquiry.event_date) ?? enquiry.event_date,
-    location: enquiry.venue_location ?? undefined,
-    travelCost: 0,
-    discountPercent: 0,
+  return withTransaction(async () => {
+    const row = await gigsRepo.createGig({
+      enquiryId: enquiry.id,
+      status: "draft",
+      firstName: enquiry.first_name,
+      lastName: enquiry.last_name,
+      partnerName: enquiry.partner_name ?? undefined,
+      email: enquiry.email,
+      phone: enquiry.phone ?? undefined,
+      date: toDateString(eventDate) ?? eventDate,
+      location: enquiry.venue_location ?? undefined,
+      travelCost: 0,
+      discountPercent: 0,
+    });
+    await songsRepo.createSetListItem({
+      gigId: row.id,
+      itemType: "section",
+      sectionName: DEFAULT_SECTION_NAME,
+      songId: null,
+      position: 0,
+      notes: null,
+      unlinkedTitle: null,
+      unlinkedArtist: null,
+      unlinkedKey: null,
+      unlinkedKeyChange: null,
+      unlinkedVocalType: null,
+      unlinkedDuration: null,
+    });
+    return mapGig(row);
   });
-  return mapGig(row);
 }
 
 function toDateString(value: string | Date | null): string | null {

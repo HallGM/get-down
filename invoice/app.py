@@ -314,8 +314,8 @@ def generate_set_list():
             return jsonify({"error": "client_name is required"}), 400
         if not data.get("event_date"):
             return jsonify({"error": "event_date is required"}), 400
-        if not data.get("songs"):
-            return jsonify({"error": "songs is required"}), 400
+        if not data.get("sections"):
+            return jsonify({"error": "sections is required"}), 400
 
         app_root = os.path.dirname(os.path.abspath(__file__))
         template_path = os.path.join(app_root, "templates", "set_list_template.html")
@@ -329,7 +329,7 @@ def generate_set_list():
             client_name=data["client_name"],
             event_date=data["event_date"],
             venue=data.get("venue", ""),
-            songs=data["songs"],
+            sections=data["sections"],
         )
 
         from weasyprint import HTML, CSS

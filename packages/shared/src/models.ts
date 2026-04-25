@@ -672,6 +672,8 @@ export interface UpdateSongRequest {
 export interface SetListItem {
   id: number;
   gigId: number;
+  itemType: 'song' | 'section';
+  sectionName?: string;
   songId?: number;
   position?: number;
   notes?: string;
@@ -717,6 +719,7 @@ export interface UpdateSetListItemRequest {
   overrideKeyChange?: string | null;
   overrideVocalType?: string | null;
   overrideDuration?: number | null;
+  sectionName?: string | null;
   // Unlinked song fields
   unlinkedTitle?: string | null;
   unlinkedArtist?: string | null;
@@ -724,6 +727,10 @@ export interface UpdateSetListItemRequest {
   unlinkedKeyChange?: string | null;
   unlinkedVocalType?: string | null;
   unlinkedDuration?: number | null;
+}
+
+export interface CreateSetListSectionRequest {
+  sectionName: string;
 }
 
 export interface GigSongPreferences {

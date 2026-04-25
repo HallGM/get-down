@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Song, CreateSongRequest, UpdateSongRequest, SetListItemWithSong, CreateSetListItemRequest, UpdateSetListItemRequest } from "@get-down/shared";
+import type { Song, CreateSongRequest, UpdateSongRequest, SetListItemWithSong, CreateSetListItemRequest, UpdateSetListItemRequest, CreateSetListSectionRequest } from "@get-down/shared";
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
@@ -58,6 +58,27 @@ export function useAddSetListItem() {
     onSuccess: (_data, { gigId }) =>
       qc.invalidateQueries({ queryKey: [SET_LIST_KEY, gigId] }),
     successMessage: "Song added to set list",
+  });
+}
+
+export function useAddSetListSection() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ gigId, ...body }: { gigId: number } & CreateSetListSectionRequest) =>
+      apiFetch<SetListItemWithSong>("POST", `/gigs/${gigId}/set-list/section`, body),
+    onSuccess: (_data, { gigId }) =>
+      qc.invalidateQueries({ queryKey: [SET_LIST_KEY, gigId] }),
+    successMessage: "Section added",
+  });
+}
+
+export function useRenameSetListSection() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ gigId, itemId, sectionName }: { gigId: number; itemId: number; sectionName: string }) =>
+      apiFetch<SetListItemWithSong>("PATCH", `/gigs/${gigId}/set-list/${itemId}`, { sectionName }),
+    onSuccess: (_data, { gigId }) =>
+      qc.invalidateQueries({ queryKey: [SET_LIST_KEY, gigId] }),
   });
 }
 

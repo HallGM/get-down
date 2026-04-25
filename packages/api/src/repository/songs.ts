@@ -116,6 +116,8 @@ export async function readSongsByIds(ids: number[]): Promise<SongRow[]> {
 export interface SetListItemRow {
   id: number;
   gig_id: number;
+  item_type: string;
+  section_name: string | null;
   song_id: number | null;
   position: number | null;
   notes: string | null;
@@ -145,7 +147,7 @@ export interface SetListItemWithSongRow extends SetListItemRow {
 
 const SET_LIST_SELECT = `
   SELECT
-    sli.id, sli.gig_id, sli.song_id, sli.position, sli.notes,
+    sli.id, sli.gig_id, sli.item_type, sli.section_name, sli.song_id, sli.position, sli.notes,
     sli.override_key, sli.override_key_change, sli.override_vocal_type, sli.override_duration,
     sli.unlinked_title, sli.unlinked_artist, sli.unlinked_key, sli.unlinked_key_change, sli.unlinked_vocal_type, sli.unlinked_duration,
     COALESCE(s.title, sli.unlinked_title, '') AS title,
@@ -181,6 +183,8 @@ export async function readSetListItemById(
 
 export interface CreateSetListItemInput {
   gigId: number;
+  itemType: string;
+  sectionName: string | null;
   songId: number | null;
   position: number | null;
   notes: string | null;
@@ -196,13 +200,15 @@ export async function createSetListItem(input: CreateSetListItemInput): Promise<
   const rows = await run_query<SetListItemRow>({
     text: `
       INSERT INTO set_list_items
-        (gig_id, song_id, position, notes, unlinked_title, unlinked_artist, unlinked_key, unlinked_key_change, unlinked_vocal_type, unlinked_duration)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING id, gig_id, song_id, position, notes, override_key, override_key_change, override_vocal_type, override_duration,
+        (gig_id, item_type, section_name, song_id, position, notes, unlinked_title, unlinked_artist, unlinked_key, unlinked_key_change, unlinked_vocal_type, unlinked_duration)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING id, gig_id, item_type, section_name, song_id, position, notes, override_key, override_key_change, override_vocal_type, override_duration,
                 unlinked_title, unlinked_artist, unlinked_key, unlinked_key_change, unlinked_vocal_type, unlinked_duration;
     `,
     values: [
       input.gigId,
+      input.itemType,
+      input.sectionName,
       input.songId,
       input.position,
       input.notes,
@@ -218,6 +224,7 @@ export async function createSetListItem(input: CreateSetListItemInput): Promise<
 }
 
 export interface UpdateSetListItemInput {
+  sectionName: string | null;
   overrideKey: string | null;
   overrideKeyChange: string | null;
   overrideVocalType: string | null;
@@ -238,14 +245,15 @@ export async function updateSetListItem(
   const rows = await run_query<SetListItemRow>({
     text: `
       UPDATE set_list_items
-      SET override_key = $1, override_key_change = $2, override_vocal_type = $3, override_duration = $4,
-          unlinked_title = $5, unlinked_artist = $6, unlinked_key = $7, unlinked_key_change = $8,
-          unlinked_vocal_type = $9, unlinked_duration = $10
-      WHERE id = $11 AND gig_id = $12
-      RETURNING id, gig_id, song_id, position, notes, override_key, override_key_change, override_vocal_type, override_duration,
+      SET section_name = $1, override_key = $2, override_key_change = $3, override_vocal_type = $4, override_duration = $5,
+          unlinked_title = $6, unlinked_artist = $7, unlinked_key = $8, unlinked_key_change = $9,
+          unlinked_vocal_type = $10, unlinked_duration = $11
+      WHERE id = $12 AND gig_id = $13
+      RETURNING id, gig_id, item_type, section_name, song_id, position, notes, override_key, override_key_change, override_vocal_type, override_duration,
                 unlinked_title, unlinked_artist, unlinked_key, unlinked_key_change, unlinked_vocal_type, unlinked_duration;
     `,
     values: [
+      input.sectionName,
       input.overrideKey,
       input.overrideKeyChange,
       input.overrideVocalType,

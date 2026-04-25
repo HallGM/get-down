@@ -18,6 +18,8 @@ import { useGig } from "../../api/hooks/useGigs.js";
 import {
   useGigSetList,
   useAddSetListItem,
+  useAddSetListSection,
+  useRenameSetListSection,
   useRemoveSetListItem,
   useReorderSetList,
   useBulkImportSetList,
@@ -33,6 +35,7 @@ import { apiFetchBlob } from "../../api/client.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import SortableSetListRow from "./SortableSetListRow.js";
+import SortableSetListSection from "./SortableSetListSection.js";
 import SongPrefList from "./SongPrefList.js";
 import HousePlaylistPanel from "./HousePlaylistPanel.js";
 import EditSetListItemModal, { type EditSetListItemSubmit } from "./EditSetListItemModal.js";
@@ -53,6 +56,8 @@ export default function SetListBuilder() {
   const bulkImport = useBulkImportSetList();
   const autoOrder = useAutoOrderSetList();
   const addItem = useAddSetListItem();
+  const addSection = useAddSetListSection();
+  const renameSection = useRenameSetListSection();
   const removeItem = useRemoveSetListItem();
   const updateItem = useUpdateSetListItem();
   const clearAll = useClearSetList();
@@ -67,7 +72,7 @@ export default function SetListBuilder() {
 
   const [downloadPending, setDownloadPending] = useState(false);
 
-  // Bulk selection state
+  // Bulk selection state (only songs, not section headers)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   function toggleSelect(itemId: number) {
@@ -79,11 +84,14 @@ export default function SetListBuilder() {
     });
   }
 
+  const songItems = ordered.filter(i => i.itemType === "song");
+  const sectionCount = ordered.filter(i => i.itemType === "section").length;
+
   function toggleSelectAll() {
-    if (selectedIds.size === ordered.length) {
+    if (selectedIds.size === songItems.length && songItems.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(ordered.map(i => i.id)));
+      setSelectedIds(new Set(songItems.map(i => i.id)));
     }
   }
 
@@ -95,7 +103,7 @@ export default function SetListBuilder() {
   }
 
   async function handleClearAll() {
-    if (!window.confirm(`Remove all ${ordered.length} songs from this set list?`)) return;
+    if (!window.confirm(`Remove all ${ordered.length} items from this set list?`)) return;
     await clearAll.mutateAsync(gigId);
     setSelectedIds(new Set());
     setLocalOrder(null);
@@ -115,7 +123,6 @@ export default function SetListBuilder() {
   );
 
   // Edit modal state
-  // editingItem = the row being edited; null = create (add unlisted song) mode
   const [editingItem, setEditingItem] = useState<SetListItemWithSong | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
@@ -147,7 +154,6 @@ export default function SetListBuilder() {
 
     if (editingItem) {
       if (editingItem.songId) {
-        // Linked song — store as overrides
         await updateItem.mutateAsync({
           gigId,
           itemId: editingItem.id,
@@ -157,7 +163,6 @@ export default function SetListBuilder() {
           overrideDuration: duration,
         });
       } else {
-        // Unlinked song — update all fields
         await updateItem.mutateAsync({
           gigId,
           itemId: editingItem.id,
@@ -170,7 +175,6 @@ export default function SetListBuilder() {
         });
       }
     } else {
-      // Create mode — add unlisted song
       await addItem.mutateAsync({
         gigId,
         unlinkedTitle: form.title,
@@ -183,6 +187,13 @@ export default function SetListBuilder() {
     }
 
     closeModal();
+  }
+
+  async function handleAddSection() {
+    const name = window.prompt("Section name:", "Set 2");
+    if (!name?.trim()) return;
+    await addSection.mutateAsync({ gigId, sectionName: name.trim() });
+    setLocalOrder(null);
   }
 
   const sensors = useSensors(useSensor(PointerSensor));
@@ -219,11 +230,9 @@ export default function SetListBuilder() {
     try {
       const blob = await apiFetchBlob("GET", `/gigs/${gigId}/set-list/pdf`);
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      // No a.download — let the server's Content-Disposition header provide the client-identified filename
-      a.click();
-      URL.revokeObjectURL(url);
+      window.open(url, "_blank");
+      // Revoke after a short delay to give the new tab time to load the blob
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } finally {
       setDownloadPending(false);
     }
@@ -231,6 +240,9 @@ export default function SetListBuilder() {
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
   if (error) return <main className="container"><ErrorBanner error={error} /></main>;
+
+  // Build a rendered list with per-section duration footers injected
+  const listWithSectionTotals = buildRenderedList(ordered);
 
   return (
     <main className="container">
@@ -250,7 +262,7 @@ export default function SetListBuilder() {
             className="secondary outline"
             onClick={handleDownloadPdf}
             aria-busy={downloadPending}
-            disabled={downloadPending || ordered.length === 0}
+            disabled={downloadPending || songItems.length === 0}
             title="Download set list as PDF"
           >
             ↓ PDF
@@ -259,8 +271,8 @@ export default function SetListBuilder() {
             className="secondary outline"
             onClick={handleAutoOrder}
             aria-busy={autoOrder.isPending}
-            disabled={autoOrder.isPending || ordered.length === 0}
-            title="Auto-order: alternates Male/Female, spreads must-plays evenly, untyped songs last"
+            disabled={autoOrder.isPending || songItems.length === 0}
+            title="Auto-order: alternates Male/Female per section, spreads must-plays evenly, untyped songs last"
           >
             Auto-order
           </button>
@@ -278,7 +290,7 @@ export default function SetListBuilder() {
             onClick={handleClearAll}
             aria-busy={clearAll.isPending}
             disabled={clearAll.isPending || ordered.length === 0}
-            title="Remove all songs from this set list"
+            title="Remove all songs and sections from this set list"
           >
             Clear all
           </button>
@@ -290,7 +302,7 @@ export default function SetListBuilder() {
         {/* Left column: set list + add */}
         <div>
           <section>
-            {ordered.length === 0 ? (
+            {songItems.length === 0 && sectionCount === 0 ? (
               <p style={{ color: "var(--pico-muted-color)" }}>No songs in the set list yet.</p>
             ) : (
               <>
@@ -299,7 +311,7 @@ export default function SetListBuilder() {
                   <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", margin: 0, fontSize: "0.85rem", cursor: "pointer" }}>
                     <input
                       type="checkbox"
-                      checked={selectedIds.size === ordered.length && ordered.length > 0}
+                      checked={selectedIds.size === songItems.length && songItems.length > 0}
                       onChange={toggleSelectAll}
                       style={{ margin: 0 }}
                     />
@@ -322,24 +334,61 @@ export default function SetListBuilder() {
 
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={ordered.map(i => i.id)} strategy={verticalListSortingStrategy}>
-                    {ordered.map((item, i) => (
-                      <SortableSetListRow
-                        key={item.id}
-                        item={item}
-                        index={i}
-                        removing={removeItem.isPending}
-                        selected={selectedIds.has(item.id)}
-                        onToggleSelect={toggleSelect}
-                        onRemove={(itemId) => removeItem.mutate({ gigId, itemId })}
-                        onEdit={openEdit}
-                      />
-                    ))}
+                    {listWithSectionTotals.map(entry => {
+                      if (entry.type === "section") {
+                        return (
+                          <SortableSetListSection
+                            key={entry.item.id}
+                            item={entry.item}
+                            isOnly={sectionCount <= 1}
+                            onRename={(itemId, name) => renameSection.mutate({ gigId, itemId, sectionName: name })}
+                            onDelete={(itemId) => removeItem.mutate({ gigId, itemId })}
+                            isRenaming={renameSection.isPending}
+                          />
+                        );
+                      }
+                      if (entry.type === "song") {
+                        return (
+                          <SortableSetListRow
+                            key={entry.item.id}
+                            item={entry.item}
+                            index={entry.sectionIndex}
+                            removing={removeItem.isPending}
+                            selected={selectedIds.has(entry.item.id)}
+                            onToggleSelect={toggleSelect}
+                            onRemove={(itemId) => removeItem.mutate({ gigId, itemId })}
+                            onEdit={openEdit}
+                          />
+                        );
+                      }
+                      // Section duration footer
+                      return (
+                        <div
+                          key={entry.key}
+                          style={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            alignItems: "center",
+                            gap: "0.4rem",
+                            color: "var(--pico-muted-color)",
+                            fontSize: "0.85rem",
+                            padding: "0.25rem 0.75rem",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          <span>{entry.sectionName} total:</span>
+                          <strong style={{ color: "var(--pico-color)" }}>
+                            {formatTotalDuration(entry.seconds)}
+                          </strong>
+                        </div>
+                      );
+                    })}
                   </SortableContext>
                 </DndContext>
 
-                {/* Set duration total */}
+                {/* Overall set duration total */}
                 {(() => {
-                  const totalSeconds = ordered.reduce((acc, item) => acc + (item.duration ?? 0), 0);
+                  const totalSeconds = songItems.reduce((acc, item) => acc + (item.duration ?? 0), 0);
                   if (totalSeconds === 0) return null;
                   return (
                     <div style={{
@@ -363,7 +412,7 @@ export default function SetListBuilder() {
               </>
             )}
 
-            {/* Add song controls */}
+            {/* Add song + add section controls */}
             <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", alignItems: "flex-start", flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: "200px" }}>
                 <input
@@ -418,13 +467,25 @@ export default function SetListBuilder() {
                   );
                 })}
               </div>
-              <button
-                className="secondary outline"
-                onClick={openCreate}
-                style={{ whiteSpace: "nowrap" }}
-              >
-                + Add unlisted song
-              </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                <button
+                  className="secondary outline"
+                  onClick={openCreate}
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  + Add unlisted song
+                </button>
+                <button
+                  className="secondary outline"
+                  onClick={handleAddSection}
+                  aria-busy={addSection.isPending}
+                  disabled={addSection.isPending}
+                  style={{ whiteSpace: "nowrap" }}
+                  title="Add a new section divider (e.g. Set 2, Encore)"
+                >
+                  + Add section
+                </button>
+              </div>
             </div>
           </section>
 
@@ -480,6 +541,61 @@ export default function SetListBuilder() {
       />
     </main>
   );
+}
+
+// ─── Rendered list builder ────────────────────────────────────────────────────
+
+type RenderedSong = { type: "song"; item: SetListItemWithSong; sectionIndex: number };
+type RenderedSection = { type: "section"; item: SetListItemWithSong };
+type RenderedSectionTotal = { type: "total"; key: string; sectionName: string; seconds: number };
+type RenderedEntry = RenderedSong | RenderedSection | RenderedSectionTotal;
+
+/**
+ * Takes the flat ordered list and produces a render-ready array that interleaves
+ * song rows, section header rows, and per-section duration footer rows.
+ * Duration footers are NOT placed inside the DnD SortableContext — they are
+ * injected after each section's last song and keyed by a synthetic key.
+ */
+function buildRenderedList(ordered: SetListItemWithSong[]): RenderedEntry[] {
+  const result: RenderedEntry[] = [];
+
+  let currentSectionName = "";
+  let sectionSongIndex = 0;
+  let sectionSeconds = 0;
+  let hasSection = false;
+  let sectionIndex = 0;
+
+  function flushSectionTotal() {
+    if (hasSection && sectionSeconds > 0) {
+      result.push({
+        type: "total",
+        key: `total-section-${sectionIndex}`,
+        sectionName: currentSectionName,
+        seconds: sectionSeconds,
+      });
+    }
+  }
+
+  for (const item of ordered) {
+    if (item.itemType === "section") {
+      flushSectionTotal();
+      sectionIndex++;
+      currentSectionName = item.sectionName ?? "Set 1";
+      sectionSongIndex = 0;
+      sectionSeconds = 0;
+      hasSection = true;
+      result.push({ type: "section", item });
+    } else {
+      result.push({ type: "song", item, sectionIndex: sectionSongIndex });
+      sectionSongIndex++;
+      sectionSeconds += item.duration ?? 0;
+    }
+  }
+
+  // Flush the last section's total
+  flushSectionTotal();
+
+  return result;
 }
 
 // ─── Duration helpers ─────────────────────────────────────────────────────────

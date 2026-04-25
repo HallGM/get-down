@@ -285,6 +285,8 @@ Table set_list_items {
   song_id int [ref: > songs.id]
   position int
   notes text
+  item_type varchar(20) [not null, default: 'song']
+  section_name varchar(255)
   override_key varchar(50)
   override_key_change varchar(50)
   override_vocal_type varchar(50)
