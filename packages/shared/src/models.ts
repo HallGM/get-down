@@ -422,7 +422,8 @@ export interface CreateAssignedRoleRequest {
 export interface UpdateAssignedRoleRequest {
   gigId?: number;
   showcaseId?: number;
-  personId?: number;
+  /** `null` explicitly clears the assigned person; `undefined` leaves it unchanged. */
+  personId?: number | null;
   roleName?: string;
   feeAllocationId?: number;
 }
