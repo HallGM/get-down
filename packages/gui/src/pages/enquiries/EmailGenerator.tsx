@@ -4,8 +4,8 @@ import {
   type EmailMessageRequest,
   type EmailMessageResponse,
 } from "@get-down/shared";
+import { apiFetch } from "../../api/client.js";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
 const ALL_SERVICES = Object.values(SERVICE_NAMES);
 
 export default function EmailGenerator() {
@@ -36,18 +36,7 @@ export default function EmailGenerator() {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/enquiry/message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const err = await res.json() as { message?: string };
-        throw new Error(err.message || "Request failed");
-      }
-
-      const data = await res.json() as EmailMessageResponse;
+      const data = await apiFetch<EmailMessageResponse>("POST", "/enquiry/message", body);
       setMessage(data.message);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

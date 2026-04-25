@@ -60,10 +60,16 @@ function buildMutationInput(
   const roleName = input.roleName?.trim() ?? existing?.roleName;
   if (!roleName) throw new BadRequestError("roleName is required");
 
+  // personId: null means "explicitly clear"; undefined means "leave unchanged"
+  const personId =
+    input.personId === undefined
+      ? existing?.personId
+      : (input.personId ?? undefined);
+
   return {
     gigId: input.gigId ?? existing?.gigId,
     showcaseId: input.showcaseId ?? existing?.showcaseId,
-    personId: input.personId ?? existing?.personId,
+    personId,
     roleName,
     feeAllocationId: input.feeAllocationId ?? existing?.feeAllocationId,
   };

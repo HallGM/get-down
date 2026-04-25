@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { AssignedRole } from "@get-down/shared";
+import type { AssignedRole, UpdateAssignedRoleRequest } from "@get-down/shared";
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
@@ -31,6 +31,20 @@ export function useCreateRole() {
       if (input.showcaseId) qc.invalidateQueries({ queryKey: [KEY, "showcase", input.showcaseId] });
     },
     successMessage: "Role added",
+  });
+}
+
+export function useUpdateRole() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ id, input }: { id: number; gigId?: number; showcaseId?: number; input: UpdateAssignedRoleRequest }) =>
+      // gigId / showcaseId are not sent to the API; used only for cache invalidation in onSuccess
+      apiFetch<AssignedRole>("PUT", `/assigned-roles/${id}`, input),
+    onSuccess: (_data, { gigId, showcaseId }) => {
+      if (gigId) qc.invalidateQueries({ queryKey: [KEY, "gig", gigId] });
+      if (showcaseId) qc.invalidateQueries({ queryKey: [KEY, "showcase", showcaseId] });
+    },
+    successMessage: "Role updated",
   });
 }
 
