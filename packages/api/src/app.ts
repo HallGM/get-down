@@ -10,6 +10,7 @@ import gigs from "./controllers/gigs.js";
 import showcases from "./controllers/showcases.js";
 import feeAllocations from "./controllers/fee_allocations.js";
 import assignedRoles from "./controllers/assigned_roles.js";
+import roles from "./controllers/roles.js";
 import expenses from "./controllers/expenses.js";
 import payments from "./controllers/payments.js";
 import invoices from "./controllers/invoices.js";
@@ -36,6 +37,7 @@ app.use("/", gigs);
 app.use("/", showcases);
 app.use("/", feeAllocations);
 app.use("/", assignedRoles);
+app.use("/", roles);
 app.use("/", expenses);
 app.use("/", payments);
 app.use("/", invoices);
@@ -54,11 +56,14 @@ app.get("/health", (_req, res) => {
 // Global error handler — maps AppError subclasses to HTTP responses
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction): void => {
   if (err instanceof AppError) {
+    console.error(`[${err.statusCode}] ${err.message}`);
     res.status(err.statusCode).json({ message: err.message });
     return;
   }
   if (err instanceof Error && "statusCode" in err && typeof (err as Record<string,unknown>)["statusCode"] === "number") {
-    res.status((err as Record<string,unknown>)["statusCode"] as number).json({ message: err.message });
+    const statusCode = (err as Record<string,unknown>)["statusCode"] as number;
+    console.error(`[${statusCode}] ${err.message}`);
+    res.status(statusCode).json({ message: err.message });
     return;
   }
   console.error(err);

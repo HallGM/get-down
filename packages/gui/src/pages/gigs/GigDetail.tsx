@@ -7,7 +7,7 @@ import {
   useSetGigServices,
 } from "../../api/hooks/useGigs.js";
 import { useServices } from "../../api/hooks/useServices.js";
-import { useGigRoles, useCreateRole, useUpdateRole, useDeleteRole } from "../../api/hooks/useAssignedRoles.js";
+import { useGigRoles, useCreateRole, useUpdateRole, useDeleteRole, useImportRolesFromServices } from "../../api/hooks/useAssignedRoles.js";
 import { usePeople } from "../../api/hooks/usePeople.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
@@ -16,6 +16,7 @@ import MoneyDisplay from "../../components/MoneyDisplay.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
 import Modal from "../../components/Modal.js";
+import { useToast } from "../../components/Toast.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import type { UpdateGigRequest, Person } from "@get-down/shared";
 
@@ -37,6 +38,8 @@ export default function GigDetail() {
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
   const deleteRole = useDeleteRole();
+  const importRoles = useImportRolesFromServices(gigId);
+  const { showToast } = useToast();
 
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<UpdateGigRequest>({});
@@ -92,6 +95,13 @@ export default function GigDetail() {
     await createRole.mutateAsync({ gigId, roleName: roleForm.roleName, personId: roleForm.personId ?? undefined });
     setShowAddRole(false);
     setRoleForm({ roleName: "", personId: null });
+  }
+
+  async function handleImportRoles() {
+    const imported = await importRoles.mutateAsync();
+    if (imported.length === 0) {
+      showToast("No roles found on attached services", "success");
+    }
   }
 
   return (
@@ -272,7 +282,17 @@ export default function GigDetail() {
       <section>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2>Assigned Roles</h2>
-          <button className="secondary" onClick={() => setShowAddRole(true)}>+ Add</button>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              className="secondary outline"
+              aria-busy={importRoles.isPending}
+              disabled={importRoles.isPending}
+              onClick={handleImportRoles}
+            >
+              Import from services
+            </button>
+            <button className="secondary" onClick={() => setShowAddRole(true)}>+ Add</button>
+          </div>
         </div>
         {roles && roles.length > 0 ? (
           <table>

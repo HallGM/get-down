@@ -13,6 +13,7 @@ import * as gigsRepo from "../repository/gigs.js";
 import * as prefsRepo from "../repository/gig_song_preferences.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { withTransaction } from "../db/init.js";
+import { DEFAULT_SECTION_NAME } from "../constants.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 
 export async function getSongs(): Promise<Song[]> {
@@ -386,7 +387,7 @@ export async function buildSetListPdfPayload(gigId: number): Promise<Record<stri
   type PdfSection = { name: string; songs: PdfSong[]; duration_seconds: number };
 
   const sections: PdfSection[] = [];
-  let currentSection: PdfSection = { name: "Set 1", songs: [], duration_seconds: 0 };
+  let currentSection: PdfSection = { name: DEFAULT_SECTION_NAME, songs: [], duration_seconds: 0 };
 
   for (const r of items) {
     if (r.item_type === "section") {
@@ -394,7 +395,7 @@ export async function buildSetListPdfPayload(gigId: number): Promise<Record<stri
         // Only push if it already has content or there's already something
         sections.push(currentSection);
       }
-      currentSection = { name: r.section_name ?? "Set 1", songs: [], duration_seconds: 0 };
+      currentSection = { name: r.section_name ?? DEFAULT_SECTION_NAME, songs: [], duration_seconds: 0 };
     } else {
       const dur = r.override_duration ?? r.duration ?? r.unlinked_duration ?? null;
       currentSection.songs.push({
