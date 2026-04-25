@@ -6,6 +6,7 @@ import { handle } from "../utils/handle.js";
 const router: Router = express.Router();
 router.use(authenticateToken);
 
+router.get("/fee-allocations",        handle(() => feeAllocationsService.getAllFeeAllocations()));
 router.get("/fee-allocations/:id",    handle(req => feeAllocationsService.getFeeAllocationById(+req.params.id)));
 router.post("/fee-allocations",       handle(req => feeAllocationsService.createFeeAllocation(req.body), 201));
 router.put("/fee-allocations/:id",    handle(req => feeAllocationsService.updateFeeAllocation(+req.params.id, req.body)));

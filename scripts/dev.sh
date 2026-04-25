@@ -33,7 +33,7 @@ fi
 echo "   Flask running on http://localhost:5001"
 
 echo "🚀 Starting dev servers…"
-pnpm -r dev
+pnpm -r --stream dev
 EXIT_CODE=$?
 
 kill $FLASK_PID 2>/dev/null || true

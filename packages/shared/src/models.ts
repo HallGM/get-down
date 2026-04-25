@@ -584,6 +584,17 @@ export interface CreateInvoiceLineItemRequest {
   amount?: number;
 }
 
+export interface Account {
+  id: number;
+  personId: number;
+  personName: string;
+  caBalance: number;
+}
+
+export interface CreateAccountRequest {
+  personId: number;
+}
+
 export interface AccountTransaction {
   id: number;
   accountId: number;
@@ -591,14 +602,23 @@ export interface AccountTransaction {
   amount: number;
   type: string;
   description?: string;
+  feeAllocationIds: number[];
 }
 
 export interface CreateAccountTransactionRequest {
-  accountId: number;
-  date?: string;
+  date: string;
   amount: number;
   type: string;
   description?: string;
+  feeAllocationIds?: number[];
+}
+
+export interface UpdateAccountTransactionRequest {
+  date?: string;
+  amount?: number;
+  type?: string;
+  description?: string;
+  feeAllocationIds?: number[];
 }
 
 export interface Genre {

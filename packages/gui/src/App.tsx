@@ -19,6 +19,8 @@ import RehearsalsList from "./pages/rehearsals/RehearsalsList.js";
 import ExpensesList from "./pages/expenses/ExpensesList.js";
 import PerformerGigList from "./pages/performer/PerformerGigList.js";
 import PerformerGigDetail from "./pages/performer/PerformerGigDetail.js";
+import AccountsList from "./pages/accounts/AccountsList.js";
+import AccountDetail from "./pages/accounts/AccountDetail.js";
 
 const NAV_LINKS = [
   { to: "/", label: "Dashboard", end: true },
@@ -31,6 +33,7 @@ const NAV_LINKS = [
   // { to: "/attributions", label: "Attributions" },  // hidden — not in use yet
   // { to: "/rehearsals", label: "Rehearsals" },  // hidden — not in use yet
   { to: "/expenses", label: "Expenses" },
+  { to: "/accounts", label: "Accounts" },
 ];
 
 function AppNav() {
@@ -121,6 +124,8 @@ export default function App() {
           <Route path="/attributions" element={<AttributionsList />} />
           <Route path="/rehearsals" element={<RehearsalsList />} />
           <Route path="/expenses" element={<ExpensesList />} />
+          <Route path="/accounts" element={<AccountsList />} />
+          <Route path="/accounts/:id" element={<AccountDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
