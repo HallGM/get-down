@@ -12,6 +12,8 @@ import EnquiriesList from "./pages/enquiries/EnquiriesList.js";
 import EmailGenerator from "./pages/enquiries/EmailGenerator.js";
 import PeopleList from "./pages/people/PeopleList.js";
 import ServicesList from "./pages/services/ServicesList.js";
+import ServiceDetail from "./pages/services/ServiceDetail.js";
+import RolesList from "./pages/services/RolesList.js";
 import SongsList from "./pages/songs/SongsList.js";
 import ShowcasesList from "./pages/showcases/ShowcasesList.js";
 import AttributionsList from "./pages/attributions/AttributionsList.js";
@@ -120,6 +122,8 @@ export default function App() {
           <Route path="/songs" element={<SongsList />} />
           <Route path="/people" element={<PeopleList />} />
           <Route path="/services" element={<ServicesList />} />
+          <Route path="/services/roles" element={<RolesList />} />
+          <Route path="/services/:id" element={<ServiceDetail />} />
           <Route path="/showcases" element={<ShowcasesList />} />
           <Route path="/attributions" element={<AttributionsList />} />
           <Route path="/rehearsals" element={<RehearsalsList />} />

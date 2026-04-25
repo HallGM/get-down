@@ -12,6 +12,14 @@ export function useServices() {
   });
 }
 
+export function useService(id: number) {
+  return useQuery({
+    queryKey: [KEY, id],
+    queryFn: () => apiFetch<Service>("GET", `/services/${id}`),
+    enabled: !!id,
+  });
+}
+
 export function useCreateService() {
   const qc = useQueryClient();
   return useApiMutation({
@@ -27,7 +35,10 @@ export function useUpdateService() {
   return useApiMutation({
     mutationFn: ({ id, input }: { id: number; input: UpdateServiceRequest }) =>
       apiFetch<Service>("PUT", `/services/${id}`, input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: [KEY, id] });
+    },
     successMessage: "Service saved",
   });
 }

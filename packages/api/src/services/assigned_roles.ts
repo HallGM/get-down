@@ -4,6 +4,9 @@ import type {
   UpdateAssignedRoleRequest,
 } from "@get-down/shared";
 import * as assignedRolesRepo from "../repository/assigned_roles.js";
+import * as rolesRepo from "../repository/roles.js";
+import * as gigsRepo from "../repository/gigs.js";
+import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 
 export async function getAssignedRolesByGig(gigId: number): Promise<AssignedRole[]> {
@@ -40,6 +43,23 @@ export async function updateAssignedRole(
 export async function deleteAssignedRole(id: number): Promise<void> {
   const deleted = await assignedRolesRepo.deleteAssignedRole(id);
   if (!deleted) throw new NotFoundError("AssignedRole not found");
+}
+
+export async function importRolesFromServices(gigId: number): Promise<AssignedRole[]> {
+  const gigServices = await gigsRepo.readGigServicesByGigId(gigId);
+  if (gigServices.length === 0) throw new BadRequestError("No services are attached to this gig");
+
+  const roleRows = await rolesRepo.readRolesForGigServices(gigId);
+  if (roleRows.length === 0) return [];
+
+  return withTransaction(async () => {
+    const created: AssignedRole[] = [];
+    for (const role of roleRows) {
+      const row = await assignedRolesRepo.createAssignedRole({ gigId, roleName: role.name });
+      created.push(mapAssignedRole(row));
+    }
+    return created;
+  });
 }
 
 function mapAssignedRole(row: assignedRolesRepo.AssignedRoleRow): AssignedRole {

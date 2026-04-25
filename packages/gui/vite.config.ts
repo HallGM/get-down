@@ -36,6 +36,7 @@ export default defineConfig({
       "/attributions": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/showcases": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/assigned-roles": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
+      "/roles": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/calendar": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/fee-allocations": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/accounts": { target: "http://localhost:3000", bypass: bypassHtmlRequests },

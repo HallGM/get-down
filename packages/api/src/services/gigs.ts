@@ -5,8 +5,7 @@ import * as paymentsRepo from "../repository/payments.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import * as songsRepo from "../repository/songs.js";
 import { withTransaction } from "../db/init.js";
-
-const DEFAULT_SECTION_NAME = "Set 1";
+import { DEFAULT_SECTION_NAME } from "../constants.js";
 
 export async function getGigs(): Promise<Gig[]> {
   const rows = await gigsRepo.readGigs();
@@ -43,20 +42,7 @@ export async function getGigById(id: number): Promise<Gig> {
 export async function createGig(input: CreateGigRequest): Promise<Gig> {
   return withTransaction(async () => {
     const row = await gigsRepo.createGig(buildMutationInput(input));
-    await songsRepo.createSetListItem({
-      gigId: row.id,
-      itemType: "section",
-      sectionName: DEFAULT_SECTION_NAME,
-      songId: null,
-      position: 0,
-      notes: null,
-      unlinkedTitle: null,
-      unlinkedArtist: null,
-      unlinkedKey: null,
-      unlinkedKeyChange: null,
-      unlinkedVocalType: null,
-      unlinkedDuration: null,
-    });
+    await seedDefaultSetListSection(row.id);
     return mapGig(row);
   });
 }
@@ -135,21 +121,25 @@ export async function convertEnquiryToGig(enquiryId: number): Promise<Gig> {
       travelCost: 0,
       discountPercent: 0,
     });
-    await songsRepo.createSetListItem({
-      gigId: row.id,
-      itemType: "section",
-      sectionName: DEFAULT_SECTION_NAME,
-      songId: null,
-      position: 0,
-      notes: null,
-      unlinkedTitle: null,
-      unlinkedArtist: null,
-      unlinkedKey: null,
-      unlinkedKeyChange: null,
-      unlinkedVocalType: null,
-      unlinkedDuration: null,
-    });
+    await seedDefaultSetListSection(row.id);
     return mapGig(row);
+  });
+}
+
+async function seedDefaultSetListSection(gigId: number): Promise<void> {
+  await songsRepo.createSetListItem({
+    gigId,
+    itemType: "section",
+    sectionName: DEFAULT_SECTION_NAME,
+    songId: null,
+    position: 0,
+    notes: null,
+    unlinkedTitle: null,
+    unlinkedArtist: null,
+    unlinkedKey: null,
+    unlinkedKeyChange: null,
+    unlinkedVocalType: null,
+    unlinkedDuration: null,
   });
 }
 
