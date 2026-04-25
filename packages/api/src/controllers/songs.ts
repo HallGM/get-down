@@ -16,6 +16,7 @@ router.delete("/songs/:id", handle(req => songsService.deleteSong(+req.params.id
 
 router.get("/gigs/:id/set-list",            handle(req => songsService.getSetList(+req.params.id)));
 router.post("/gigs/:id/set-list",            handle(req => songsService.addSetListItem(+req.params.id, req.body), 201));
+router.post("/gigs/:id/set-list/section",    handle(req => songsService.addSetListItem(+req.params.id, req.body), 201));
 router.delete("/gigs/:id/set-list",          handle(req => songsService.clearSetList(+req.params.id), 204));
 router.delete("/gigs/:id/set-list/bulk",     handle(req => songsService.bulkDeleteSetListItems(+req.params.id, req.body), 204));
 router.patch("/gigs/:id/set-list/:itemId",   handle(req => songsService.updateSetListItem(+req.params.id, +req.params.itemId, req.body)));

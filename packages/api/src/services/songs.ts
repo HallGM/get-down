@@ -48,7 +48,9 @@ export async function getSetList(gigId: number): Promise<SetListItemWithSong[]> 
   return rows.map(mapSetListItemWithSong);
 }
 
-// Zod schemas for the two add paths
+// ─── Add set list item ────────────────────────────────────────────────────────
+
+// Zod schemas for the three add paths
 const AddLinkedSchema = z.object({
   songId: z.number().int().positive(),
   position: z.number().int().positive().optional(),
@@ -66,17 +68,43 @@ const AddUnlinkedSchema = z.object({
   notes: z.string().optional(),
 });
 
+const AddSectionSchema = z.object({
+  sectionName: z.string().min(1, "sectionName is required").max(255),
+});
+
 export async function addSetListItem(
   gigId: number,
   body: unknown
 ): Promise<SetListItemWithSong> {
   const raw = body as Record<string, unknown>;
 
-  if (raw.songId !== undefined) {
+  if (raw.sectionName !== undefined) {
+    // Section divider path
+    const input = parseOrBadRequest(AddSectionSchema, body);
+    const inserted = await songsRepo.createSetListItem({
+      gigId,
+      itemType: "section",
+      sectionName: input.sectionName.trim(),
+      songId: null,
+      position: null,
+      notes: null,
+      unlinkedTitle: null,
+      unlinkedArtist: null,
+      unlinkedKey: null,
+      unlinkedKeyChange: null,
+      unlinkedVocalType: null,
+      unlinkedDuration: null,
+    });
+    const row = await songsRepo.readSetListItemById(inserted.id, gigId);
+    if (!row) throw new NotFoundError("SetListItem not found after insert");
+    return mapSetListItemWithSong(row);
+  } else if (raw.songId !== undefined) {
     // Linked path
     const input = parseOrBadRequest(AddLinkedSchema, body);
     const inserted = await songsRepo.createSetListItem({
       gigId,
+      itemType: "song",
+      sectionName: null,
       songId: input.songId,
       position: input.position ?? null,
       notes: input.notes?.trim() ?? null,
@@ -95,6 +123,8 @@ export async function addSetListItem(
     const input = parseOrBadRequest(AddUnlinkedSchema, body);
     const inserted = await songsRepo.createSetListItem({
       gigId,
+      itemType: "song",
+      sectionName: null,
       songId: null,
       position: input.position ?? null,
       notes: input.notes?.trim() ?? null,
@@ -131,9 +161,12 @@ export async function reorderSetList(gigId: number, input: ReorderSetListRequest
   await songsRepo.reorderSetListItems(gigId, input.itemIds);
 }
 
+// ─── Update set list item ─────────────────────────────────────────────────────
+
 // Fields are optional (absent = don't touch), nullable (null = clear).
 // Empty/whitespace strings are normalised to null.
 const UpdateSetListItemSchema = z.object({
+  sectionName:           z.string().max(255).transform(v => v.trim() || null).nullable().optional(),
   overrideKey:           z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
   overrideKeyChange:     z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
   overrideVocalType:     z.string().max(50).transform(v => v.trim() || null).nullable().optional(),
@@ -156,18 +189,20 @@ export async function updateSetListItem(
   const existing = await songsRepo.readSetListItemById(itemId, gigId);
   if (!existing) throw new NotFoundError("SetListItem not found");
 
-  const newKey =              input.overrideKey         !== undefined ? input.overrideKey         : existing.override_key;
-  const newKeyChange =        input.overrideKeyChange   !== undefined ? input.overrideKeyChange   : existing.override_key_change;
-  const newVocalType =        input.overrideVocalType   !== undefined ? input.overrideVocalType   : existing.override_vocal_type;
-  const newOverrideDur =      input.overrideDuration    !== undefined ? input.overrideDuration    : existing.override_duration;
-  const newUnlTitle =         input.unlinkedTitle       !== undefined ? input.unlinkedTitle       : existing.unlinked_title;
-  const newUnlArtist =        input.unlinkedArtist      !== undefined ? input.unlinkedArtist      : existing.unlinked_artist;
-  const newUnlKey =           input.unlinkedKey         !== undefined ? input.unlinkedKey         : existing.unlinked_key;
-  const newUnlKeyChange =     input.unlinkedKeyChange   !== undefined ? input.unlinkedKeyChange   : existing.unlinked_key_change;
-  const newUnlVocalType =     input.unlinkedVocalType   !== undefined ? input.unlinkedVocalType   : existing.unlinked_vocal_type;
-  const newUnlDuration =      input.unlinkedDuration    !== undefined ? input.unlinkedDuration    : existing.unlinked_duration;
+  const newSectionName =        input.sectionName         !== undefined ? input.sectionName         : existing.section_name;
+  const newKey =                input.overrideKey         !== undefined ? input.overrideKey         : existing.override_key;
+  const newKeyChange =          input.overrideKeyChange   !== undefined ? input.overrideKeyChange   : existing.override_key_change;
+  const newVocalType =          input.overrideVocalType   !== undefined ? input.overrideVocalType   : existing.override_vocal_type;
+  const newOverrideDur =        input.overrideDuration    !== undefined ? input.overrideDuration    : existing.override_duration;
+  const newUnlTitle =           input.unlinkedTitle       !== undefined ? input.unlinkedTitle       : existing.unlinked_title;
+  const newUnlArtist =          input.unlinkedArtist      !== undefined ? input.unlinkedArtist      : existing.unlinked_artist;
+  const newUnlKey =             input.unlinkedKey         !== undefined ? input.unlinkedKey         : existing.unlinked_key;
+  const newUnlKeyChange =       input.unlinkedKeyChange   !== undefined ? input.unlinkedKeyChange   : existing.unlinked_key_change;
+  const newUnlVocalType =       input.unlinkedVocalType   !== undefined ? input.unlinkedVocalType   : existing.unlinked_vocal_type;
+  const newUnlDuration =        input.unlinkedDuration    !== undefined ? input.unlinkedDuration    : existing.unlinked_duration;
 
   await songsRepo.updateSetListItem(itemId, gigId, {
+    sectionName: newSectionName,
     overrideKey: newKey,
     overrideKeyChange: newKeyChange,
     overrideVocalType: newVocalType,
@@ -185,6 +220,8 @@ export async function updateSetListItem(
   return mapSetListItemWithSong(updated);
 }
 
+// ─── Bulk import from preferences ────────────────────────────────────────────
+
 export async function bulkImportFromPreferences(gigId: number): Promise<SetListItemWithSong[]> {
   const [prefs, existingIds] = await Promise.all([
     prefsRepo.readPreferencesByGigId(gigId),
@@ -201,6 +238,8 @@ export async function bulkImportFromPreferences(gigId: number): Promise<SetListI
       for (const songId of toAdd) {
         await songsRepo.createSetListItem({
           gigId,
+          itemType: "song",
+          sectionName: null,
           songId,
           position: null,
           notes: null,
@@ -224,11 +263,30 @@ export async function autoOrderSetList(gigId: number): Promise<SetListItemWithSo
   const items = await songsRepo.readSetListByGigId(gigId);
   if (items.length === 0) return [];
 
-  // Effective vocal type: override > catalogue > unlinked
+  // Split the flat list into sections. Each section is { header, songs }.
+  // Songs before the first header go into an implicit group with no header.
+  type SectionGroup = {
+    header: songsRepo.SetListItemWithSongRow | null;
+    songs: songsRepo.SetListItemWithSongRow[];
+  };
+
+  const sections: SectionGroup[] = [];
+  let current: SectionGroup = { header: null, songs: [] };
+
+  for (const item of items) {
+    if (item.item_type === "section") {
+      sections.push(current);
+      current = { header: item, songs: [] };
+    } else {
+      current.songs.push(item);
+    }
+  }
+  sections.push(current);
+
+  // Auto-order helpers (same logic as before)
   function effectiveVocalType(row: songsRepo.SetListItemWithSongRow): string | null {
     return row.override_vocal_type ?? row.vocal_type ?? row.unlinked_vocal_type ?? null;
   }
-
   const isMale   = (row: songsRepo.SetListItemWithSongRow) => {
     const v = (effectiveVocalType(row) ?? "").toLowerCase().trim();
     return v === "m" || v === "male" || v.startsWith("male");
@@ -239,52 +297,57 @@ export async function autoOrderSetList(gigId: number): Promise<SetListItemWithSo
   };
   const isTyped  = (row: songsRepo.SetListItemWithSongRow) => isMale(row) || isFemale(row);
 
-  const males   = items.filter(isMale);
-  const females = items.filter(isFemale);
-  const untyped = items.filter(r => !isTyped(r));
+  function autoOrderSongs(songItems: songsRepo.SetListItemWithSongRow[]): songsRepo.SetListItemWithSongRow[] {
+    if (songItems.length === 0) return [];
 
-  // Interleave M/F starting with male
-  const typed: songsRepo.SetListItemWithSongRow[] = [];
-  const mQueue = [...males];
-  const fQueue = [...females];
-  while (mQueue.length > 0 || fQueue.length > 0) {
-    if (mQueue.length > 0) typed.push(mQueue.shift()!);
-    if (fQueue.length > 0) typed.push(fQueue.shift()!);
+    const males   = songItems.filter(isMale);
+    const females = songItems.filter(isFemale);
+    const untyped = songItems.filter(r => !isTyped(r));
+
+    const typed: songsRepo.SetListItemWithSongRow[] = [];
+    const mQueue = [...males];
+    const fQueue = [...females];
+    while (mQueue.length > 0 || fQueue.length > 0) {
+      if (mQueue.length > 0) typed.push(mQueue.shift()!);
+      if (fQueue.length > 0) typed.push(fQueue.shift()!);
+    }
+
+    const typedMustPlays   = typed.filter(r => r.is_must_play);
+    const typedNonMust     = typed.filter(r => !r.is_must_play);
+    const untypedMustPlays = untyped.filter(r => r.is_must_play);
+    const untypedNonMust   = untyped.filter(r => !r.is_must_play);
+
+    let finalTyped: songsRepo.SetListItemWithSongRow[];
+    if (typedMustPlays.length === 0) {
+      finalTyped = typed;
+    } else {
+      const total = typed.length;
+      const mCount = typedMustPlays.length;
+      const targetPositions = typedMustPlays.map((_, i) =>
+        Math.round(i * (total - 1) / Math.max(mCount - 1, 1))
+      );
+      const base = [...typedNonMust];
+      const result: (songsRepo.SetListItemWithSongRow | null)[] = new Array(total).fill(null);
+      for (let i = 0; i < typedMustPlays.length; i++) {
+        result[targetPositions[i]] = typedMustPlays[i];
+      }
+      let baseIdx = 0;
+      for (let i = 0; i < result.length; i++) {
+        if (result[i] === null) result[i] = base[baseIdx++];
+      }
+      finalTyped = result.filter(Boolean) as songsRepo.SetListItemWithSongRow[];
+    }
+
+    return [...finalTyped, ...untypedMustPlays, ...untypedNonMust];
   }
 
-  // Spread must-plays evenly through the typed sequence.
-  // Untyped must-plays are appended just before the untyped block.
-  const typedMustPlays   = typed.filter(r => r.is_must_play);
-  const typedNonMust     = typed.filter(r => !r.is_must_play);
-  const untypedMustPlays = untyped.filter(r => r.is_must_play);
-  const untypedNonMust   = untyped.filter(r => !r.is_must_play);
-
-  let finalTyped: songsRepo.SetListItemWithSongRow[];
-  if (typedMustPlays.length === 0) {
-    finalTyped = typed;
-  } else {
-    // Distribute must-plays at evenly-spaced positions within the typed list
-    const total = typed.length;
-    const mCount = typedMustPlays.length;
-    const targetPositions = typedMustPlays.map((_, i) =>
-      Math.round(i * (total - 1) / Math.max(mCount - 1, 1))
-    );
-
-    // Build a working copy without must-plays, then insert them at targets
-    const base = [...typedNonMust];
-    const result: (songsRepo.SetListItemWithSongRow | null)[] = new Array(total).fill(null);
-    for (let i = 0; i < typedMustPlays.length; i++) {
-      result[targetPositions[i]] = typedMustPlays[i];
-    }
-    let baseIdx = 0;
-    for (let i = 0; i < result.length; i++) {
-      if (result[i] === null) result[i] = base[baseIdx++];
-    }
-    finalTyped = result.filter(Boolean) as songsRepo.SetListItemWithSongRow[];
+  // Reconstruct a flat ordered ID list: [header?, ...songs, header?, ...songs]
+  const orderedIds: number[] = [];
+  for (const section of sections) {
+    if (section.header) orderedIds.push(section.header.id);
+    const reordered = autoOrderSongs(section.songs);
+    for (const s of reordered) orderedIds.push(s.id);
   }
-
-  const ordered = [...finalTyped, ...untypedMustPlays, ...untypedNonMust];
-  const orderedIds = ordered.map(r => r.id);
 
   if (orderedIds.length > 0) {
     await songsRepo.reorderSetListItems(gigId, orderedIds);
@@ -292,6 +355,8 @@ export async function autoOrderSetList(gigId: number): Promise<SetListItemWithSo
 
   return getSetList(gigId);
 }
+
+// ─── PDF payload ──────────────────────────────────────────────────────────────
 
 export async function buildSetListPdfPayload(gigId: number): Promise<Record<string, unknown>> {
   const [gig, items] = await Promise.all([
@@ -308,20 +373,50 @@ export async function buildSetListPdfPayload(gigId: number): Promise<Record<stri
     ? new Date(gig.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : "";
 
-  const songs = items.map(r => ({
-    title: r.title,
-    artist: r.artist ?? null,
-    key: r.override_key ?? r.musical_key ?? r.unlinked_key ?? null,
-    key_change: r.override_key_change ?? r.key_change ?? r.unlinked_key_change ?? null,
-    vocal_type: r.override_vocal_type ?? r.vocal_type ?? r.unlinked_vocal_type ?? null,
-    is_must_play: r.is_must_play,
-  }));
+  // Group items into sections (flat list split at 'section' rows)
+  type PdfSong = {
+    title: string;
+    artist: string | null;
+    key: string | null;
+    key_change: string | null;
+    vocal_type: string | null;
+    duration: number | null;
+    is_must_play: boolean;
+  };
+  type PdfSection = { name: string; songs: PdfSong[]; duration_seconds: number };
+
+  const sections: PdfSection[] = [];
+  let currentSection: PdfSection = { name: "Set 1", songs: [], duration_seconds: 0 };
+
+  for (const r of items) {
+    if (r.item_type === "section") {
+      if (currentSection.songs.length > 0 || sections.length > 0) {
+        // Only push if it already has content or there's already something
+        sections.push(currentSection);
+      }
+      currentSection = { name: r.section_name ?? "Set 1", songs: [], duration_seconds: 0 };
+    } else {
+      const dur = r.override_duration ?? r.duration ?? r.unlinked_duration ?? null;
+      currentSection.songs.push({
+        title: r.title,
+        artist: r.artist ?? null,
+        key: r.override_key ?? r.musical_key ?? r.unlinked_key ?? null,
+        key_change: r.override_key_change ?? r.key_change ?? r.unlinked_key_change ?? null,
+        vocal_type: r.override_vocal_type ?? r.vocal_type ?? r.unlinked_vocal_type ?? null,
+        duration: dur,
+        is_must_play: r.is_must_play,
+      });
+      currentSection.duration_seconds += dur ?? 0;
+    }
+  }
+  // Push the last active section (even if songs.length === 0 to handle empty sets)
+  sections.push(currentSection);
 
   return {
     client_name: clientName,
     event_date: eventDate,
     venue: gig.venue_name ?? null,
-    songs,
+    sections,
   };
 }
 
@@ -347,6 +442,8 @@ function mapSetListItemWithSong(row: songsRepo.SetListItemWithSongRow): SetListI
   return {
     id: row.id,
     gigId: row.gig_id,
+    itemType: row.item_type === "section" ? "section" : "song",
+    sectionName: row.section_name ?? undefined,
     songId: row.song_id ?? undefined,
     position: row.position ?? undefined,
     notes: row.notes ?? undefined,
