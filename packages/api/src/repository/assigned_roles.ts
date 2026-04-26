@@ -14,7 +14,7 @@ export interface AssignedRoleMutationInput {
   showcaseId?: number;
   personId?: number;
   roleName: string;
-  feeAllocationId?: number;
+  feeAllocationId?: number | null;
 }
 
 const SELECT_COLS = `id, gig_id, showcase_id, person_id, role_name, fee_allocation_id`;
@@ -60,6 +60,15 @@ export async function readAssignedRolesByShowcaseId(
   return run_query<AssignedRoleRow>({
     text: `SELECT ${SELECT_COLS} FROM assigned_roles WHERE showcase_id = $1 ORDER BY id;`,
     values: [showcaseId],
+  });
+}
+
+export async function readAssignedRolesByFeeAllocationId(
+  feeAllocationId: number
+): Promise<AssignedRoleRow[]> {
+  return run_query<AssignedRoleRow>({
+    text: `SELECT ${SELECT_COLS} FROM assigned_roles WHERE fee_allocation_id = $1 ORDER BY id;`,
+    values: [feeAllocationId],
   });
 }
 

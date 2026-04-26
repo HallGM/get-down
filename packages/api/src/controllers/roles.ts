@@ -15,6 +15,6 @@ router.delete("/roles/:id", handle(req => rolesService.deleteRole(+req.params.id
 // Roles on a service
 router.get("/services/:id/roles",              handle(req => rolesService.getRolesByServiceId(+req.params.id)));
 router.post("/services/:id/roles",             handle(req => rolesService.addRoleToService(+req.params.id, req.body.roleId), 204));
-router.delete("/services/:id/roles/:roleId",   handle(req => rolesService.removeRoleFromService(+req.params.id, +req.params.roleId), 204));
+router.delete("/services/:id/roles/:roleServicesId", handle(req => rolesService.removeRoleFromService(+req.params.id, +req.params.roleServicesId), 204));
 
 export default router;

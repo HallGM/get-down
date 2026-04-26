@@ -7,7 +7,7 @@ import {
   useSetGigServices,
 } from "../../api/hooks/useGigs.js";
 import { useServices } from "../../api/hooks/useServices.js";
-import { useGigRoles, useCreateRole, useUpdateRole, useDeleteRole, useImportRolesFromServices } from "../../api/hooks/useAssignedRoles.js";
+import { useGigRoles } from "../../api/hooks/useAssignedRoles.js";
 import { usePeople } from "../../api/hooks/usePeople.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
@@ -15,10 +15,9 @@ import StatusBadge from "../../components/StatusBadge.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
-import Modal from "../../components/Modal.js";
-import { useToast } from "../../components/Toast.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
-import type { UpdateGigRequest, Person } from "@get-down/shared";
+import { formatPersonName } from "../../utils/people.js";
+import type { UpdateGigRequest } from "@get-down/shared";
 
 const STATUS_OPTIONS = ["enquiry", "confirmed", "completed", "cancelled", "postponed"];
 
@@ -28,24 +27,16 @@ export default function GigDetail() {
   const navigate = useNavigate();
 
   const { data: gig, isLoading, error } = useGig(gigId);
-  const { data: roles } = useGigRoles(gigId);
-  const { data: people = [] } = usePeople();
-
   const updateGig = useUpdateGig();
   const deleteGig = useDeleteGig();
   const setGigServices = useSetGigServices();
   const { data: allServices = [] } = useServices();
-  const createRole = useCreateRole();
-  const updateRole = useUpdateRole();
-  const deleteRole = useDeleteRole();
-  const importRoles = useImportRolesFromServices(gigId);
-  const { showToast } = useToast();
+  const { data: roles = [] } = useGigRoles(gigId);
+  const { data: people = [] } = usePeople();
 
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<UpdateGigRequest>({});
   const [showDeleteGig, setShowDeleteGig] = useState(false);
-  const [showAddRole, setShowAddRole] = useState(false);
-  const [roleForm, setRoleForm] = useState<{ roleName: string; personId: number | null }>({ roleName: "", personId: null });
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
   if (error || !gig) return <main className="container"><ErrorBanner error={error ?? "Gig not found"} /></main>;
@@ -88,20 +79,6 @@ export default function GigDetail() {
   async function handleDeleteGig() {
     await deleteGig.mutateAsync(gigId);
     navigate("/gigs");
-  }
-
-  async function handleAddRole(e: React.FormEvent) {
-    e.preventDefault();
-    await createRole.mutateAsync({ gigId, roleName: roleForm.roleName, personId: roleForm.personId ?? undefined });
-    setShowAddRole(false);
-    setRoleForm({ roleName: "", personId: null });
-  }
-
-  async function handleImportRoles() {
-    const imported = await importRoles.mutateAsync();
-    if (imported.length === 0) {
-      showToast("No roles found on attached services", "success");
-    }
   }
 
   return (
@@ -278,56 +255,32 @@ export default function GigDetail() {
         })()}
       </section>
 
-      {/* Roles */}
+      {/* Roles & Fees link */}
       <section>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2>Assigned Roles</h2>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button
-              className="secondary outline"
-              aria-busy={importRoles.isPending}
-              disabled={importRoles.isPending}
-              onClick={handleImportRoles}
-            >
-              Import from services
-            </button>
-            <button className="secondary" onClick={() => setShowAddRole(true)}>+ Add</button>
-          </div>
+          <h2>Roles &amp; Fees</h2>
+          <Link to={`/gigs/${gigId}/roles`} role="button" className="secondary outline" style={{ padding: "0.3em 0.8em" }}>
+            Manage Roles &amp; Fees →
+          </Link>
         </div>
-        {roles && roles.length > 0 ? (
+        {roles.length > 0 ? (
           <table>
-            <thead><tr><th>Role</th><th>Person</th><th></th></tr></thead>
+            <thead><tr><th>Role</th><th>Person</th></tr></thead>
             <tbody>
-              {roles.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.roleName}</td>
-                  <td>
-                    <select
-                      value={r.personId ?? ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        updateRole.mutate({
-                          id: r.id,
-                          gigId,
-                          input: { personId: val === "" ? null : Number(val) },
-                        });
-                      }}
-                      style={{ margin: 0 }}
-                    >
-                      <option value="">—</option>
-                      {people.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {formatPersonName(p)}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td><button className="contrast outline" style={{ padding: "0.2em 0.5em" }} onClick={() => deleteRole.mutate({ id: r.id, gigId })}>✕</button></td>
-                </tr>
-              ))}
+              {roles.map((r) => {
+                const person = r.personId ? people.find((p) => p.id === r.personId) : undefined;
+                return (
+                  <tr key={r.id}>
+                    <td>{r.roleName}</td>
+                    <td>{person ? formatPersonName(person) : "—"}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-        ) : <p style={{ color: "var(--pico-muted-color)" }}>No roles assigned.</p>}
+        ) : (
+          <p style={{ color: "var(--pico-muted-color)" }}>No roles assigned yet.</p>
+        )}
       </section>
 
       {/* Set List link */}
@@ -344,37 +297,11 @@ export default function GigDetail() {
       <section>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2>Invoice &amp; Billing</h2>
-          <Link to={`/gigs/${gigId}/invoices`} className="secondary outline" style={{ padding: "0.3em 0.8em" }}>
+          <Link to={`/gigs/${gigId}/invoices`} role="button" className="secondary outline" style={{ padding: "0.3em 0.8em" }}>
             Manage Invoice &amp; Billing →
           </Link>
         </div>
       </section>
-
-      {/* Modals */}
-      <Modal open={showAddRole} onClose={() => { setShowAddRole(false); setRoleForm({ roleName: "", personId: null }); }} title="Add Role">
-        <form onSubmit={handleAddRole}>
-          <FormField label="Role Name" value={roleForm.roleName} onChange={(e) => setRoleForm((f) => ({ ...f, roleName: e.target.value }))} required placeholder="e.g. Lead Vocalist" />
-          <label>
-            <span style={{ display: "block", marginBottom: "0.25rem" }}>Person (optional)</span>
-            <select
-              value={roleForm.personId ?? ""}
-              onChange={(e) => setRoleForm((f) => ({ ...f, personId: e.target.value === "" ? null : Number(e.target.value) }))}
-              style={{ width: "100%" }}
-            >
-              <option value="">— None —</option>
-              {people.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {formatPersonName(p)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
-            <button type="button" className="secondary" onClick={() => { setShowAddRole(false); setRoleForm({ roleName: "", personId: null }); }}>Cancel</button>
-            <button type="submit" aria-busy={createRole.isPending} disabled={createRole.isPending}>Add</button>
-          </footer>
-        </form>
-      </Modal>
 
       <ConfirmDelete
         open={showDeleteGig}
@@ -385,8 +312,4 @@ export default function GigDetail() {
       />
     </main>
   );
-}
-
-function formatPersonName(p: Person): string {
-  return p.displayName ?? `${p.firstName}${p.lastName ? ` ${p.lastName}` : ""}`;
 }

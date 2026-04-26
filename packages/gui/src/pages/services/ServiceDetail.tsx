@@ -48,8 +48,6 @@ export default function ServiceDetail() {
       category: service!.category,
       description: service!.description,
       priceToClient: service!.priceToClient,
-      feePerPerson: service!.feePerPerson,
-      numberOfPeople: service!.numberOfPeople,
       extraFee: service!.extraFee,
       extraFeeDescription: service!.extraFeeDescription,
       isBand: service!.isBand,
@@ -77,8 +75,8 @@ export default function ServiceDetail() {
     setNewRoleName("");
   }
 
-  const attachedRoleIds = new Set(serviceRoles.map((r) => r.id));
-  const availableRoles = allRoles.filter((r) => !attachedRoleIds.has(r.id));
+  // Allow duplicate roles — do NOT filter out already-attached roles
+  const availableRoles = allRoles;
 
   return (
     <main className="container">
@@ -105,8 +103,7 @@ export default function ServiceDetail() {
           <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem" }}>
             <dt>Category</dt><dd>{service.category ?? "—"}</dd>
             <dt>Client price</dt><dd><MoneyDisplay pennies={service.priceToClient} /></dd>
-            <dt>Fee per person</dt><dd><MoneyDisplay pennies={service.feePerPerson} /></dd>
-            <dt>No. of people</dt><dd>{service.numberOfPeople ?? "—"}</dd>
+            <dt>No. of roles</dt><dd>{service.numberOfPeople ?? "—"}</dd>
             <dt>Extra fee</dt><dd><MoneyDisplay pennies={service.extraFee} /></dd>
             {service.extraFeeDescription && <><dt>Extra fee desc.</dt><dd>{service.extraFeeDescription}</dd></>}
             <dt>Band</dt><dd>{service.isBand ? "Yes" : "No"}</dd>
@@ -122,8 +119,6 @@ export default function ServiceDetail() {
               <FormField label="Name" value={editForm.name ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} required />
               <FormField label="Category" value={editForm.category ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))} />
               <FormField label="Price to Client (p)" type="number" value={editForm.priceToClient ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, priceToClient: Number(e.target.value) }))} min={0} />
-              <FormField label="Fee per Person (p)" type="number" value={editForm.feePerPerson ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, feePerPerson: Number(e.target.value) }))} min={0} />
-              <FormField label="Number of People" type="number" value={editForm.numberOfPeople ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, numberOfPeople: Number(e.target.value) }))} min={0} />
               <FormField label="Extra Fee (p)" type="number" value={editForm.extraFee ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, extraFee: Number(e.target.value) }))} min={0} />
               <FormField label="Extra Fee Description" value={editForm.extraFeeDescription ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, extraFeeDescription: e.target.value }))} />
             </div>
@@ -156,24 +151,25 @@ export default function ServiceDetail() {
           </Link>
         </div>
         <p style={{ color: "var(--pico-muted-color)", marginBottom: "0.75rem", fontSize: "0.9em" }}>
-          Roles attached here are used when importing roles onto a gig.
+          Roles attached here are used when importing roles onto a gig. Duplicates are allowed for services requiring multiple people in the same role.
         </p>
 
         {serviceRoles.length > 0 ? (
           <table>
             <thead>
-              <tr><th>Role</th><th style={{ width: "1%" }}></th></tr>
+              <tr><th>Role</th><th>Fee</th><th style={{ width: "1%" }}></th></tr>
             </thead>
             <tbody>
               {serviceRoles.map((role) => (
-                <tr key={role.id}>
+                <tr key={role.roleServicesId ?? role.id}>
                   <td>{role.name}</td>
+                  <td><MoneyDisplay pennies={role.fee} /></td>
                   <td>
                     <button
                       className="contrast outline"
                       style={{ padding: "0.2em 0.5em" }}
                       aria-busy={removeRole.isPending}
-                      onClick={() => removeRole.mutate(role.id)}
+                      onClick={() => removeRole.mutate(role.roleServicesId!)}
                     >
                       ✕
                     </button>
