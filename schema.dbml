@@ -7,8 +7,6 @@ Table services {
   category              varchar(100)
   description           text
   price_to_client       int
-  fee_per_person        int
-  number_of_people      int
   extra_fee             int
   extra_fee_description varchar(255)
   is_band               boolean [not null, default: false]
@@ -71,7 +69,8 @@ Table account_transactions {
 
 Table fee_allocations {
   id            serial [pk, increment]
-  person_id     int [ref: > people.id, not null]
+  person_id     int [ref: > people.id]
+  gig_id        int [ref: > gigs.id]
   notes         text
   is_invoiced   boolean [not null, default: false]
   is_paid       boolean [not null, default: false]
@@ -93,6 +92,7 @@ Table fee_allocation_line_items {
 Table roles {
   id serial [pk, increment]
   name varchar(255) [not null, unique]
+  fee int
 }
 
 Table people_roles {
@@ -169,7 +169,8 @@ Table attributions {
 }
 
 Table role_services {
-  role_id int [ref: > roles.id, not null]
+  id         serial [pk, increment]
+  role_id    int [ref: > roles.id, not null]
   service_id int [ref: > services.id, not null]
 }
 

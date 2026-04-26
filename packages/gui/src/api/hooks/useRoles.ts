@@ -62,8 +62,8 @@ export function useAddRoleToService(serviceId: number) {
 export function useRemoveRoleFromService(serviceId: number) {
   const qc = useQueryClient();
   return useApiMutation({
-    mutationFn: (roleId: number) =>
-      apiFetch<void>("DELETE", `/services/${serviceId}/roles/${roleId}`),
+    mutationFn: (roleServicesId: number) =>
+      apiFetch<void>("DELETE", `/services/${serviceId}/roles/${roleServicesId}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: [SERVICE_ROLES_KEY, serviceId] }),
     successMessage: "Role removed from service",
   });

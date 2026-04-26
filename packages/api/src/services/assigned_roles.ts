@@ -86,11 +86,17 @@ function buildMutationInput(
       ? existing?.personId
       : (input.personId ?? undefined);
 
+  // feeAllocationId: null means "explicitly clear"; undefined means "leave unchanged"
+  const feeAllocationId =
+    input.feeAllocationId === undefined
+      ? existing?.feeAllocationId
+      : (input.feeAllocationId ?? undefined);
+
   return {
     gigId: input.gigId ?? existing?.gigId,
     showcaseId: input.showcaseId ?? existing?.showcaseId,
     personId,
     roleName,
-    feeAllocationId: input.feeAllocationId ?? existing?.feeAllocationId,
+    feeAllocationId,
   };
 }

@@ -7,6 +7,7 @@ import ErrorBanner from "../../components/ErrorBanner.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
 import Modal from "../../components/Modal.js";
+import MoneyDisplay from "../../components/MoneyDisplay.js";
 
 export default function RolesList() {
   const { data: roles, isLoading, error } = useRoles();
@@ -16,26 +17,30 @@ export default function RolesList() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newFee, setNewFee] = useState<number | "">("");
   const [editTarget, setEditTarget] = useState<Role | null>(null);
   const [editName, setEditName] = useState("");
+  const [editFee, setEditFee] = useState<number | "">("");
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    await createRole.mutateAsync({ name: newName });
+    await createRole.mutateAsync({ name: newName, fee: newFee === "" ? undefined : newFee });
     setShowCreate(false);
     setNewName("");
+    setNewFee("");
   }
 
   function openEdit(role: Role) {
     setEditTarget(role);
     setEditName(role.name);
+    setEditFee(role.fee ?? "");
   }
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     if (!editTarget) return;
-    await updateRole.mutateAsync({ id: editTarget.id, input: { name: editName } });
+    await updateRole.mutateAsync({ id: editTarget.id, input: { name: editName, fee: editFee === "" ? undefined : editFee } });
     setEditTarget(null);
   }
 
@@ -64,6 +69,7 @@ export default function RolesList() {
           <thead>
             <tr>
               <th>Name</th>
+              <th>Default Fee</th>
               <th style={{ width: "1%" }}></th>
             </tr>
           </thead>
@@ -71,6 +77,7 @@ export default function RolesList() {
             {roles.map((role) => (
               <tr key={role.id}>
                 <td>{role.name}</td>
+                <td><MoneyDisplay pennies={role.fee} /></td>
                 <td style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
                   <button
                     className="secondary outline"
@@ -96,7 +103,7 @@ export default function RolesList() {
       )}
 
       {/* Create modal */}
-      <Modal open={showCreate} onClose={() => { setShowCreate(false); setNewName(""); }} title="New Role">
+      <Modal open={showCreate} onClose={() => { setShowCreate(false); setNewName(""); setNewFee(""); }} title="New Role">
         <form onSubmit={handleCreate}>
           <FormField
             label="Role name"
@@ -105,8 +112,16 @@ export default function RolesList() {
             required
             placeholder="e.g. Guitarist"
           />
+          <FormField
+            label="Default fee (p)"
+            type="number"
+            value={newFee}
+            onChange={(e) => setNewFee(e.target.value === "" ? "" : Number(e.target.value))}
+            min={0}
+            placeholder="e.g. 15000"
+          />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-            <button type="button" className="secondary" onClick={() => { setShowCreate(false); setNewName(""); }}>Cancel</button>
+            <button type="button" className="secondary" onClick={() => { setShowCreate(false); setNewName(""); setNewFee(""); }}>Cancel</button>
             <button type="submit" aria-busy={createRole.isPending} disabled={createRole.isPending}>Create</button>
           </footer>
         </form>
@@ -120,6 +135,14 @@ export default function RolesList() {
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
             required
+          />
+          <FormField
+            label="Default fee (p)"
+            type="number"
+            value={editFee}
+            onChange={(e) => setEditFee(e.target.value === "" ? "" : Number(e.target.value))}
+            min={0}
+            placeholder="e.g. 15000"
           />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="secondary" onClick={() => setEditTarget(null)}>Cancel</button>

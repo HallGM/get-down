@@ -18,7 +18,7 @@ export async function createRole(input: CreateRoleRequest): Promise<Role> {
   if (!name) throw new BadRequestError("name is required");
 
   try {
-    const row = await rolesRepo.createRole(name);
+    const row = await rolesRepo.createRole(name, input.fee ?? undefined);
     return mapRole(row);
   } catch (err: unknown) {
     if (isUniqueViolation(err)) throw new ConflictError("A role with that name already exists");
@@ -30,9 +30,10 @@ export async function updateRole(id: number, input: UpdateRoleRequest): Promise<
   const existing = await getRoleById(id);
   const name = input.name?.trim() ?? existing.name;
   if (!name) throw new BadRequestError("name is required");
+  const fee = "fee" in input ? (input.fee ?? null) : (existing.fee ?? null);
 
   try {
-    const row = await rolesRepo.updateRole(id, name);
+    const row = await rolesRepo.updateRole(id, name, fee);
     if (!row) throw new NotFoundError("Role not found");
     return mapRole(row);
   } catch (err: unknown) {
@@ -48,7 +49,7 @@ export async function deleteRole(id: number): Promise<void> {
 
 export async function getRolesByServiceId(serviceId: number): Promise<Role[]> {
   const rows = await rolesRepo.readRolesByServiceId(serviceId);
-  return rows.map(mapRole);
+  return rows.map(mapServiceRole);
 }
 
 export async function addRoleToService(serviceId: number, roleId: number): Promise<void> {
@@ -58,15 +59,19 @@ export async function addRoleToService(serviceId: number, roleId: number): Promi
   await rolesRepo.addRoleToService(serviceId, roleId);
 }
 
-export async function removeRoleFromService(serviceId: number, roleId: number): Promise<void> {
-  const removed = await rolesRepo.removeRoleFromService(serviceId, roleId);
-  if (!removed) throw new NotFoundError("Role not linked to this service");
+export async function removeRoleFromService(serviceId: number, roleServicesId: number): Promise<void> {
+  const removed = await rolesRepo.removeRoleFromService(roleServicesId, serviceId);
+  if (!removed) throw new NotFoundError(`Role slot not found on service ${serviceId}`);
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 function mapRole(row: rolesRepo.RoleRow): Role {
-  return { id: row.id, name: row.name };
+  return { id: row.id, name: row.name, fee: row.fee ?? undefined };
+}
+
+function mapServiceRole(row: rolesRepo.ServiceRoleRow): Role {
+  return { ...mapRole(row), roleServicesId: row.role_services_id };
 }
 
 function isUniqueViolation(err: unknown): boolean {

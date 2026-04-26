@@ -9,7 +9,7 @@ export interface Service {
   category?: string;
   description?: string;
   priceToClient?: number;
-  feePerPerson?: number;
+  /** Computed: count of role slots linked to this service (read-only, not in mutation requests). */
   numberOfPeople?: number;
   extraFee?: number;
   extraFeeDescription?: string;
@@ -24,8 +24,6 @@ export interface CreateServiceRequest {
   category?: string;
   description?: string;
   priceToClient?: number;
-  feePerPerson?: number;
-  numberOfPeople?: number;
   extraFee?: number;
   extraFeeDescription?: string;
   isBand?: boolean;
@@ -39,8 +37,6 @@ export interface UpdateServiceRequest {
   category?: string;
   description?: string;
   priceToClient?: number;
-  feePerPerson?: number;
-  numberOfPeople?: number;
   extraFee?: number;
   extraFeeDescription?: string;
   isBand?: boolean;
@@ -366,7 +362,8 @@ export interface UpdateShowcaseRequest {
 
 export interface FeeAllocation {
   id: number;
-  personId: number;
+  personId?: number;
+  gigId?: number;
   notes?: string;
   isInvoiced: boolean;
   isPaid: boolean;
@@ -382,7 +379,8 @@ export interface FeeAllocationLineItem {
 }
 
 export interface CreateFeeAllocationRequest {
-  personId: number;
+  personId?: number;
+  gigId?: number;
   notes?: string;
   isInvoiced?: boolean;
   isPaid?: boolean;
@@ -391,10 +389,16 @@ export interface CreateFeeAllocationRequest {
 
 export interface UpdateFeeAllocationRequest {
   personId?: number;
+  gigId?: number;
   notes?: string;
   isInvoiced?: boolean;
   isPaid?: boolean;
   invoiceRef?: string;
+}
+
+export interface UpdateFeeAllocationLineItemRequest {
+  description?: string;
+  amount?: number;
 }
 
 export interface CreateFeeAllocationLineItemRequest {
@@ -425,20 +429,26 @@ export interface UpdateAssignedRoleRequest {
   /** `null` explicitly clears the assigned person; `undefined` leaves it unchanged. */
   personId?: number | null;
   roleName?: string;
-  feeAllocationId?: number;
+  /** `null` explicitly clears the fee allocation link; `undefined` leaves it unchanged. */
+  feeAllocationId?: number | null;
 }
 
 export interface Role {
   id: number;
   name: string;
+  fee?: number;
+  /** Only present when the role is returned in the context of a specific service slot. */
+  roleServicesId?: number;
 }
 
 export interface CreateRoleRequest {
   name: string;
+  fee?: number;
 }
 
 export interface UpdateRoleRequest {
   name?: string;
+  fee?: number;
 }
 
 export interface ApiErrorResponse {

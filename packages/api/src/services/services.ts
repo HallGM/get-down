@@ -43,28 +43,13 @@ function trimOptional(value?: string): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-function mapService(row: {
-  id: number;
-  name: string;
-  category: string | null;
-  description: string | null;
-  price_to_client: number | null;
-  fee_per_person: number | null;
-  number_of_people: number | null;
-  extra_fee: number | null;
-  extra_fee_description: string | null;
-  is_band: boolean;
-  is_dj: boolean;
-  is_active: boolean;
-  airtable_id: string | null;
-}): Service {
+function mapService(row: servicesRepository.ServiceRow): Service {
   return {
     id: row.id,
     name: row.name,
     category: row.category ?? undefined,
     description: row.description ?? undefined,
     priceToClient: row.price_to_client ?? undefined,
-    feePerPerson: row.fee_per_person ?? undefined,
     numberOfPeople: row.number_of_people ?? undefined,
     extraFee: row.extra_fee ?? undefined,
     extraFeeDescription: row.extra_fee_description ?? undefined,
@@ -89,8 +74,6 @@ function buildMutationInput(
     category: trimOptional(input.category) ?? existing?.category,
     description: trimOptional(input.description) ?? existing?.description,
     priceToClient: input.priceToClient ?? existing?.priceToClient,
-    feePerPerson: input.feePerPerson ?? existing?.feePerPerson,
-    numberOfPeople: input.numberOfPeople ?? existing?.numberOfPeople,
     extraFee: input.extraFee ?? existing?.extraFee,
     extraFeeDescription: trimOptional(input.extraFeeDescription) ?? existing?.extraFeeDescription,
     isBand: input.isBand ?? existing?.isBand ?? false,

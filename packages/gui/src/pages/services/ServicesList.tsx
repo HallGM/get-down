@@ -13,8 +13,7 @@ const COLUMNS: Column<Service>[] = [
   { key: "name", header: "Name", sortable: true },
   { key: "category", header: "Category", sortable: true, render: (s) => s.category ?? "—" },
   { key: "priceToClient", header: "Client Price", render: (s) => <MoneyDisplay pennies={s.priceToClient} /> },
-  { key: "feePerPerson", header: "Fee/Person", render: (s) => <MoneyDisplay pennies={s.feePerPerson} /> },
-  { key: "numberOfPeople", header: "No. People", render: (s) => s.numberOfPeople ?? "—" },
+  { key: "numberOfPeople", header: "No. Roles", render: (s) => s.numberOfPeople ?? "—" },
   { key: "isActive", header: "Active", render: (s) => s.isActive ? "✓" : "—" },
 ];
 
@@ -76,8 +75,6 @@ export default function ServicesList() {
             <FormField label="Name" value={form.name} onChange={(e) => field("name", e.target.value)} required />
             <FormField label="Category" value={form.category ?? ""} onChange={(e) => field("category", e.target.value)} />
             <FormField label="Price to Client (p)" type="number" value={form.priceToClient ?? ""} onChange={(e) => field("priceToClient", Number(e.target.value))} min={0} />
-            <FormField label="Fee per Person (p)" type="number" value={form.feePerPerson ?? ""} onChange={(e) => field("feePerPerson", Number(e.target.value))} min={0} />
-            <FormField label="Number of People" type="number" value={form.numberOfPeople ?? ""} onChange={(e) => field("numberOfPeople", Number(e.target.value))} min={0} />
           </div>
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="secondary" onClick={() => setShowCreate(false)}>Cancel</button>
