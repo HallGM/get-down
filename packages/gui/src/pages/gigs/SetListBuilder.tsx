@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   DndContext,
@@ -39,6 +39,7 @@ import SortableSetListSection from "./SortableSetListSection.js";
 import SongPrefList from "./SongPrefList.js";
 import HousePlaylistPanel from "./HousePlaylistPanel.js";
 import EditSetListItemModal, { type EditSetListItemSubmit } from "./EditSetListItemModal.js";
+import { formatDuration } from "../../utils/formatDuration.js";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -86,6 +87,19 @@ export default function SetListBuilder() {
 
   const songItems = ordered.filter(i => i.itemType === "song");
   const sectionCount = ordered.filter(i => i.itemType === "section").length;
+
+  const totalSeconds = useMemo(
+    () => songItems.reduce((acc, i) => acc + (i.duration ?? 0), 0),
+    [songItems],
+  );
+  const selectedItems = useMemo(
+    () => songItems.filter(i => selectedIds.has(i.id)),
+    [songItems, selectedIds],
+  );
+  const selectedSeconds = useMemo(
+    () => selectedItems.reduce((acc, i) => acc + (i.duration ?? 0), 0),
+    [selectedItems],
+  );
 
   function toggleSelectAll() {
     if (selectedIds.size === songItems.length && songItems.length > 0) {
@@ -306,6 +320,20 @@ export default function SetListBuilder() {
               <p style={{ color: "var(--pico-muted-color)" }}>No songs in the set list yet.</p>
             ) : (
               <>
+                {/* Totals bar */}
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.75rem", fontSize: "0.85rem", color: "var(--pico-muted-color)", flexWrap: "wrap" }}>
+                  <span>
+                    {songCount(songItems.length)}
+                    {totalSeconds > 0 && <> · <strong style={{ color: "var(--pico-color)" }}>{formatDuration(totalSeconds)}</strong></>}
+                  </span>
+                  {selectedIds.size > 0 && (
+                    <span style={{ borderLeft: "1px solid var(--pico-muted-border-color)", paddingLeft: "1rem" }}>
+                      Selected: {songCount(selectedItems.length)}
+                      {selectedSeconds > 0 && <> · <strong style={{ color: "var(--pico-color)" }}>{formatDuration(selectedSeconds)}</strong></>}
+                    </span>
+                  )}
+                </div>
+
                 {/* Bulk-action bar */}
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", margin: 0, fontSize: "0.85rem", cursor: "pointer" }}>
@@ -385,30 +413,6 @@ export default function SetListBuilder() {
                     })}
                   </SortableContext>
                 </DndContext>
-
-                {/* Overall set duration total */}
-                {(() => {
-                  const totalSeconds = songItems.reduce((acc, item) => acc + (item.duration ?? 0), 0);
-                  if (totalSeconds === 0) return null;
-                  return (
-                    <div style={{
-                      marginTop: "0.75rem",
-                      paddingTop: "0.5rem",
-                      borderTop: "1px solid var(--pico-muted-border-color)",
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      alignItems: "center",
-                      gap: "0.4rem",
-                      color: "var(--pico-muted-color)",
-                      fontSize: "0.9rem",
-                    }}>
-                      <span>Total set time:</span>
-                      <strong style={{ color: "var(--pico-color)" }}>
-                        {formatTotalDuration(totalSeconds)}
-                      </strong>
-                    </div>
-                  );
-                })()}
               </>
             )}
 
@@ -605,4 +609,8 @@ function formatTotalDuration(totalSeconds: number): string {
   const hours = Math.floor(totalSeconds / 3600);
   const mins = Math.floor((totalSeconds % 3600) / 60);
   return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+}
+
+function songCount(n: number): string {
+  return `${n} ${n === 1 ? "song" : "songs"}`;
 }
