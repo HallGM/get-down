@@ -7,6 +7,7 @@ import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
+import BooleanCell from "../../components/BooleanCell.js";
 import { useToast } from "../../components/Toast.js";
 
 const COLUMNS: Column<Person>[] = [
@@ -15,8 +16,8 @@ const COLUMNS: Column<Person>[] = [
   { key: "displayName", header: "Display Name", render: (p) => p.displayName ?? "—" },
   { key: "email", header: "Email", render: (p) => p.email ?? "—" },
   { key: "phone", header: "Phone", render: (p) => p.phone ?? "—" },
-  { key: "isPartner", header: "Partner", render: (p) => p.isPartner ? "✓" : "" },
-  { key: "isActive", header: "Active", render: (p) => p.isActive ? "✓" : "—" },
+  { key: "isPartner", header: "Partner", render: (p) => <BooleanCell value={!!p.isPartner} /> },
+  { key: "isActive", header: "Active", render: (p) => <BooleanCell value={!!p.isActive} /> },
 ];
 
 const EMPTY_FORM: CreatePersonRequest = { firstName: "", isPartner: false, isActive: true };

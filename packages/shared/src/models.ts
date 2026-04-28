@@ -14,7 +14,8 @@ export interface Service {
   extraFee?: number;
   extraFeeDescription?: string;
   isBand?: boolean;
-  isDj?: boolean;
+  isDjOnly?: boolean;
+  requiresMeal?: boolean;
   isActive?: boolean;
   airtableId?: string;
 }
@@ -27,7 +28,8 @@ export interface CreateServiceRequest {
   extraFee?: number;
   extraFeeDescription?: string;
   isBand?: boolean;
-  isDj?: boolean;
+  isDjOnly?: boolean;
+  requiresMeal?: boolean;
   isActive?: boolean;
   airtableId?: string;
 }
@@ -40,7 +42,8 @@ export interface UpdateServiceRequest {
   extraFee?: number;
   extraFeeDescription?: string;
   isBand?: boolean;
-  isDj?: boolean;
+  isDjOnly?: boolean;
+  requiresMeal?: boolean;
   isActive?: boolean;
   airtableId?: string;
 }
@@ -208,6 +211,7 @@ export interface Gig {
   timings?: string;
   contactNumber?: string;
   parkingInfo?: string;
+  mealDetails?: string;
   clientNotes?: string;
   performerNotes?: string;
   playlistUrl?: string;
@@ -217,6 +221,9 @@ export interface Gig {
   ceilidh?: boolean;
   ceilidhLength?: string;
   ceilidhStyle?: string;
+  // Client form
+  clientToken?: string;
+  formSavedAt?: string;
 }
 
 export interface CreateGigRequest {
@@ -241,6 +248,7 @@ export interface CreateGigRequest {
   timings?: string;
   contactNumber?: string;
   parkingInfo?: string;
+  mealDetails?: string;
   clientNotes?: string;
   performerNotes?: string;
   playlistUrl?: string;
@@ -274,6 +282,7 @@ export interface UpdateGigRequest {
   timings?: string;
   contactNumber?: string;
   parkingInfo?: string;
+  mealDetails?: string;
   clientNotes?: string;
   performerNotes?: string;
   playlistUrl?: string;
@@ -328,6 +337,60 @@ export interface PerformerResponse {
   person: { id: number; firstName: string; lastName?: string; displayName?: string };
   gigs: PerformerGig[];
 }
+
+// ─── Client form portal types ──────────────────────────────────────────────────
+
+export interface ClientFormSongGroup {
+  genre: string;
+  songs: { id: number; title: string; artist?: string }[];
+}
+
+/** Response shape for GET /client-form/:token */
+export interface ClientFormResponse {
+  gigId: number;
+  date: string;
+  firstName: string;
+  lastName: string;
+  partnerName?: string;
+  venueName?: string;
+  location?: string;
+  timings?: string;
+  contactNumber?: string;
+  parkingInfo?: string;
+  mealDetails?: string;
+  clientNotes?: string;
+  playlistUrl?: string;
+  endOfNightSong?: string;
+  firstDanceSong?: string;
+  firstDanceType?: string;
+  ceilidh: boolean;
+  ceilidhLength?: string;
+  ceilidhStyle?: string;
+  preferences: GigSongPreferences;
+  songGroups: ClientFormSongGroup[];
+  hasBand: boolean;
+  hasDj: boolean;
+  requiresMeal: boolean;
+}
+
+/** Request body for PUT /client-form/:token */
+export type SaveClientFormRequest = Pick<
+  UpdateGigRequest,
+  | "venueName"
+  | "location"
+  | "timings"
+  | "contactNumber"
+  | "parkingInfo"
+  | "mealDetails"
+  | "clientNotes"
+  | "playlistUrl"
+  | "endOfNightSong"
+  | "firstDanceSong"
+  | "firstDanceType"
+  | "ceilidh"
+  | "ceilidhLength"
+  | "ceilidhStyle"
+> & { preferences: GigSongPreferences };
 
 export interface Showcase {
   id: number;
@@ -666,6 +729,7 @@ export interface Song {
   vocalType?: string;
   airtableId?: string;
   duration?: number;
+  active: boolean;
 }
 
 export interface CreateSongRequest {
@@ -678,6 +742,7 @@ export interface CreateSongRequest {
   vocalType?: string;
   airtableId?: string;
   duration?: number;
+  active?: boolean;
 }
 
 export interface UpdateSongRequest {
@@ -690,6 +755,7 @@ export interface UpdateSongRequest {
   vocalType?: string;
   airtableId?: string;
   duration?: number;
+  active?: boolean;
 }
 
 export interface SetListItem {

@@ -9,6 +9,7 @@ import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
 import DurationInput from "../../components/DurationInput.js";
+import BooleanCell from "../../components/BooleanCell.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 
@@ -20,6 +21,9 @@ const COLUMNS: Column<Song>[] = [
   { key: "keyChange", header: "Key change", render: (s) => s.keyChange ?? "—" },
   { key: "vocalType", header: "Vocal", sortable: true, render: (s) => s.vocalType ?? "—" },
   { key: "duration", header: "Duration", render: (s) => s.duration !== undefined ? formatDuration(s.duration) : "—" },
+  {
+    key: "active", header: "Active", render: (s) => <BooleanCell value={s.active} />,
+  },
 ];
 
 const EMPTY_FORM: CreateSongRequest = { title: "" };
@@ -65,7 +69,7 @@ export default function SongsList() {
 
   function openEdit(s: Song) {
     setEditTarget(s);
-    setEditForm({ title: s.title, artist: s.artist, genreId: s.genreId, musicalKey: s.musicalKey, keyChange: s.keyChange, vocalType: s.vocalType, duration: s.duration });
+    setEditForm({ title: s.title, artist: s.artist, genreId: s.genreId, musicalKey: s.musicalKey, keyChange: s.keyChange, vocalType: s.vocalType, duration: s.duration, active: s.active });
   }
 
   async function handleAddGenre(e: React.FormEvent) {
@@ -193,6 +197,17 @@ export default function SongsList() {
               <label>Duration</label>
               <DurationInput value={editForm.duration} onChange={(v) => setEditForm((f) => ({ ...f, duration: v }))} />
             </div>
+          </div>
+          <div style={{ marginTop: "1rem" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={editForm.active ?? true}
+                onChange={(e) => setEditForm((f) => ({ ...f, active: e.target.checked }))}
+                style={{ width: "1.25rem", height: "1.25rem", flexShrink: 0, margin: 0 }}
+              />
+              Active (visible to clients)
+            </label>
           </div>
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="contrast outline" onClick={() => { setDeleteTarget(editTarget); setEditTarget(null); }}>Delete</button>

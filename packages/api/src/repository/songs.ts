@@ -12,6 +12,7 @@ export interface SongRow {
   vocal_type: string | null;
   airtable_id: string | null;
   duration: number | null;
+  active: boolean;
 }
 
 export interface SongMutationInput {
@@ -24,14 +25,17 @@ export interface SongMutationInput {
   vocalType?: string;
   airtableId?: string;
   duration?: number;
+  active?: boolean;
 }
+
+const SONG_RETURNING_COLS = `RETURNING id, title, artist, genre_id, musical_key, key_change, bpm, vocal_type, airtable_id, duration, active, NULL AS genre_name`;
 
 export async function createSong(input: SongMutationInput): Promise<SongRow> {
   const rows = await run_query<SongRow>({
     text: `
-      INSERT INTO songs (title, artist, genre_id, musical_key, key_change, bpm, vocal_type, airtable_id, duration)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING id, title, artist, genre_id, musical_key, key_change, bpm, vocal_type, airtable_id, duration, NULL AS genre_name;
+      INSERT INTO songs (title, artist, genre_id, musical_key, key_change, bpm, vocal_type, airtable_id, duration, active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ${SONG_RETURNING_COLS};
     `,
     values: [
       input.title,
@@ -43,6 +47,7 @@ export async function createSong(input: SongMutationInput): Promise<SongRow> {
       input.vocalType ?? null,
       input.airtableId ?? null,
       input.duration ?? null,
+      input.active ?? true,
     ],
   });
   return rows[0];
@@ -50,7 +55,7 @@ export async function createSong(input: SongMutationInput): Promise<SongRow> {
 
 const SONG_SELECT = `
   SELECT s.id, s.title, s.artist, s.genre_id, g.name AS genre_name,
-         s.musical_key, s.key_change, s.bpm, s.vocal_type, s.airtable_id, s.duration
+         s.musical_key, s.key_change, s.bpm, s.vocal_type, s.airtable_id, s.duration, s.active
   FROM songs s
   LEFT JOIN genres g ON g.id = s.genre_id
 `;
@@ -73,9 +78,9 @@ export async function updateSong(id: number, input: SongMutationInput): Promise<
   const rows = await run_query<SongRow>({
     text: `
       UPDATE songs
-      SET title = $1, artist = $2, genre_id = $3, musical_key = $4, key_change = $5, bpm = $6, vocal_type = $7, airtable_id = $8, duration = $9
-      WHERE id = $10
-      RETURNING id, title, artist, genre_id, musical_key, key_change, bpm, vocal_type, airtable_id, duration, NULL AS genre_name;
+      SET title = $1, artist = $2, genre_id = $3, musical_key = $4, key_change = $5, bpm = $6, vocal_type = $7, airtable_id = $8, duration = $9, active = $10
+      WHERE id = $11
+      ${SONG_RETURNING_COLS};
     `,
     values: [
       input.title,
@@ -87,6 +92,7 @@ export async function updateSong(id: number, input: SongMutationInput): Promise<
       input.vocalType ?? null,
       input.airtableId ?? null,
       input.duration ?? null,
+      input.active ?? true,
       id,
     ],
   });

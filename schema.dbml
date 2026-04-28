@@ -10,7 +10,8 @@ Table services {
   extra_fee             int
   extra_fee_description varchar(255)
   is_band               boolean [not null, default: false]
-  is_dj                 boolean [not null, default: false]
+  is_dj_only            boolean [not null, default: false]
+  requires_meal         boolean [not null, default: false]
   is_active             boolean [not null, default: true]
   airtable_id           varchar(255)
 }
@@ -122,6 +123,7 @@ Table gigs {
   timings           text
   contact_number    text
   parking_info      text
+  meal_details      text
   client_notes      text
   performer_notes   text
   playlist_url      text
@@ -131,6 +133,8 @@ Table gigs {
   ceilidh           boolean [not null, default: false]
   ceilidh_length    text
   ceilidh_style     text
+  client_token      uuid [not null, unique, default: `gen_random_uuid()`]
+  form_saved_at     timestamptz
 }
 
 Table gig_line_items {
@@ -278,6 +282,7 @@ Table songs {
   vocal_type  varchar(20)
   airtable_id varchar(255)
   duration    int
+  active      boolean [not null, default: true]
 }
 
 Table set_list_items {

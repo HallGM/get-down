@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useToast } from "../../components/Toast.js";
 import {
   useGig,
   useUpdateGig,
@@ -33,6 +34,7 @@ export default function GigDetail() {
   const { data: allServices = [] } = useServices();
   const { data: roles = [] } = useGigRoles(gigId);
   const { data: people = [] } = usePeople();
+  const { showToast } = useToast();
 
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<UpdateGigRequest>({});
@@ -66,6 +68,7 @@ export default function GigDetail() {
       ceilidh: gig!.ceilidh ?? false,
       ceilidhLength: gig!.ceilidhLength,
       ceilidhStyle: gig!.ceilidhStyle,
+      mealDetails: gig!.mealDetails,
     });
     setEditing(true);
   }
@@ -93,13 +96,40 @@ export default function GigDetail() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.5rem" }}>
         <hgroup>
           <h1>{gig.firstName} {gig.lastName}</h1>
-          <p><StatusBadge status={gig.status} /> {gig.venueName && `· ${gig.venueName}`} {gig.location && `· ${gig.location}`}</p>
+          <p><StatusBadge status={gig.status} /> {gig.venueName && `· ${gig.venueName}`}</p>
         </hgroup>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button className="secondary" onClick={startEdit}>Edit</button>
           <button className="contrast outline" onClick={() => setShowDeleteGig(true)}>Delete</button>
         </div>
       </div>
+
+      {/* Client form link */}
+      {gig.clientToken && (
+        <article style={{ padding: "0.75rem 1rem", marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+          <span style={{ fontSize: "0.9rem" }}>
+            <strong>Client form</strong>
+            {gig.formSavedAt
+              ? <span style={{ color: "var(--pico-muted-color)", marginLeft: "0.5rem" }}>· saved {new Date(gig.formSavedAt).toLocaleString()}</span>
+              : <span style={{ color: "var(--pico-muted-color)", marginLeft: "0.5rem" }}>· not yet filled in</span>}
+          </span>
+          <button
+            className="secondary outline"
+            style={{ padding: "0.2em 0.8em", fontSize: "0.85rem" }}
+            onClick={async () => {
+              const url = `${window.location.origin}/c/${gig.clientToken}`;
+              try {
+                await navigator.clipboard.writeText(url);
+                showToast("Client form link copied!", "success");
+              } catch {
+                showToast("Could not copy link. Please copy it manually.", "error");
+              }
+            }}
+          >
+            Copy link
+          </button>
+        </article>
+      )}
 
       {!editing ? (
         <article>
@@ -108,6 +138,8 @@ export default function GigDetail() {
             <dt>Partner</dt><dd>{gig.partnerName ?? "—"}</dd>
             <dt>Email</dt><dd>{gig.email ?? "—"}</dd>
             <dt>Phone</dt><dd>{gig.phone ?? "—"}</dd>
+            {gig.venueName && <><dt>Venue</dt><dd>{gig.venueName}</dd></>}
+            {gig.location && <><dt>Address</dt><dd>{gig.location}</dd></>}
             <dt>Quoted Price</dt><dd><MoneyDisplay pennies={gig.totalPrice} /></dd>
             {gig.description && <><dt>Notes</dt><dd>{gig.description}</dd></>}
           </dl>
@@ -145,6 +177,7 @@ export default function GigDetail() {
             </label>
             <FormField as="textarea" label="Timings" value={editForm.timings ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, timings: e.target.value }))} rows={3} />
             <FormField as="textarea" label="Parking info" value={editForm.parkingInfo ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, parkingInfo: e.target.value }))} rows={3} />
+            <FormField as="textarea" label="Meal details" value={editForm.mealDetails ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, mealDetails: e.target.value }))} rows={2} />
             <FormField as="textarea" label="Client notes" value={editForm.clientNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, clientNotes: e.target.value }))} rows={3} />
             <FormField as="textarea" label="Performer notes" value={editForm.performerNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, performerNotes: e.target.value }))} rows={3} />
             <div>
@@ -174,6 +207,7 @@ export default function GigDetail() {
             gig.timings,
             gig.contactNumber,
             gig.parkingInfo,
+            gig.mealDetails,
             gig.clientNotes,
             gig.performerNotes,
             gig.playlistUrl,
@@ -190,6 +224,7 @@ export default function GigDetail() {
               {gig.timings && <><dt>Timings</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.timings}</dd></>}
               {gig.contactNumber && <><dt>Contact number</dt><dd>{gig.contactNumber}</dd></>}
               {gig.parkingInfo && <><dt>Parking info</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.parkingInfo}</dd></>}
+              {gig.mealDetails && <><dt>Meal details</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.mealDetails}</dd></>}
               {gig.clientNotes && <><dt>Client notes</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.clientNotes}</dd></>}
               {gig.performerNotes && <><dt>Performer notes</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.performerNotes}</dd></>}
               {gig.playlistUrl && <><dt>DJ playlist</dt><dd><a href={gig.playlistUrl} target="_blank" rel="noopener noreferrer">{gig.playlistUrl}</a></dd></>}

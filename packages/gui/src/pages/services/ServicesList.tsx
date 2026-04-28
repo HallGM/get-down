@@ -8,13 +8,14 @@ import FormField from "../../components/FormField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
+import BooleanCell from "../../components/BooleanCell.js";
 
 const COLUMNS: Column<Service>[] = [
   { key: "name", header: "Name", sortable: true },
   { key: "category", header: "Category", sortable: true, render: (s) => s.category ?? "—" },
   { key: "priceToClient", header: "Client Price", render: (s) => <MoneyDisplay pennies={s.priceToClient} /> },
   { key: "numberOfPeople", header: "No. Roles", render: (s) => s.numberOfPeople ?? "—" },
-  { key: "isActive", header: "Active", render: (s) => s.isActive ? "✓" : "—" },
+  { key: "isActive", header: "Active", render: (s) => <BooleanCell value={!!s.isActive} /> },
 ];
 
 const EMPTY_FORM: CreateServiceRequest = { name: "", isActive: true };

@@ -207,7 +207,8 @@ async function main(): Promise<void> {
       extraFee: toP(f["extra fee"]) || undefined,
       extraFeeDescription: str(f["EF description"]) ?? undefined,
       isBand: f["_is_band?"] === true,
-      isDj: f["_is_dj"] === true,
+      isDjOnly: f["_is_dj"] === true,
+      requiresMeal: false, // No Airtable equivalent — set manually by admins
       isActive: true,
       airtableId: r.id,
     };
@@ -292,6 +293,7 @@ async function main(): Promise<void> {
     if (!title) continue;
 
     const genreName = str(f["Genre"]);
+    const onHold = f["fld9NExdb4OBAlHlB"] === true || f["❗️on hold"] === true;
     const payload = {
       title,
       artist: str(f["Artist"]) ?? undefined,
@@ -300,6 +302,7 @@ async function main(): Promise<void> {
       vocalType: str(f["M/F"]) ?? undefined,
       airtableId: r.id,
       duration: typeof f["duration (seconds)"] === "number" ? (f["duration (seconds)"] as number) : undefined,
+      active: !onHold,
     };
 
     const existingId = songsByAirtableId.get(r.id);
@@ -470,6 +473,7 @@ async function main(): Promise<void> {
       timings: str(f["Timings"]) ?? undefined,
       contactNumber: str(f["Contact Number (on the day)"]) ?? undefined,
       parkingInfo: str(f["Parking Info"]) ?? undefined,
+      mealDetails: str(f["Meal details"]) ?? undefined,
       clientNotes: str(f["Client Notes"]) ?? undefined,
       performerNotes: str(f["notes"]) ?? undefined,
       playlistUrl: str(f["Playlist"]) ?? undefined,

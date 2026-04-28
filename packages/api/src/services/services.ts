@@ -54,7 +54,8 @@ function mapService(row: servicesRepository.ServiceRow): Service {
     extraFee: row.extra_fee ?? undefined,
     extraFeeDescription: row.extra_fee_description ?? undefined,
     isBand: row.is_band,
-    isDj: row.is_dj,
+    isDjOnly: row.is_dj_only,
+    requiresMeal: row.requires_meal,
     isActive: row.is_active,
     airtableId: row.airtable_id ?? undefined,
   };
@@ -77,7 +78,8 @@ function buildMutationInput(
     extraFee: input.extraFee ?? existing?.extraFee,
     extraFeeDescription: trimOptional(input.extraFeeDescription) ?? existing?.extraFeeDescription,
     isBand: input.isBand ?? existing?.isBand ?? false,
-    isDj: input.isDj ?? existing?.isDj ?? false,
+    isDjOnly: input.isDjOnly ?? existing?.isDjOnly ?? false,
+    requiresMeal: input.requiresMeal ?? existing?.requiresMeal ?? false,
     isActive: input.isActive ?? existing?.isActive ?? true,
     airtableId: input.airtableId ?? existing?.airtableId,
   };

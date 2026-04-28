@@ -1,0 +1,80 @@
+/* ── Song row ────────────────────────────────────────────────────────────────
+   Wide: title + buttons on a single line.
+   Narrow (≤599px): title full-width on top, buttons on a second line below.
+──────────────────────────────────────────────────────────────────────────── */
+.cf-song-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.cf-song-row .cf-song-title {
+  flex: 1;
+  font-size: 0.9rem;
+  min-width: 0;
+  align-self: center;
+}
+
+.cf-song-row .cf-song-buttons {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.cf-song-row .cf-song-buttons button {
+  margin: 0;
+  line-height: 1;
+}
+
+@media (max-width: 599px) {
+  .cf-song-row {
+    flex-wrap: wrap;
+  }
+
+  .cf-song-row .cf-song-title {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .cf-song-row .cf-song-buttons {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* ── Save bar ─────────────────────────────────────────────────────────────────
+   Wide: buttons sit inline at natural width.
+   Narrow: each button stretches to full width.
+──────────────────────────────────────────────────────────────────────────── */
+.cf-save-bar {
+  margin-top: 2rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media (max-width: 599px) {
+  .cf-save-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cf-save-bar button {
+    width: 100%;
+  }
+}
+
+/* ── Legend ───────────────────────────────────────────────────────────────────
+   Always stacked — never partially wraps at any screen width.
+──────────────────────────────────────────────────────────────────────────── */
+.cf-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}

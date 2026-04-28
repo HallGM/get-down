@@ -32,6 +32,8 @@ export async function getGigById(id: number): Promise<Gig> {
 
   return {
     ...mapGig(row),
+    clientToken: row.client_token,
+    formSavedAt: row.form_saved_at ?? undefined,
     depositPaid,
     balanceAmount,
     lineItems: lineItems.map(mapGigLineItem),
@@ -172,6 +174,7 @@ function mapGig(row: gigsRepo.GigRow): Gig {
     timings: row.timings ?? undefined,
     contactNumber: row.contact_number ?? undefined,
     parkingInfo: row.parking_info ?? undefined,
+    mealDetails: row.meal_details ?? undefined,
     clientNotes: row.client_notes ?? undefined,
     performerNotes: row.performer_notes ?? undefined,
     playlistUrl: row.playlist_url ?? undefined,
@@ -234,6 +237,7 @@ function buildMutationInput(
     timings: input.timings ?? existing?.timings,
     contactNumber: input.contactNumber ?? existing?.contactNumber,
     parkingInfo: input.parkingInfo ?? existing?.parkingInfo,
+    mealDetails: input.mealDetails ?? existing?.mealDetails,
     clientNotes: input.clientNotes ?? existing?.clientNotes,
     performerNotes: input.performerNotes ?? existing?.performerNotes,
     playlistUrl: input.playlistUrl ?? existing?.playlistUrl,
