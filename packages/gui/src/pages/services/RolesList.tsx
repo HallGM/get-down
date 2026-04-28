@@ -6,6 +6,7 @@ import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
+import MoneyField from "../../components/MoneyField.js";
 import Modal from "../../components/Modal.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 
@@ -17,30 +18,30 @@ export default function RolesList() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newFee, setNewFee] = useState<number | "">("");
+  const [newFee, setNewFee] = useState<number | undefined>(undefined);
   const [editTarget, setEditTarget] = useState<Role | null>(null);
   const [editName, setEditName] = useState("");
-  const [editFee, setEditFee] = useState<number | "">("");
+  const [editFee, setEditFee] = useState<number | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    await createRole.mutateAsync({ name: newName, fee: newFee === "" ? undefined : newFee });
+    await createRole.mutateAsync({ name: newName, fee: newFee });
     setShowCreate(false);
     setNewName("");
-    setNewFee("");
+    setNewFee(undefined);
   }
 
   function openEdit(role: Role) {
     setEditTarget(role);
     setEditName(role.name);
-    setEditFee(role.fee ?? "");
+    setEditFee(role.fee ?? undefined);
   }
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     if (!editTarget) return;
-    await updateRole.mutateAsync({ id: editTarget.id, input: { name: editName, fee: editFee === "" ? undefined : editFee } });
+    await updateRole.mutateAsync({ id: editTarget.id, input: { name: editName, fee: editFee } });
     setEditTarget(null);
   }
 
@@ -103,7 +104,7 @@ export default function RolesList() {
       )}
 
       {/* Create modal */}
-      <Modal open={showCreate} onClose={() => { setShowCreate(false); setNewName(""); setNewFee(""); }} title="New Role">
+      <Modal open={showCreate} onClose={() => { setShowCreate(false); setNewName(""); setNewFee(undefined); }} title="New Role">
         <form onSubmit={handleCreate}>
           <FormField
             label="Role name"
@@ -112,16 +113,14 @@ export default function RolesList() {
             required
             placeholder="e.g. Guitarist"
           />
-          <FormField
-            label="Default fee (p)"
-            type="number"
+          <MoneyField
+            label="Default fee"
             value={newFee}
-            onChange={(e) => setNewFee(e.target.value === "" ? "" : Number(e.target.value))}
+            onChange={setNewFee}
             min={0}
-            placeholder="e.g. 15000"
           />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-            <button type="button" className="secondary" onClick={() => { setShowCreate(false); setNewName(""); setNewFee(""); }}>Cancel</button>
+            <button type="button" className="secondary" onClick={() => { setShowCreate(false); setNewName(""); setNewFee(undefined); }}>Cancel</button>
             <button type="submit" aria-busy={createRole.isPending} disabled={createRole.isPending}>Create</button>
           </footer>
         </form>
@@ -136,13 +135,11 @@ export default function RolesList() {
             onChange={(e) => setEditName(e.target.value)}
             required
           />
-          <FormField
-            label="Default fee (p)"
-            type="number"
+          <MoneyField
+            label="Default fee"
             value={editFee}
-            onChange={(e) => setEditFee(e.target.value === "" ? "" : Number(e.target.value))}
+            onChange={setEditFee}
             min={0}
-            placeholder="e.g. 15000"
           />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="secondary" onClick={() => setEditTarget(null)}>Cancel</button>

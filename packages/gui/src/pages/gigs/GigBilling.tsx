@@ -23,9 +23,10 @@ import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
+import MoneyField from "../../components/MoneyField.js";
 import Modal from "../../components/Modal.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
-import { penniesToPounds, poundsToPennies } from "../../utils/money.js";
+import { formatPennies } from "../../utils/money.js";
 import type { CreatePaymentRequest, CreateGigLineItemRequest, Invoice } from "@get-down/shared";
 
 export default function GigBilling() {
@@ -111,7 +112,7 @@ export default function GigBilling() {
   const balanceAmount = Math.max(0, billingTotal - totalPaid);
 
   function startEditBilling() {
-    setBillingForm({ travelCost: penniesToPounds(gig!.travelCost), discountPercent: gig!.discountPercent });
+    setBillingForm({ travelCost: gig!.travelCost, discountPercent: gig!.discountPercent });
     setEditingBilling(true);
   }
 
@@ -120,7 +121,7 @@ export default function GigBilling() {
     await updateGig.mutateAsync({
       id: gigId,
       input: {
-        travelCost: poundsToPennies(billingForm.travelCost),
+        travelCost: billingForm.travelCost,
         discountPercent: billingForm.discountPercent,
       },
     });
@@ -131,7 +132,7 @@ export default function GigBilling() {
     e.preventDefault();
     await addGigLineItem.mutateAsync({
       gigId,
-      input: { ...lineItemForm, amount: poundsToPennies(lineItemForm.amount ?? 0) },
+      input: { ...lineItemForm, amount: lineItemForm.amount ?? 0 },
     });
     setShowAddLineItem(false);
     setLineItemForm({ description: "", amount: 0 });
@@ -142,7 +143,7 @@ export default function GigBilling() {
     await createPayment.mutateAsync({
       gigId,
       ...paymentForm,
-      amount: poundsToPennies(paymentForm.amount ?? 0),
+      amount: paymentForm.amount ?? 0,
     });
     setShowAddPayment(false);
     setPaymentForm({ amount: 0 });
@@ -267,7 +268,7 @@ export default function GigBilling() {
         ) : (
           <form onSubmit={saveBilling}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem" }}>
-              <FormField label="Travel Cost (£)" type="number" step={0.01} value={billingForm.travelCost} onChange={(e) => setBillingForm((f) => ({ ...f, travelCost: Number(e.target.value) }))} min={0} />
+              <MoneyField label="Travel Cost" value={billingForm.travelCost} onChange={(pennies) => setBillingForm((f) => ({ ...f, travelCost: pennies ?? 0 }))} min={0} />
               <FormField label="Discount (%)" type="number" value={billingForm.discountPercent} onChange={(e) => setBillingForm((f) => ({ ...f, discountPercent: Number(e.target.value) }))} min={0} max={100} />
             </div>
             {updateGig.error && <ErrorBanner error={updateGig.error instanceof Error ? updateGig.error.message : "Failed to save billing settings"} />}
@@ -343,7 +344,7 @@ export default function GigBilling() {
                       <button
                         className="contrast outline"
                         style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
-                        aria-label={`Delete payment of ${p.amount}p`}
+                        aria-label={`Delete payment of ${formatPennies(p.amount)}`}
                         onClick={() => deletePayment.mutate({ id: p.id, gigId })}
                       >✕</button>
                     </td>
@@ -474,7 +475,7 @@ export default function GigBilling() {
       <Modal open={showAddLineItem} onClose={() => setShowAddLineItem(false)} title="Add Line Item">
         <form onSubmit={handleAddLineItem}>
           <FormField label="Description" value={lineItemForm.description ?? ""} onChange={(e) => setLineItemForm((f) => ({ ...f, description: e.target.value }))} required placeholder="e.g. 3-piece band" />
-          <FormField label="Amount (£)" type="number" step={0.01} value={lineItemForm.amount ?? 0} onChange={(e) => setLineItemForm((f) => ({ ...f, amount: Number(e.target.value) }))} required min={0} />
+          <MoneyField label="Amount" value={lineItemForm.amount ?? undefined} onChange={(pennies) => setLineItemForm((f) => ({ ...f, amount: pennies ?? 0 }))} required min={0} />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="secondary" onClick={() => setShowAddLineItem(false)}>Cancel</button>
             <button type="submit" aria-busy={addGigLineItem.isPending} disabled={addGigLineItem.isPending}>Add</button>
@@ -484,7 +485,7 @@ export default function GigBilling() {
 
       <Modal open={showAddPayment} onClose={() => setShowAddPayment(false)} title="Add Payment">
         <form onSubmit={handleAddPayment}>
-          <FormField label="Amount (£)" type="number" step={0.01} value={paymentForm.amount} onChange={(e) => setPaymentForm((f) => ({ ...f, amount: Number(e.target.value) }))} required min={0} />
+          <MoneyField label="Amount" value={paymentForm.amount ?? undefined} onChange={(pennies) => setPaymentForm((f) => ({ ...f, amount: pennies ?? 0 }))} required min={0} />
           <FormField label="Date" type="date" value={toInputDate(paymentForm.date)} onChange={(e) => setPaymentForm((f) => ({ ...f, date: e.target.value }))} />
           <FormField label="Method" value={paymentForm.method ?? ""} onChange={(e) => setPaymentForm((f) => ({ ...f, method: e.target.value }))} placeholder="e.g. Bank transfer" />
           <FormField label="Description" value={paymentForm.description ?? ""} onChange={(e) => setPaymentForm((f) => ({ ...f, description: e.target.value }))} />

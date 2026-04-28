@@ -12,10 +12,11 @@ import type { AccountTransaction, CreateAccountTransactionRequest, FeeAllocation
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
+import MoneyField from "../../components/MoneyField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import EmptyState from "../../components/EmptyState.js";
-import { formatPennies, penniesToPounds, poundsToPennies } from "../../utils/money.js";
+import { formatPennies } from "../../utils/money.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { caLabel } from "../../utils/accounts.js";
 
@@ -101,13 +102,11 @@ function TransactionFormFields({
         onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
         required
       />
-      <FormField
-        label="Amount (£)"
+      <MoneyField
+        label="Amount"
         hint="negative = credit to person"
-        type="number"
-        step={0.01}
         value={form.amount}
-        onChange={(e) => setForm((f) => ({ ...f, amount: Number(e.target.value) }))}
+        onChange={(pennies) => setForm((f) => ({ ...f, amount: pennies ?? 0 }))}
         required
       />
       <FormField
@@ -173,7 +172,7 @@ export default function AccountDetail() {
     e.preventDefault();
     const input: CreateAccountTransactionRequest = {
       date: form.date,
-      amount: poundsToPennies(form.amount),
+      amount: form.amount,
       type: form.type,
       description: form.description || undefined,
       feeAllocationIds: form.feeAllocationIds,
@@ -187,7 +186,7 @@ export default function AccountDetail() {
     setEditTarget(tx);
     setEditForm({
       date: toInputDate(tx.date),
-      amount: penniesToPounds(tx.amount),
+      amount: tx.amount,
       type: tx.type,
       description: tx.description ?? "",
       feeAllocationIds: tx.feeAllocationIds,
@@ -201,7 +200,7 @@ export default function AccountDetail() {
       id: editTarget.id,
       input: {
         date: editForm.date || undefined,
-        amount: poundsToPennies(editForm.amount),
+        amount: editForm.amount,
         type: editForm.type,
         description: editForm.description || undefined,
         feeAllocationIds: editForm.feeAllocationIds,
