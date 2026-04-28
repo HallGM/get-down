@@ -9,7 +9,8 @@ export interface ServiceRow {
   extra_fee: number | null;
   extra_fee_description: string | null;
   is_band: boolean;
-  is_dj: boolean;
+  is_dj_only: boolean;
+  requires_meal: boolean;
   is_active: boolean;
   airtable_id: string | null;
   number_of_people: number;
@@ -23,14 +24,15 @@ export interface ServiceMutationInput {
   extraFee?: number;
   extraFeeDescription?: string;
   isBand: boolean;
-  isDj: boolean;
+  isDjOnly: boolean;
+  requiresMeal: boolean;
   isActive: boolean;
   airtableId?: string;
 }
 
 const COLS = `
   id, name, category, description, price_to_client,
-  extra_fee, extra_fee_description, is_band, is_dj, is_active, airtable_id,
+  extra_fee, extra_fee_description, is_band, is_dj_only, requires_meal, is_active, airtable_id,
   (SELECT COUNT(*) FROM role_services rs WHERE rs.service_id = id)::int AS number_of_people
 `;
 
@@ -39,9 +41,9 @@ export async function createService(input: ServiceMutationInput): Promise<Servic
     text: `
       INSERT INTO services (
         name, category, description, price_to_client,
-        extra_fee, extra_fee_description, is_band, is_dj, is_active, airtable_id
+        extra_fee, extra_fee_description, is_band, is_dj_only, requires_meal, is_active, airtable_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING ${COLS};
     `,
     values: [
@@ -52,7 +54,8 @@ export async function createService(input: ServiceMutationInput): Promise<Servic
       input.extraFee ?? null,
       input.extraFeeDescription ?? null,
       input.isBand,
-      input.isDj,
+      input.isDjOnly,
+      input.requiresMeal,
       input.isActive,
       input.airtableId ?? null,
     ],
@@ -87,9 +90,10 @@ export async function updateService(id: number, input: ServiceMutationInput): Pr
           extra_fee = $6,
           extra_fee_description = $7,
           is_band = $8,
-          is_dj = $9,
-          is_active = $10,
-          airtable_id = $11
+          is_dj_only = $9,
+          requires_meal = $10,
+          is_active = $11,
+          airtable_id = $12
       WHERE id = $1
       RETURNING ${COLS};
     `,
@@ -102,7 +106,8 @@ export async function updateService(id: number, input: ServiceMutationInput): Pr
       input.extraFee ?? null,
       input.extraFeeDescription ?? null,
       input.isBand,
-      input.isDj,
+      input.isDjOnly,
+      input.requiresMeal,
       input.isActive,
       input.airtableId ?? null,
     ],

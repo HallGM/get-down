@@ -51,7 +51,8 @@ export default function ServiceDetail() {
       extraFee: service!.extraFee,
       extraFeeDescription: service!.extraFeeDescription,
       isBand: service!.isBand,
-      isDj: service!.isDj,
+      isDjOnly: service!.isDjOnly,
+      requiresMeal: service!.requiresMeal ?? false,
       isActive: service!.isActive,
     });
     setEditing(true);
@@ -107,7 +108,8 @@ export default function ServiceDetail() {
             <dt>Extra fee</dt><dd><MoneyDisplay pennies={service.extraFee} /></dd>
             {service.extraFeeDescription && <><dt>Extra fee desc.</dt><dd>{service.extraFeeDescription}</dd></>}
             <dt>Band</dt><dd>{service.isBand ? "Yes" : "No"}</dd>
-            <dt>DJ</dt><dd>{service.isDj ? "Yes" : "No"}</dd>
+            <dt>DJ only</dt><dd>{service.isDjOnly ? "Yes" : "No"}</dd>
+            <dt>Requires meal</dt><dd>{service.requiresMeal ? "Yes" : "No"}</dd>
             <dt>Active</dt><dd>{service.isActive !== false ? "Yes" : "No"}</dd>
             {service.description && <><dt>Description</dt><dd>{service.description}</dd></>}
           </dl>
@@ -128,7 +130,10 @@ export default function ServiceDetail() {
                 <input type="checkbox" checked={!!editForm.isBand} onChange={(e) => setEditForm((f) => ({ ...f, isBand: e.target.checked }))} /> Band
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <input type="checkbox" checked={!!editForm.isDj} onChange={(e) => setEditForm((f) => ({ ...f, isDj: e.target.checked }))} /> DJ
+                <input type="checkbox" checked={!!editForm.isDjOnly} onChange={(e) => setEditForm((f) => ({ ...f, isDjOnly: e.target.checked }))} /> DJ only
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <input type="checkbox" checked={!!editForm.requiresMeal} onChange={(e) => setEditForm((f) => ({ ...f, requiresMeal: e.target.checked }))} /> Requires meal
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <input type="checkbox" checked={editForm.isActive !== false} onChange={(e) => setEditForm((f) => ({ ...f, isActive: e.target.checked }))} /> Active

@@ -436,6 +436,7 @@ function mapSong(row: songsRepo.SongRow): Song {
     vocalType: row.vocal_type ?? undefined,
     airtableId: row.airtable_id ?? undefined,
     duration: row.duration ?? undefined,
+    active: row.active,
   };
 }
 
@@ -486,5 +487,6 @@ function buildSongMutationInput(
     vocalType: input.vocalType ?? existing?.vocalType,
     airtableId: input.airtableId ?? existing?.airtableId,
     duration: input.duration ?? existing?.duration,
+    active: input.active ?? existing?.active ?? true,
   };
 }

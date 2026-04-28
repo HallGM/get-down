@@ -31,6 +31,15 @@ export class ApiError extends Error {
   }
 }
 
+function extractErrorMessage(data: unknown, status: number): string {
+  return typeof data === "object" &&
+    data !== null &&
+    "message" in data &&
+    typeof (data as Record<string, unknown>).message === "string"
+    ? (data as { message: string }).message
+    : `HTTP ${status}`;
+}
+
 export async function apiFetch<T>(
   method: string,
   path: string,
@@ -60,16 +69,10 @@ export async function apiFetch<T>(
     return undefined as T;
   }
 
-  const data: unknown = await res.json();
+  const data: unknown = await res.json().catch(() => null);
 
   if (!res.ok) {
-    const message =
-      typeof data === "object" &&
-      data !== null &&
-      "message" in data &&
-      typeof (data as Record<string, unknown>).message === "string"
-        ? (data as { message: string }).message
-        : `HTTP ${res.status}`;
+    const message = extractErrorMessage(data, res.status);
     throw new ApiError(res.status, message);
   }
 
@@ -95,11 +98,7 @@ export async function apiFetchBlob(method: string, path: string, body?: unknown)
 
   if (!res.ok) {
     const data = await res.json().catch(() => null);
-    const message =
-      typeof data === "object" && data !== null && "message" in data
-        ? (data as { message: string }).message
-        : `HTTP ${res.status}`;
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, extractErrorMessage(data, res.status));
   }
 
   return res.blob();
@@ -107,29 +106,24 @@ export async function apiFetchBlob(method: string, path: string, body?: unknown)
 
 /**
  * Public fetch — no auth header, no 401→login redirect.
- * Used exclusively by performer portal pages.
+ * Used by performer portal and client form pages.
+ * Accepts an optional body for PUT/POST calls.
  */
-export async function publicFetch<T>(method: string, path: string): Promise<T> {
+export async function publicFetch<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers: { "Content-Type": "application/json" },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
   if (res.status === 204) {
     return undefined as T;
   }
 
-  const data: unknown = await res.json();
+  const data: unknown = await res.json().catch(() => null);
 
   if (!res.ok) {
-    const message =
-      typeof data === "object" &&
-      data !== null &&
-      "message" in data &&
-      typeof (data as Record<string, unknown>).message === "string"
-        ? (data as { message: string }).message
-        : `HTTP ${res.status}`;
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, extractErrorMessage(data, res.status));
   }
 
   return data as T;

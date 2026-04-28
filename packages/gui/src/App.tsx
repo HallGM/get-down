@@ -22,6 +22,7 @@ import RehearsalsList from "./pages/rehearsals/RehearsalsList.js";
 import ExpensesList from "./pages/expenses/ExpensesList.js";
 import PerformerGigList from "./pages/performer/PerformerGigList.js";
 import PerformerGigDetail from "./pages/performer/PerformerGigDetail.js";
+import ClientForm from "./pages/client/ClientForm.js";
 import AccountsList from "./pages/accounts/AccountsList.js";
 import AccountDetail from "./pages/accounts/AccountDetail.js";
 
@@ -102,7 +103,7 @@ export default function App() {
 
   if (isLoading) return null;
 
-  const isPerformerRoute = location.pathname.startsWith("/p/");
+  const isPerformerRoute = location.pathname.startsWith("/p/") || location.pathname.startsWith("/c/");
 
   return (
     <>
@@ -112,6 +113,8 @@ export default function App() {
         {/* Public performer portal — no auth required */}
         <Route path="/p/:token" element={<PerformerGigList />} />
         <Route path="/p/:token/gigs/:gigId" element={<PerformerGigDetail />} />
+        {/* Public client form portal — no auth required */}
+        <Route path="/c/:token" element={<ClientForm />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/gigs" element={<GigsList />} />

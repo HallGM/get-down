@@ -136,3 +136,4 @@ Local documentation lives in `airtable_api/`. Consult it whenever reading from o
 - DB columns: `snake_case`; TypeScript: `camelCase`.
 - Tests: Jest with `--experimental-vm-modules`.
 - **File layout**: exported functions first, private helpers (mappers, validators, builders) at the bottom.
+- **Em dashes**: never use em dashes (—) in user-facing text or sentences (hints, labels, paragraphs, error messages). They are only permitted as visual separators in UI elements (e.g. `Title — Subtitle`). Use a period, comma, or reword instead.

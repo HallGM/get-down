@@ -33,7 +33,7 @@ export default function DurationInput({ value, onChange }: Props) {
         placeholder="0"
         value={minutes ?? ""}
         onChange={e => handleMinutes(e.target.value)}
-        style={{ width: "3.5rem", textAlign: "right" }}
+        style={{ width: "4.5rem", textAlign: "right" }}
         aria-label="Minutes"
       />
       <span style={{ fontWeight: 600 }}>m</span>
@@ -44,7 +44,7 @@ export default function DurationInput({ value, onChange }: Props) {
         placeholder="00"
         value={seconds ?? ""}
         onChange={e => handleSeconds(e.target.value)}
-        style={{ width: "3.5rem", textAlign: "right" }}
+        style={{ width: "4.5rem", textAlign: "right" }}
         aria-label="Seconds"
       />
       <span style={{ fontWeight: 600 }}>s</span>
