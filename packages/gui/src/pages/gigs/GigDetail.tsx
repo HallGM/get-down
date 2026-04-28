@@ -16,6 +16,7 @@ import StatusBadge from "../../components/StatusBadge.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
+import MoneyField from "../../components/MoneyField.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { formatPersonName } from "../../utils/people.js";
 import type { UpdateGigRequest } from "@get-down/shared";
@@ -159,7 +160,7 @@ export default function GigDetail() {
               <FormField as="select" label="Status" value={editForm.status ?? "enquiry"} onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}>
                 {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
               </FormField>
-              <FormField label="Quoted Price (p)" type="number" value={editForm.totalPrice ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, totalPrice: Number(e.target.value) }))} />
+              <MoneyField label="Quoted Price" value={editForm.totalPrice} onChange={(pennies) => setEditForm((f) => ({ ...f, totalPrice: pennies }))} />
             </div>
             <FormField as="textarea" label="Description" value={editForm.description ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={3} />
 

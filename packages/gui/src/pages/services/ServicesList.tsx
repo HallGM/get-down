@@ -5,6 +5,7 @@ import type { CreateServiceRequest, Service } from "@get-down/shared";
 import DataTable, { type Column } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import FormField from "../../components/FormField.js";
+import MoneyField from "../../components/MoneyField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
@@ -75,7 +76,7 @@ export default function ServicesList() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
             <FormField label="Name" value={form.name} onChange={(e) => field("name", e.target.value)} required />
             <FormField label="Category" value={form.category ?? ""} onChange={(e) => field("category", e.target.value)} />
-            <FormField label="Price to Client (p)" type="number" value={form.priceToClient ?? ""} onChange={(e) => field("priceToClient", Number(e.target.value))} min={0} />
+            <MoneyField label="Price to Client" value={form.priceToClient} onChange={(pennies) => field("priceToClient", pennies)} min={0} />
           </div>
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="secondary" onClick={() => setShowCreate(false)}>Cancel</button>

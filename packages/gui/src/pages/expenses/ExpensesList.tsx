@@ -5,10 +5,10 @@ import DataTable, { type Column } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
+import MoneyField from "../../components/MoneyField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
-import { penniesToPounds, poundsToPennies } from "../../utils/money.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 
 const COLUMNS: Column<Expense>[] = [
@@ -36,7 +36,7 @@ export default function ExpensesList() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    await createExpense.mutateAsync({ ...form, amount: poundsToPennies(form.amount) });
+    await createExpense.mutateAsync(form);
     setShowCreate(false);
     setForm(EMPTY_FORM);
   }
@@ -44,13 +44,13 @@ export default function ExpensesList() {
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     if (!editTarget) return;
-    await updateExpense.mutateAsync({ id: editTarget.id, input: { ...editForm, amount: poundsToPennies(editForm.amount ?? 0) } });
+    await updateExpense.mutateAsync({ id: editTarget.id, input: editForm });
     setEditTarget(null);
   }
 
   function openEdit(exp: Expense) {
     setEditTarget(exp);
-    setEditForm({ description: exp.description, amount: penniesToPounds(exp.amount), date: exp.date, category: exp.category, recipientName: exp.recipientName, paymentMethod: exp.paymentMethod });
+    setEditForm({ description: exp.description, amount: exp.amount, date: exp.date, category: exp.category, recipientName: exp.recipientName, paymentMethod: exp.paymentMethod });
   }
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
@@ -77,7 +77,7 @@ export default function ExpensesList() {
         <form onSubmit={handleCreate}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
             <FormField label="Description" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} required />
-            <FormField label="Amount (£)" type="number" step={0.01} value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: Number(e.target.value) }))} required min={0} />
+            <MoneyField label="Amount" value={form.amount} onChange={(pennies) => setForm((f) => ({ ...f, amount: pennies ?? 0 }))} required min={0} />
             <FormField label="Date" type="date" value={form.date ?? ""} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
             <FormField label="Category" value={form.category ?? ""} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} />
             <FormField label="Recipient" value={form.recipientName ?? ""} onChange={(e) => setForm((f) => ({ ...f, recipientName: e.target.value }))} />
@@ -94,7 +94,7 @@ export default function ExpensesList() {
         <form onSubmit={handleUpdate}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
             <FormField label="Description" value={editForm.description ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} required />
-            <FormField label="Amount (£)" type="number" step={0.01} value={editForm.amount ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, amount: Number(e.target.value) }))} required min={0} />
+            <MoneyField label="Amount" value={editForm.amount} onChange={(pennies) => setEditForm((f) => ({ ...f, amount: pennies ?? 0 }))} required min={0} />
             <FormField label="Date" type="date" value={toInputDate(editForm.date)} onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))} />
             <FormField label="Category" value={editForm.category ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))} />
             <FormField label="Recipient" value={editForm.recipientName ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, recipientName: e.target.value }))} />

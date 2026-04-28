@@ -7,6 +7,7 @@ import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
+import MoneyField from "../../components/MoneyField.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 
 export default function ServiceDetail() {
@@ -120,8 +121,8 @@ export default function ServiceDetail() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem" }}>
               <FormField label="Name" value={editForm.name ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} required />
               <FormField label="Category" value={editForm.category ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))} />
-              <FormField label="Price to Client (p)" type="number" value={editForm.priceToClient ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, priceToClient: Number(e.target.value) }))} min={0} />
-              <FormField label="Extra Fee (p)" type="number" value={editForm.extraFee ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, extraFee: Number(e.target.value) }))} min={0} />
+              <MoneyField label="Price to Client" value={editForm.priceToClient} onChange={(pennies) => setEditForm((f) => ({ ...f, priceToClient: pennies }))} min={0} />
+              <MoneyField label="Extra Fee" value={editForm.extraFee} onChange={(pennies) => setEditForm((f) => ({ ...f, extraFee: pennies }))} min={0} />
               <FormField label="Extra Fee Description" value={editForm.extraFeeDescription ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, extraFeeDescription: e.target.value }))} />
             </div>
             <FormField as="textarea" label="Description" value={editForm.description ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={3} />
