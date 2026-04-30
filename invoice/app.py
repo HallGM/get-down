@@ -1,6 +1,7 @@
 """Flask web app for Every Angle invoice generation."""
 
 import os
+import re
 import logging
 import threading
 import time
@@ -8,7 +9,8 @@ from urllib.request import urlopen
 from flask import Flask, render_template, request, jsonify, send_file
 from src.invoice_ev import generate_ev_invoice, generate_receipt, EVInvoiceOptions
 from src.generic_invoice import create_generic_invoice, create_generic_receipt
-from src.invoice import Line_item
+from src.invoice import Invoice, Line_item, Section
+from src.config import BusinessConfig, Address
 from src.ev_config import EV_CONFIG
 from src.services import get_service_by_id, get_all_services_flat
 from io import BytesIO
@@ -29,6 +31,35 @@ app.config['SECRET_KEY'] = os.getenv(
 app.config['ENV'] = os.getenv('FLASK_ENV', 'production')
 
 logger.info(f"Flask app initialized in {app.config['ENV']} mode")
+
+
+def _parse_item_list(raw_items: list, desc_error: str = "Each line item must have a description") -> list:
+    """Parse raw dicts into Line_item instances.
+
+    Raises ValueError with a user-facing message on invalid input.
+    """
+    items = []
+    for item in raw_items:
+        if not item.get("description"):
+            raise ValueError(desc_error)
+        try:
+            price = float(item["price"])
+        except (ValueError, TypeError, KeyError):
+            raise ValueError("Line item price must be a valid number")
+        if price < 0:
+            raise ValueError("Line item price cannot be negative")
+        items.append(Line_item(description=item["description"], price=price))
+    return items
+
+
+def pdf_response(pdf_bytes: bytes, filename: str):
+    """Wrap PDF bytes in a Flask file download response."""
+    return send_file(
+        BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename,
+    )
 
 
 @app.route("/", methods=["GET"])
@@ -70,15 +101,13 @@ def generate_invoice():
 
         # Add custom items
         if data.get("custom_items"):
-            for item in data["custom_items"]:
-                if not item.get("description"):
-                    return jsonify({"error": "Custom item description is required"}), 400
-                try:
-                    price = float(item.get("price", 0))
-                except (ValueError, TypeError):
-                    return jsonify({"error": "Custom item price must be a number"}), 400
-                line_items.append(
-                    Line_item(description=item["description"], price=price))
+            try:
+                line_items.extend(_parse_item_list(
+                    data["custom_items"],
+                    desc_error="Custom item description is required",
+                ))
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
 
         # Must have at least one line item
         if not line_items:
@@ -160,13 +189,7 @@ def generate_invoice():
         pdf_bytes = create_generic_invoice(
             invoice, EV_CONFIG, return_bytes=True)
 
-        # Return PDF as download
-        return send_file(
-            BytesIO(pdf_bytes),
-            mimetype="application/pdf",
-            as_attachment=True,
-            download_name=f"invoice-{data['invoice_number']}.pdf"
-        )
+        return pdf_response(pdf_bytes, f"invoice-{data['invoice_number']}.pdf")
 
     except Exception as e:
         logger.error(f"Error generating invoice: {str(e)}", exc_info=True)
@@ -204,15 +227,13 @@ def generate_receipt_route():
 
         # Add custom items
         if data.get("custom_items"):
-            for item in data["custom_items"]:
-                if not item.get("description"):
-                    return jsonify({"error": "Custom item description is required"}), 400
-                try:
-                    price = float(item.get("price", 0))
-                except (ValueError, TypeError):
-                    return jsonify({"error": "Custom item price must be a number"}), 400
-                line_items.append(
-                    Line_item(description=item["description"], price=price))
+            try:
+                line_items.extend(_parse_item_list(
+                    data["custom_items"],
+                    desc_error="Custom item description is required",
+                ))
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
 
         # Must have at least one line item
         if not line_items:
@@ -290,17 +311,106 @@ def generate_receipt_route():
         pdf_bytes = create_generic_receipt(
             receipt, EV_CONFIG, return_bytes=True)
 
-        # Return PDF as download
-        return send_file(
-            BytesIO(pdf_bytes),
-            mimetype="application/pdf",
-            as_attachment=True,
-            download_name=f"receipt-{data['invoice_number']}.pdf"
-        )
+        return pdf_response(pdf_bytes, f"receipt-{data['invoice_number']}.pdf")
 
     except Exception as e:
         logger.error(f"Error generating receipt: {str(e)}", exc_info=True)
         return jsonify({"error": f"Error generating receipt: {str(e)}"}), 500
+
+
+@app.route("/generic", methods=["GET"])
+def generic_form():
+    """Render the generic invoice form."""
+    logger.info("Generic invoice form page requested")
+    return render_template("generic_form.html")
+
+
+@app.route("/generate-generic", methods=["POST"])
+def generate_generic_invoice():
+    """Generate a generic invoice from user-supplied business details and line items."""
+    try:
+        data = request.get_json()
+        logger.info(
+            f"Generic invoice generation requested for {data.get('customer_name', 'unknown')}")
+
+        # Validate required business fields
+        if not data.get("business_name"):
+            return jsonify({"error": "Business name is required"}), 400
+        if not data.get("address_line_1"):
+            return jsonify({"error": "Address line 1 is required"}), 400
+        if not data.get("phone_number"):
+            return jsonify({"error": "Phone number is required"}), 400
+        if not data.get("email_address"):
+            return jsonify({"error": "Email address is required"}), 400
+        if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', data["email_address"]):
+            return jsonify({"error": "Email address must be a valid email"}), 400
+        if not data.get("account_number"):
+            return jsonify({"error": "Account number is required"}), 400
+        if not data.get("sort_code"):
+            return jsonify({"error": "Sort code is required"}), 400
+
+        # Validate required invoice fields
+        if not data.get("customer_name"):
+            return jsonify({"error": "Customer name is required"}), 400
+        if not data.get("invoice_number"):
+            return jsonify({"error": "Invoice number is required"}), 400
+        if not data.get("title"):
+            return jsonify({"error": "Invoice title is required"}), 400
+
+        # Validate line items
+        raw_items = data.get("line_items")
+        if not raw_items:
+            return jsonify({"error": "At least one line item is required"}), 400
+
+        try:
+            line_items = _parse_item_list(raw_items)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        # Build business config from submitted details
+        address = Address(
+            line_1=data["address_line_1"],
+            # empty strings from the form are normalised to None for optional lines
+            line_2=data.get("address_line_2") or None,
+            line_3=data.get("address_line_3") or None,
+            line_4=data.get("address_line_4") or None,
+            line_5=data.get("address_line_5") or None,
+        )
+        business_config = BusinessConfig(
+            business_name=data["business_name"],
+            address=address,
+            phone_number=data["phone_number"],
+            email_address=data["email_address"],
+            account_number=data["account_number"],
+            sort_code=data["sort_code"],
+            logo_path=None,
+        )
+
+        # Build invoice sections
+        grand_total = sum(item.price for item in line_items)
+        invoice = Invoice(
+            customer_name=data["customer_name"],
+            invoice_number=data["invoice_number"],
+            title=data["title"],
+            sections=[
+                Section(heading="Items", rows=[
+                    {"description": item.description, "price": item.price, "bold": item.bold}
+                    for item in line_items
+                ]),
+                Section(heading="Total", rows=[
+                    {"description": "Total", "price": grand_total, "bold": True}
+                ]),
+            ],
+        )
+
+        # Generate PDF bytes
+        pdf_bytes = create_generic_invoice(invoice, business_config, return_bytes=True)
+
+        return pdf_response(pdf_bytes, f"invoice-{data['invoice_number']}.pdf")
+
+    except Exception as e:
+        logger.error(f"Error generating generic invoice: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Error generating invoice: {str(e)}"}), 500
 
 
 @app.route("/set-list", methods=["POST"])
