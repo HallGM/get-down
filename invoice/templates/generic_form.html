@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generic Invoice Generator</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        padding: 40px;
+      }
+
+      .nav-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #667eea;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .nav-link:hover {
+        text-decoration: underline;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 30px;
+        font-size: 28px;
+      }
+
+      h2 {
+        color: #555;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        font-size: 18px;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 10px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+      }
+
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+
+      input[type="text"]:focus,
+      input[type="number"]:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .row.three-col {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+
+      .line-items-container {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 15px;
+        background: #fafafa;
+      }
+
+      .line-item {
+        display: grid;
+        grid-template-columns: 2fr 1fr auto;
+        gap: 10px;
+        margin-bottom: 12px;
+        align-items: end;
+      }
+
+      .line-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .line-item input {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 100%;
+      }
+
+      .line-item input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .remove-btn {
+        padding: 8px 12px;
+        background: #ff4444;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: background 0.3s;
+        white-space: nowrap;
+      }
+
+      .remove-btn:hover {
+        background: #cc0000;
+      }
+
+      .add-item-btn {
+        padding: 10px 16px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 0.3s;
+        margin-top: 10px;
+      }
+
+      .add-item-btn:hover {
+        background: #5568d3;
+      }
+
+      .grand-total {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 15px;
+        margin-top: 20px;
+        padding: 15px 20px;
+        background: #f0f4ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 6px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #333;
+      }
+
+      .grand-total span {
+        color: #667eea;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+      }
+
+      button {
+        flex: 1;
+        padding: 14px 24px;
+        font-size: 16px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-invoice {
+        background: #667eea;
+        color: white;
+      }
+
+      .btn-invoice:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+      }
+
+      .error {
+        background: #fed7d7;
+        color: #c53030;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        display: none;
+      }
+
+      .error.show {
+        display: block;
+      }
+
+      .success {
+        background: #c6f6d5;
+        color: #22543d;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        display: none;
+      }
+
+      .success.show {
+        display: block;
+      }
+
+      .empty-message {
+        color: #999;
+        margin-bottom: 15px;
+        font-size: 14px;
+      }
+
+      .column-labels {
+        display: grid;
+        grid-template-columns: 2fr 1fr auto;
+        gap: 10px;
+        margin-bottom: 6px;
+        padding: 0 2px;
+      }
+
+      .column-labels span {
+        font-size: 12px;
+        font-weight: 600;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 25px;
+        }
+
+        .row {
+          grid-template-columns: 1fr;
+        }
+
+        .row.three-col {
+          grid-template-columns: 1fr;
+        }
+
+        .line-item {
+          grid-template-columns: 1fr;
+        }
+
+        .column-labels {
+          display: none;
+        }
+
+        .button-group {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <a class="nav-link" href="/">← Every Angle invoice form</a>
+
+      <h1>Generic Invoice Generator</h1>
+
+      <div class="error" id="errorMessage"></div>
+      <div class="success" id="successMessage"></div>
+
+      <form id="invoiceForm">
+
+        <!-- Business Details -->
+        <h2>Your Business Details</h2>
+        <div class="row">
+          <div class="form-group">
+            <label for="businessName">Business Name *</label>
+            <input type="text" id="businessName" name="business_name" required />
+          </div>
+          <div class="form-group">
+            <label for="phoneNumber">Phone Number *</label>
+            <input type="text" id="phoneNumber" name="phone_number" required />
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <label for="emailAddress">Email Address *</label>
+            <input type="text" id="emailAddress" name="email_address" required />
+          </div>
+          <div class="form-group">
+            <label for="addressLine1">Address Line 1 *</label>
+            <input type="text" id="addressLine1" name="address_line_1" required />
+          </div>
+        </div>
+        <div class="row three-col">
+          <div class="form-group">
+            <label for="addressLine2">Address Line 2</label>
+            <input type="text" id="addressLine2" name="address_line_2" />
+          </div>
+          <div class="form-group">
+            <label for="addressLine3">Address Line 3</label>
+            <input type="text" id="addressLine3" name="address_line_3" />
+          </div>
+          <div class="form-group">
+            <label for="addressLine4">Address Line 4</label>
+            <input type="text" id="addressLine4" name="address_line_4" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <label for="addressLine5">Address Line 5</label>
+            <input type="text" id="addressLine5" name="address_line_5" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <label for="accountNumber">Account Number *</label>
+            <input type="text" id="accountNumber" name="account_number" required />
+          </div>
+          <div class="form-group">
+            <label for="sortCode">Sort Code *</label>
+            <input type="text" id="sortCode" name="sort_code" required />
+          </div>
+        </div>
+
+        <!-- Invoice Details -->
+        <h2>Invoice Details</h2>
+        <div class="row">
+          <div class="form-group">
+            <label for="customerName">Customer Name *</label>
+            <input type="text" id="customerName" name="customer_name" required />
+          </div>
+          <div class="form-group">
+            <label for="invoiceNumber">Invoice Number *</label>
+            <input type="text" id="invoiceNumber" name="invoice_number" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="invoiceTitle">Invoice Title *</label>
+          <input type="text" id="invoiceTitle" name="title" placeholder="e.g. Photography services for wedding, June 2026" required />
+        </div>
+
+        <!-- Line Items -->
+        <h2>Line Items</h2>
+        <div class="line-items-container">
+          <div class="column-labels">
+            <span>Description</span>
+            <span>Price (£)</span>
+            <span></span>
+          </div>
+          <div id="lineItemsList"></div>
+          <button type="button" class="add-item-btn" id="addLineItemBtn">+ Add Line Item</button>
+        </div>
+
+        <div class="grand-total">
+          Grand Total: <span id="grandTotalDisplay">£0.00</span>
+        </div>
+
+        <!-- Generate -->
+        <div class="button-group">
+          <button type="submit" class="btn-invoice" id="generateInvoiceBtn">Generate Invoice</button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      let currentLineItemId = 0;
+
+      document.addEventListener('DOMContentLoaded', () => {
+        addLineItem(); // start with one empty line item
+        document.getElementById('addLineItemBtn').addEventListener('click', addLineItem);
+        document.getElementById('invoiceForm').addEventListener('submit', handleGenerateInvoice);
+        document.getElementById('lineItemsList').addEventListener('input', recalculateTotal);
+      });
+
+      function addLineItem() {
+        const list = document.getElementById('lineItemsList');
+
+        const emptyMessage = list.querySelector('.empty-message');
+        if (emptyMessage) emptyMessage.remove();
+
+        const itemId = `line-item-${currentLineItemId++}`;
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'line-item';
+        itemDiv.id = itemId;
+
+        const descInput = document.createElement('input');
+        descInput.type = 'text';
+        descInput.placeholder = 'Description';
+        descInput.className = 'item-description';
+
+        const priceInput = document.createElement('input');
+        priceInput.type = 'number';
+        priceInput.placeholder = '0.00';
+        priceInput.className = 'item-price';
+        priceInput.min = '0';
+        priceInput.step = '0.01';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', () => {
+          itemDiv.remove();
+          if (document.querySelectorAll('#lineItemsList .line-item').length === 0) {
+            const msg = document.createElement('p');
+            msg.className = 'empty-message';
+            msg.textContent = 'No line items added yet.';
+            list.insertBefore(msg, list.firstChild);
+          }
+          recalculateTotal();
+        });
+
+        itemDiv.appendChild(descInput);
+        itemDiv.appendChild(priceInput);
+        itemDiv.appendChild(removeBtn);
+        list.appendChild(itemDiv);
+      }
+
+      function recalculateTotal() {
+        const prices = Array.from(document.querySelectorAll('#lineItemsList .item-price'));
+        const total = prices.reduce((sum, input) => {
+          const val = parseFloat(input.value);
+          return sum + (isNaN(val) ? 0 : val);
+        }, 0);
+        document.getElementById('grandTotalDisplay').textContent = `£${total.toFixed(2)}`;
+      }
+
+      function collectFormData() {
+        const form = document.getElementById('invoiceForm');
+        const fd = new FormData(form);
+
+        const line_items = Array.from(document.querySelectorAll('#lineItemsList .line-item')).map(item => ({
+          description: item.querySelector('.item-description').value,
+          price: item.querySelector('.item-price').value,
+        }));
+
+        return {
+          business_name: fd.get('business_name'),
+          address_line_1: fd.get('address_line_1'),
+          address_line_2: fd.get('address_line_2'),
+          address_line_3: fd.get('address_line_3'),
+          address_line_4: fd.get('address_line_4'),
+          address_line_5: fd.get('address_line_5'),
+          phone_number: fd.get('phone_number'),
+          email_address: fd.get('email_address'),
+          account_number: fd.get('account_number'),
+          sort_code: fd.get('sort_code'),
+          customer_name: fd.get('customer_name'),
+          invoice_number: fd.get('invoice_number'),
+          title: fd.get('title'),
+          line_items,
+        };
+      }
+
+      async function handleGenerateInvoice(e) {
+        e.preventDefault();
+        const data = collectFormData();
+
+        const errorDiv = document.getElementById('errorMessage');
+        const successDiv = document.getElementById('successMessage');
+        errorDiv.classList.remove('show');
+        successDiv.classList.remove('show');
+
+        try {
+          const response = await fetch('/generate-generic', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to generate invoice');
+          }
+
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `invoice-${data.invoice_number}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          a.remove();
+
+          successDiv.textContent = 'Invoice generated successfully!';
+          successDiv.classList.add('show');
+        } catch (error) {
+          errorDiv.textContent = error.message;
+          errorDiv.classList.add('show');
+        }
+      }
+    </script>
+  </body>
+</html>
