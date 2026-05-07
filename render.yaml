@@ -88,6 +88,14 @@ services:
         sync: false
       - key: INVOICE_SERVICE_URL
         sync: false
+      - key: CLOUDFLARE_R2_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_R2_ACCESS_KEY_ID
+        sync: false
+      - key: CLOUDFLARE_R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: CLOUDFLARE_R2_BUCKET_NAME
+        sync: false
 
   # ── GUI (React / Vite — static site) ─────────────────────────────────────
   - type: web
