@@ -16,6 +16,18 @@ export interface AuthenticatedRequest extends Request {
   auth?: AuthTokenPayload;
 }
 
+export function requirePartner(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void {
+  if (!req.auth?.isPartner) {
+    res.status(403).json({ error: "Admin access required" });
+    return;
+  }
+  next();
+}
+
 export function authenticateToken(
   req: AuthenticatedRequest,
   res: Response,

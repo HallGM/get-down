@@ -187,6 +187,7 @@ Table expenses {
   recipient_name varchar(255)
   payment_method varchar(100)
   airtable_id    varchar(255)
+  document_key   varchar(255)
 }
 
 Table fee_allocations_expenses {

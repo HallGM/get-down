@@ -546,6 +546,9 @@ export interface EmailMessageResponse {
   message: string;
 }
 
+/** Maximum allowed document attachment size in bytes (20 MB). */
+export const MAX_DOCUMENT_SIZE_BYTES = 20 * 1024 * 1024;
+
 export interface Expense {
   id: number;
   date?: string;
@@ -555,6 +558,7 @@ export interface Expense {
   recipientName?: string;
   paymentMethod?: string;
   airtableId?: string;
+  documentUrl?: string;
 }
 
 export interface CreateExpenseRequest {

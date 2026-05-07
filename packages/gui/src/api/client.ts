@@ -105,6 +105,41 @@ export async function apiFetchBlob(method: string, path: string, body?: unknown)
 }
 
 /**
+ * Multipart form-data upload fetch.
+ * Does NOT set Content-Type — the browser sets it with the correct multipart boundary.
+ */
+export async function apiFetchFormData<T>(method: string, path: string, formData: FormData): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers,
+    body: formData,
+  });
+
+  if (res.status === 401) {
+    clearToken();
+    window.location.href = "/login";
+    throw new ApiError(401, "Unauthorised");
+  }
+
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
+  const data: unknown = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const message = extractErrorMessage(data, res.status);
+    throw new ApiError(res.status, message);
+  }
+
+  return data as T;
+}
+
+/**
  * Public fetch — no auth header, no 401→login redirect.
  * Used by performer portal and client form pages.
  * Accepts an optional body for PUT/POST calls.

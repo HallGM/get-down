@@ -9,6 +9,7 @@ export interface ExpenseRow {
   recipient_name: string | null;
   payment_method: string | null;
   airtable_id: string | null;
+  document_key: string | null;
 }
 
 export interface ExpenseMutationInput {
@@ -21,7 +22,7 @@ export interface ExpenseMutationInput {
   airtableId?: string;
 }
 
-const SELECT_COLS = `id, date, amount, description, category, recipient_name, payment_method, airtable_id`;
+const SELECT_COLS = `id, date, amount, description, category, recipient_name, payment_method, airtable_id, document_key`;
 
 export async function createExpense(input: ExpenseMutationInput): Promise<ExpenseRow> {
   const rows = await run_query<ExpenseRow>({
@@ -81,6 +82,13 @@ export async function updateExpense(
     ],
   });
   return rows[0] ?? null;
+}
+
+export async function setExpenseDocumentKey(id: number, key: string | null): Promise<void> {
+  await run_query({
+    text: `UPDATE expenses SET document_key = $1 WHERE id = $2;`,
+    values: [key, id],
+  });
 }
 
 export async function deleteExpense(id: number): Promise<boolean> {

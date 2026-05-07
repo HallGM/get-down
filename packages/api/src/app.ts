@@ -1,5 +1,6 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
+import multer from "multer";
 import { migrate } from "./scripts/migrate.js";
 import enquiries from "./controllers/enquiries.js";
 import auth from "./controllers/login.js";
@@ -57,6 +58,13 @@ app.get("/health", (_req, res) => {
 
 // Global error handler — maps AppError subclasses to HTTP responses
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction): void => {
+  if (err instanceof multer.MulterError) {
+    const message = err.code === "LIMIT_FILE_SIZE"
+      ? "File exceeds the 20 MB limit"
+      : err.message;
+    res.status(400).json({ message });
+    return;
+  }
   if (err instanceof AppError) {
     console.error(`[${err.statusCode}] ${err.message}`);
     res.status(err.statusCode).json({ message: err.message });
