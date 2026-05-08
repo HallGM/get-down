@@ -5,6 +5,7 @@ import { useGigRoles, useCreateRole, useUpdateRole, useDeleteRole, useImportRole
 import { usePeople } from "../../api/hooks/usePeople.js";
 import {
   useFeeAllocationsByGig,
+  useFeeAllocations,
   useGenerateFeeAllocations,
   useResetFeeAllocation,
   useAddFeeLineItem,
@@ -12,15 +13,24 @@ import {
   useRemoveFeeLineItem,
   useCreateFeeAllocationForGig,
   useDeleteFeeAllocation,
+  useLinkExpenseToAllocation,
+  useUnlinkExpenseFromAllocation,
+  useLinkTransactionToAllocation,
+  useUnlinkTransactionFromAllocation,
 } from "../../api/hooks/useFeeAllocations.js";
+import { useExpenses, useDeleteExpense } from "../../api/hooks/useExpenses.js";
+import { useAccounts, useAccountTransactions } from "../../api/hooks/useAccounts.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import FormField from "../../components/FormField.js";
 import Modal from "../../components/Modal.js";
+import ExpenseModal from "../../components/ExpenseModal.js";
+import ExpensePickerModal from "../../components/ExpensePickerModal.js";
+import ExpenseCreateModal from "../../components/ExpenseCreateModal.js";
 import { useToast } from "../../components/Toast.js";
 import { formatPersonName } from "../../utils/people.js";
-import type { FeeAllocation, FeeAllocationLineItem } from "@get-down/shared";
+import type { FeeAllocation, FeeAllocationLineItem, Account, Expense } from "@get-down/shared";
 
 export default function GigRoles() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +39,9 @@ export default function GigRoles() {
   const { data: roles = [] } = useGigRoles(gigId);
   const { data: people = [] } = usePeople();
   const { data: feeAllocations = [] } = useFeeAllocationsByGig(gigId);
+  const { data: allAllocations = [] } = useFeeAllocations();
+  const { data: allExpenses = [] } = useExpenses();
+  const { data: accounts = [] } = useAccounts();
 
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
@@ -41,6 +54,11 @@ export default function GigRoles() {
   const removeLineItem = useRemoveFeeLineItem();
   const createFeeAllocation = useCreateFeeAllocationForGig(gigId);
   const deleteFeeAllocation = useDeleteFeeAllocation();
+  const linkExpense = useLinkExpenseToAllocation();
+  const unlinkExpense = useUnlinkExpenseFromAllocation();
+  const linkTransaction = useLinkTransactionToAllocation();
+  const unlinkTransaction = useUnlinkTransactionFromAllocation();
+  const deleteExpense = useDeleteExpense();
   const { showToast } = useToast();
 
   const [showAddRole, setShowAddRole] = useState(false);
@@ -48,6 +66,39 @@ export default function GigRoles() {
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
   const [showAddAllocation, setShowAddAllocation] = useState(false);
   const [addAllocationPersonId, setAddAllocationPersonId] = useState<number | null>(null);
+
+  // Expense picker state: which allocation's picker is open
+  const [pickerAllocationId, setPickerAllocationId] = useState<number | null>(null);
+  // Expense create modal state: which allocation to link the new expense to
+  const [createAllocationId, setCreateAllocationId] = useState<number | null>(null);
+  // Expense edit modal state: track by ID so the expense object stays fresh from query
+  const [editExpenseId, setEditExpenseId] = useState<number | null>(null);
+  // Delete/unlink confirm state
+  const [unlinkConfirm, setUnlinkConfirm] = useState<{ allocationId: number; expense: Expense } | null>(null);
+
+  const editExpense = editExpenseId != null
+    ? (allExpenses.find((e) => e.id === editExpenseId) ?? null)
+    : null;
+
+  const pickerAllocation = pickerAllocationId != null
+    ? feeAllocations.find((a) => a.id === pickerAllocationId) ?? null
+    : null;
+
+  const createAllocation = createAllocationId != null
+    ? feeAllocations.find((a) => a.id === createAllocationId) ?? null
+    : null;
+
+  function buildCreateInitialValues(allocation: typeof createAllocation) {
+    if (!allocation || !gig) return undefined;
+    let description = `${gig.firstName} ${gig.lastName}`;
+    if (allocation.personId) {
+      const person = people.find((p) => p.id === allocation.personId);
+      if (person) description += ` — ${formatPersonName(person)}`;
+    }
+    if (allocation.notes) description += ` (${allocation.notes})`;
+    const amount = (allocation.lineItems ?? []).reduce((sum, li) => sum + (li.amount ?? 0), 0);
+    return { description, amount };
+  }
 
   if (gigLoading) return <main className="container"><LoadingState /></main>;
   if (gigError || !gig) return <main className="container"><ErrorBanner error={gigError ?? "Gig not found"} /></main>;
@@ -269,6 +320,26 @@ export default function GigRoles() {
                     onUpdateLineItem={(li, desc, amt) => updateLineItem.mutate({ allocationId: allocation.id, lineItemId: li.id, input: { description: desc, amount: amt } })}
                     onRemoveLineItem={(li) => removeLineItem.mutate({ allocationId: allocation.id, lineItemId: li.id })}
                   />
+
+                  {/* Linked Expenses */}
+                  <LinkedExpensesSection
+                    allocation={allocation}
+                    allExpenses={allExpenses}
+                    onAddExpense={() => setCreateAllocationId(allocation.id)}
+                    onBrowse={() => setPickerAllocationId(allocation.id)}
+                    onEdit={(expense) => setEditExpenseId(expense.id)}
+                    onRemove={(expense) => setUnlinkConfirm({ allocationId: allocation.id, expense })}
+                  />
+
+                  {/* Linked Transactions (only when personId is set) */}
+                  {allocation.personId && (
+                    <LinkedTransactionsSection
+                      allocation={allocation}
+                      accounts={accounts}
+                      onLink={(transactionId: number) => linkTransaction.mutate({ allocationId: allocation.id, transactionId })}
+                      onUnlink={(transactionId: number) => unlinkTransaction.mutate({ allocationId: allocation.id, transactionId })}
+                    />
+                  )}
                 </article>
               );
             })}
@@ -340,6 +411,82 @@ export default function GigRoles() {
             <button type="submit" aria-busy={createFeeAllocation.isPending} disabled={createFeeAllocation.isPending}>Add</button>
           </footer>
         </form>
+      </Modal>
+
+      {/* Add Expense modal (pre-filled, auto-links to allocation on create) */}
+      <ExpenseCreateModal
+        open={createAllocationId != null}
+        onClose={() => setCreateAllocationId(null)}
+        initialValues={buildCreateInitialValues(createAllocation)}
+        onCreated={(expense) => {
+          if (createAllocationId != null) {
+            linkExpense.mutate({ allocationId: createAllocationId, expenseId: expense.id });
+          }
+          setCreateAllocationId(null);
+        }}
+      />
+
+      {/* Expense Picker modal */}
+      <ExpensePickerModal
+        open={pickerAllocationId != null}
+        onClose={() => setPickerAllocationId(null)}
+        expenses={allExpenses.filter((e) => !(pickerAllocation?.expenseIds ?? []).includes(e.id))}
+        onSelect={(expense) => {
+          if (pickerAllocationId != null) {
+            linkExpense.mutate({ allocationId: pickerAllocationId, expenseId: expense.id });
+          }
+          setPickerAllocationId(null);
+        }}
+      />
+
+      {/* Edit Expense modal */}
+      <ExpenseModal
+        expense={editExpense}
+        onClose={() => setEditExpenseId(null)}
+        allAllocations={allAllocations}
+      />
+
+      {/* Delete / unlink confirm dialog */}
+      <Modal
+        open={!!unlinkConfirm}
+        onClose={() => setUnlinkConfirm(null)}
+        title="Remove linked expense"
+      >
+        <p>
+          Do you want to delete the expense <strong>{unlinkConfirm?.expense.description}</strong> entirely,
+          or just remove the link?
+        </p>
+        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+          <button type="button" className="secondary" onClick={() => setUnlinkConfirm(null)}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="secondary outline"
+            onClick={() => {
+              if (unlinkConfirm) {
+                unlinkExpense.mutate({ allocationId: unlinkConfirm.allocationId, expenseId: unlinkConfirm.expense.id });
+              }
+              setUnlinkConfirm(null);
+            }}
+          >
+            Remove link only
+          </button>
+          <button
+            type="button"
+            className="contrast"
+            aria-busy={deleteExpense.isPending}
+            disabled={deleteExpense.isPending}
+            onClick={async () => {
+              if (unlinkConfirm) {
+                await deleteExpense.mutateAsync(unlinkConfirm.expense.id);
+              }
+              setUnlinkConfirm(null);
+            }}
+          >
+            Delete expense
+          </button>
+        </footer>
       </Modal>
     </main>
   );
@@ -502,4 +649,137 @@ function FeeAllocationPanel({
   );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Linked Expenses Section ──────────────────────────────────────────────────
+
+interface LinkedExpensesSectionProps {
+  allocation: FeeAllocation;
+  allExpenses: Expense[];
+  onAddExpense: () => void;
+  onBrowse: () => void;
+  onEdit: (expense: Expense) => void;
+  onRemove: (expense: Expense) => void;
+}
+
+function LinkedExpensesSection({
+  allocation,
+  allExpenses,
+  onAddExpense,
+  onBrowse,
+  onEdit,
+  onRemove,
+}: LinkedExpensesSectionProps) {
+  const linkedExpenses = allExpenses.filter((e) => allocation.expenseIds.includes(e.id));
+
+  return (
+    <div style={{ marginTop: "0.75rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <strong style={{ fontSize: "0.85em" }}>Linked expenses</strong>
+        <div style={{ display: "flex", gap: "0.4rem" }}>
+          <button
+            type="button"
+            className="secondary outline"
+            style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
+            onClick={onAddExpense}
+          >
+            Add expense
+          </button>
+          <button
+            type="button"
+            className="secondary outline"
+            style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
+            onClick={onBrowse}
+          >
+            Browse…
+          </button>
+        </div>
+      </div>
+      {linkedExpenses.length > 0 ? (
+        <ul style={{ margin: "0.25rem 0", paddingLeft: "1rem" }}>
+          {linkedExpenses.map((e) => (
+            <li key={e.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85em" }}>
+              <button
+                type="button"
+                className="secondary outline"
+                style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
+                onClick={() => onEdit(e)}
+              >
+                Edit
+              </button>
+              <span>{e.description}</span>
+              <button
+                type="button"
+                className="contrast outline"
+                style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
+                onClick={() => onRemove(e)}
+              >✕</button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p style={{ margin: "0.25rem 0", color: "var(--pico-muted-color)", fontSize: "0.85em" }}>No expenses linked.</p>
+      )}
+    </div>
+  );
+}
+
+// ─── Linked Transactions Section ──────────────────────────────────────────────
+
+interface LinkedTransactionsSectionProps {
+  allocation: FeeAllocation;
+  accounts: Account[];
+  onLink: (transactionId: number) => void;
+  onUnlink: (transactionId: number) => void;
+}
+
+function LinkedTransactionsSection({ allocation, accounts, onLink, onUnlink }: LinkedTransactionsSectionProps) {
+  const account = accounts.find((a) => a.personId === allocation.personId);
+  const currentYear = new Date().getFullYear();
+  const { data: transactions = [] } = useAccountTransactions(account?.id ?? 0, currentYear);
+
+  if (!account) {
+    return (
+      <div style={{ marginTop: "0.75rem" }}>
+        <strong style={{ fontSize: "0.85em" }}>Linked transactions</strong>
+        <p style={{ margin: "0.25rem 0", color: "var(--pico-muted-color)", fontSize: "0.85em" }}>No account found for this person.</p>
+      </div>
+    );
+  }
+
+  const linkedTransactions = transactions.filter((t) => allocation.transactionIds.includes(t.id));
+  const unlinkableTransactions = transactions.filter((t) => !allocation.transactionIds.includes(t.id));
+
+  return (
+    <div style={{ marginTop: "0.75rem" }}>
+      <strong style={{ fontSize: "0.85em" }}>Linked transactions</strong>
+      {linkedTransactions.length > 0 ? (
+        <ul style={{ margin: "0.25rem 0", paddingLeft: "1rem" }}>
+          {linkedTransactions.map((t) => (
+            <li key={t.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85em" }}>
+              <span>{t.description ?? `Transaction #${t.id}`} (<MoneyDisplay pennies={t.amount} />)</span>
+              <button
+                type="button"
+                className="contrast outline"
+                style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
+                onClick={() => onUnlink(t.id)}
+              >✕</button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p style={{ margin: "0.25rem 0", color: "var(--pico-muted-color)", fontSize: "0.85em" }}>No transactions linked.</p>
+      )}
+      {unlinkableTransactions.length > 0 && (
+        <select
+          value=""
+          onChange={(e) => { if (e.target.value) onLink(Number(e.target.value)); }}
+          style={{ margin: "0.25rem 0", fontSize: "0.85em" }}
+        >
+          <option value="">+ Link transaction…</option>
+          {unlinkableTransactions.map((t) => (
+            <option key={t.id} value={t.id}>{t.description ?? `Transaction #${t.id}`} ({t.date})</option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}

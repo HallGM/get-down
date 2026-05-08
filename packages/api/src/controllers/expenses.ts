@@ -2,6 +2,7 @@ import express, { type Router } from "express";
 import multer from "multer";
 import { authenticateToken, requirePartner } from "../middleware/auth.js";
 import * as expensesService from "../services/expenses.js";
+import * as feeAllocationsService from "../services/fee_allocations.js";
 import { handle } from "../utils/handle.js";
 import { BadRequestError } from "../errors.js";
 
@@ -36,5 +37,10 @@ router.delete(
   requirePartner,
   handle(req => expensesService.removeExpenseDocument(+req.params.id), 204)
 );
+
+// Fee allocation links
+router.get("/expenses/:id/fee-allocations",                        handle(req => feeAllocationsService.getAllocationsByExpense(+req.params.id)));
+router.post("/expenses/:id/fee-allocations",                       handle(req => expensesService.linkAllocationToExpense(+req.params.id, req.body), 204));
+router.delete("/expenses/:id/fee-allocations/:allocationId",       handle(req => expensesService.unlinkAllocationFromExpense(+req.params.id, +req.params.allocationId), 204));
 
 export default router;

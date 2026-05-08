@@ -1,4 +1,5 @@
 import { run_query } from "../db/init.js";
+import { groupById } from "../utils/groupById.js";
 
 export interface FeeAllocationRow {
   id: number;
@@ -181,5 +182,105 @@ export async function deleteLineItemsByAllocationId(allocationId: number): Promi
   await run_query({
     text: `DELETE FROM fee_allocation_line_items WHERE allocation_id = $1;`,
     values: [allocationId],
+  });
+}
+
+// ─── Expense links (fee_allocations_expenses) ─────────────────────────────────
+
+export async function readExpenseIdsByAllocationId(allocationId: number): Promise<number[]> {
+  const rows = await run_query<{ expense_id: number }>({
+    text: `SELECT expense_id FROM fee_allocations_expenses WHERE allocation_id = $1 ORDER BY expense_id;`,
+    values: [allocationId],
+  });
+  return rows.map((r) => r.expense_id);
+}
+
+export async function readExpenseIdsByAllocationIds(
+  allocationIds: number[]
+): Promise<Map<number, number[]>> {
+  if (allocationIds.length === 0) return new Map();
+  const rows = await run_query<{ allocation_id: number; expense_id: number }>({
+    text: `
+      SELECT allocation_id, expense_id
+      FROM fee_allocations_expenses
+      WHERE allocation_id = ANY($1::int[])
+      ORDER BY allocation_id, expense_id;
+    `,
+    values: [allocationIds],
+  });
+  return groupById(rows, (r) => r.allocation_id, (r) => r.expense_id);
+}
+
+export async function linkExpenseToAllocation(
+  allocationId: number,
+  expenseId: number
+): Promise<void> {
+  await run_query({
+    text: `
+      INSERT INTO fee_allocations_expenses (allocation_id, expense_id)
+      VALUES ($1, $2)
+      ON CONFLICT DO NOTHING;
+    `,
+    values: [allocationId, expenseId],
+  });
+}
+
+export async function unlinkExpenseFromAllocation(
+  allocationId: number,
+  expenseId: number
+): Promise<void> {
+  await run_query({
+    text: `DELETE FROM fee_allocations_expenses WHERE allocation_id = $1 AND expense_id = $2;`,
+    values: [allocationId, expenseId],
+  });
+}
+
+// ─── Transaction links (account_transactions_fee_allocations) ─────────────────
+
+export async function readTransactionIdsByAllocationId(allocationId: number): Promise<number[]> {
+  const rows = await run_query<{ transaction_id: number }>({
+    text: `SELECT transaction_id FROM account_transactions_fee_allocations WHERE allocation_id = $1 ORDER BY transaction_id;`,
+    values: [allocationId],
+  });
+  return rows.map((r) => r.transaction_id);
+}
+
+export async function readTransactionIdsByAllocationIds(
+  allocationIds: number[]
+): Promise<Map<number, number[]>> {
+  if (allocationIds.length === 0) return new Map();
+  const rows = await run_query<{ allocation_id: number; transaction_id: number }>({
+    text: `
+      SELECT allocation_id, transaction_id
+      FROM account_transactions_fee_allocations
+      WHERE allocation_id = ANY($1::int[])
+      ORDER BY allocation_id, transaction_id;
+    `,
+    values: [allocationIds],
+  });
+  return groupById(rows, (r) => r.allocation_id, (r) => r.transaction_id);
+}
+
+export async function linkTransactionToAllocation(
+  allocationId: number,
+  transactionId: number
+): Promise<void> {
+  await run_query({
+    text: `
+      INSERT INTO account_transactions_fee_allocations (transaction_id, allocation_id)
+      VALUES ($1, $2)
+      ON CONFLICT DO NOTHING;
+    `,
+    values: [transactionId, allocationId],
+  });
+}
+
+export async function unlinkTransactionFromAllocation(
+  allocationId: number,
+  transactionId: number
+): Promise<void> {
+  await run_query({
+    text: `DELETE FROM account_transactions_fee_allocations WHERE allocation_id = $1 AND transaction_id = $2;`,
+    values: [allocationId, transactionId],
   });
 }

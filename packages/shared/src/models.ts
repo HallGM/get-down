@@ -432,6 +432,10 @@ export interface FeeAllocation {
   isPaid: boolean;
   invoiceRef?: string;
   lineItems?: FeeAllocationLineItem[];
+  /** IDs of expenses linked to this allocation via fee_allocations_expenses. Always present, never undefined. */
+  expenseIds: number[];
+  /** IDs of account transactions linked to this allocation via account_transactions_fee_allocations. Always present, never undefined. */
+  transactionIds: number[];
 }
 
 export interface FeeAllocationLineItem {
@@ -559,6 +563,8 @@ export interface Expense {
   paymentMethod?: string;
   airtableId?: string;
   documentUrl?: string;
+  /** IDs of fee allocations linked to this expense via fee_allocations_expenses. Always present, never undefined. */
+  feeAllocationIds: number[];
 }
 
 export interface CreateExpenseRequest {
