@@ -1,4 +1,5 @@
 import { run_query } from "../db/init.js";
+import { groupById } from "../utils/groupById.js";
 
 export interface ExpenseRow {
   id: number;
@@ -98,3 +99,31 @@ export async function deleteExpense(id: number): Promise<boolean> {
   });
   return rows.length > 0;
 }
+
+// ─── Allocation links (fee_allocations_expenses, read-side) ───────────────────
+
+export async function readAllocationIdsByExpenseId(expenseId: number): Promise<number[]> {
+  const rows = await run_query<{ allocation_id: number }>({
+    text: `SELECT allocation_id FROM fee_allocations_expenses WHERE expense_id = $1 ORDER BY allocation_id;`,
+    values: [expenseId],
+  });
+  return rows.map((r) => r.allocation_id);
+}
+
+export async function readAllocationIdsByExpenseIds(
+  expenseIds: number[]
+): Promise<Map<number, number[]>> {
+  if (expenseIds.length === 0) return new Map();
+  const rows = await run_query<{ expense_id: number; allocation_id: number }>({
+    text: `
+      SELECT expense_id, allocation_id
+      FROM fee_allocations_expenses
+      WHERE expense_id = ANY($1::int[])
+      ORDER BY expense_id, allocation_id;
+    `,
+    values: [expenseIds],
+  });
+  return groupById(rows, (r) => r.expense_id, (r) => r.allocation_id);
+}
+
+

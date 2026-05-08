@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import type { FeeAllocation, FeeAllocationLineItem, UpdateFeeAllocationLineItemRequest, CreateFeeAllocationLineItemRequest } from "@get-down/shared";
+import type { Expense, FeeAllocation, FeeAllocationLineItem, UpdateFeeAllocationLineItemRequest, CreateFeeAllocationLineItemRequest } from "@get-down/shared";
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
@@ -135,5 +135,61 @@ export function useRemoveFeeLineItem() {
       apiFetch<void>("DELETE", `/fee-allocations/${allocationId}/line-items/${lineItemId}`),
     onSuccess: (_data, { allocationId }) => invalidateLineItemCaches(qc, allocationId),
     successMessage: "Line item removed",
+  });
+}
+
+function invalidateAllocationCaches(qc: QueryClient, allocationId: number, secondaryKey: string) {
+  qc.invalidateQueries({ queryKey: [KEY, allocationId] });
+  qc.invalidateQueries({ queryKey: [GIG_KEY] });
+  qc.invalidateQueries({ queryKey: [secondaryKey] });
+}
+
+export function useGenerateExpenseForAllocation() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: (allocationId: number) =>
+      apiFetch<Expense>("POST", `/fee-allocations/${allocationId}/expenses/generate`),
+    onSuccess: (_data, allocationId) => invalidateAllocationCaches(qc, allocationId, "expenses"),
+    successMessage: "Expense generated",
+  });
+}
+
+export function useLinkExpenseToAllocation() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ allocationId, expenseId }: { allocationId: number; expenseId: number }) =>
+      apiFetch<void>("POST", `/fee-allocations/${allocationId}/expenses`, { expenseId }),
+    onSuccess: (_data, { allocationId }) => invalidateAllocationCaches(qc, allocationId, "expenses"),
+    successMessage: "Expense linked",
+  });
+}
+
+export function useUnlinkExpenseFromAllocation() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ allocationId, expenseId }: { allocationId: number; expenseId: number }) =>
+      apiFetch<void>("DELETE", `/fee-allocations/${allocationId}/expenses/${expenseId}`),
+    onSuccess: (_data, { allocationId }) => invalidateAllocationCaches(qc, allocationId, "expenses"),
+    successMessage: "Expense unlinked",
+  });
+}
+
+export function useLinkTransactionToAllocation() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ allocationId, transactionId }: { allocationId: number; transactionId: number }) =>
+      apiFetch<void>("POST", `/fee-allocations/${allocationId}/transactions`, { transactionId }),
+    onSuccess: (_data, { allocationId }) => invalidateAllocationCaches(qc, allocationId, "accounts"),
+    successMessage: "Transaction linked",
+  });
+}
+
+export function useUnlinkTransactionFromAllocation() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ allocationId, transactionId }: { allocationId: number; transactionId: number }) =>
+      apiFetch<void>("DELETE", `/fee-allocations/${allocationId}/transactions/${transactionId}`),
+    onSuccess: (_data, { allocationId }) => invalidateAllocationCaches(qc, allocationId, "accounts"),
+    successMessage: "Transaction unlinked",
   });
 }

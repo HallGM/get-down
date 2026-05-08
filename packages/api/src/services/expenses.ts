@@ -1,32 +1,39 @@
 import { randomUUID } from "crypto";
 import { extname } from "path";
+import { z } from "zod";
 import type { Expense, CreateExpenseRequest, UpdateExpenseRequest } from "@get-down/shared";
 import * as expensesRepo from "../repository/expenses.js";
+import * as feeAllocationsRepo from "../repository/fee_allocations.js";
 import * as storage from "../utils/storage.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
+import { parseOrBadRequest } from "../utils/parse.js";
 
 
 export async function getAllExpenses(): Promise<Expense[]> {
   const rows = await expensesRepo.readAllExpenses();
-  return Promise.all(rows.map(mapExpense));
+  const ids = rows.map((r) => r.id);
+  const allocationMap = await expensesRepo.readAllocationIdsByExpenseIds(ids);
+  return Promise.all(rows.map((row) => mapExpense(row, allocationMap.get(row.id) ?? [])));
 }
 
 export async function getExpenseById(id: number): Promise<Expense> {
   const row = await expensesRepo.readExpenseById(id);
   if (!row) throw new NotFoundError("Expense not found");
-  return await mapExpense(row);
+  const allocationIds = await expensesRepo.readAllocationIdsByExpenseId(id);
+  return await mapExpense(row, allocationIds);
 }
 
 export async function createExpense(input: CreateExpenseRequest): Promise<Expense> {
   const row = await expensesRepo.createExpense(buildMutationInput(input));
-  return await mapExpense(row);
+  return await mapExpense(row, []);
 }
 
 export async function updateExpense(id: number, input: UpdateExpenseRequest): Promise<Expense> {
   const existing = await getExpenseById(id);
   const row = await expensesRepo.updateExpense(id, buildMutationInput(input, existing));
   if (!row) throw new NotFoundError("Expense not found");
-  return await mapExpense(row);
+  const allocationIds = await expensesRepo.readAllocationIdsByExpenseId(id);
+  return await mapExpense(row, allocationIds);
 }
 
 export async function uploadExpenseDocument(
@@ -68,6 +75,37 @@ export async function deleteExpense(id: number): Promise<void> {
   }
 }
 
+// ─── Allocation link management ───────────────────────────────────────────────
+
+const LinkAllocationSchema = z.object({
+  allocationId: z.number().int(),
+});
+
+export async function linkAllocationToExpense(
+  expenseId: number,
+  body: unknown
+): Promise<void> {
+  const { allocationId } = parseOrBadRequest(LinkAllocationSchema, body);
+  const [expense, allocation] = await Promise.all([
+    expensesRepo.readExpenseById(expenseId),
+    feeAllocationsRepo.readFeeAllocationById(allocationId),
+  ]);
+  if (!expense) throw new NotFoundError("Expense not found");
+  if (!allocation) throw new NotFoundError("FeeAllocation not found");
+  await feeAllocationsRepo.linkExpenseToAllocation(allocationId, expenseId);
+}
+
+export async function unlinkAllocationFromExpense(
+  expenseId: number,
+  allocationId: number
+): Promise<void> {
+  const expense = await expensesRepo.readExpenseById(expenseId);
+  if (!expense) throw new NotFoundError("Expense not found");
+  await feeAllocationsRepo.unlinkExpenseFromAllocation(allocationId, expenseId);
+}
+
+// ─── Private helpers ──────────────────────────────────────────────────────────
+
 async function tryDeleteFile(key: string): Promise<void> {
   try {
     await storage.deleteFile(key);
@@ -82,7 +120,7 @@ function toDateString(value: string | Date | null): string | null {
   return value.toISOString().slice(0, 10);
 }
 
-async function mapExpense(row: expensesRepo.ExpenseRow): Promise<Expense> {
+export async function mapExpense(row: expensesRepo.ExpenseRow, feeAllocationIds: number[]): Promise<Expense> {
   let documentUrl: string | undefined;
   if (row.document_key) {
     try {
@@ -102,6 +140,7 @@ async function mapExpense(row: expensesRepo.ExpenseRow): Promise<Expense> {
     paymentMethod: row.payment_method ?? undefined,
     airtableId: row.airtable_id ?? undefined,
     documentUrl,
+    feeAllocationIds,
   };
 }
 

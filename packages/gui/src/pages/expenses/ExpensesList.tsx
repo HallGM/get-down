@@ -1,34 +1,15 @@
 import { useState } from "react";
-import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useUploadExpenseDocument, useDeleteExpenseDocument } from "../../api/hooks/useExpenses.js";
-import type { CreateExpenseRequest, Expense } from "@get-down/shared";
-import { MAX_DOCUMENT_SIZE_BYTES } from "@get-down/shared";
+import { useExpenses, useDeleteExpense } from "../../api/hooks/useExpenses.js";
+import { useFeeAllocations } from "../../api/hooks/useFeeAllocations.js";
+import type { Expense } from "@get-down/shared";
 import DataTable, { type Column } from "../../components/DataTable.js";
-import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
-import FormField from "../../components/FormField.js";
-import MoneyField from "../../components/MoneyField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
-import { formatDate, toInputDate } from "../../utils/date.js";
-
-function makeFileChangeHandler(
-  setFile: (f: File | undefined) => void,
-  setError: (e: string | undefined) => void,
-) {
-  return (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) { setFile(undefined); setError(undefined); return; }
-    if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
-      setFile(undefined);
-      setError("File must be 20 MB or smaller.");
-      e.target.value = "";
-      return;
-    }
-    setError(undefined);
-    setFile(file);
-  };
-}
+import ExpenseModal from "../../components/ExpenseModal.js";
+import ExpenseCreateModal from "../../components/ExpenseCreateModal.js";
+import { formatDate } from "../../utils/date.js";
 
 const COLUMNS: Column<Expense>[] = [
   { key: "date", header: "Date", sortable: true, render: (e) => formatDate(e.date) },
@@ -49,71 +30,17 @@ const COLUMNS: Column<Expense>[] = [
   },
 ];
 
-const EMPTY_FORM: CreateExpenseRequest = { description: "", amount: 0 };
-
 export default function ExpensesList() {
   const { data: expenses, isLoading, error } = useExpenses();
-  const createExpense = useCreateExpense();
-  const updateExpense = useUpdateExpense();
+  const { data: allAllocations = [] } = useFeeAllocations();
   const deleteExpense = useDeleteExpense();
-  const uploadDocument = useUploadExpenseDocument();
-  const deleteDocument = useDeleteExpenseDocument();
 
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState<CreateExpenseRequest>(EMPTY_FORM);
-  const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
-  const [fileError, setFileError] = useState<string | undefined>(undefined);
-  const [editTarget, setEditTarget] = useState<Expense | null>(null);
-  const [editForm, setEditForm] = useState<Partial<CreateExpenseRequest>>({});
-  const [editFile, setEditFile] = useState<File | undefined>(undefined);
-  const [editFileError, setEditFileError] = useState<string | undefined>(undefined);
+  const [editTargetId, setEditTargetId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
 
-  const handleFileChange     = makeFileChangeHandler(setSelectedFile, setFileError);
-  const handleEditFileChange = makeFileChangeHandler(setEditFile, setEditFileError);
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    if (fileError) return;
-    await createExpense.mutateAsync({ input: form, file: selectedFile });
-    setShowCreate(false);
-    setForm(EMPTY_FORM);
-    setSelectedFile(undefined);
-    setFileError(undefined);
-  }
-
-  async function handleUpdate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editTarget) return;
-    if (editFileError) return;
-    await updateExpense.mutateAsync({ id: editTarget.id, input: editForm });
-    if (editFile) {
-      await uploadDocument.mutateAsync({ id: editTarget.id, file: editFile });
-    }
-    setEditTarget(null);
-    setEditFile(undefined);
-    setEditFileError(undefined);
-  }
-
-  function openEdit(exp: Expense) {
-    setEditTarget(exp);
-    setEditForm({ description: exp.description, amount: exp.amount, date: exp.date, category: exp.category, recipientName: exp.recipientName, paymentMethod: exp.paymentMethod });
-    setEditFile(undefined);
-    setEditFileError(undefined);
-  }
-
-  function handleCloseCreate() {
-    setShowCreate(false);
-    setForm(EMPTY_FORM);
-    setSelectedFile(undefined);
-    setFileError(undefined);
-  }
-
-  function handleCloseEdit() {
-    setEditTarget(null);
-    setEditFile(undefined);
-    setEditFileError(undefined);
-  }
+  // Always derive the edit target from live query data so linked allocation IDs stay fresh
+  const editTarget = editTargetId != null ? (expenses ?? []).find((e) => e.id === editTargetId) ?? null : null;
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
   if (error) return <main className="container"><ErrorBanner error={error} /></main>;
@@ -128,83 +55,40 @@ export default function ExpensesList() {
       <DataTable<Expense>
         columns={[...COLUMNS, {
           key: "actions", header: "",
-          render: (exp) => <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); openEdit(exp); }}>Edit</button>,
+          render: (exp) => (
+            <button
+              className="secondary outline"
+              style={{ padding: "0.2em 0.5em" }}
+              onClick={(e) => { e.stopPropagation(); setEditTargetId(exp.id); }}
+            >
+              Edit
+            </button>
+          ),
         }]}
         data={expenses ?? []}
         emptyMessage="No expenses yet."
         filterPlaceholder="Search expenses…"
       />
 
-      <Modal open={showCreate} onClose={handleCloseCreate} title="New Expense">
-        <form onSubmit={handleCreate}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            <FormField label="Description" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} required />
-            <MoneyField label="Amount" value={form.amount} onChange={(pennies) => setForm((f) => ({ ...f, amount: pennies ?? 0 }))} required min={0} />
-            <FormField label="Date" type="date" value={form.date ?? ""} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
-            <FormField label="Category" value={form.category ?? ""} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} />
-            <FormField label="Recipient" value={form.recipientName ?? ""} onChange={(e) => setForm((f) => ({ ...f, recipientName: e.target.value }))} />
-            <FormField label="Payment Method" value={form.paymentMethod ?? ""} onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))} />
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label>
-                <small>Invoice document (optional, max 20 MB)</small>
-                <input type="file" onChange={handleFileChange} style={{ marginTop: "0.25rem" }} />
-              </label>
-              {fileError && <small style={{ color: "var(--pico-color-red-500)" }}>{fileError}</small>}
-            </div>
-          </div>
-          <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-            <button type="button" className="secondary" onClick={handleCloseCreate}>Cancel</button>
-            <button type="submit" aria-busy={createExpense.isPending} disabled={createExpense.isPending || !!fileError}>Create</button>
-          </footer>
-        </form>
-      </Modal>
+      {/* New Expense modal */}
+      <ExpenseCreateModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={() => setShowCreate(false)}
+      />
 
-      <Modal open={!!editTarget} onClose={handleCloseEdit} title="Edit Expense">
-        <form onSubmit={handleUpdate}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            <FormField label="Description" value={editForm.description ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} required />
-            <MoneyField label="Amount" value={editForm.amount} onChange={(pennies) => setEditForm((f) => ({ ...f, amount: pennies ?? 0 }))} required min={0} />
-            <FormField label="Date" type="date" value={toInputDate(editForm.date)} onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))} />
-            <FormField label="Category" value={editForm.category ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))} />
-            <FormField label="Recipient" value={editForm.recipientName ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, recipientName: e.target.value }))} />
-            <FormField label="Payment Method" value={editForm.paymentMethod ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, paymentMethod: e.target.value }))} />
-            <div style={{ gridColumn: "1 / -1" }}>
-              <small><strong>Document</strong></small>
-              {editTarget?.documentUrl ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "0.25rem" }}>
-                  <a href={editTarget.documentUrl} target="_blank" rel="noopener noreferrer">View</a>
-                  <button
-                    type="button"
-                    className="secondary outline"
-                    style={{ padding: "0.2em 0.5em" }}
-                    aria-busy={deleteDocument.isPending}
-                    disabled={deleteDocument.isPending}
-                    onClick={async () => {
-                      await deleteDocument.mutateAsync(editTarget.id);
-                      setEditTarget((t) => t ? { ...t, documentUrl: undefined } : t);
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <div style={{ marginTop: "0.25rem" }}>
-                  <label>
-                    <small>Upload invoice (optional, max 20 MB)</small>
-                    <input type="file" onChange={handleEditFileChange} style={{ marginTop: "0.25rem" }} />
-                  </label>
-                  {editFileError && <small style={{ color: "var(--pico-color-red-500)" }}>{editFileError}</small>}
-                </div>
-              )}
-            </div>
-          </div>
-          <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-            <button type="button" className="contrast outline" onClick={() => { setDeleteTarget(editTarget); setEditTarget(null); }}>Delete</button>
-            <button type="button" className="secondary" onClick={handleCloseEdit}>Cancel</button>
-            <button type="submit" aria-busy={updateExpense.isPending || uploadDocument.isPending} disabled={updateExpense.isPending || uploadDocument.isPending || !!editFileError}>Save</button>
-          </footer>
-        </form>
-      </Modal>
+      {/* Edit Expense modal (shared component) */}
+      <ExpenseModal
+        expense={editTarget}
+        onClose={() => setEditTargetId(null)}
+        allAllocations={allAllocations}
+        onDelete={() => {
+          if (editTarget) {
+            setDeleteTarget(editTarget);
+            setEditTargetId(null);
+          }
+        }}
+      />
 
       {deleteTarget && (
         <ConfirmDelete

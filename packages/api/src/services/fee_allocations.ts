@@ -1,27 +1,44 @@
 import type {
   FeeAllocation,
   FeeAllocationLineItem,
+  Expense,
   CreateFeeAllocationRequest,
   UpdateFeeAllocationRequest,
   UpdateFeeAllocationLineItemRequest,
   CreateFeeAllocationLineItemRequest,
 } from "@get-down/shared";
 import * as feeAllocationsRepo from "../repository/fee_allocations.js";
+import * as expensesRepo from "../repository/expenses.js";
+import { mapExpense } from "./expenses.js";
 import * as assignedRolesRepo from "../repository/assigned_roles.js";
 import * as rolesRepo from "../repository/roles.js";
+import * as gigsRepo from "../repository/gigs.js";
+import * as peopleRepo from "../repository/people.js";
+import * as accountsRepo from "../repository/accounts.js";
 import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
+import { parseOrBadRequest } from "../utils/parse.js";
+import { z } from "zod";
 
 export async function getAllFeeAllocations(): Promise<FeeAllocation[]> {
   const rows = await feeAllocationsRepo.readAllFeeAllocations();
-  return rows.map(mapAllocation);
+  const ids = rows.map((r) => r.id);
+  const [expenseMap, txMap] = await Promise.all([
+    feeAllocationsRepo.readExpenseIdsByAllocationIds(ids),
+    feeAllocationsRepo.readTransactionIdsByAllocationIds(ids),
+  ]);
+  return rows.map((row) => mapAllocation(row, expenseMap.get(row.id) ?? [], txMap.get(row.id) ?? []));
 }
 
 export async function getFeeAllocationById(id: number): Promise<FeeAllocation> {
   const row = await feeAllocationsRepo.readFeeAllocationById(id);
   if (!row) throw new NotFoundError("FeeAllocation not found");
-  const allocation = mapAllocation(row);
-  const lineItemRows = await feeAllocationsRepo.readLineItemsByAllocationId(id);
+  const [lineItemRows, expenseIds, transactionIds] = await Promise.all([
+    feeAllocationsRepo.readLineItemsByAllocationId(id),
+    feeAllocationsRepo.readExpenseIdsByAllocationId(id),
+    feeAllocationsRepo.readTransactionIdsByAllocationId(id),
+  ]);
+  const allocation = mapAllocation(row, expenseIds, transactionIds);
   allocation.lineItems = lineItemRows.map(mapLineItem);
   return allocation;
 }
@@ -29,7 +46,11 @@ export async function getFeeAllocationById(id: number): Promise<FeeAllocation> {
 export async function getFeeAllocationsByGig(gigId: number): Promise<FeeAllocation[]> {
   const rows = await feeAllocationsRepo.readFeeAllocationsByGigId(gigId);
   const ids = rows.map((r) => r.id);
-  const allLineItems = await feeAllocationsRepo.readLineItemsByAllocationIds(ids);
+  const [allLineItems, expenseMap, txMap] = await Promise.all([
+    feeAllocationsRepo.readLineItemsByAllocationIds(ids),
+    feeAllocationsRepo.readExpenseIdsByAllocationIds(ids),
+    feeAllocationsRepo.readTransactionIdsByAllocationIds(ids),
+  ]);
   const byAllocation = new Map<number, typeof allLineItems>();
   for (const li of allLineItems) {
     const arr = byAllocation.get(li.allocation_id) ?? [];
@@ -37,7 +58,11 @@ export async function getFeeAllocationsByGig(gigId: number): Promise<FeeAllocati
     byAllocation.set(li.allocation_id, arr);
   }
   return rows.map((row) => {
-    const allocation = mapAllocation(row);
+    const allocation = mapAllocation(
+      row,
+      expenseMap.get(row.id) ?? [],
+      txMap.get(row.id) ?? []
+    );
     allocation.lineItems = (byAllocation.get(row.id) ?? []).map(mapLineItem);
     return allocation;
   });
@@ -55,7 +80,7 @@ export async function createFeeAllocation(
     isPaid: input.isPaid ?? false,
     invoiceRef: input.invoiceRef?.trim(),
   });
-  const allocation = mapAllocation(row);
+  const allocation = mapAllocation(row, [], []);
   allocation.lineItems = [];
   return allocation;
 }
@@ -74,8 +99,12 @@ export async function updateFeeAllocation(
     invoiceRef: input.invoiceRef?.trim() ?? existing.invoiceRef,
   });
   if (!row) throw new NotFoundError("FeeAllocation not found");
-  const allocation = mapAllocation(row);
-  const lineItemRows = await feeAllocationsRepo.readLineItemsByAllocationId(id);
+  const [lineItemRows, expenseIds, transactionIds] = await Promise.all([
+    feeAllocationsRepo.readLineItemsByAllocationId(id),
+    feeAllocationsRepo.readExpenseIdsByAllocationId(id),
+    feeAllocationsRepo.readTransactionIdsByAllocationId(id),
+  ]);
+  const allocation = mapAllocation(row, expenseIds, transactionIds);
   allocation.lineItems = lineItemRows.map(mapLineItem);
   return allocation;
 }
@@ -193,7 +222,7 @@ export async function generateFeeAllocationsForGig(
         await setAllocationOnRole(ar, allocationRow.id);
       }
 
-      const allocation = mapAllocation(allocationRow);
+      const allocation = mapAllocation(allocationRow, [], []);
       allocation.lineItems = lineItems;
       results.push(allocation);
     }
@@ -210,7 +239,7 @@ export async function generateFeeAllocationsForGig(
 
       await setAllocationOnRole(ar, allocationRow.id);
 
-      const allocation = mapAllocation(allocationRow);
+      const allocation = mapAllocation(allocationRow, [], []);
       allocation.lineItems = lineItems;
       results.push(allocation);
     }
@@ -240,10 +269,142 @@ export async function resetFeeAllocation(id: number): Promise<FeeAllocation> {
       lineItems = await populateAllocationLineItems(id, linked);
     }
 
-    const allocation = mapAllocation(allocationRow);
+    const [expenseIds, transactionIds] = await Promise.all([
+      feeAllocationsRepo.readExpenseIdsByAllocationId(id),
+      feeAllocationsRepo.readTransactionIdsByAllocationId(id),
+    ]);
+    const allocation = mapAllocation(allocationRow, expenseIds, transactionIds);
     allocation.lineItems = lineItems;
     return allocation;
   });
+}
+
+// ─── Expense link management ──────────────────────────────────────────────────
+
+export async function getAllocationsByExpense(expenseId: number): Promise<FeeAllocation[]> {
+  const row = await expensesRepo.readExpenseById(expenseId);
+  if (!row) throw new NotFoundError("Expense not found");
+  const allocationIds = await expensesRepo.readAllocationIdsByExpenseId(expenseId);
+  if (allocationIds.length === 0) return [];
+
+  const rows = await Promise.all(
+    allocationIds.map((id) => feeAllocationsRepo.readFeeAllocationById(id))
+  );
+  const validRows = rows.filter((r): r is NonNullable<typeof r> => r !== null);
+
+  const [expenseMap, txMap, lineItemRows] = await Promise.all([
+    feeAllocationsRepo.readExpenseIdsByAllocationIds(allocationIds),
+    feeAllocationsRepo.readTransactionIdsByAllocationIds(allocationIds),
+    feeAllocationsRepo.readLineItemsByAllocationIds(allocationIds),
+  ]);
+
+  const liByAllocation = new Map<number, typeof lineItemRows>();
+  for (const li of lineItemRows) {
+    const arr = liByAllocation.get(li.allocation_id) ?? [];
+    arr.push(li);
+    liByAllocation.set(li.allocation_id, arr);
+  }
+
+  return validRows.map((r) => {
+    const allocation = mapAllocation(r, expenseMap.get(r.id) ?? [], txMap.get(r.id) ?? []);
+    allocation.lineItems = (liByAllocation.get(r.id) ?? []).map(mapLineItem);
+    return allocation;
+  });
+}
+
+/**
+ * Auto-generate an expense from a fee allocation's line items and link it.
+ * Description is built from gig name and person name (+ optional allocation notes).
+ */
+export async function generateExpenseForAllocation(allocationId: number): Promise<Expense> {
+  const allocationRow = await feeAllocationsRepo.readFeeAllocationById(allocationId);
+  if (!allocationRow) throw new NotFoundError("FeeAllocation not found");
+  if (!allocationRow.gig_id) throw new BadRequestError("Allocation has no gig. Cannot generate expense.");
+
+  const [gig, lineItems] = await Promise.all([
+    gigsRepo.readGigById(allocationRow.gig_id),
+    feeAllocationsRepo.readLineItemsByAllocationId(allocationId),
+  ]);
+  if (!gig) throw new NotFoundError("Gig not found");
+
+  const person = allocationRow.person_id
+    ? await peopleRepo.readPersonById(allocationRow.person_id)
+    : null;
+
+  const amount = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
+
+  const gigLabel = `${gig.first_name} ${gig.last_name}`;
+  const personLabel = person
+    ? person.display_name ?? `${person.first_name}${person.last_name ? ` ${person.last_name}` : ""}`
+    : null;
+
+  let description = gigLabel;
+  if (personLabel) description += ` — ${personLabel}`;
+  if (allocationRow.notes) description += ` (${allocationRow.notes})`;
+
+  return withTransaction(async () => {
+    const expenseRow = await expensesRepo.createExpense({
+      amount,
+      description,
+      date: undefined,
+      category: undefined,
+      recipientName: undefined,
+      paymentMethod: undefined,
+    });
+    await feeAllocationsRepo.linkExpenseToAllocation(allocationId, expenseRow.id);
+    return mapExpense(expenseRow, [allocationId]);
+  });
+}
+
+const LinkExpenseSchema = z.object({ expenseId: z.number().int() });
+const LinkTransactionSchema = z.object({ transactionId: z.number().int() });
+
+export async function linkExpenseToAllocation(
+  allocationId: number,
+  body: unknown
+): Promise<void> {
+  const { expenseId } = parseOrBadRequest(LinkExpenseSchema, body);
+  const [allocation, expense] = await Promise.all([
+    feeAllocationsRepo.readFeeAllocationById(allocationId),
+    expensesRepo.readExpenseById(expenseId),
+  ]);
+  if (!allocation) throw new NotFoundError("FeeAllocation not found");
+  if (!expense) throw new NotFoundError("Expense not found");
+  await feeAllocationsRepo.linkExpenseToAllocation(allocationId, expenseId);
+}
+
+export async function unlinkExpenseFromAllocation(
+  allocationId: number,
+  expenseId: number
+): Promise<void> {
+  const allocation = await feeAllocationsRepo.readFeeAllocationById(allocationId);
+  if (!allocation) throw new NotFoundError("FeeAllocation not found");
+  await feeAllocationsRepo.unlinkExpenseFromAllocation(allocationId, expenseId);
+}
+
+// ─── Transaction link management ─────────────────────────────────────────────
+
+export async function linkTransactionToAllocation(
+  allocationId: number,
+  body: unknown
+): Promise<void> {
+  const { transactionId } = parseOrBadRequest(LinkTransactionSchema, body);
+  const [allocation, transaction] = await Promise.all([
+    feeAllocationsRepo.readFeeAllocationById(allocationId),
+    accountsRepo.readTransactionById(transactionId),
+  ]);
+  if (!allocation) throw new NotFoundError("FeeAllocation not found");
+  if (!transaction) throw new NotFoundError("Transaction not found");
+  await feeAllocationsRepo.linkTransactionToAllocation(allocationId, transactionId);
+}
+
+export async function unlinkTransactionFromAllocation(
+  allocationId: number,
+  transactionId: number
+): Promise<void> {
+  const allocation = await feeAllocationsRepo.readFeeAllocationById(allocationId);
+  if (!allocation) throw new NotFoundError("FeeAllocation not found");
+  await feeAllocationsRepo.unlinkTransactionFromAllocation(allocationId, transactionId);
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
@@ -260,7 +421,11 @@ async function setAllocationOnRole(ar: AssignedRoleRow, feeAllocationId: number 
   });
 }
 
-function mapAllocation(row: feeAllocationsRepo.FeeAllocationRow): FeeAllocation {
+function mapAllocation(
+  row: feeAllocationsRepo.FeeAllocationRow,
+  expenseIds: number[],
+  transactionIds: number[]
+): FeeAllocation {
   return {
     id: row.id,
     personId: row.person_id ?? undefined,
@@ -269,6 +434,8 @@ function mapAllocation(row: feeAllocationsRepo.FeeAllocationRow): FeeAllocation 
     isInvoiced: row.is_invoiced,
     isPaid: row.is_paid,
     invoiceRef: row.invoice_ref ?? undefined,
+    expenseIds,
+    transactionIds,
   };
 }
 

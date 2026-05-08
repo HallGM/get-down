@@ -77,3 +77,33 @@ export function useDeleteExpenseDocument() {
     successMessage: "Document removed",
   });
 }
+
+export function useLinkAllocationToExpense() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ expenseId, allocationId }: { expenseId: number; allocationId: number }) =>
+      apiFetch<void>("POST", `/expenses/${expenseId}/fee-allocations`, { allocationId }),
+    onSuccess: (_data, { expenseId }) => {
+      qc.invalidateQueries({ queryKey: [KEY, expenseId] });
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["fee-allocations"] });
+      qc.invalidateQueries({ queryKey: ["gig-fee-allocations"] });
+    },
+    successMessage: "Allocation linked",
+  });
+}
+
+export function useUnlinkAllocationFromExpense() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ expenseId, allocationId }: { expenseId: number; allocationId: number }) =>
+      apiFetch<void>("DELETE", `/expenses/${expenseId}/fee-allocations/${allocationId}`),
+    onSuccess: (_data, { expenseId }) => {
+      qc.invalidateQueries({ queryKey: [KEY, expenseId] });
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["fee-allocations"] });
+      qc.invalidateQueries({ queryKey: ["gig-fee-allocations"] });
+    },
+    successMessage: "Allocation unlinked",
+  });
+}

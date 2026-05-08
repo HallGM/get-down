@@ -83,6 +83,14 @@ export async function readAccountById(id: number): Promise<AccountRow | null> {
   return rows[0] ?? null;
 }
 
+export async function readAccountByPersonId(personId: number): Promise<AccountRow | null> {
+  const rows = await run_query<AccountRow>({
+    text: `SELECT id, person_id FROM accounts WHERE person_id = $1 LIMIT 1;`,
+    values: [personId],
+  });
+  return rows[0] ?? null;
+}
+
 export async function readTransactionsByAccountId(
   accountId: number,
   year?: number
