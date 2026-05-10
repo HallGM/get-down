@@ -198,6 +198,7 @@ export async function buildPreviewPayloadForGig(
     }),
     payment_made: payments.map(toFlaskPaymentItem),
     ...(invoiceType === 'deposit' && { deposit_only: true }),
+    ...(invoiceType === 'balance' && { show_deposit: false }),
   };
 }
 
@@ -257,6 +258,7 @@ export async function buildInvoicePayload(id: number): Promise<Record<string, un
     ...buildBaseFlaskPayload(invoice),
     payment_made: (invoice.paymentsMade ?? []).map(toFlaskPaymentItem),
     ...(invoice.invoiceType === 'deposit' && { deposit_only: true }),
+    ...(invoice.invoiceType === 'balance' && { show_deposit: false }),
   };
 }
 
