@@ -15,12 +15,15 @@ router.put("/invoices/:id",       handle(req => invoicesService.updateInvoice(+r
 router.delete("/invoices/:id",    handle(req => invoicesService.deleteInvoice(+req.params.id), 204));
 
 router.post("/invoices/:id/line-items",                  handle(req => invoicesService.addLineItem(+req.params.id, req.body), 201));
+router.put("/invoices/:id/line-items/:itemId",           handle(req => invoicesService.updateLineItem(+req.params.id, +req.params.itemId, req.body)));
 router.delete("/invoices/:id/line-items/:itemId",        handle(req => invoicesService.removeLineItem(+req.params.id, +req.params.itemId), 204));
 
 router.post("/invoices/:id/additional-charges",             handle(req => invoicesService.addAdditionalCharge(+req.params.id, req.body), 201));
+router.put("/invoices/:id/additional-charges/:chargeId",    handle(req => invoicesService.updateAdditionalCharge(+req.params.id, +req.params.chargeId, req.body)));
 router.delete("/invoices/:id/additional-charges/:chargeId", handle(req => invoicesService.removeAdditionalCharge(+req.params.id, +req.params.chargeId), 204));
 
 router.post("/invoices/:id/payments-made",                  handle(req => invoicesService.addPaymentMade(+req.params.id, req.body), 201));
+router.put("/invoices/:id/payments-made/:paymentMadeId",    handle(req => invoicesService.updatePaymentMade(+req.params.id, +req.params.paymentMadeId, req.body)));
 router.delete("/invoices/:id/payments-made/:paymentMadeId", handle(req => invoicesService.removePaymentMade(+req.params.id, +req.params.paymentMadeId), 204));
 
 // Link / unlink a gig payment to this invoice

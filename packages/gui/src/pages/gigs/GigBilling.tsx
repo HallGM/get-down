@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   useGig,
   useUpdateGig,
@@ -32,6 +32,7 @@ import type { CreatePaymentRequest, CreateGigLineItemRequest, Invoice } from "@g
 export default function GigBilling() {
   const { id } = useParams<{ id: string }>();
   const gigId = Number(id);
+  const navigate = useNavigate();
 
   const { data: gig, isLoading, error } = useGig(gigId);
   const { data: payments } = useGigPayments(gigId);
@@ -431,6 +432,13 @@ export default function GigBilling() {
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
+                        <button
+                          className="secondary outline"
+                          style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                          onClick={() => navigate(`/gigs/${gigId}/invoices/${inv.id}/edit`)}
+                          aria-label={`Edit invoice ${inv.invoiceNumber}`}
+                          title="Edit invoice"
+                        >✏️</button>
                         <button
                           className="secondary outline"
                           style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}

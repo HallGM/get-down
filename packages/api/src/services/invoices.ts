@@ -6,6 +6,9 @@ import type {
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
   CreateInvoiceLineItemRequest,
+  UpdateInvoiceLineItemRequest,
+  UpdateInvoiceAdditionalChargeRequest,
+  UpdateInvoicePaymentMadeRequest,
 } from "@get-down/shared";
 import * as invoicesRepo from "../repository/invoices.js";
 import * as gigsRepo from "../repository/gigs.js";
@@ -163,6 +166,58 @@ export async function removePaymentMade(invoiceId: number, paymentMadeId: number
   if (!inv) throw new NotFoundError("Invoice not found");
   const deleted = await invoicesRepo.deletePaymentMade(paymentMadeId);
   if (!deleted) throw new NotFoundError("PaymentMade not found");
+}
+
+export async function updateLineItem(
+  invoiceId: number,
+  lineItemId: number,
+  input: UpdateInvoiceLineItemRequest
+): Promise<InvoiceLineItem> {
+  const inv = await invoicesRepo.readInvoiceById(invoiceId);
+  if (!inv) throw new NotFoundError("Invoice not found");
+  const row = await invoicesRepo.updateLineItem(
+    invoiceId,
+    lineItemId,
+    input.description?.trim() ?? null,
+    input.amount ?? null
+  );
+  if (!row) throw new NotFoundError("LineItem not found");
+  return mapLineItem(row);
+}
+
+export async function updateAdditionalCharge(
+  invoiceId: number,
+  chargeId: number,
+  input: UpdateInvoiceAdditionalChargeRequest
+): Promise<InvoiceAdditionalCharge> {
+  const inv = await invoicesRepo.readInvoiceById(invoiceId);
+  if (!inv) throw new NotFoundError("Invoice not found");
+  const row = await invoicesRepo.updateAdditionalCharge(
+    invoiceId,
+    chargeId,
+    input.description?.trim() ?? null,
+    input.amount ?? null
+  );
+  if (!row) throw new NotFoundError("AdditionalCharge not found");
+  return mapAdditionalCharge(row);
+}
+
+export async function updatePaymentMade(
+  invoiceId: number,
+  paymentMadeId: number,
+  input: UpdateInvoicePaymentMadeRequest
+): Promise<InvoicePaymentMade> {
+  const inv = await invoicesRepo.readInvoiceById(invoiceId);
+  if (!inv) throw new NotFoundError("Invoice not found");
+  const row = await invoicesRepo.updatePaymentMade(
+    invoiceId,
+    paymentMadeId,
+    input.description?.trim() ?? null,
+    input.date ?? null,
+    input.amount ?? null
+  );
+  if (!row) throw new NotFoundError("PaymentMade not found");
+  return mapPaymentMade(row);
 }
 
 /**
@@ -370,8 +425,10 @@ function buildMutationInput(
 ): invoicesRepo.InvoiceMutationInput {
   const gigId = existing?.gigId;
   if (!gigId) throw new BadRequestError("gigId is required");
-  const invoiceNumber = input.invoiceNumber?.trim() ?? existing?.invoiceNumber;
+  const invoiceNumber = existing?.invoiceNumber;
   if (!invoiceNumber) throw new BadRequestError("invoiceNumber is required");
+  if (input.invoiceNumber && input.invoiceNumber.trim() !== invoiceNumber)
+    throw new BadRequestError("Invoice number cannot be changed");
   const customerName = input.customerName?.trim() ?? existing?.customerName;
   if (!customerName) throw new BadRequestError("customerName is required");
   const date = input.date ?? existing?.date;

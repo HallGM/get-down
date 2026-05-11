@@ -1,9 +1,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Invoice,
+  InvoiceLineItem,
+  InvoiceAdditionalCharge,
+  InvoicePaymentMade,
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
   CreateInvoiceLineItemRequest,
+  UpdateInvoiceLineItemRequest,
+  UpdateInvoiceAdditionalChargeRequest,
+  UpdateInvoicePaymentMadeRequest,
 } from "@get-down/shared";
 import { apiFetch, apiFetchBlob } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
@@ -40,10 +46,12 @@ export function useCreateInvoice() {
 export function useUpdateInvoice() {
   const qc = useQueryClient();
   return useApiMutation({
-    mutationFn: ({ id, input }: { id: number; input: UpdateInvoiceRequest }) =>
+    mutationFn: ({ id, gigId, input }: { id: number; gigId: number; input: UpdateInvoiceRequest }) =>
       apiFetch<Invoice>("PUT", `/invoices/${id}`, input),
-    onSuccess: (_data, { id }) =>
-      qc.invalidateQueries({ queryKey: [KEY, id] }),
+    onSuccess: (_data, { id, gigId }) => {
+      qc.invalidateQueries({ queryKey: [KEY, id] });
+      qc.invalidateQueries({ queryKey: [KEY, "gig", gigId] });
+    },
     successMessage: "Invoice updated",
   });
 }
@@ -63,7 +71,7 @@ export function useAddLineItem() {
   const qc = useQueryClient();
   return useApiMutation({
     mutationFn: ({ invoiceId, input }: { invoiceId: number; input: CreateInvoiceLineItemRequest }) =>
-      apiFetch("POST", `/invoices/${invoiceId}/line-items`, input),
+      apiFetch<InvoiceLineItem>("POST", `/invoices/${invoiceId}/line-items`, input),
     onSuccess: (_data, { invoiceId }) =>
       qc.invalidateQueries({ queryKey: [KEY, invoiceId] }),
     successMessage: "Line item added",
@@ -85,7 +93,7 @@ export function useAddAdditionalCharge() {
   const qc = useQueryClient();
   return useApiMutation({
     mutationFn: ({ invoiceId, input }: { invoiceId: number; input: CreateInvoiceLineItemRequest }) =>
-      apiFetch("POST", `/invoices/${invoiceId}/additional-charges`, input),
+      apiFetch<InvoiceAdditionalCharge>("POST", `/invoices/${invoiceId}/additional-charges`, input),
     onSuccess: (_data, { invoiceId }) =>
       qc.invalidateQueries({ queryKey: [KEY, invoiceId] }),
     successMessage: "Charge added",
@@ -112,7 +120,7 @@ export function useAddPaymentMade() {
     }: {
       invoiceId: number;
       input: { description?: string; date?: string; amount?: number };
-    }) => apiFetch("POST", `/invoices/${invoiceId}/payments-made`, input),
+    }) => apiFetch<InvoicePaymentMade>("POST", `/invoices/${invoiceId}/payments-made`, input),
     onSuccess: (_data, { invoiceId }) =>
       qc.invalidateQueries({ queryKey: [KEY, invoiceId] }),
     successMessage: "Payment recorded",
@@ -127,6 +135,39 @@ export function useRemovePaymentMade() {
     onSuccess: (_data, { invoiceId }) =>
       qc.invalidateQueries({ queryKey: [KEY, invoiceId] }),
     successMessage: "Payment removed",
+  });
+}
+
+export function useUpdateLineItem() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ invoiceId, itemId, input }: { invoiceId: number; itemId: number; input: UpdateInvoiceLineItemRequest }) =>
+      apiFetch<InvoiceLineItem>("PUT", `/invoices/${invoiceId}/line-items/${itemId}`, input),
+    onSuccess: (_data, { invoiceId }) =>
+      qc.invalidateQueries({ queryKey: [KEY, invoiceId] }),
+    successMessage: "Line item updated",
+  });
+}
+
+export function useUpdateAdditionalCharge() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ invoiceId, chargeId, input }: { invoiceId: number; chargeId: number; input: UpdateInvoiceAdditionalChargeRequest }) =>
+      apiFetch<InvoiceAdditionalCharge>("PUT", `/invoices/${invoiceId}/additional-charges/${chargeId}`, input),
+    onSuccess: (_data, { invoiceId }) =>
+      qc.invalidateQueries({ queryKey: [KEY, invoiceId] }),
+    successMessage: "Charge updated",
+  });
+}
+
+export function useUpdatePaymentMade() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ invoiceId, paymentMadeId, input }: { invoiceId: number; paymentMadeId: number; input: UpdateInvoicePaymentMadeRequest }) =>
+      apiFetch<InvoicePaymentMade>("PUT", `/invoices/${invoiceId}/payments-made/${paymentMadeId}`, input),
+    onSuccess: (_data, { invoiceId }) =>
+      qc.invalidateQueries({ queryKey: [KEY, invoiceId] }),
+    successMessage: "Payment updated",
   });
 }
 

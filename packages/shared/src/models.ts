@@ -681,6 +681,22 @@ export interface CreateInvoiceLineItemRequest {
   amount?: number;
 }
 
+export interface UpdateInvoiceLineItemRequest {
+  description?: string;
+  amount?: number;
+}
+
+export interface UpdateInvoiceAdditionalChargeRequest {
+  description?: string;
+  amount?: number;
+}
+
+export interface UpdateInvoicePaymentMadeRequest {
+  description?: string;
+  date?: string;
+  amount?: number;
+}
+
 export interface Account {
   id: number;
   personId: number;
