@@ -9,6 +9,7 @@ import GigDetail from "./pages/gigs/GigDetail.js";
 import GigRoles from "./pages/gigs/GigRoles.js";
 import SetListBuilder from "./pages/gigs/SetListBuilder.js";
 import GigBilling from "./pages/gigs/GigBilling.js";
+import InvoiceEdit from "./pages/gigs/InvoiceEdit.js";
 import EnquiriesList from "./pages/enquiries/EnquiriesList.js";
 import EmailGenerator from "./pages/enquiries/EmailGenerator.js";
 import PeopleList from "./pages/people/PeopleList.js";
@@ -122,6 +123,7 @@ export default function App() {
           <Route path="/gigs/:id/roles" element={<GigRoles />} />
           <Route path="/gigs/:id/set-list" element={<SetListBuilder />} />
           <Route path="/gigs/:id/invoices" element={<GigBilling />} />
+          <Route path="/gigs/:id/invoices/:invoiceId/edit" element={<InvoiceEdit />} />
           <Route path="/enquiries" element={<EnquiriesList />} />
           <Route path="/enquiries/email-generator" element={<EmailGenerator />} />
           <Route path="/songs" element={<SongsList />} />

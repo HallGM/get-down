@@ -189,6 +189,19 @@ export async function createLineItem(
   return row!;
 }
 
+export async function updateLineItem(
+  invoiceId: number,
+  id: number,
+  description: string | null,
+  amount: number | null
+): Promise<InvoiceLineItemRow | null> {
+  const rows = await run_query<InvoiceLineItemRow>({
+    text: `UPDATE invoice_line_items SET description = $1, amount = $2 WHERE id = $3 AND invoice_id = $4 RETURNING id, invoice_id, description, amount;`,
+    values: [description, amount, id, invoiceId],
+  });
+  return rows[0] ?? null;
+}
+
 export async function deleteLineItem(id: number): Promise<boolean> {
   const rows = await run_query<{ id: number }>({
     text: `DELETE FROM invoice_line_items WHERE id = $1 RETURNING id;`,
@@ -218,6 +231,19 @@ export async function createAdditionalCharge(
     values: [invoiceId, description, amount],
   });
   return row!;
+}
+
+export async function updateAdditionalCharge(
+  invoiceId: number,
+  id: number,
+  description: string | null,
+  amount: number | null
+): Promise<InvoiceAdditionalChargeRow | null> {
+  const rows = await run_query<InvoiceAdditionalChargeRow>({
+    text: `UPDATE invoice_additional_charges SET description = $1, amount = $2 WHERE id = $3 AND invoice_id = $4 RETURNING id, invoice_id, description, amount;`,
+    values: [description, amount, id, invoiceId],
+  });
+  return rows[0] ?? null;
 }
 
 export async function deleteAdditionalCharge(id: number): Promise<boolean> {
@@ -250,6 +276,20 @@ export async function createPaymentMade(
     values: [invoiceId, description, date, amount],
   });
   return row!;
+}
+
+export async function updatePaymentMade(
+  invoiceId: number,
+  id: number,
+  description: string | null,
+  date: string | null,
+  amount: number | null
+): Promise<InvoicePaymentMadeRow | null> {
+  const rows = await run_query<InvoicePaymentMadeRow>({
+    text: `UPDATE invoice_payments_made SET description = $1, date = $2, amount = $3 WHERE id = $4 AND invoice_id = $5 RETURNING id, invoice_id, description, date, amount;`,
+    values: [description, date, amount, id, invoiceId],
+  });
+  return rows[0] ?? null;
 }
 
 export async function deletePaymentMade(id: number): Promise<boolean> {
