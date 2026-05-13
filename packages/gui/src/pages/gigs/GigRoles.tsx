@@ -19,7 +19,7 @@ import {
   useUnlinkTransactionFromAllocation,
 } from "../../api/hooks/useFeeAllocations.js";
 import { useExpenses, useDeleteExpense } from "../../api/hooks/useExpenses.js";
-import { useAccounts, useAccountTransactions } from "../../api/hooks/useAccounts.js";
+import { useAccounts, useAccountTransactions, useDeleteTransaction } from "../../api/hooks/useAccounts.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
@@ -28,9 +28,12 @@ import Modal from "../../components/Modal.js";
 import ExpenseModal from "../../components/ExpenseModal.js";
 import ExpensePickerModal from "../../components/ExpensePickerModal.js";
 import ExpenseCreateModal from "../../components/ExpenseCreateModal.js";
+import TransactionPickerModal from "../../components/TransactionPickerModal.js";
+import TransactionCreateModal from "../../components/TransactionCreateModal.js";
+import TransactionModal from "../../components/TransactionModal.js";
 import { useToast } from "../../components/Toast.js";
-import { formatPersonName } from "../../utils/people.js";
-import type { FeeAllocation, FeeAllocationLineItem, Account, Expense } from "@get-down/shared";
+import { formatPersonName, formatGigName } from "../../utils/people.js";
+import type { FeeAllocation, FeeAllocationLineItem, Account, AccountTransaction, Expense } from "@get-down/shared";
 
 export default function GigRoles() {
   const { id } = useParams<{ id: string }>();
@@ -336,6 +339,8 @@ export default function GigRoles() {
                     <LinkedTransactionsSection
                       allocation={allocation}
                       accounts={accounts}
+                      gigName={formatGigName(gig)}
+                      personName={formatPersonName(people.find((p) => p.id === allocation.personId)!)}
                       onLink={(transactionId: number) => linkTransaction.mutate({ allocationId: allocation.id, transactionId })}
                       onUnlink={(transactionId: number) => unlinkTransaction.mutate({ allocationId: allocation.id, transactionId })}
                     />
@@ -727,40 +732,83 @@ function LinkedExpensesSection({
 interface LinkedTransactionsSectionProps {
   allocation: FeeAllocation;
   accounts: Account[];
+  gigName: string;
+  personName: string;
   onLink: (transactionId: number) => void;
   onUnlink: (transactionId: number) => void;
 }
 
-function LinkedTransactionsSection({ allocation, accounts, onLink, onUnlink }: LinkedTransactionsSectionProps) {
+function LinkedTransactionsSection({
+  allocation,
+  accounts,
+  gigName,
+  personName,
+  onLink,
+  onUnlink,
+}: LinkedTransactionsSectionProps) {
   const account = accounts.find((a) => a.personId === allocation.personId);
-  const currentYear = new Date().getFullYear();
-  const { data: transactions = [] } = useAccountTransactions(account?.id ?? 0, currentYear);
+
+  const { data: allTransactions = [] } = useAccountTransactions(account?.id ?? 0);
+
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<AccountTransaction | null>(null);
+  const [unlinkConfirm, setUnlinkConfirm] = useState<AccountTransaction | null>(null);
 
   if (!account) {
-    return (
-      <div style={{ marginTop: "0.75rem" }}>
-        <strong style={{ fontSize: "0.85em" }}>Linked transactions</strong>
-        <p style={{ margin: "0.25rem 0", color: "var(--pico-muted-color)", fontSize: "0.85em" }}>No account found for this person.</p>
-      </div>
-    );
+    return null;
   }
 
-  const linkedTransactions = transactions.filter((t) => allocation.transactionIds.includes(t.id));
-  const unlinkableTransactions = transactions.filter((t) => !allocation.transactionIds.includes(t.id));
+  const linkedTransactions = allTransactions.filter((t) => allocation.transactionIds.includes(t.id));
+  const unlinkableTransactions = allTransactions.filter((t) => !allocation.transactionIds.includes(t.id));
+
+  const lineItemsTotal = (allocation.lineItems ?? []).reduce((sum, li) => sum + (li.amount ?? 0), 0);
+  const createInitialValues = {
+    amount: lineItemsTotal,
+    description: `${gigName} — ${personName}`,
+  };
 
   return (
     <div style={{ marginTop: "0.75rem" }}>
-      <strong style={{ fontSize: "0.85em" }}>Linked transactions</strong>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <strong style={{ fontSize: "0.85em" }}>Linked transactions</strong>
+        <div style={{ display: "flex", gap: "0.4rem" }}>
+          <button
+            type="button"
+            className="secondary outline"
+            style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
+            onClick={() => setCreateOpen(true)}
+          >
+            Add transaction
+          </button>
+          <button
+            type="button"
+            className="secondary outline"
+            style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
+            onClick={() => setPickerOpen(true)}
+          >
+            Browse…
+          </button>
+        </div>
+      </div>
       {linkedTransactions.length > 0 ? (
         <ul style={{ margin: "0.25rem 0", paddingLeft: "1rem" }}>
           {linkedTransactions.map((t) => (
             <li key={t.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85em" }}>
+              <button
+                type="button"
+                className="secondary outline"
+                style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
+                onClick={() => setEditTarget(t)}
+              >
+                Edit
+              </button>
               <span>{t.description ?? `Transaction #${t.id}`} (<MoneyDisplay pennies={t.amount} />)</span>
               <button
                 type="button"
                 className="contrast outline"
                 style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
-                onClick={() => onUnlink(t.id)}
+                onClick={() => setUnlinkConfirm(t)}
               >✕</button>
             </li>
           ))}
@@ -768,18 +816,96 @@ function LinkedTransactionsSection({ allocation, accounts, onLink, onUnlink }: L
       ) : (
         <p style={{ margin: "0.25rem 0", color: "var(--pico-muted-color)", fontSize: "0.85em" }}>No transactions linked.</p>
       )}
-      {unlinkableTransactions.length > 0 && (
-        <select
-          value=""
-          onChange={(e) => { if (e.target.value) onLink(Number(e.target.value)); }}
-          style={{ margin: "0.25rem 0", fontSize: "0.85em" }}
-        >
-          <option value="">+ Link transaction…</option>
-          {unlinkableTransactions.map((t) => (
-            <option key={t.id} value={t.id}>{t.description ?? `Transaction #${t.id}`} ({t.date})</option>
-          ))}
-        </select>
+
+      {/* Create modal */}
+      <TransactionCreateModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        accountId={account.id}
+        initialValues={createInitialValues}
+        onCreated={(tx) => {
+          onLink(tx.id);
+        }}
+      />
+
+      {/* Picker modal */}
+      <TransactionPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        transactions={unlinkableTransactions}
+        onSelect={(tx) => {
+          onLink(tx.id);
+          setPickerOpen(false);
+        }}
+      />
+
+      {/* Edit modal */}
+      <TransactionModal
+        transaction={editTarget}
+        accountId={account.id}
+        onClose={() => setEditTarget(null)}
+      />
+
+      {/* Unlink / delete confirm */}
+      {unlinkConfirm && (
+        <TxUnlinkConfirmModal
+          transaction={unlinkConfirm}
+          accountId={account.id}
+          onUnlink={() => {
+            onUnlink(unlinkConfirm.id);
+            setUnlinkConfirm(null);
+          }}
+          onClose={() => setUnlinkConfirm(null)}
+        />
       )}
     </div>
+  );
+}
+
+// ─── Tx Unlink Confirm Modal ───────────────────────────────────────────────────
+
+interface TxUnlinkConfirmModalProps {
+  transaction: AccountTransaction;
+  accountId: number;
+  onUnlink: () => void;
+  onClose: () => void;
+}
+
+function TxUnlinkConfirmModal({ transaction, accountId, onUnlink, onClose }: TxUnlinkConfirmModalProps) {
+  const deleteTransaction = useDeleteTransaction(accountId);
+
+  const label = transaction.description ?? `Transaction #${transaction.id}`;
+
+  return (
+    <Modal open onClose={onClose} title="Remove linked transaction">
+      <p>
+        Do you want to delete the transaction <strong>{label}</strong> entirely,
+        or just remove the link?
+      </p>
+      <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+        <button type="button" className="secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="secondary outline"
+          onClick={onUnlink}
+        >
+          Remove link only
+        </button>
+        <button
+          type="button"
+          className="contrast"
+          aria-busy={deleteTransaction.isPending}
+          disabled={deleteTransaction.isPending}
+          onClick={async () => {
+            await deleteTransaction.mutateAsync(transaction.id);
+            onClose();
+          }}
+        >
+          Delete transaction
+        </button>
+      </footer>
+    </Modal>
   );
 }

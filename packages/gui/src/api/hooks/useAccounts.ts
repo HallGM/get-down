@@ -39,13 +39,15 @@ export function useCreateAccount() {
   });
 }
 
-export function useAccountTransactions(accountId: number, year: number) {
+export function useAccountTransactions(accountId: number, year?: number) {
   return useQuery({
-    queryKey: [KEY, accountId, "transactions", year],
+    queryKey: [KEY, accountId, "transactions", year ?? "all"],
     queryFn: () =>
       apiFetch<AccountTransaction[]>(
         "GET",
-        `/accounts/${accountId}/transactions?year=${year}`
+        year != null
+          ? `/accounts/${accountId}/transactions?year=${year}`
+          : `/accounts/${accountId}/transactions`
       ),
     enabled: !!accountId,
   });
