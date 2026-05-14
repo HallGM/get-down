@@ -23,6 +23,7 @@ import { useAccounts, useAccountTransactions, useDeleteTransaction } from "../..
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
+import MoneyField from "../../components/MoneyField.js";
 import FormField from "../../components/FormField.js";
 import Modal from "../../components/Modal.js";
 import ExpenseModal from "../../components/ExpenseModal.js";
@@ -513,10 +514,10 @@ function FeeAllocationPanel({
   onRemoveLineItem,
 }: FeeAllocationPanelProps) {
   const [addDesc, setAddDesc] = useState("");
-  const [addAmt, setAddAmt] = useState<number | "">("");
+  const [addAmt, setAddAmt] = useState<number | undefined>(undefined);
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [editDesc, setEditDesc] = useState("");
-  const [editAmt, setEditAmt] = useState<number | "">("");
+  const [editAmt, setEditAmt] = useState<number | undefined>(undefined);
 
   const lineItems = allocation.lineItems ?? [];
   const total = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
@@ -524,21 +525,21 @@ function FeeAllocationPanel({
   function startEditItem(li: FeeAllocationLineItem) {
     setEditingItem(li.id);
     setEditDesc(li.description ?? "");
-    setEditAmt(li.amount ?? "");
+    setEditAmt(li.amount ?? undefined);
   }
 
   function handleAddSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!addDesc || addAmt === "") return;
-    onAddLineItem?.(addDesc, Number(addAmt));
+    if (!addDesc || addAmt == null) return;
+    onAddLineItem?.(addDesc, addAmt);
     setAddDesc("");
-    setAddAmt("");
+    setAddAmt(undefined);
   }
 
   function handleEditSubmit(e: React.FormEvent, li: FeeAllocationLineItem) {
     e.preventDefault();
-    if (!editDesc || editAmt === "") return;
-    onUpdateLineItem?.(li, editDesc, Number(editAmt));
+    if (!editDesc || editAmt == null) return;
+    onUpdateLineItem?.(li, editDesc, editAmt);
     setEditingItem(null);
   }
 
@@ -565,10 +566,10 @@ function FeeAllocationPanel({
                     </form>
                   </td>
                   <td>
-                    <input
-                      type="number"
+                    <MoneyField
+                      label=""
                       value={editAmt}
-                      onChange={(e) => setEditAmt(e.target.value === "" ? "" : Number(e.target.value))}
+                      onChange={(pounds) => setEditAmt(pounds)}
                       style={{ width: "100%", margin: 0 }}
                       min={0}
                       required
@@ -632,11 +633,10 @@ function FeeAllocationPanel({
           />
         </div>
         <div style={{ flex: 1 }}>
-          <input
-            type="number"
-            placeholder="Amount (p)"
+          <MoneyField
+            label=""
             value={addAmt}
-            onChange={(e) => setAddAmt(e.target.value === "" ? "" : Number(e.target.value))}
+            onChange={(pennies) => setAddAmt(pennies)}
             style={{ margin: 0 }}
             min={0}
           />
@@ -645,7 +645,7 @@ function FeeAllocationPanel({
           type="submit"
           className="secondary outline"
           style={{ padding: "0.3em 0.7em", width: "auto" }}
-          disabled={!addDesc || addAmt === ""}
+          disabled={!addDesc || addAmt == null}
         >
           + Add
         </button>
