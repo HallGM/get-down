@@ -15,7 +15,8 @@
     "migrate": "tsx src/scripts/migrate.ts",
     "migrate:airtable": "tsx src/scripts/migrate_airtable.ts",
     "migrate:documents": "tsx src/scripts/migrate_expense_documents.ts",
-    "create-user": "tsx src/scripts/create_user.ts"
+    "create-user": "tsx src/scripts/create_user.ts",
+    "migrate:invoice-expenses": "tsx src/scripts/migrate_invoice_expenses.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1039.0",
