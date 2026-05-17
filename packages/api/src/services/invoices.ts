@@ -299,6 +299,7 @@ export async function buildReceiptPayload(id: number): Promise<Record<string, un
       ...(invoice.paymentsMade ?? []).map(toFlaskPaymentItem),
       ...linkedPayments.map(toFlaskPaymentItem),
     ],
+    ...(invoice.invoiceType === 'balance' && { show_deposit: false }),
   };
 }
 
