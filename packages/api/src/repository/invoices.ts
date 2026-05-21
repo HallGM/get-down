@@ -299,3 +299,10 @@ export async function deletePaymentMade(id: number): Promise<boolean> {
   });
   return rows.length > 0;
 }
+
+export async function updateAmountDue(id: number, amountDue: number): Promise<void> {
+  await run_query({
+    text: `UPDATE invoices SET amount_due = $1 WHERE id = $2;`,
+    values: [amountDue, id],
+  });
+}

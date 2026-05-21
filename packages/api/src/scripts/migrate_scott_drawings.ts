@@ -1,9 +1,9 @@
 /**
- * One-time migration: Airtable "Drawings (Scott)" → account transactions in the app DB.
+ * One-time migration: Airtable "Drawings (Scott)" → fee allocations + line items in the app DB.
  *
  * For each Airtable Gig record that has a non-zero "Drawings (Scott)" value,
- * this script creates a fee allocation (Scott ↔ gig) and an account transaction
- * of type "drawing" on Scott's account via the REST API.
+ * this script creates a fee allocation (Scott ↔ gig) and a line item on it
+ * recording the drawing amount. No account transactions are created.
  *
  * Not idempotent — run once only.
  *
@@ -13,6 +13,10 @@
  *
  * Required env vars:
  *   AIRTABLE_API_KEY, API_BASE_URL, MIGRATION_EMAIL, MIGRATION_PASSWORD
+ *
+ * Before running, wipe previously imported data (use Scott's person_id=483):
+ *   DELETE FROM fee_allocation_line_items WHERE allocation_id IN (SELECT id FROM fee_allocations WHERE person_id = 483);
+ *   DELETE FROM fee_allocations WHERE person_id = 483;
  */
 
 import dotenv from "dotenv";
@@ -26,7 +30,6 @@ const GIGS_TABLE_ID = "tbldxbkHiZOEcpkrk";
 
 // Airtable field names for the Gigs table
 const FIELD_DRAWINGS_SCOTT = "Drawings (Scott)"; // currency, pounds
-const FIELD_DATE           = "Date";
 const FIELD_NAME           = "Name";             // computed DD/MM/YY - Client - Venue
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -112,11 +115,6 @@ async function callApi<T = unknown>(method: string, path: string, body?: unknown
 
 // ─── Airtable helpers ─────────────────────────────────────────────────────────
 
-/** Convert pounds (Airtable float) to pennies (DB integer). */
-function toP(val: unknown): number {
-  return typeof val === "number" ? Math.round(val * 100) : 0;
-}
-
 async function sleep(ms: number): Promise<void> {
   return new Promise<void>((r) => setTimeout(r, ms));
 }
@@ -181,16 +179,15 @@ async function main(): Promise<void> {
   console.log("✓ Authenticated\n");
   console.log("=== Scott drawings migration ===\n");
 
-  // ── 1. Locate Scott's account ───────────────────────────────────────────────
+  // ── 1. Locate Scott's person ID ────────────────────────────────────────────
   const accounts = await callApi<DbAccount[]>("GET", "/accounts");
   const scottAccount = accounts.find((a) => a.personName === "Scott Bruce (Partner)");
   if (!scottAccount) {
     console.error("Could not find account for 'Scott Bruce (Partner)' — aborting.");
     process.exit(1);
   }
-  const scottAccountId = scottAccount.id;
-  const scottPersonId  = scottAccount.personId;
-  console.log(`✓ Found Scott's account: id=${scottAccountId}, personId=${scottPersonId}\n`);
+  const scottPersonId = scottAccount.personId;
+  console.log(`✓ Found Scott: personId=${scottPersonId}\n`);
 
   // ── 2. Build DB gig map (airtableId → gig) ─────────────────────────────────
   const dbGigs = await callApi<DbGig[]>("GET", "/gigs");
@@ -204,16 +201,15 @@ async function main(): Promise<void> {
   console.log("→ Fetching gigs from Airtable...");
   const atGigs = await fetchTable(GIGS_TABLE_ID, [
     "Drawings (Scott)",
-    "Date",
     "Name",
   ]);
   console.log(`   ${atGigs.length} records fetched\n`);
 
   // ── 4. Process each gig ────────────────────────────────────────────────────
-  let imported         = 0;
-  let skippedNoDrawing = 0;
-  let skippedNotInDb   = 0;
-  let failed           = 0;
+  let allocationsCreated = 0;
+  let skippedNoDrawing   = 0;
+  let skippedNotInDb     = 0;
+  let failed             = 0;
 
   for (const r of atGigs) {
     const drawingValue = r.fields[FIELD_DRAWINGS_SCOTT];
@@ -238,28 +234,18 @@ async function main(): Promise<void> {
         gigId: dbGig.id,
       });
 
-      // Convert pounds to pence.
-      // Drawings are withdrawals (outflows from the account), so we store a
-      // negative pence integer. This assumption matches the sign convention
-      // observed in account_transactions: credits are positive, debits/drawings
-      // are negative. Verify with: SELECT amount, type FROM account_transactions LIMIT 20;
-      const amountPence = -(Math.round(drawingValue * 100));
-
       const description = typeof r.fields[FIELD_NAME] === "string"
         ? (r.fields[FIELD_NAME] as string)
         : `Gig ${dbGig.id}`;
 
-      // Create the drawing transaction on Scott's account
-      await callApi("POST", `/accounts/${scottAccountId}/transactions`, {
-        date: dbGig.date,
-        amount: amountPence,
-        type: "drawing",
+      // Create a line item on the allocation recording the drawing amount
+      await callApi("POST", `/fee-allocations/${allocation.id}/line-items`, {
         description,
-        feeAllocationIds: [allocation.id],
+        amount: Math.round(drawingValue * 100),
       });
 
       console.log(`✓ ${description} — £${drawingValue.toFixed(2)}`);
-      imported++;
+      allocationsCreated++;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.log(`✗ ${r.id}: ${msg}`);
@@ -269,11 +255,11 @@ async function main(): Promise<void> {
 
   // ── 5. Summary ─────────────────────────────────────────────────────────────
   console.log("\n=== Scott drawings migration complete ===");
-  console.log(`Gigs inspected      : ${atGigs.length}`);
-  console.log(`Drawings imported   : ${imported}`);
-  console.log(`Skipped (no drawing): ${skippedNoDrawing}`);
-  console.log(`Skipped (not in DB) : ${skippedNotInDb}`);
-  console.log(`Failed              : ${failed}`);
+  console.log(`Gigs inspected         : ${atGigs.length}`);
+  console.log(`Allocations created    : ${allocationsCreated}`);
+  console.log(`Skipped (no drawing)   : ${skippedNoDrawing}`);
+  console.log(`Skipped (not in DB)    : ${skippedNotInDb}`);
+  console.log(`Failed                 : ${failed}`);
 
   if (failed > 0) process.exit(1);
 }
