@@ -8,6 +8,7 @@ Update the INVOICE DETAILS section below for each invoice you generate.
 from src.config import BusinessConfig, Address
 from src.generic_invoice import create_generic_invoice, create_generic_receipt
 from src.invoice import Line_item, Invoice, Receipt, Section
+from src.utils import calculate_amount_due
 import os
 import sys
 import subprocess
@@ -140,12 +141,14 @@ def build_invoice(
     custom_charge_total_for_calc = custom_charge_total
     payment_total = sum(
         item.price for item in payment_made) if payment_made else 0.0
-    if amount_due_override is not None:
-        amount_due = amount_due_override
-    elif deposit_only:
-        amount_due = deposit + custom_charge_total_for_calc - payment_total
-    else:
-        amount_due = total - payment_total
+    amount_due = calculate_amount_due(
+        deposit=deposit,
+        charges_total=custom_charge_total_for_calc,
+        payment_total=payment_total,
+        full_balance_total=total,
+        deposit_only=deposit_only,
+        amount_due_override=amount_due_override,
+    )
 
     amount_due_section = [{
         "description": "Amount Due",
