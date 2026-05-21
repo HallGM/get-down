@@ -1,6 +1,7 @@
 from .invoice import Invoice, Receipt, Line_item, Section
 from .generic_invoice import create_generic_invoice, create_generic_receipt
 from .config import BusinessConfig
+from .utils import calculate_amount_due
 from dataclasses import dataclass
 from typing import Optional
 
@@ -98,12 +99,14 @@ def generate_ev_invoice(options: EVInvoiceOptions, deposit_only: bool = False, a
         payment_total = sum(item.price for item in options.payment_made)
 
     # Amount due (was Remaining Balance)
-    if amount_due_override is not None:
-        amount_due = amount_due_override
-    elif deposit_only:
-        amount_due = deposit + additional_charges_total - payment_total
-    else:
-        amount_due = total_with_charges - payment_total
+    amount_due = calculate_amount_due(
+        deposit=deposit,
+        charges_total=additional_charges_total,
+        payment_total=payment_total,
+        full_balance_total=total_with_charges,
+        deposit_only=deposit_only,
+        amount_due_override=amount_due_override,
+    )
 
     amount_due_section = [
         {"description": "Amount Due", "price": amount_due, "bold": True}
