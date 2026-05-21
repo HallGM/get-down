@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   useGig,
@@ -8,6 +8,7 @@ import {
   useGenerateLineItems,
 } from "../../api/hooks/useGigs.js";
 import { useGigPayments, useCreatePayment, useDeletePayment } from "../../api/hooks/usePayments.js";
+import { useGigRefunds, useCreateRefund, useDeleteRefund, useGenerateCreditNote } from "../../api/hooks/useRefunds.js";
 import {
   useCreateInvoice,
   useGigInvoices,
@@ -27,8 +28,84 @@ import MoneyField from "../../components/MoneyField.js";
 import Modal from "../../components/Modal.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { formatPennies } from "../../utils/money.js";
-import type { CreatePaymentRequest, CreateGigLineItemRequest, Invoice } from "@get-down/shared";
+import type { CreatePaymentRequest, CreateGigLineItemRequest, CreateRefundRequest, Invoice } from "@get-down/shared";
 
+// ---------------------------------------------------------------------------
+// Local hook: manages a single PDF blob modal (load → display → revoke on close)
+// ---------------------------------------------------------------------------
+function usePdfModal(generateFn: (id: number) => Promise<string>) {
+  const [show, setShow] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const urlRef = useRef<string | null>(null);
+
+  const open = useCallback(async (id: number) => {
+    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    setUrl(null);
+    setError(null);
+    setLoadingId(id);
+    setShow(true);
+    try {
+      const newUrl = await generateFn(id);
+      urlRef.current = newUrl;
+      setUrl(newUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("Failed to generate PDF"));
+    } finally {
+      setLoadingId(null);
+    }
+  }, [generateFn]);
+
+  const close = useCallback(() => setShow(false), []);
+
+  const cleanup = useCallback(() => {
+    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+  }, []);
+
+  return { show, url, loadingId, error, open, close, cleanup };
+}
+
+// ---------------------------------------------------------------------------
+// Shared modal for adding a payment or refund (identical fields)
+// ---------------------------------------------------------------------------
+interface TransactionForm {
+  amount: number;
+  date?: string;
+  method?: string;
+  description?: string;
+}
+
+interface AddTransactionModalProps {
+  open: boolean;
+  title: string;
+  form: TransactionForm;
+  onChange: (form: TransactionForm) => void;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
+  onClose: () => void;
+  isPending: boolean;
+}
+
+function AddTransactionModal({ open, title, form, onChange, onSubmit, onClose, isPending }: AddTransactionModalProps) {
+  return (
+    <Modal open={open} onClose={onClose} title={title}>
+      <form onSubmit={onSubmit}>
+        <MoneyField label="Amount" value={form.amount ?? undefined} onChange={(pennies) => onChange({ ...form, amount: pennies ?? 0 })} required min={0} />
+        <FormField label="Date" type="date" value={toInputDate(form.date)} onChange={(e) => onChange({ ...form, date: e.target.value })} />
+        <FormField label="Method" value={form.method ?? ""} onChange={(e) => onChange({ ...form, method: e.target.value })} placeholder="e.g. Bank transfer" />
+        <FormField label="Description" value={form.description ?? ""} onChange={(e) => onChange({ ...form, description: e.target.value })} />
+        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+          <button type="button" className="secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" aria-busy={isPending} disabled={isPending}>Add</button>
+        </footer>
+      </form>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page component
+// ---------------------------------------------------------------------------
 export default function GigBilling() {
   const { id } = useParams<{ id: string }>();
   const gigId = Number(id);
@@ -37,10 +114,14 @@ export default function GigBilling() {
   const { data: gig, isLoading, error } = useGig(gigId);
   const { data: payments } = useGigPayments(gigId);
   const { data: invoices } = useGigInvoices(gigId);
+  const { data: refunds } = useGigRefunds(gigId);
 
   const updateGig = useUpdateGig();
   const createPayment = useCreatePayment();
   const deletePayment = useDeletePayment();
+  const createRefund = useCreateRefund();
+  const deleteRefund = useDeleteRefund();
+  const generateCreditNoteMutation = useGenerateCreditNote();
   const addGigLineItem = useAddGigLineItem();
   const removeGigLineItem = useRemoveGigLineItem();
   const generateLineItems = useGenerateLineItems();
@@ -50,7 +131,15 @@ export default function GigBilling() {
   const deleteInvoice = useDeleteInvoice();
   const linkPayment = useLinkPayment();
   const unlinkPayment = useUnlinkPayment();
-  const generateReceipt = useGenerateReceipt();
+  const generateReceiptMutation = useGenerateReceipt();
+
+  // PDF modals
+  const creditNoteModal = usePdfModal(useCallback((id) => generateCreditNoteMutation.mutateAsync(id), [generateCreditNoteMutation]));
+  const invoicePdfModal = usePdfModal(useCallback((id) => savedPdfMutation.mutateAsync(id), [savedPdfMutation]));
+  const receiptModal    = usePdfModal(useCallback((id) => generateReceiptMutation.mutateAsync(id), [generateReceiptMutation]));
+
+  // Receipt modal also needs the invoice number for the download filename
+  const [receiptInvoiceNumber, setReceiptInvoiceNumber] = useState<string>("");
 
   // Billing settings inline editing
   const [editingBilling, setEditingBilling] = useState(false);
@@ -60,9 +149,12 @@ export default function GigBilling() {
   const [showAddLineItem, setShowAddLineItem] = useState(false);
   const [lineItemForm, setLineItemForm] = useState<CreateGigLineItemRequest>({ description: "", amount: 0 });
 
-  // Add payment modal
+  // Add payment / refund modals
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [paymentForm, setPaymentForm] = useState<Omit<CreatePaymentRequest, "gigId">>({ amount: 0 });
+
+  const [showAddRefund, setShowAddRefund] = useState(false);
+  const [refundForm, setRefundForm] = useState<Omit<CreateRefundRequest, "gigId">>({ amount: 0 });
 
   // Invoice preview modal
   const [showPreview, setShowPreview] = useState(false);
@@ -71,19 +163,6 @@ export default function GigBilling() {
   const [savingInvoice, setSavingInvoice] = useState(false);
   const [previewInvoiceType, setPreviewInvoiceType] = useState<'deposit' | 'balance'>('balance');
   const prevUrlRef = useRef<string | null>(null);
-
-  // Invoice PDF modal
-  const [showInvoicePdf, setShowInvoicePdf] = useState(false);
-  const [invoicePdfUrl, setInvoicePdfUrl] = useState<string | null>(null);
-  const [loadingInvoiceId, setLoadingInvoiceId] = useState<number | null>(null);
-  const invoicePdfUrlRef = useRef<string | null>(null);
-
-  // Receipt PDF modal
-  const [showReceiptPdf, setShowReceiptPdf] = useState(false);
-  const [receiptPdfUrl, setReceiptPdfUrl] = useState<string | null>(null);
-  const [receiptInvoiceNumber, setReceiptInvoiceNumber] = useState<string>("");
-  const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
-  const receiptPdfUrlRef = useRef<string | null>(null);
 
   // Link payment modal
   const [linkPaymentTarget, setLinkPaymentTarget] = useState<Invoice | null>(null);
@@ -95,10 +174,11 @@ export default function GigBilling() {
   useEffect(() => {
     return () => {
       if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
-      if (invoicePdfUrlRef.current) URL.revokeObjectURL(invoicePdfUrlRef.current);
-      if (receiptPdfUrlRef.current) URL.revokeObjectURL(receiptPdfUrlRef.current);
+      creditNoteModal.cleanup();
+      invoicePdfModal.cleanup();
+      receiptModal.cleanup();
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
   if (error || !gig) return <main className="container"><ErrorBanner error={error ?? "Gig not found"} /></main>;
@@ -108,9 +188,11 @@ export default function GigBilling() {
   const discountAmount = Math.round(subtotal * gig.discountPercent / 100);
   const billingTotal = subtotal - discountAmount + gig.travelCost;
   const totalPaid = (payments ?? []).reduce((sum, p) => sum + p.amount, 0);
+  const totalRefunded = (refunds ?? []).reduce((sum, r) => sum + r.amount, 0);
+  const netReceived = totalPaid - totalRefunded;
   const depositRequired = Math.round(billingTotal * 0.20);
-  const depositPaid = Math.min(totalPaid, depositRequired);
-  const balanceAmount = Math.max(0, billingTotal - totalPaid);
+  const depositPaid = Math.min(netReceived, depositRequired);
+  const balanceAmount = Math.max(0, billingTotal - netReceived);
 
   function startEditBilling() {
     setBillingForm({ travelCost: gig!.travelCost, discountPercent: gig!.discountPercent });
@@ -141,13 +223,16 @@ export default function GigBilling() {
 
   async function handleAddPayment(e: React.FormEvent) {
     e.preventDefault();
-    await createPayment.mutateAsync({
-      gigId,
-      ...paymentForm,
-      amount: paymentForm.amount ?? 0,
-    });
+    await createPayment.mutateAsync({ gigId, ...paymentForm, amount: paymentForm.amount ?? 0 });
     setShowAddPayment(false);
     setPaymentForm({ amount: 0 });
+  }
+
+  async function handleAddRefund(e: React.FormEvent) {
+    e.preventDefault();
+    await createRefund.mutateAsync({ gigId, ...refundForm, amount: refundForm.amount ?? 0 });
+    setShowAddRefund(false);
+    setRefundForm({ amount: 0 });
   }
 
   async function openPreview(invoiceType: 'deposit' | 'balance') {
@@ -175,37 +260,9 @@ export default function GigBilling() {
     }
   }
 
-  async function openInvoicePdf(invoiceId: number) {
-    if (invoicePdfUrlRef.current) URL.revokeObjectURL(invoicePdfUrlRef.current);
-    setInvoicePdfUrl(null);
-    setLoadingInvoiceId(invoiceId);
-    setShowInvoicePdf(true);
-    try {
-      const url = await savedPdfMutation.mutateAsync(invoiceId);
-      invoicePdfUrlRef.current = url;
-      setInvoicePdfUrl(url);
-    } catch {
-      // error is surfaced via savedPdfMutation.error
-    } finally {
-      setLoadingInvoiceId(null);
-    }
-  }
-
-  async function openReceiptPdf(inv: Invoice) {
-    if (receiptPdfUrlRef.current) URL.revokeObjectURL(receiptPdfUrlRef.current);
-    setReceiptPdfUrl(null);
+  function openReceiptPdf(inv: Invoice) {
     setReceiptInvoiceNumber(inv.invoiceNumber);
-    setLoadingReceiptId(inv.id);
-    setShowReceiptPdf(true);
-    try {
-      const url = await generateReceipt.mutateAsync(inv.id);
-      receiptPdfUrlRef.current = url;
-      setReceiptPdfUrl(url);
-    } catch {
-      // error is surfaced via generateReceipt.error
-    } finally {
-      setLoadingReceiptId(null);
-    }
+    receiptModal.open(inv.id);
   }
 
   async function handleDeleteInvoice() {
@@ -248,6 +305,8 @@ export default function GigBilling() {
           {gig.travelCost > 0 && <><dt>Travel Cost</dt><dd><MoneyDisplay pennies={gig.travelCost} /></dd></>}
           <dt>Billing Total</dt><dd><strong><MoneyDisplay pennies={billingTotal} /></strong></dd>
           <dt>Total Paid</dt><dd><MoneyDisplay pennies={totalPaid} /></dd>
+          {totalRefunded > 0 && <><dt>Total Refunded</dt><dd>−<MoneyDisplay pennies={totalRefunded} /></dd></>}
+          {totalRefunded > 0 && <><dt>Net Received</dt><dd><MoneyDisplay pennies={netReceived} /></dd></>}
           {billingTotal > 0 && (
             <><dt>Deposit Status</dt><dd>{depositPaid >= depositRequired ? "✓ Deposit paid" : "Deposit not yet paid"}</dd></>
           )}
@@ -357,6 +416,47 @@ export default function GigBilling() {
         ) : <p style={{ color: "var(--pico-muted-color)" }}>No payments recorded.</p>}
       </section>
 
+      {/* Refunds */}
+      <section>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2>Refunds</h2>
+          <button className="secondary" onClick={() => setShowAddRefund(true)}>+ Add</button>
+        </div>
+        {refunds && refunds.length > 0 ? (
+          <table>
+            <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Description</th><th aria-label="Actions"></th></tr></thead>
+            <tbody>
+              {refunds.map((r) => (
+                <tr key={r.id}>
+                  <td>{formatDate(r.date)}</td>
+                  <td><MoneyDisplay pennies={r.amount} /></td>
+                  <td>{r.method ?? "—"}</td>
+                  <td>{r.description ?? "—"}</td>
+                  <td>
+                    <div style={{ display: "flex", gap: "0.25rem" }}>
+                      <button
+                        className="secondary outline"
+                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                        aria-busy={creditNoteModal.loadingId === r.id}
+                        aria-label={`Generate credit note for refund of ${formatPennies(r.amount)}`}
+                        title="Generate credit note PDF"
+                        onClick={() => creditNoteModal.open(r.id)}
+                      >CN</button>
+                      <button
+                        className="contrast outline"
+                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                        aria-label={`Delete refund of ${formatPennies(r.amount)}`}
+                        onClick={() => deleteRefund.mutate({ id: r.id, gigId })}
+                      >✕</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : <p style={{ color: "var(--pico-muted-color)" }}>No refunds recorded.</p>}
+      </section>
+
       {/* Invoices */}
       <section>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -442,8 +542,8 @@ export default function GigBilling() {
                         <button
                           className="secondary outline"
                           style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
-                          onClick={() => openInvoicePdf(inv.id)}
-                          aria-busy={loadingInvoiceId === inv.id}
+                          onClick={() => invoicePdfModal.open(inv.id)}
+                          aria-busy={invoicePdfModal.loadingId === inv.id}
                           aria-label={`Open PDF for invoice ${inv.invoiceNumber}`}
                         >PDF</button>
                         <button
@@ -458,7 +558,7 @@ export default function GigBilling() {
                           className="secondary outline"
                           style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
                           onClick={() => openReceiptPdf(inv)}
-                          aria-busy={loadingReceiptId === inv.id}
+                          aria-busy={receiptModal.loadingId === inv.id}
                           aria-label={`Generate receipt for invoice ${inv.invoiceNumber}`}
                           disabled={!hasLinkedPayments}
                           title={!hasLinkedPayments ? "Link at least one payment to generate a receipt" : "Generate receipt PDF"}
@@ -491,17 +591,43 @@ export default function GigBilling() {
         </form>
       </Modal>
 
-      <Modal open={showAddPayment} onClose={() => setShowAddPayment(false)} title="Add Payment">
-        <form onSubmit={handleAddPayment}>
-          <MoneyField label="Amount" value={paymentForm.amount ?? undefined} onChange={(pennies) => setPaymentForm((f) => ({ ...f, amount: pennies ?? 0 }))} required min={0} />
-          <FormField label="Date" type="date" value={toInputDate(paymentForm.date)} onChange={(e) => setPaymentForm((f) => ({ ...f, date: e.target.value }))} />
-          <FormField label="Method" value={paymentForm.method ?? ""} onChange={(e) => setPaymentForm((f) => ({ ...f, method: e.target.value }))} placeholder="e.g. Bank transfer" />
-          <FormField label="Description" value={paymentForm.description ?? ""} onChange={(e) => setPaymentForm((f) => ({ ...f, description: e.target.value }))} />
-          <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-            <button type="button" className="secondary" onClick={() => setShowAddPayment(false)}>Cancel</button>
-            <button type="submit" aria-busy={createPayment.isPending} disabled={createPayment.isPending}>Add</button>
-          </footer>
-        </form>
+      <AddTransactionModal
+        open={showAddPayment}
+        title="Add Payment"
+        form={paymentForm}
+        onChange={setPaymentForm}
+        onSubmit={handleAddPayment}
+        onClose={() => setShowAddPayment(false)}
+        isPending={createPayment.isPending}
+      />
+
+      <AddTransactionModal
+        open={showAddRefund}
+        title="Add Refund"
+        form={refundForm}
+        onChange={setRefundForm}
+        onSubmit={handleAddRefund}
+        onClose={() => setShowAddRefund(false)}
+        isPending={createRefund.isPending}
+      />
+
+      {/* Credit Note PDF Modal */}
+      <Modal open={creditNoteModal.show} onClose={creditNoteModal.close} title="Credit Note PDF">
+        {creditNoteModal.loadingId !== null && <LoadingState />}
+        {creditNoteModal.error && <ErrorBanner error={creditNoteModal.error.message} />}
+        {creditNoteModal.url && (
+          <iframe
+            src={creditNoteModal.url}
+            title="Credit Note PDF"
+            style={{ width: "100%", height: "70vh", border: "none", display: "block" }}
+          />
+        )}
+        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
+          <button className="secondary" onClick={creditNoteModal.close}>Close</button>
+          {creditNoteModal.url && (
+            <a href={creditNoteModal.url} download="credit-note.pdf">Download PDF</a>
+          )}
+        </footer>
       </Modal>
 
       {/* Invoice Preview Modal */}
@@ -529,39 +655,39 @@ export default function GigBilling() {
       </Modal>
 
       {/* Invoice PDF Modal */}
-      <Modal open={showInvoicePdf} onClose={() => setShowInvoicePdf(false)} title="Invoice PDF">
-        {savedPdfMutation.isPending && <LoadingState />}
-        {savedPdfMutation.error && <ErrorBanner error={savedPdfMutation.error instanceof Error ? savedPdfMutation.error.message : "Failed to load PDF"} />}
-        {invoicePdfUrl && (
+      <Modal open={invoicePdfModal.show} onClose={invoicePdfModal.close} title="Invoice PDF">
+        {invoicePdfModal.loadingId !== null && <LoadingState />}
+        {invoicePdfModal.error && <ErrorBanner error={invoicePdfModal.error.message} />}
+        {invoicePdfModal.url && (
           <iframe
-            src={invoicePdfUrl}
+            src={invoicePdfModal.url}
             title="Invoice PDF"
             style={{ width: "100%", height: "70vh", border: "none", display: "block" }}
           />
         )}
         <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
-          <button className="secondary" onClick={() => setShowInvoicePdf(false)}>Close</button>
-          {invoicePdfUrl && (
-            <a href={invoicePdfUrl} download="invoice.pdf">Download PDF</a>
+          <button className="secondary" onClick={invoicePdfModal.close}>Close</button>
+          {invoicePdfModal.url && (
+            <a href={invoicePdfModal.url} download="invoice.pdf">Download PDF</a>
           )}
         </footer>
       </Modal>
 
       {/* Receipt PDF Modal */}
-      <Modal open={showReceiptPdf} onClose={() => setShowReceiptPdf(false)} title="Receipt PDF">
-        {generateReceipt.isPending && <LoadingState />}
-        {generateReceipt.error && <ErrorBanner error={generateReceipt.error instanceof Error ? generateReceipt.error.message : "Failed to generate receipt"} />}
-        {receiptPdfUrl && (
+      <Modal open={receiptModal.show} onClose={receiptModal.close} title="Receipt PDF">
+        {receiptModal.loadingId !== null && <LoadingState />}
+        {receiptModal.error && <ErrorBanner error={receiptModal.error.message} />}
+        {receiptModal.url && (
           <iframe
-            src={receiptPdfUrl}
+            src={receiptModal.url}
             title="Receipt PDF"
             style={{ width: "100%", height: "70vh", border: "none", display: "block" }}
           />
         )}
         <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
-          <button className="secondary" onClick={() => setShowReceiptPdf(false)}>Close</button>
-          {receiptPdfUrl && (
-            <a href={receiptPdfUrl} download={`receipt-${receiptInvoiceNumber}.pdf`}>Download PDF</a>
+          <button className="secondary" onClick={receiptModal.close}>Close</button>
+          {receiptModal.url && (
+            <a href={receiptModal.url} download={`receipt-${receiptInvoiceNumber}.pdf`}>Download PDF</a>
           )}
         </footer>
       </Modal>

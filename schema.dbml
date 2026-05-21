@@ -249,6 +249,15 @@ Table payments {
   invoice_id  int [ref: > invoices.id]
 }
 
+Table refunds {
+  id          serial [pk, increment]
+  gig_id      int [ref: > gigs.id, not null]
+  date        date
+  amount      int [not null]
+  method      varchar(100)
+  description varchar(255)
+}
+
 Table gig_services {
   gig_id int [ref: > gigs.id, not null]
   service_id int [ref: > services.id, not null]

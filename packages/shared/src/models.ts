@@ -598,6 +598,31 @@ export interface Payment {
   invoiceId?: number;
 }
 
+export interface Refund {
+  id: number;
+  gigId: number;
+  date?: string;
+  amount: number;
+  method?: string;
+  description?: string;
+}
+
+export interface CreateRefundRequest {
+  gigId: number;
+  date?: string;
+  amount: number;
+  method?: string;
+  description?: string;
+}
+
+export interface UpdateRefundRequest {
+  gigId?: number;
+  date?: string;
+  amount?: number;
+  method?: string;
+  description?: string;
+}
+
 export interface CreatePaymentRequest {
   gigId: number;
   date?: string;

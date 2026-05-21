@@ -14,6 +14,7 @@ import * as invoicesRepo from "../repository/invoices.js";
 import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
 import * as paymentsRepo from "../repository/payments.js";
+import * as refundsRepo from "../repository/refunds.js";
 import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 
@@ -279,6 +280,33 @@ export async function unlinkPayment(invoiceId: number, paymentId: number): Promi
   if (payment.invoice_id !== invoiceId)
     throw new BadRequestError("Payment is not linked to this invoice");
   await paymentsRepo.setPaymentInvoiceLink(paymentId, null);
+}
+
+/**
+ * Recalculate and persist the `amount_due` for every invoice linked to a gig,
+ * based on payments received. Refunds are not included; they are reflected
+ * separately in the financial summary. Called whenever payments change.
+ */
+export async function recalculateAmountDueForGig(gigId: number): Promise<void> {
+  return withTransaction(async () => {
+    const [invoices, payments] = await Promise.all([
+      invoicesRepo.readInvoicesByGigId(gigId),
+      paymentsRepo.readPaymentsByGigId(gigId),
+    ]);
+
+    const paid = payments.reduce((s, p) => s + p.amount, 0);
+
+    await Promise.all(
+      invoices.map((inv) => {
+        const expected =
+          inv.invoice_type === "deposit"
+            ? Math.round(inv.total_amount * 0.2)
+            : inv.total_amount;
+        const amountDue = Math.max(0, expected - paid);
+        return invoicesRepo.updateAmountDue(inv.id, amountDue);
+      })
+    );
+  });
 }
 
 /**

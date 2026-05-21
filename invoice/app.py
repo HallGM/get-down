@@ -7,7 +7,7 @@ import threading
 import time
 from urllib.request import urlopen
 from flask import Flask, render_template, request, jsonify, send_file
-from src.invoice_ev import generate_ev_invoice, generate_receipt, EVInvoiceOptions
+from src.invoice_ev import generate_ev_invoice, generate_receipt, generate_credit_note, EVInvoiceOptions
 from src.generic_invoice import create_generic_invoice, create_generic_receipt
 from src.invoice import Invoice, Line_item, Section
 from src.config import BusinessConfig, Address
@@ -188,6 +188,8 @@ def generate_invoice():
         # Generate PDF bytes
         pdf_bytes = create_generic_invoice(
             invoice, EV_CONFIG, return_bytes=True)
+        if pdf_bytes is None:
+            return jsonify({"error": "Failed to generate invoice PDF"}), 500
 
         return pdf_response(pdf_bytes, f"invoice-{data['invoice_number']}.pdf")
 
@@ -310,6 +312,8 @@ def generate_receipt_route():
         # Generate PDF bytes
         pdf_bytes = create_generic_receipt(
             receipt, EV_CONFIG, return_bytes=True)
+        if pdf_bytes is None:
+            return jsonify({"error": "Failed to generate receipt PDF"}), 500
 
         return pdf_response(pdf_bytes, f"receipt-{data['invoice_number']}.pdf")
 
@@ -323,6 +327,51 @@ def generic_form():
     """Render the generic invoice form."""
     logger.info("Generic invoice form page requested")
     return render_template("generic_form.html")
+
+
+@app.route("/generate-credit-note", methods=["POST"])
+def generate_credit_note_route():
+    """Generate a credit note PDF for a refund."""
+    try:
+        data = request.get_json()
+        logger.info(
+            f"Credit note generation requested for {data.get('customer_name', 'unknown')}")
+
+        if not data.get("customer_name"):
+            return jsonify({"error": "customer_name is required"}), 400
+        if not data.get("date"):
+            return jsonify({"error": "date is required"}), 400
+        if data.get("amount") is None:
+            return jsonify({"error": "amount is required"}), 400
+
+        try:
+            amount = float(data["amount"])
+        except (ValueError, TypeError):
+            return jsonify({"error": "amount must be a number"}), 400
+        if amount <= 0:
+            return jsonify({"error": "amount must be positive"}), 400
+
+        credit_note = generate_credit_note(
+            customer_name=data["customer_name"],
+            date=data["date"],
+            amount=amount,
+            description=data.get("description") or "Refund",
+            reference=data.get("reference"),
+            event_date=data.get("event_date", ""),
+            venue=data.get("venue", ""),
+        )
+
+        pdf_bytes = create_generic_invoice(credit_note, EV_CONFIG, return_bytes=True)
+        if pdf_bytes is None:
+            return jsonify({"error": "Failed to generate credit note PDF"}), 500
+
+        raw_ref = data.get("reference") or "credit-note"
+        safe_ref = re.sub(r"[^\w\-]", "-", raw_ref)
+        return pdf_response(pdf_bytes, f"{safe_ref}.pdf")
+
+    except Exception as e:
+        logger.error(f"Error generating credit note: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Error generating credit note: {str(e)}"}), 500
 
 
 @app.route("/generate-generic", methods=["POST"])
@@ -405,6 +454,8 @@ def generate_generic_invoice():
 
         # Generate PDF bytes
         pdf_bytes = create_generic_invoice(invoice, business_config, return_bytes=True)
+        if pdf_bytes is None:
+            return jsonify({"error": "Failed to generate invoice PDF"}), 500
 
         return pdf_response(pdf_bytes, f"invoice-{data['invoice_number']}.pdf")
 

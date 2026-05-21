@@ -72,7 +72,7 @@ def _build_summary_items(options: EVInvoiceOptions, show_deposit: bool = True, s
     return summary_items, total, deposit
 
 
-def generate_ev_invoice(options: EVInvoiceOptions, deposit_only: bool = False, amount_due_override: float = None, show_deposit: bool = True) -> "Invoice":
+def generate_ev_invoice(options: EVInvoiceOptions, deposit_only: bool = False, amount_due_override: Optional[float] = None, show_deposit: bool = True) -> "Invoice":
     """
     Wrapper to create an Invoice with sections for line items, summary, and amount due.
     If deposit_only is True, the amount due is the deposit, not the full balance.
@@ -150,4 +150,34 @@ def generate_receipt(options: EVInvoiceOptions, show_deposit: bool = True) -> Re
             Section(heading="Summary", rows=summary_items),
             Section(heading="Totals", rows=balance_section)
         ]
+    )
+
+
+def generate_credit_note(
+    customer_name: str,
+    date: str,
+    amount: float,
+    description: str,
+    reference: Optional[str] = None,
+    event_date: str = "",
+    venue: str = "",
+) -> "Invoice":
+    """
+    Generate a credit note document for a refund.
+    Uses the Invoice layout with a single line item showing the refunded amount.
+    """
+    ref_label = reference if reference else "Credit Note"
+    title = f"{event_date} - {venue}" if (event_date or venue) else ref_label
+
+    line_items = [{"description": description, "price": amount}]
+    total_section = [{"description": "Total Credit", "price": amount, "bold": True}]
+
+    return Invoice(
+        customer_name=customer_name,
+        invoice_number=ref_label,
+        title=title,
+        sections=[
+            Section(heading="Credit Items", rows=line_items),
+            Section(heading="Totals", rows=total_section),
+        ],
     )
