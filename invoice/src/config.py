@@ -32,4 +32,4 @@ class BusinessConfig:
     account_number: str
     sort_code: str
     logo_path: Optional[str] = None  # Path to logo file, or None for text-only
-    deposit_percentage: float = 20.0  # Default 20% deposit
+    deposit_percentage: Optional[float] = 20.0  # Default 20% deposit
