@@ -29,7 +29,14 @@ export async function createPayment(input: PaymentMutationInput): Promise<Paymen
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING ${SELECT_COLS};
     `,
-    values: [input.gigId, input.date ?? null, input.amount, input.method ?? null, input.description ?? null, input.airtableId ?? null],
+    values: [
+      input.gigId,
+      input.date ?? null,
+      input.amount,
+      input.method ?? null,
+      input.description ?? null,
+      input.airtableId ?? null,
+    ],
   });
   return rows[0];
 }

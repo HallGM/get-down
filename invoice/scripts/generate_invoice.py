@@ -82,7 +82,7 @@ def build_invoice(
     discount_percent=None,
     custom_charge=None,
     payment_made=None,
-    deposit_percentage=20.0,
+    deposit_percentage: float | None = 20.0,
     deposit_only=False,
     amount_due_override=None,
     show_deposit=True

@@ -9,7 +9,7 @@ from weasyprint import HTML, CSS
 from jinja2 import Template
 from dataclasses import dataclass
 
-from .invoice import Invoice, Receipt, Line_item, Section
+from .invoice import Invoice, Receipt, Line_item, Section, Document
 from .config import BusinessConfig
 
 
@@ -38,7 +38,7 @@ def _get_logo_data_uri(business_config: BusinessConfig) -> Optional[str]:
 
 
 def _render_document_with_config(
-    document: object,  # Invoice or Receipt
+    document: Document,
     business_config: BusinessConfig,
     return_bytes: bool = False
 ) -> Optional[bytes]:
