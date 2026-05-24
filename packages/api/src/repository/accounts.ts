@@ -30,6 +30,17 @@ export interface TransactionRow {
   description: string | null;
 }
 
+export interface LedgerEntryRow {
+  source_id: number;
+  entry_type: 'transaction' | 'allocation';
+  account_id: number;
+  person_id: number;
+  date: string | null;
+  amount: number;
+  label: string;
+  description: string | null;
+}
+
 export interface TransactionMutationInput {
   date?: string;
   amount: number;
@@ -46,10 +57,10 @@ export async function readAllAccounts(): Promise<AccountSummaryRow[]> {
         p.first_name,
         p.last_name,
         p.display_name,
-        COALESCE(SUM(t.amount), 0)::int AS ca_balance
+        COALESCE(SUM(l.amount), 0)::int AS ca_balance
       FROM accounts a
       JOIN people p ON p.id = a.person_id
-      LEFT JOIN account_transactions t ON t.account_id = a.id
+      LEFT JOIN account_ledger l ON l.account_id = a.id
       GROUP BY a.id, a.person_id, p.first_name, p.last_name, p.display_name
       ORDER BY p.first_name, p.last_name;
     `,
@@ -95,26 +106,15 @@ export async function readTransactionsByAccountId(
   accountId: number,
   year?: number
 ): Promise<TransactionRow[]> {
-  if (year !== undefined) {
-    return run_query<TransactionRow>({
-      text: `
-        SELECT id, account_id, date, amount, type, description
-        FROM account_transactions
-        WHERE account_id = $1
-          AND EXTRACT(YEAR FROM date) = $2
-        ORDER BY date DESC, id DESC;
-      `,
-      values: [accountId, year],
-    });
-  }
+  const yearFilter = year !== undefined ? `AND EXTRACT(YEAR FROM date) = $2` : "";
   return run_query<TransactionRow>({
     text: `
       SELECT id, account_id, date, amount, type, description
       FROM account_transactions
-      WHERE account_id = $1
+      WHERE account_id = $1 ${yearFilter}
       ORDER BY date DESC, id DESC;
     `,
-    values: [accountId],
+    values: year !== undefined ? [accountId, year] : [accountId],
   });
 }
 
@@ -172,6 +172,22 @@ export async function deleteTransaction(id: number): Promise<boolean> {
     values: [id],
   });
   return rows.length > 0;
+}
+
+export async function readLedgerByAccountId(
+  accountId: number,
+  year?: number
+): Promise<LedgerEntryRow[]> {
+  const yearFilter = year !== undefined ? `AND EXTRACT(YEAR FROM date) = $2` : "";
+  return run_query<LedgerEntryRow>({
+    text: `
+      SELECT source_id, entry_type, account_id, person_id, date, amount, label, description
+      FROM account_ledger
+      WHERE account_id = $1 ${yearFilter}
+      ORDER BY date DESC NULLS LAST, source_id DESC;
+    `,
+    values: year !== undefined ? [accountId, year] : [accountId],
+  });
 }
 
 export async function readAllocationIdsByTransactionId(

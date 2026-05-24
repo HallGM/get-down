@@ -2,13 +2,23 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   useAccounts,
-  useAccountTransactions,
+  useAccountLedger,
   useCreateTransaction,
   useUpdateTransaction,
   useDeleteTransaction,
 } from "../../api/hooks/useAccounts.js";
 import { useFeeAllocations } from "../../api/hooks/useFeeAllocations.js";
-import type { AccountTransaction, CreateAccountTransactionRequest, FeeAllocation } from "@get-down/shared";
+import {
+  useFeeAllocation,
+  useAddFeeLineItem,
+  useUpdateFeeLineItem,
+  useRemoveFeeLineItem,
+  useResetFeeAllocation,
+  useDeleteFeeAllocation,
+} from "../../api/hooks/useFeeAllocations.js";
+import { FeeAllocationPanel } from "../../components/FeeAllocationPanel.js";
+import type { LedgerEntry, CreateAccountTransactionRequest, UpdateAccountTransactionRequest } from "@get-down/shared";
+import type { FeeAllocation } from "@get-down/shared";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
@@ -147,23 +157,31 @@ export default function AccountDetail() {
   const [year, setYear] = useState(CURRENT_YEAR);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<TransactionForm>(EMPTY_FORM);
-  const [editTarget, setEditTarget] = useState<AccountTransaction | null>(null);
+  const [editTarget, setEditTarget] = useState<LedgerEntry | null>(null);
   const [editForm, setEditForm] = useState<TransactionForm>(EMPTY_FORM);
-  const [deleteTarget, setDeleteTarget] = useState<AccountTransaction | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<LedgerEntry | null>(null);
+  const [editAllocationId, setEditAllocationId] = useState<number | null>(null);
 
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
-  const { data: transactions, isLoading: txLoading, error: txError } = useAccountTransactions(accountId, year);
+  const { data: ledger, isLoading: ledgerLoading, error: ledgerError } = useAccountLedger(accountId, year);
   const { data: allocations } = useFeeAllocations();
 
   const createTx = useCreateTransaction(accountId);
   const updateTx = useUpdateTransaction(accountId);
   const deleteTx = useDeleteTransaction(accountId);
 
+  const { data: editAllocation } = useFeeAllocation(editAllocationId ?? 0);
+  const addLineItem = useAddFeeLineItem();
+  const updateLineItem = useUpdateFeeLineItem();
+  const removeLineItem = useRemoveFeeLineItem();
+  const resetAllocation = useResetFeeAllocation();
+  const deleteAllocation = useDeleteFeeAllocation();
+
   const account = accounts?.find((a) => a.id === accountId);
 
-  if (accountsLoading || txLoading) return <main className="container"><LoadingState /></main>;
+  if (accountsLoading || ledgerLoading) return <main className="container"><LoadingState /></main>;
   if (accountsError) return <main className="container"><ErrorBanner error={accountsError} /></main>;
-  if (txError) return <main className="container"><ErrorBanner error={txError} /></main>;
+  if (ledgerError) return <main className="container"><ErrorBanner error={ledgerError} /></main>;
   if (!account) return <main className="container"><ErrorBanner error={new Error("Account not found")} /></main>;
 
   const { text: balanceLabel, color: balanceColor } = caLabel(account.caBalance);
@@ -182,30 +200,29 @@ export default function AccountDetail() {
     setForm(EMPTY_FORM);
   }
 
-  function openEdit(tx: AccountTransaction) {
-    setEditTarget(tx);
+  function openEdit(entry: LedgerEntry) {
+    if (entry.entryType !== 'transaction') return;
+    setEditTarget(entry);
     setEditForm({
-      date: toInputDate(tx.date),
-      amount: tx.amount,
-      type: tx.type,
-      description: tx.description ?? "",
-      feeAllocationIds: tx.feeAllocationIds,
+      date: entry.date ? toInputDate(entry.date) : "",
+      amount: entry.amount,
+      type: entry.label,
+      description: entry.description ?? "",
+      feeAllocationIds: entry.feeAllocationIds ?? [],
     });
   }
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     if (!editTarget) return;
-    await updateTx.mutateAsync({
-      id: editTarget.id,
-      input: {
-        date: editForm.date || undefined,
-        amount: editForm.amount,
-        type: editForm.type,
-        description: editForm.description || undefined,
-        feeAllocationIds: editForm.feeAllocationIds,
-      },
-    });
+    const input: UpdateAccountTransactionRequest = {
+      date: editForm.date || undefined,
+      amount: editForm.amount,
+      type: editForm.type,
+      description: editForm.description || undefined,
+      feeAllocationIds: editForm.feeAllocationIds,
+    };
+    await updateTx.mutateAsync({ id: editTarget.sourceId, input });
     setEditTarget(null);
   }
 
@@ -246,13 +263,13 @@ export default function AccountDetail() {
           </select>
         </label>
         <small style={{ color: "var(--pico-muted-color)" }}>
-          {transactions?.length ?? 0} transaction{transactions?.length !== 1 ? "s" : ""}
+          {ledger?.length ?? 0} entr{ledger?.length !== 1 ? "ies" : "y"}
         </small>
       </div>
 
-      {/* Transaction list */}
-      {transactions?.length === 0 ? (
-        <EmptyState message={`No transactions in ${year}.`} />
+      {/* Ledger list */}
+      {ledger?.length === 0 ? (
+        <EmptyState message={`No entries in ${year}.`} />
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table>
@@ -262,34 +279,45 @@ export default function AccountDetail() {
                 <th>Type</th>
                 <th>Description</th>
                 <th style={{ textAlign: "right" }}>Amount</th>
-                <th>Allocations</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {(transactions ?? []).map((tx) => (
-                <tr key={tx.id}>
-                  <td style={{ whiteSpace: "nowrap" }}>{formatDate(tx.date)}</td>
-                  <td>{tx.type}</td>
-                  <td style={{ color: tx.description ? "inherit" : "var(--pico-muted-color)" }}>
-                    {tx.description ?? "—"}
-                  </td>
-                  <td style={{ textAlign: "right", whiteSpace: "nowrap", color: tx.amount < 0 ? "var(--pico-ins-color, green)" : "inherit" }}>
-                    {tx.amount < 0 ? "−" : ""}{formatPennies(Math.abs(tx.amount))}
-                  </td>
-                  <td style={{ color: "var(--pico-muted-color)", fontSize: "0.875rem" }}>
-                    {tx.feeAllocationIds.length > 0
-                      ? tx.feeAllocationIds.map((aid) => `#${aid}`).join(", ")
-                      : "—"}
+              {(ledger ?? []).map((entry) => (
+                <tr key={`${entry.entryType}-${entry.sourceId}`}>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    {entry.date ? formatDate(entry.date) : <span style={{ color: "var(--pico-muted-color)" }}>—</span>}
                   </td>
                   <td>
-                    <button
-                      className="secondary outline"
-                      style={{ padding: "0.2em 0.5em" }}
-                      onClick={() => openEdit(tx)}
-                    >
-                      Edit
-                    </button>
+                    {entry.entryType === 'allocation'
+                      ? <span style={{ color: "var(--pico-muted-color)", fontStyle: "italic" }}>{entry.label}</span>
+                      : entry.label}
+                  </td>
+                  <td style={{ color: entry.description ? "inherit" : "var(--pico-muted-color)" }}>
+                    {entry.description ?? "—"}
+                  </td>
+                  <td style={{ textAlign: "right", whiteSpace: "nowrap", color: entry.amount < 0 ? "var(--pico-ins-color, green)" : "inherit" }}>
+                    {entry.amount < 0 ? "+" : ""}{formatPennies(Math.abs(entry.amount))}
+                  </td>
+                  <td>
+                    {entry.entryType === 'transaction' && (
+                      <button
+                        className="secondary outline"
+                        style={{ padding: "0.2em 0.5em" }}
+                        onClick={() => openEdit(entry)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {entry.entryType === 'allocation' && (
+                      <button
+                        className="secondary outline"
+                        style={{ padding: "0.2em 0.5em" }}
+                        onClick={() => setEditAllocationId(entry.sourceId)}
+                      >
+                        Edit
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -331,15 +359,68 @@ export default function AccountDetail() {
       {deleteTarget && (
         <ConfirmDelete
           open={!!deleteTarget}
-          itemName={`${deleteTarget.type} — ${formatPennies(Math.abs(deleteTarget.amount))}`}
+          itemName={`${deleteTarget.label} — ${formatPennies(Math.abs(deleteTarget.amount))}`}
           onConfirm={async () => {
-            await deleteTx.mutateAsync(deleteTarget.id);
+            if (deleteTarget.entryType !== 'transaction') return;
+            await deleteTx.mutateAsync(deleteTarget.sourceId);
             setDeleteTarget(null);
           }}
           onCancel={() => setDeleteTarget(null)}
           loading={deleteTx.isPending}
         />
       )}
+
+      {/* Fee allocation edit modal */}
+      <Modal
+        open={!!editAllocationId && !!editAllocation}
+        onClose={() => setEditAllocationId(null)}
+        title="Edit Fee Allocation"
+      >
+        {editAllocation && (
+          <>
+            <FeeAllocationPanel
+              allocation={editAllocation}
+              onAddLineItem={(desc, amt) =>
+                addLineItem.mutate({ allocationId: editAllocation.id, input: { description: desc, amount: amt } })
+              }
+              onUpdateLineItem={(li, desc, amt) =>
+                updateLineItem.mutate({ allocationId: editAllocation.id, lineItemId: li.id, input: { description: desc, amount: amt } })
+              }
+              onRemoveLineItem={(li) =>
+                removeLineItem.mutate({ allocationId: editAllocation.id, lineItemId: li.id })
+              }
+            />
+            <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "space-between", marginTop: "1rem" }}>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  type="button"
+                  className="secondary outline"
+                  aria-busy={resetAllocation.isPending}
+                  disabled={resetAllocation.isPending}
+                  onClick={() => resetAllocation.mutate(editAllocation.id)}
+                >
+                  Reset to defaults
+                </button>
+                <button
+                  type="button"
+                  className="contrast outline"
+                  aria-busy={deleteAllocation.isPending}
+                  disabled={deleteAllocation.isPending}
+                  onClick={async () => {
+                    await deleteAllocation.mutateAsync(editAllocation.id);
+                    setEditAllocationId(null);
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+              <button type="button" className="secondary" onClick={() => setEditAllocationId(null)}>
+                Close
+              </button>
+            </footer>
+          </>
+        )}
+      </Modal>
     </main>
   );
 }
