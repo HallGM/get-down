@@ -447,7 +447,7 @@ export interface FeeAllocationLineItem {
 
 export interface CreateFeeAllocationRequest {
   personId?: number;
-  gigId?: number;
+  gigId: number;
   notes?: string;
   isInvoiced?: boolean;
   isPaid?: boolean;
@@ -731,6 +731,18 @@ export interface Account {
 
 export interface CreateAccountRequest {
   personId: number;
+}
+
+export interface LedgerEntry {
+  sourceId: number;
+  entryType: 'transaction' | 'allocation';
+  accountId: number;
+  date?: string;
+  amount: number;
+  label: string;
+  description?: string;
+  /** IDs of fee allocations linked to this transaction. Only present for transaction entries. */
+  feeAllocationIds?: number[];
 }
 
 export interface AccountTransaction {

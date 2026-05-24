@@ -9,6 +9,8 @@ const GIG_KEY = "gig-fee-allocations";
 function invalidateLineItemCaches(qc: QueryClient, allocationId: number) {
   qc.invalidateQueries({ queryKey: [KEY, allocationId] });
   qc.invalidateQueries({ queryKey: [GIG_KEY] });
+  // Line item changes affect the account ledger balance, so invalidate accounts too.
+  qc.invalidateQueries({ queryKey: ["accounts"] });
 }
 
 export function useFeeAllocations() {

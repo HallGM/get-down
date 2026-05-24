@@ -1,5 +1,5 @@
 import express, { type Router } from "express";
-import { authenticateToken } from "../middleware/auth.js";
+import { authenticateToken, requirePartner } from "../middleware/auth.js";
 import * as accountsService from "../services/accounts.js";
 import { handle } from "../utils/handle.js";
 
@@ -18,6 +18,13 @@ router.get("/accounts/people-without-accounts",
 
 router.get("/accounts/:id/transactions",
   handle((req) => accountsService.getTransactionsByAccount(
+    +req.params.id,
+    req.query.year ? +req.query.year : undefined
+  )));
+
+router.get("/accounts/:id/ledger",
+  requirePartner,
+  handle((req) => accountsService.getLedgerByAccount(
     +req.params.id,
     req.query.year ? +req.query.year : undefined
   )));

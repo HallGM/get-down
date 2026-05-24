@@ -20,7 +20,7 @@ export interface LineItemRow {
 
 export interface FeeAllocationMutationInput {
   personId?: number;
-  gigId?: number;
+  gigId: number;
   notes?: string;
   isInvoiced: boolean;
   isPaid: boolean;

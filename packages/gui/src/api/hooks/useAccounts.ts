@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Account,
   AccountTransaction,
+  LedgerEntry,
   CreateAccountRequest,
   CreateAccountTransactionRequest,
   UpdateAccountTransactionRequest,
@@ -39,18 +40,26 @@ export function useCreateAccount() {
   });
 }
 
-export function useAccountTransactions(accountId: number, year?: number) {
-  return useQuery({
-    queryKey: [KEY, accountId, "transactions", year ?? "all"],
+function accountResourceQuery<T>(accountId: number, segment: string, year?: number) {
+  return {
+    queryKey: [KEY, accountId, segment, year ?? "all"],
     queryFn: () =>
-      apiFetch<AccountTransaction[]>(
+      apiFetch<T>(
         "GET",
         year != null
-          ? `/accounts/${accountId}/transactions?year=${year}`
-          : `/accounts/${accountId}/transactions`
+          ? `/accounts/${accountId}/${segment}?year=${year}`
+          : `/accounts/${accountId}/${segment}`
       ),
     enabled: !!accountId,
-  });
+  };
+}
+
+export function useAccountTransactions(accountId: number, year?: number) {
+  return useQuery(accountResourceQuery<AccountTransaction[]>(accountId, "transactions", year));
+}
+
+export function useAccountLedger(accountId: number, year?: number) {
+  return useQuery(accountResourceQuery<LedgerEntry[]>(accountId, "ledger", year));
 }
 
 export function useCreateTransaction(accountId: number) {

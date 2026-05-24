@@ -92,7 +92,7 @@ export async function updateFeeAllocation(
   const existing = await getFeeAllocationById(id);
   const row = await feeAllocationsRepo.updateFeeAllocation(id, {
     personId: input.personId ?? existing.personId,
-    gigId: input.gigId ?? existing.gigId,
+    gigId: (input.gigId ?? existing.gigId) as number,
     notes: input.notes?.trim() ?? existing.notes,
     isInvoiced: input.isInvoiced ?? existing.isInvoiced,
     isPaid: input.isPaid ?? existing.isPaid,

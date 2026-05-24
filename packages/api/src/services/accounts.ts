@@ -2,6 +2,7 @@ import { z } from "zod";
 import type {
   Account,
   AccountTransaction,
+  LedgerEntry,
   UpdateAccountTransactionRequest,
 } from "@get-down/shared";
 import * as accountsRepo from "../repository/accounts.js";
@@ -140,6 +141,27 @@ export async function deleteTransaction(id: number, accountId: number): Promise<
   await accountsRepo.deleteTransaction(id);
 }
 
+export async function getLedgerByAccount(
+  accountId: number,
+  year?: number
+): Promise<LedgerEntry[]> {
+  const account = await accountsRepo.readAccountById(accountId);
+  if (!account) throw new NotFoundError("Account not found");
+
+  const rows = await accountsRepo.readLedgerByAccountId(accountId, year);
+  if (rows.length === 0) return [];
+
+  // For transaction entries, fetch their linked allocation IDs in bulk.
+  const txIds = rows
+    .filter((r) => r.entry_type === 'transaction')
+    .map((r) => r.source_id);
+  const allocationsMap = txIds.length > 0
+    ? await accountsRepo.readAllocationIdsByTransactionIds(txIds)
+    : new Map<number, number[]>();
+
+  return rows.map((row) => mapLedgerEntry(row, allocationsMap));
+}
+
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 function toDateString(value: string | Date | null): string | undefined {
@@ -169,5 +191,23 @@ function mapTransaction(
     type: row.type,
     description: row.description ?? undefined,
     feeAllocationIds,
+  };
+}
+
+function mapLedgerEntry(
+  row: accountsRepo.LedgerEntryRow,
+  allocationsMap: Map<number, number[]>
+): LedgerEntry {
+  return {
+    sourceId: row.source_id,
+    entryType: row.entry_type,
+    accountId: row.account_id,
+    date: toDateString(row.date),
+    amount: row.amount,
+    label: row.label,
+    description: row.description ?? undefined,
+    feeAllocationIds: row.entry_type === 'transaction'
+      ? (allocationsMap.get(row.source_id) ?? [])
+      : undefined,
   };
 }
