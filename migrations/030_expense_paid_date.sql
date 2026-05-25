@@ -1,0 +1,1 @@
+ALTER TABLE expenses ADD COLUMN paid_date DATE NULL;

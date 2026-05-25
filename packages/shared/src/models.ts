@@ -556,6 +556,7 @@ export const MAX_DOCUMENT_SIZE_BYTES = 20 * 1024 * 1024;
 export interface Expense {
   id: number;
   date?: string;
+  paidDate?: string;
   amount: number;
   description: string;
   category?: string;
@@ -571,6 +572,7 @@ export interface Expense {
 
 export interface CreateExpenseRequest {
   date?: string;
+  paidDate?: string | null;
   amount: number;
   description: string;
   category?: string;
@@ -583,6 +585,7 @@ export interface CreateExpenseRequest {
 
 export interface UpdateExpenseRequest {
   date?: string;
+  paidDate?: string | null;
   amount?: number;
   description?: string;
   category?: string;

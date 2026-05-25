@@ -36,6 +36,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, onDelet
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState<number | undefined>(undefined);
   const [date, setDate] = useState("");
+  const [paidDate, setPaidDate] = useState("");
   const [category, setCategory] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -50,6 +51,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, onDelet
     setDescription(expense.description ?? "");
     setAmount(expense.amount);
     setDate(toInputDate(expense.date));
+    setPaidDate(toInputDate(expense.paidDate));
     setCategory(expense.category ?? "");
     setRecipientName(expense.recipientName ?? "");
     setPaymentMethod(expense.paymentMethod ?? "");
@@ -68,6 +70,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, onDelet
         description,
         amount: amount ?? 0,
         date: date || undefined,
+        paidDate: paidDate || null,
         category: category || undefined,
         recipientName: recipientName || undefined,
         paymentMethod: paymentMethod || undefined,
@@ -117,6 +120,12 @@ export default function ExpenseModal({ expense, onClose, allAllocations, onDelet
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
+          />
+          <FormField
+            label="Paid date"
+            type="date"
+            value={paidDate}
+            onChange={(e) => setPaidDate(e.target.value)}
           />
           <FormField
             label="Category"

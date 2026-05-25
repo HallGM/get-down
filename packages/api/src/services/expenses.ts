@@ -115,6 +115,15 @@ async function tryDeleteFile(key: string): Promise<void> {
   }
 }
 
+function patchField<T>(
+  key: string,
+  input: object,
+  existing: T | undefined
+): T | null {
+  if (key in input) return (input as Record<string, unknown>)[key] as T | null ?? null;
+  return existing ?? null;
+}
+
 function toDateString(value: string | Date | null): string | null {
   if (!value) return null;
   if (typeof value === "string") return value;
@@ -134,6 +143,7 @@ export async function mapExpense(row: expensesRepo.ExpenseRow, feeAllocationIds:
   return {
     id: row.id,
     date: toDateString(row.date) ?? undefined,
+    paidDate: toDateString(row.paid_date) ?? undefined,
     amount: row.amount,
     description: row.description,
     category: row.category ?? undefined,
@@ -155,16 +165,12 @@ async function buildMutationInput(
   const description = input.description?.trim() ?? existing?.description;
   if (!description) throw new BadRequestError("description is required");
 
-  // paidByAccountId patch semantics:
+  // Patch semantics for nullable optional fields:
   //   - field absent from input → preserve existing value (or null if creating)
-  //   - field explicitly null   → clear the link
-  //   - field is a number       → set the link
-  let paidByAccountId: number | null;
-  if ('paidByAccountId' in input) {
-    paidByAccountId = input.paidByAccountId ?? null;
-  } else {
-    paidByAccountId = existing?.paidByAccountId ?? null;
-  }
+  //   - field explicitly null   → clear
+  //   - field has a value       → set
+  const paidByAccountId = patchField<number>('paidByAccountId', input, existing?.paidByAccountId);
+  const paidDate        = patchField<string>('paidDate',        input, existing?.paidDate);
 
   if (paidByAccountId !== null) {
     const account = await accountsRepo.readAccountById(paidByAccountId);
@@ -173,6 +179,7 @@ async function buildMutationInput(
 
   return {
     date: input.date ?? existing?.date,
+    paidDate,
     amount,
     description,
     category: input.category?.trim() ?? existing?.category,
