@@ -5,6 +5,8 @@ import Modal from "./Modal.js";
 import FormField from "./FormField.js";
 import MoneyField from "./MoneyField.js";
 import { toInputDate } from "../utils/date.js";
+import { useAccounts } from "../api/hooks/useAccounts.js";
+import PaidBySelect from "./PaidBySelect.js";
 import {
   useUpdateExpense,
   useUploadExpenseDocument,
@@ -29,6 +31,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, onDelet
   const deleteDocument = useDeleteExpenseDocument();
   const linkAllocation = useLinkAllocationToExpense();
   const unlinkAllocation = useUnlinkAllocationFromExpense();
+  const { data: accounts } = useAccounts();
 
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState<number | undefined>(undefined);
@@ -36,6 +39,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, onDelet
   const [category, setCategory] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [paidByAccountId, setPaidByAccountId] = useState<number | null>(null);
   const [file, setFile] = useState<File | undefined>(undefined);
   const [fileError, setFileError] = useState<string | undefined>(undefined);
   const [localDocUrl, setLocalDocUrl] = useState<string | undefined>(undefined);
@@ -49,6 +53,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, onDelet
     setCategory(expense.category ?? "");
     setRecipientName(expense.recipientName ?? "");
     setPaymentMethod(expense.paymentMethod ?? "");
+    setPaidByAccountId(expense.paidByAccountId ?? null);
     setFile(undefined);
     setFileError(undefined);
     setLocalDocUrl(expense.documentUrl);
@@ -59,7 +64,15 @@ export default function ExpenseModal({ expense, onClose, allAllocations, onDelet
     if (!expense || fileError) return;
     await updateExpense.mutateAsync({
       id: expense.id,
-      input: { description, amount: amount ?? 0, date: date || undefined, category: category || undefined, recipientName: recipientName || undefined, paymentMethod: paymentMethod || undefined },
+      input: {
+        description,
+        amount: amount ?? 0,
+        date: date || undefined,
+        category: category || undefined,
+        recipientName: recipientName || undefined,
+        paymentMethod: paymentMethod || undefined,
+        paidByAccountId,
+      },
     });
     if (file) {
       await uploadDocument.mutateAsync({ id: expense.id, file });
@@ -119,6 +132,13 @@ export default function ExpenseModal({ expense, onClose, allAllocations, onDelet
             label="Payment Method"
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}
+          />
+
+          {/* Paid by */}
+          <PaidBySelect
+            accounts={accounts}
+            value={paidByAccountId}
+            onChange={setPaidByAccountId}
           />
 
           {/* Document */}

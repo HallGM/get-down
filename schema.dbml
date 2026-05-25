@@ -179,15 +179,16 @@ Table role_services {
 }
 
 Table expenses {
-  id             serial [pk, increment]
-  date           date
-  amount         int [not null]
-  description    varchar(255) [not null]
-  category       varchar(100)
-  recipient_name varchar(255)
-  payment_method varchar(100)
-  airtable_id    varchar(255)
-  document_key   varchar(255)
+  id                  serial [pk, increment]
+  date                date
+  amount              int [not null]
+  description         varchar(255) [not null]
+  category            varchar(100)
+  recipient_name      varchar(255)
+  payment_method      varchar(100)
+  airtable_id         varchar(255)
+  document_key        varchar(255)
+  paid_by_account_id  int [ref: > accounts.id]
 }
 
 Table fee_allocations_expenses {

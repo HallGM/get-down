@@ -32,7 +32,7 @@ export interface TransactionRow {
 
 export interface LedgerEntryRow {
   source_id: number;
-  entry_type: 'transaction' | 'allocation';
+  entry_type: 'transaction' | 'allocation' | 'expense';
   account_id: number;
   person_id: number;
   date: string | null;

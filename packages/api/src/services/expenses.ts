@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { Expense, CreateExpenseRequest, UpdateExpenseRequest } from "@get-down/shared";
 import * as expensesRepo from "../repository/expenses.js";
 import * as feeAllocationsRepo from "../repository/fee_allocations.js";
+import * as accountsRepo from "../repository/accounts.js";
 import * as storage from "../utils/storage.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
@@ -24,13 +25,13 @@ export async function getExpenseById(id: number): Promise<Expense> {
 }
 
 export async function createExpense(input: CreateExpenseRequest): Promise<Expense> {
-  const row = await expensesRepo.createExpense(buildMutationInput(input));
+  const row = await expensesRepo.createExpense(await buildMutationInput(input));
   return await mapExpense(row, []);
 }
 
 export async function updateExpense(id: number, input: UpdateExpenseRequest): Promise<Expense> {
   const existing = await getExpenseById(id);
-  const row = await expensesRepo.updateExpense(id, buildMutationInput(input, existing));
+  const row = await expensesRepo.updateExpense(id, await buildMutationInput(input, existing));
   if (!row) throw new NotFoundError("Expense not found");
   const allocationIds = await expensesRepo.readAllocationIdsByExpenseId(id);
   return await mapExpense(row, allocationIds);
@@ -141,17 +142,34 @@ export async function mapExpense(row: expensesRepo.ExpenseRow, feeAllocationIds:
     airtableId: row.airtable_id ?? undefined,
     documentUrl,
     feeAllocationIds,
+    paidByAccountId: row.paid_by_account_id ?? undefined,
   };
 }
 
-function buildMutationInput(
+async function buildMutationInput(
   input: CreateExpenseRequest | UpdateExpenseRequest,
   existing?: Expense
-): expensesRepo.ExpenseMutationInput {
+): Promise<expensesRepo.ExpenseMutationInput> {
   const amount = input.amount ?? existing?.amount;
   if (amount === undefined) throw new BadRequestError("amount is required");
   const description = input.description?.trim() ?? existing?.description;
   if (!description) throw new BadRequestError("description is required");
+
+  // paidByAccountId patch semantics:
+  //   - field absent from input → preserve existing value (or null if creating)
+  //   - field explicitly null   → clear the link
+  //   - field is a number       → set the link
+  let paidByAccountId: number | null;
+  if ('paidByAccountId' in input) {
+    paidByAccountId = input.paidByAccountId ?? null;
+  } else {
+    paidByAccountId = existing?.paidByAccountId ?? null;
+  }
+
+  if (paidByAccountId !== null) {
+    const account = await accountsRepo.readAccountById(paidByAccountId);
+    if (!account) throw new BadRequestError("paidByAccountId references an account that does not exist");
+  }
 
   return {
     date: input.date ?? existing?.date,
@@ -161,5 +179,6 @@ function buildMutationInput(
     recipientName: input.recipientName?.trim() ?? existing?.recipientName,
     paymentMethod: input.paymentMethod?.trim() ?? existing?.paymentMethod,
     airtableId: input.airtableId ?? existing?.airtableId,
+    paidByAccountId,
   };
 }

@@ -565,6 +565,8 @@ export interface Expense {
   documentUrl?: string;
   /** IDs of fee allocations linked to this expense via fee_allocations_expenses. Always present, never undefined. */
   feeAllocationIds: number[];
+  /** Account ID of the person who paid this expense out of pocket, if any. */
+  paidByAccountId?: number;
 }
 
 export interface CreateExpenseRequest {
@@ -575,6 +577,8 @@ export interface CreateExpenseRequest {
   recipientName?: string;
   paymentMethod?: string;
   airtableId?: string;
+  /** Account ID of the person who paid this expense out of pocket, if any. */
+  paidByAccountId?: number;
 }
 
 export interface UpdateExpenseRequest {
@@ -585,6 +589,8 @@ export interface UpdateExpenseRequest {
   recipientName?: string;
   paymentMethod?: string;
   airtableId?: string;
+  /** Account ID of the person who paid this expense out of pocket. Pass null to clear. */
+  paidByAccountId?: number | null;
 }
 
 export interface Payment {
@@ -735,7 +741,7 @@ export interface CreateAccountRequest {
 
 export interface LedgerEntry {
   sourceId: number;
-  entryType: 'transaction' | 'allocation';
+  entryType: 'transaction' | 'allocation' | 'expense';
   accountId: number;
   date?: string;
   amount: number;
