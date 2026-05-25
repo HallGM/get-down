@@ -11,6 +11,7 @@ export interface ExpenseRow {
   payment_method: string | null;
   airtable_id: string | null;
   document_key: string | null;
+  paid_by_account_id: number | null;
 }
 
 export interface ExpenseMutationInput {
@@ -21,15 +22,17 @@ export interface ExpenseMutationInput {
   recipientName?: string;
   paymentMethod?: string;
   airtableId?: string;
+  /** null explicitly clears the link; undefined preserves the existing value in updates. */
+  paidByAccountId?: number | null;
 }
 
-const SELECT_COLS = `id, date, amount, description, category, recipient_name, payment_method, airtable_id, document_key`;
+const SELECT_COLS = `id, date, amount, description, category, recipient_name, payment_method, airtable_id, document_key, paid_by_account_id`;
 
 export async function createExpense(input: ExpenseMutationInput): Promise<ExpenseRow> {
   const rows = await run_query<ExpenseRow>({
     text: `
-      INSERT INTO expenses (date, amount, description, category, recipient_name, payment_method, airtable_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO expenses (date, amount, description, category, recipient_name, payment_method, airtable_id, paid_by_account_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -40,6 +43,7 @@ export async function createExpense(input: ExpenseMutationInput): Promise<Expens
       input.recipientName ?? null,
       input.paymentMethod ?? null,
       input.airtableId ?? null,
+      input.paidByAccountId ?? null,
     ],
   });
   return rows[0];
@@ -67,8 +71,9 @@ export async function updateExpense(
     text: `
       UPDATE expenses
       SET date = $1, amount = $2, description = $3, category = $4,
-          recipient_name = $5, payment_method = $6, airtable_id = $7
-      WHERE id = $8
+          recipient_name = $5, payment_method = $6, airtable_id = $7,
+          paid_by_account_id = $8
+      WHERE id = $9
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -79,6 +84,7 @@ export async function updateExpense(
       input.recipientName ?? null,
       input.paymentMethod ?? null,
       input.airtableId ?? null,
+      input.paidByAccountId !== undefined ? input.paidByAccountId : null,
       id,
     ],
   });

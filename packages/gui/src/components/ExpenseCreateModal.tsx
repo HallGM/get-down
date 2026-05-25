@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useCreateExpense } from "../api/hooks/useExpenses.js";
+import { useAccounts } from "../api/hooks/useAccounts.js";
+import PaidBySelect from "./PaidBySelect.js";
 import type { CreateExpenseRequest, Expense } from "@get-down/shared";
 import { MAX_DOCUMENT_SIZE_BYTES } from "@get-down/shared";
 import Modal from "./Modal.js";
@@ -39,6 +41,7 @@ export default function ExpenseCreateModal({
   initialValues,
 }: ExpenseCreateModalProps) {
   const createExpense = useCreateExpense();
+  const { data: accounts } = useAccounts();
 
   const [form, setForm] = useState<CreateExpenseRequest>(() => ({
     description: initialValues?.description ?? "",
@@ -110,6 +113,11 @@ export default function ExpenseCreateModal({
             label="Payment Method"
             value={form.paymentMethod ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))}
+          />
+          <PaidBySelect
+            accounts={accounts}
+            value={form.paidByAccountId}
+            onChange={(id) => setForm((f) => ({ ...f, paidByAccountId: id ?? undefined }))}
           />
           <div style={{ gridColumn: "1 / -1" }}>
             <label>

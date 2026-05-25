@@ -32,7 +32,10 @@ export function useCreateExpense() {
       }
       return expense;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+    },
     successMessage: "Expense added",
   });
 }
@@ -42,7 +45,10 @@ export function useUpdateExpense() {
   return useApiMutation({
     mutationFn: ({ id, input }: { id: number; input: UpdateExpenseRequest }) =>
       apiFetch<Expense>("PUT", `/expenses/${id}`, input),
-    onSuccess: (_data, { id }) => qc.invalidateQueries({ queryKey: [KEY, id] }),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: [KEY, id] });
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+    },
     successMessage: "Expense saved",
   });
 }
@@ -51,7 +57,10 @@ export function useDeleteExpense() {
   const qc = useQueryClient();
   return useApiMutation({
     mutationFn: (id: number) => apiFetch<void>("DELETE", `/expenses/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+    },
     successMessage: "Expense deleted",
   });
 }

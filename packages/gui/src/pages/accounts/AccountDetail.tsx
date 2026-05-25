@@ -289,7 +289,7 @@ export default function AccountDetail() {
                     {entry.date ? formatDate(entry.date) : <span style={{ color: "var(--pico-muted-color)" }}>—</span>}
                   </td>
                   <td>
-                    {entry.entryType === 'allocation'
+                    {(entry.entryType === 'allocation' || entry.entryType === 'expense')
                       ? <span style={{ color: "var(--pico-muted-color)", fontStyle: "italic" }}>{entry.label}</span>
                       : entry.label}
                   </td>
