@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useExpenses, useDeleteExpense } from "../../api/hooks/useExpenses.js";
 import { useFeeAllocations } from "../../api/hooks/useFeeAllocations.js";
+import { useAccounts } from "../../api/hooks/useAccounts.js";
 import type { Expense } from "@get-down/shared";
 import DataTable, { type Column } from "../../components/DataTable.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
@@ -33,7 +34,13 @@ const COLUMNS: Column<Expense>[] = [
 export default function ExpensesList() {
   const { data: expenses, isLoading, error } = useExpenses();
   const { data: allAllocations = [] } = useFeeAllocations();
+  const { data: accounts = [] } = useAccounts();
   const deleteExpense = useDeleteExpense();
+
+  const accountMap = useMemo(
+    () => new Map(accounts.map((a) => [a.id, a.personName])),
+    [accounts]
+  );
 
   const [showCreate, setShowCreate] = useState(false);
   const [editTargetId, setEditTargetId] = useState<number | null>(null);
@@ -54,6 +61,10 @@ export default function ExpensesList() {
 
       <DataTable<Expense>
         columns={[...COLUMNS, {
+          key: "paidByAccountId",
+          header: "Paid by",
+          render: (e) => e.paidByAccountId != null ? (accountMap.get(e.paidByAccountId) ?? "—") : "—",
+        }, {
           key: "actions", header: "",
           render: (exp) => (
             <button
