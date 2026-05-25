@@ -4,6 +4,7 @@ import { groupById } from "../utils/groupById.js";
 export interface ExpenseRow {
   id: number;
   date: string | null;
+  paid_date: string | null;
   amount: number;
   description: string;
   category: string | null;
@@ -16,6 +17,7 @@ export interface ExpenseRow {
 
 export interface ExpenseMutationInput {
   date?: string;
+  paidDate?: string | null;
   amount: number;
   description: string;
   category?: string;
@@ -26,17 +28,18 @@ export interface ExpenseMutationInput {
   paidByAccountId?: number | null;
 }
 
-const SELECT_COLS = `id, date, amount, description, category, recipient_name, payment_method, airtable_id, document_key, paid_by_account_id`;
+const SELECT_COLS = `id, date, paid_date, amount, description, category, recipient_name, payment_method, airtable_id, document_key, paid_by_account_id`;
 
 export async function createExpense(input: ExpenseMutationInput): Promise<ExpenseRow> {
   const rows = await run_query<ExpenseRow>({
     text: `
-      INSERT INTO expenses (date, amount, description, category, recipient_name, payment_method, airtable_id, paid_by_account_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO expenses (date, paid_date, amount, description, category, recipient_name, payment_method, airtable_id, paid_by_account_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING ${SELECT_COLS};
     `,
     values: [
       input.date ?? null,
+      input.paidDate ?? null,
       input.amount,
       input.description,
       input.category ?? null,
@@ -70,14 +73,15 @@ export async function updateExpense(
   const rows = await run_query<ExpenseRow>({
     text: `
       UPDATE expenses
-      SET date = $1, amount = $2, description = $3, category = $4,
-          recipient_name = $5, payment_method = $6, airtable_id = $7,
-          paid_by_account_id = $8
-      WHERE id = $9
+      SET date = $1, paid_date = $2, amount = $3, description = $4, category = $5,
+          recipient_name = $6, payment_method = $7, airtable_id = $8,
+          paid_by_account_id = $9
+      WHERE id = $10
       RETURNING ${SELECT_COLS};
     `,
     values: [
       input.date ?? null,
+      input.paidDate !== undefined ? input.paidDate : null,
       input.amount,
       input.description,
       input.category ?? null,

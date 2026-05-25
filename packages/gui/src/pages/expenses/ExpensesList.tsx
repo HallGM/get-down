@@ -14,6 +14,7 @@ import { formatDate } from "../../utils/date.js";
 
 const COLUMNS: Column<Expense>[] = [
   { key: "date", header: "Date", sortable: true, render: (e) => formatDate(e.date) },
+  { key: "paidDate", header: "Paid date", render: (e) => formatDate(e.paidDate) },
   { key: "description", header: "Description", sortable: true },
   { key: "category", header: "Category", render: (e) => e.category ?? "—" },
   { key: "amount", header: "Amount", render: (e) => <MoneyDisplay pennies={e.amount} /> },

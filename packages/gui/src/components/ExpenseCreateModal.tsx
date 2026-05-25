@@ -100,6 +100,12 @@ export default function ExpenseCreateModal({
             onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
           />
           <FormField
+            label="Paid date"
+            type="date"
+            value={toInputDate(form.paidDate)}
+            onChange={(e) => setForm((f) => ({ ...f, paidDate: e.target.value || null }))}
+          />
+          <FormField
             label="Category"
             value={form.category ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
