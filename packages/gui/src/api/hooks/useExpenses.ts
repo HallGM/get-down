@@ -46,6 +46,7 @@ export function useUpdateExpense() {
     mutationFn: ({ id, input }: { id: number; input: UpdateExpenseRequest }) =>
       apiFetch<Expense>("PUT", `/expenses/${id}`, input),
     onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: [KEY, id] });
       qc.invalidateQueries({ queryKey: ["accounts"] });
     },
