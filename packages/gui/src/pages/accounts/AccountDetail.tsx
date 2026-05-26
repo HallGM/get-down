@@ -26,6 +26,8 @@ import MoneyField from "../../components/MoneyField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import EmptyState from "../../components/EmptyState.js";
+import YearSelect from "../../components/YearSelect.js";
+import CountBadge from "../../components/CountBadge.js";
 import { formatPennies } from "../../utils/money.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { caLabel } from "../../utils/accounts.js";
@@ -154,7 +156,7 @@ export default function AccountDetail() {
   const { id } = useParams<{ id: string }>();
   const accountId = Number(id);
 
-  const [year, setYear] = useState(CURRENT_YEAR);
+  const [year, setYear] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<TransactionForm>(EMPTY_FORM);
   const [editTarget, setEditTarget] = useState<LedgerEntry | null>(null);
@@ -163,7 +165,7 @@ export default function AccountDetail() {
   const [editAllocationId, setEditAllocationId] = useState<number | null>(null);
 
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
-  const { data: ledger, isLoading: ledgerLoading, error: ledgerError } = useAccountLedger(accountId, year);
+  const { data: ledger, isLoading: ledgerLoading, error: ledgerError } = useAccountLedger(accountId, year ?? undefined);
   const { data: allocations } = useFeeAllocations();
 
   const createTx = useCreateTransaction(accountId);
@@ -250,26 +252,18 @@ export default function AccountDetail() {
 
       {/* Year filter */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
-        <label style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <span style={{ whiteSpace: "nowrap" }}>Year:</span>
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            style={{ width: "auto", marginBottom: 0 }}
-          >
-            {YEAR_OPTIONS.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </label>
-        <small style={{ color: "var(--pico-muted-color)" }}>
-          {ledger?.length ?? 0} entr{ledger?.length !== 1 ? "ies" : "y"}
-        </small>
+        <YearSelect
+          label="Year:"
+          value={year != null ? String(year) : ""}
+          options={YEAR_OPTIONS.map(String)}
+          onChange={(val) => setYear(val ? Number(val) : null)}
+        />
+        <CountBadge count={ledger?.length ?? 0} noun="entry" plural="entries" />
       </div>
 
       {/* Ledger list */}
       {ledger?.length === 0 ? (
-        <EmptyState message={`No entries in ${year}.`} />
+        <EmptyState message={year != null ? `No entries in ${year}.` : "No entries yet."} />
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table>
