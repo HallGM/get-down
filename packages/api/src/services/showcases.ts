@@ -4,7 +4,9 @@ import type {
   UpdateShowcaseRequest,
 } from "@get-down/shared";
 import * as showcasesRepo from "../repository/showcases.js";
+import * as attributionsRepo from "../repository/attributions.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
+import { withTransaction } from "../db/init.js";
 
 export async function getShowcases(): Promise<Showcase[]> {
   const rows = await showcasesRepo.readShowcases();
@@ -18,8 +20,29 @@ export async function getShowcaseById(id: number): Promise<Showcase> {
 }
 
 export async function createShowcase(input: CreateShowcaseRequest): Promise<Showcase> {
-  const row = await showcasesRepo.createShowcase(buildMutationInput(input));
-  return mapShowcase(row);
+  const date = input.date;
+  if (!date) throw new BadRequestError("date is required");
+
+  return withTransaction(async () => {
+    // Auto-create the attribution if no attributionId is supplied
+    let attributionId = input.attributionId;
+    if (!attributionId) {
+      const name = input.name?.trim() || input.fullName?.trim() || input.nickname?.trim() || "Showcase";
+      const attrRow = await attributionsRepo.createAttribution({ name, type: "showcase" });
+      attributionId = attrRow.id;
+    }
+
+    const row = await showcasesRepo.createShowcase({
+      attributionId,
+      nickname: input.nickname?.trim(),
+      fullName: input.fullName?.trim(),
+      name: input.name?.trim(),
+      date,
+      location: input.location?.trim(),
+      airtableId: input.airtableId,
+    });
+    return mapShowcase(row);
+  });
 }
 
 export async function updateShowcase(id: number, input: UpdateShowcaseRequest): Promise<Showcase> {
@@ -54,21 +77,20 @@ function mapShowcase(row: showcasesRepo.ShowcaseRow): Showcase {
 }
 
 function buildMutationInput(
-  input: CreateShowcaseRequest | UpdateShowcaseRequest,
-  existing?: Showcase
+  input: UpdateShowcaseRequest,
+  existing: Showcase
 ): showcasesRepo.ShowcaseMutationInput {
-  const attributionId = input.attributionId ?? existing?.attributionId;
-  if (!attributionId) throw new BadRequestError("attributionId is required");
-  const date = input.date ?? existing?.date;
+  const attributionId = input.attributionId ?? existing.attributionId;
+  const date = input.date ?? existing.date;
   if (!date) throw new BadRequestError("date is required");
 
   return {
     attributionId,
-    nickname: input.nickname?.trim() ?? existing?.nickname,
-    fullName: input.fullName?.trim() ?? existing?.fullName,
-    name: input.name?.trim() ?? existing?.name,
+    nickname: input.nickname?.trim() ?? existing.nickname,
+    fullName: input.fullName?.trim() ?? existing.fullName,
+    name: input.name?.trim() ?? existing.name,
     date,
-    location: input.location?.trim() ?? existing?.location,
-    airtableId: input.airtableId ?? existing?.airtableId,
+    location: input.location?.trim() ?? existing.location,
+    airtableId: input.airtableId ?? existing.airtableId,
   };
 }

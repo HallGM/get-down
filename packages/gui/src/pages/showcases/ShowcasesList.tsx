@@ -15,7 +15,7 @@ const COLUMNS: Column<Showcase>[] = [
   { key: "location", header: "Location", render: (s) => s.location ?? "—" },
 ];
 
-const EMPTY_FORM: CreateShowcaseRequest = { attributionId: 0, date: "" };
+const EMPTY_FORM: CreateShowcaseRequest = { date: "" };
 
 export default function ShowcasesList() {
   const { data: showcases, isLoading, error } = useShowcases();
@@ -74,7 +74,6 @@ export default function ShowcasesList() {
             <FormField label="Name" value={form.name ?? ""} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
             <FormField label="Date" type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} required />
             <FormField label="Location" value={form.location ?? ""} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
-            <FormField label="Attribution ID" type="number" value={form.attributionId || ""} onChange={(e) => setForm((f) => ({ ...f, attributionId: Number(e.target.value) }))} required />
           </div>
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="secondary" onClick={() => setShowCreate(false)}>Cancel</button>

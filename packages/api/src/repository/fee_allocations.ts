@@ -20,7 +20,7 @@ export interface LineItemRow {
 
 export interface FeeAllocationMutationInput {
   personId?: number;
-  gigId: number;
+  gigId?: number;
   notes?: string;
   isInvoiced: boolean;
   isPaid: boolean;
@@ -69,6 +69,19 @@ export async function readFeeAllocationsByGigId(gigId: number): Promise<FeeAlloc
   return run_query<FeeAllocationRow>({
     text: `SELECT ${SELECT_COLS} FROM fee_allocations WHERE gig_id = $1 ORDER BY id;`,
     values: [gigId],
+  });
+}
+
+export async function readFeeAllocationsByShowcaseId(showcaseId: number): Promise<FeeAllocationRow[]> {
+  return run_query<FeeAllocationRow>({
+    text: `
+      SELECT DISTINCT fa.id, fa.person_id, fa.gig_id, fa.notes, fa.is_invoiced, fa.is_paid, fa.invoice_ref
+      FROM fee_allocations fa
+      JOIN assigned_roles ar ON ar.fee_allocation_id = fa.id
+      WHERE ar.showcase_id = $1
+      ORDER BY fa.id;
+    `,
+    values: [showcaseId],
   });
 }
 

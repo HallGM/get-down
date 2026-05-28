@@ -12,6 +12,14 @@ export function useAttributions() {
   });
 }
 
+export function useAttribution(id: number) {
+  return useQuery({
+    queryKey: [KEY, id],
+    queryFn: () => apiFetch<Attribution>("GET", `/attributions/${id}`),
+    enabled: !!id,
+  });
+}
+
 export function useCreateAttribution() {
   const qc = useQueryClient();
   return useApiMutation({

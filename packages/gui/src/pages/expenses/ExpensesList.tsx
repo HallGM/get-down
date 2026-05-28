@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useExpenses, useDeleteExpense } from "../../api/hooks/useExpenses.js";
 import { useFeeAllocations } from "../../api/hooks/useFeeAllocations.js";
 import { useAccounts } from "../../api/hooks/useAccounts.js";
+import { useAllAttributionFees } from "../../api/hooks/useAttributionFees.js";
 import type { Expense } from "@get-down/shared";
 import DataTable, { type Column } from "../../components/DataTable.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
@@ -44,6 +45,7 @@ export default function ExpensesList() {
   const { data: expenses, isLoading, error } = useExpenses();
   const { data: allAllocations = [] } = useFeeAllocations();
   const { data: accounts = [] } = useAccounts();
+  const { data: allAttributionFees = [] } = useAllAttributionFees();
   const deleteExpense = useDeleteExpense();
 
   const accountMap = useMemo(
@@ -153,6 +155,7 @@ export default function ExpensesList() {
         expense={editTarget}
         onClose={() => setEditTargetId(null)}
         allAllocations={allAllocations}
+        allAttributionFees={allAttributionFees}
         onDelete={() => {
           if (editTarget) {
             setDeleteTarget(editTarget);

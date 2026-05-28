@@ -103,6 +103,34 @@ export function useLinkAllocationToExpense() {
   });
 }
 
+export function useLinkAttributionFeeToExpense() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ expenseId, feeId }: { expenseId: number; feeId: number }) =>
+      apiFetch<void>("POST", `/expenses/${expenseId}/attribution-fees`, { feeId }),
+    onSuccess: (_data, { expenseId }) => {
+      qc.invalidateQueries({ queryKey: [KEY, expenseId] });
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["attribution-fees"] });
+    },
+    successMessage: "Attribution fee linked",
+  });
+}
+
+export function useUnlinkAttributionFeeFromExpense() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ expenseId, feeId }: { expenseId: number; feeId: number }) =>
+      apiFetch<void>("DELETE", `/expenses/${expenseId}/attribution-fees/${feeId}`),
+    onSuccess: (_data, { expenseId }) => {
+      qc.invalidateQueries({ queryKey: [KEY, expenseId] });
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["attribution-fees"] });
+    },
+    successMessage: "Attribution fee unlinked",
+  });
+}
+
 export function useUnlinkAllocationFromExpense() {
   const qc = useQueryClient();
   return useApiMutation({

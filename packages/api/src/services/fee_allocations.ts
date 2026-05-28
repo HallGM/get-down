@@ -45,33 +45,12 @@ export async function getFeeAllocationById(id: number): Promise<FeeAllocation> {
 
 export async function getFeeAllocationsByGig(gigId: number): Promise<FeeAllocation[]> {
   const rows = await feeAllocationsRepo.readFeeAllocationsByGigId(gigId);
-  const ids = rows.map((r) => r.id);
-  const [allLineItems, expenseMap, txMap] = await Promise.all([
-    feeAllocationsRepo.readLineItemsByAllocationIds(ids),
-    feeAllocationsRepo.readExpenseIdsByAllocationIds(ids),
-    feeAllocationsRepo.readTransactionIdsByAllocationIds(ids),
-  ]);
-  const byAllocation = new Map<number, typeof allLineItems>();
-  for (const li of allLineItems) {
-    const arr = byAllocation.get(li.allocation_id) ?? [];
-    arr.push(li);
-    byAllocation.set(li.allocation_id, arr);
-  }
-  return rows.map((row) => {
-    const allocation = mapAllocation(
-      row,
-      expenseMap.get(row.id) ?? [],
-      txMap.get(row.id) ?? []
-    );
-    allocation.lineItems = (byAllocation.get(row.id) ?? []).map(mapLineItem);
-    return allocation;
-  });
+  return assembleFeeAllocations(rows);
 }
 
 export async function createFeeAllocation(
   input: CreateFeeAllocationRequest
 ): Promise<FeeAllocation> {
-  if (!input.personId && !input.gigId) throw new BadRequestError("personId or gigId is required");
   const row = await feeAllocationsRepo.createFeeAllocation({
     personId: input.personId,
     gigId: input.gigId,
@@ -92,7 +71,7 @@ export async function updateFeeAllocation(
   const existing = await getFeeAllocationById(id);
   const row = await feeAllocationsRepo.updateFeeAllocation(id, {
     personId: input.personId ?? existing.personId,
-    gigId: (input.gigId ?? existing.gigId) as number,
+    gigId: input.gigId ?? existing.gigId,
     notes: input.notes?.trim() ?? existing.notes,
     isInvoiced: input.isInvoiced ?? existing.isInvoiced,
     isPaid: input.isPaid ?? existing.isPaid,
@@ -189,21 +168,7 @@ export async function generateFeeAllocationsForGig(
       await feeAllocationsRepo.deleteFeeAllocationsByGigId(gigId);
     }
 
-    // Group: assigned roles by personId (null = individual slot)
-    const personGroups = new Map<number, typeof assignedRoles>();
-    const unassignedSlots: typeof assignedRoles = [];
-
-    for (const ar of assignedRoles) {
-      if (ar.person_id !== null) {
-        if (!personGroups.has(ar.person_id)) {
-          personGroups.set(ar.person_id, []);
-        }
-        personGroups.get(ar.person_id)!.push(ar);
-      } else {
-        unassignedSlots.push(ar);
-      }
-    }
-
+    const { personGroups, unassignedSlots } = groupRolesByPerson(assignedRoles);
     const results: FeeAllocation[] = [];
 
     // Create one allocation per person
@@ -241,6 +206,78 @@ export async function generateFeeAllocationsForGig(
 
       const allocation = mapAllocation(allocationRow, [], []);
       allocation.lineItems = lineItems;
+      results.push(allocation);
+    }
+
+    return results;
+  });
+}
+
+export async function getFeeAllocationsByShowcase(showcaseId: number): Promise<FeeAllocation[]> {
+  const rows = await feeAllocationsRepo.readFeeAllocationsByShowcaseId(showcaseId);
+  return assembleFeeAllocations(rows);
+}
+
+const GenerateFeeAllocationsSchema = z.object({
+  force: z.boolean().optional().default(false),
+});
+
+/**
+ * Generate fee allocations for all assigned roles on a showcase.
+ * Groups roles by person (unassigned slots each get their own allocation).
+ * Returns { conflict: true } (HTTP 200) if allocations already exist and force is false.
+ * Does NOT auto-populate line items from role fees.
+ */
+export async function generateFeeAllocationsForShowcase(
+  showcaseId: number,
+  body: unknown
+): Promise<{ conflict: true } | FeeAllocation[]> {
+  const { force } = parseOrBadRequest(GenerateFeeAllocationsSchema, body);
+  const existing = await feeAllocationsRepo.readFeeAllocationsByShowcaseId(showcaseId);
+  if (existing.length > 0 && !force) {
+    return { conflict: true };
+  }
+
+  const assignedRoles = await assignedRolesRepo.readAssignedRolesByShowcaseId(showcaseId);
+
+  return withTransaction(async () => {
+    if (existing.length > 0) {
+      for (const ar of assignedRoles) {
+        if (ar.fee_allocation_id !== null) {
+          await setAllocationOnRole(ar, null);
+        }
+      }
+      for (const fa of existing) {
+        await feeAllocationsRepo.deleteFeeAllocation(fa.id);
+      }
+    }
+
+    const { personGroups, unassignedSlots } = groupRolesByPerson(assignedRoles);
+
+    const results: FeeAllocation[] = [];
+
+    for (const [personId, roles] of personGroups) {
+      const allocationRow = await feeAllocationsRepo.createFeeAllocation({
+        personId,
+        isInvoiced: false,
+        isPaid: false,
+      });
+      for (const ar of roles) {
+        await setAllocationOnRole(ar, allocationRow.id);
+      }
+      const allocation = mapAllocation(allocationRow, [], []);
+      allocation.lineItems = [];
+      results.push(allocation);
+    }
+
+    for (const ar of unassignedSlots) {
+      const allocationRow = await feeAllocationsRepo.createFeeAllocation({
+        isInvoiced: false,
+        isPaid: false,
+      });
+      await setAllocationOnRole(ar, allocationRow.id);
+      const allocation = mapAllocation(allocationRow, [], []);
+      allocation.lineItems = [];
       results.push(allocation);
     }
 
@@ -352,7 +389,7 @@ export async function generateExpenseForAllocation(allocationId: number): Promis
       paymentMethod: undefined,
     });
     await feeAllocationsRepo.linkExpenseToAllocation(allocationId, expenseRow.id);
-    return mapExpense(expenseRow, [allocationId]);
+    return mapExpense(expenseRow, [allocationId], []);
   });
 }
 
@@ -410,6 +447,45 @@ export async function unlinkTransactionFromAllocation(
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 type AssignedRoleRow = Awaited<ReturnType<typeof assignedRolesRepo.readAssignedRolesByGigId>>[number];
+
+async function assembleFeeAllocations(
+  rows: feeAllocationsRepo.FeeAllocationRow[]
+): Promise<FeeAllocation[]> {
+  const ids = rows.map((r) => r.id);
+  const [allLineItems, expenseMap, txMap] = await Promise.all([
+    feeAllocationsRepo.readLineItemsByAllocationIds(ids),
+    feeAllocationsRepo.readExpenseIdsByAllocationIds(ids),
+    feeAllocationsRepo.readTransactionIdsByAllocationIds(ids),
+  ]);
+  const byAllocation = new Map<number, typeof allLineItems>();
+  for (const li of allLineItems) {
+    const arr = byAllocation.get(li.allocation_id) ?? [];
+    arr.push(li);
+    byAllocation.set(li.allocation_id, arr);
+  }
+  return rows.map((row) => {
+    const allocation = mapAllocation(row, expenseMap.get(row.id) ?? [], txMap.get(row.id) ?? []);
+    allocation.lineItems = (byAllocation.get(row.id) ?? []).map(mapLineItem);
+    return allocation;
+  });
+}
+
+function groupRolesByPerson(assignedRoles: AssignedRoleRow[]): {
+  personGroups: Map<number, AssignedRoleRow[]>;
+  unassignedSlots: AssignedRoleRow[];
+} {
+  const personGroups = new Map<number, AssignedRoleRow[]>();
+  const unassignedSlots: AssignedRoleRow[] = [];
+  for (const ar of assignedRoles) {
+    if (ar.person_id !== null) {
+      if (!personGroups.has(ar.person_id)) personGroups.set(ar.person_id, []);
+      personGroups.get(ar.person_id)!.push(ar);
+    } else {
+      unassignedSlots.push(ar);
+    }
+  }
+  return { personGroups, unassignedSlots };
+}
 
 async function setAllocationOnRole(ar: AssignedRoleRow, feeAllocationId: number | null): Promise<void> {
   await assignedRolesRepo.updateAssignedRole(ar.id, {

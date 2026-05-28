@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Expense, FeeAllocation } from "@get-down/shared";
+import type { Expense, FeeAllocation, AttributionFee } from "@get-down/shared";
 import { MAX_DOCUMENT_SIZE_BYTES } from "@get-down/shared";
 import Modal from "./Modal.js";
 import FormField from "./FormField.js";
@@ -13,6 +13,8 @@ import {
   useDeleteExpenseDocument,
   useLinkAllocationToExpense,
   useUnlinkAllocationFromExpense,
+  useLinkAttributionFeeToExpense,
+  useUnlinkAttributionFeeFromExpense,
 } from "../api/hooks/useExpenses.js";
 
 interface Props {
@@ -21,16 +23,21 @@ interface Props {
   onClose: () => void;
   /** Full list of allocations for the picker; linked ones are filtered out internally. */
   allAllocations: FeeAllocation[];
+  /** Full list of attribution fees for the picker. */
+  allAttributionFees?: AttributionFee[];
   /** When provided a Delete button appears in the footer; the caller handles the actual deletion. */
   onDelete?: () => void;
 }
 
-export default function ExpenseModal({ expense, onClose, allAllocations, onDelete }: Props) {
+export default function ExpenseModal({ expense, onClose, allAllocations, allAttributionFees, onDelete }: Props) {
+  const safeAttributionFees = allAttributionFees ?? [];
   const updateExpense = useUpdateExpense();
   const uploadDocument = useUploadExpenseDocument();
   const deleteDocument = useDeleteExpenseDocument();
   const linkAllocation = useLinkAllocationToExpense();
   const unlinkAllocation = useUnlinkAllocationFromExpense();
+  const linkAttributionFee = useLinkAttributionFeeToExpense();
+  const unlinkAttributionFee = useUnlinkAttributionFeeFromExpense();
   const { data: accounts } = useAccounts();
 
   const [description, setDescription] = useState("");
@@ -186,11 +193,30 @@ export default function ExpenseModal({ expense, onClose, allAllocations, onDelet
           {expense && (
             <div style={{ gridColumn: "1 / -1" }}>
               <small><strong>Linked fee allocations</strong></small>
-              <LinkedAllocationsSection
-                expense={expense}
-                allAllocations={allAllocations}
+              <LinkedItemsSection
+                linkedIds={expense.feeAllocationIds}
+                allItems={allAllocations}
+                label={(a: FeeAllocation) => a.notes ? `#${a.id} — ${a.notes}` : `#${a.id}`}
+                emptyText="No fee allocations linked."
+                addPlaceholder="+ Link allocation…"
                 onLink={(allocationId) => linkAllocation.mutate({ expenseId: expense.id, allocationId })}
                 onUnlink={(allocationId) => unlinkAllocation.mutate({ expenseId: expense.id, allocationId })}
+              />
+            </div>
+          )}
+
+          {/* Linked attribution fees */}
+          {expense && safeAttributionFees.length > 0 && (
+            <div style={{ gridColumn: "1 / -1" }}>
+              <small><strong>Linked attribution fees</strong></small>
+              <LinkedItemsSection
+                linkedIds={expense.attributionFeeIds ?? []}
+                allItems={safeAttributionFees}
+                label={(f: AttributionFee) => f.description ? `#${f.id} — ${f.description}` : `#${f.id}`}
+                emptyText="No attribution fees linked."
+                addPlaceholder="+ Link attribution fee..."
+                onLink={(feeId: number) => linkAttributionFee.mutate({ expenseId: expense.id, feeId })}
+                onUnlink={(feeId: number) => unlinkAttributionFee.mutate({ expenseId: expense.id, feeId })}
               />
             </div>
           )}
@@ -216,42 +242,49 @@ export default function ExpenseModal({ expense, onClose, allAllocations, onDelet
   );
 }
 
-// ─── Linked Allocations Section ───────────────────────────────────────────────
+// ─── Linked Items Section (generic) ───────────────────────────────────────────
 
-interface LinkedAllocationsSectionProps {
-  expense: Expense;
-  allAllocations: FeeAllocation[];
-  onLink: (allocationId: number) => void;
-  onUnlink: (allocationId: number) => void;
+interface LinkedItemsSectionProps<T extends { id: number }> {
+  linkedIds: number[];
+  allItems: T[];
+  label: (item: T) => string;
+  emptyText: string;
+  addPlaceholder: string;
+  onLink: (id: number) => void;
+  onUnlink: (id: number) => void;
 }
 
-function LinkedAllocationsSection({ expense, allAllocations, onLink, onUnlink }: LinkedAllocationsSectionProps) {
-  const linked = allAllocations.filter((a) => expense.feeAllocationIds.includes(a.id));
-  const unlinked = allAllocations.filter((a) => !expense.feeAllocationIds.includes(a.id));
-
-  function label(a: FeeAllocation) {
-    return a.notes ? `#${a.id} — ${a.notes}` : `#${a.id}`;
-  }
+function LinkedItemsSection<T extends { id: number }>({
+  linkedIds,
+  allItems,
+  label,
+  emptyText,
+  addPlaceholder,
+  onLink,
+  onUnlink,
+}: LinkedItemsSectionProps<T>) {
+  const linked = allItems.filter((i) => linkedIds.includes(i.id));
+  const unlinked = allItems.filter((i) => !linkedIds.includes(i.id));
 
   return (
     <div style={{ marginTop: "0.25rem" }}>
       {linked.length > 0 ? (
         <ul style={{ margin: "0.25rem 0", paddingLeft: "1rem" }}>
-          {linked.map((a) => (
-            <li key={a.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85em" }}>
-              <span>{label(a)}</span>
+          {linked.map((item) => (
+            <li key={item.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85em" }}>
+              <span>{label(item)}</span>
               <button
                 type="button"
                 className="contrast outline"
                 style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
-                onClick={() => onUnlink(a.id)}
+                onClick={() => onUnlink(item.id)}
               >✕</button>
             </li>
           ))}
         </ul>
       ) : (
         <p style={{ margin: "0.25rem 0", color: "var(--pico-muted-color)", fontSize: "0.85em" }}>
-          No fee allocations linked.
+          {emptyText}
         </p>
       )}
       {unlinked.length > 0 && (
@@ -260,9 +293,9 @@ function LinkedAllocationsSection({ expense, allAllocations, onLink, onUnlink }:
           onChange={(e) => { if (e.target.value) onLink(Number(e.target.value)); }}
           style={{ margin: "0.25rem 0", fontSize: "0.85em" }}
         >
-          <option value="">+ Link allocation…</option>
-          {unlinked.map((a) => (
-            <option key={a.id} value={a.id}>{label(a)}</option>
+          <option value="">{addPlaceholder}</option>
+          {unlinked.map((item) => (
+            <option key={item.id} value={item.id}>{label(item)}</option>
           ))}
         </select>
       )}
