@@ -82,6 +82,14 @@ export async function updateShowcase(
   return rows[0] ?? null;
 }
 
+export async function readShowcaseByAttributionId(attributionId: number): Promise<ShowcaseRow | null> {
+  const rows = await run_query<ShowcaseRow>({
+    text: `SELECT ${SELECT_COLS} FROM showcases WHERE attribution_id = $1 LIMIT 1;`,
+    values: [attributionId],
+  });
+  return rows[0] ?? null;
+}
+
 export async function deleteShowcase(id: number): Promise<boolean> {
   const rows = await run_query<{ id: number }>({
     text: `DELETE FROM showcases WHERE id = $1 RETURNING id;`,

@@ -156,6 +156,8 @@ export interface Attribution {
   type: string;
   notes?: string;
   airtableId?: string;
+  /** Present on single-record fetch only. */
+  showcase?: { id: number; name?: string; date: string; location?: string };
 }
 
 export interface CreateAttributionRequest {
@@ -170,6 +172,28 @@ export interface UpdateAttributionRequest {
   type?: string;
   notes?: string;
   airtableId?: string;
+}
+
+export interface AttributionFee {
+  id: number;
+  attributionId: number;
+  description?: string;
+  date?: string;
+  amount?: number;
+  /** IDs of expenses linked to this fee via attribution_fees_expenses. Always present. */
+  expenseIds: number[];
+}
+
+export interface CreateAttributionFeeRequest {
+  description?: string;
+  date?: string;
+  amount?: number;
+}
+
+export interface UpdateAttributionFeeRequest {
+  description?: string;
+  date?: string;
+  amount?: number;
 }
 
 export interface GigLineItem {
@@ -404,7 +428,8 @@ export interface Showcase {
 }
 
 export interface CreateShowcaseRequest {
-  attributionId: number;
+  /** Optional — if omitted the server auto-creates a linked attribution. */
+  attributionId?: number;
   nickname?: string;
   fullName?: string;
   name?: string;
@@ -566,6 +591,8 @@ export interface Expense {
   documentUrl?: string;
   /** IDs of fee allocations linked to this expense via fee_allocations_expenses. Always present, never undefined. */
   feeAllocationIds: number[];
+  /** IDs of attribution fees linked to this expense via attribution_fees_expenses. Always present, never undefined. */
+  attributionFeeIds: number[];
   /** Account ID of the person who paid this expense out of pocket, if any. */
   paidByAccountId?: number;
 }

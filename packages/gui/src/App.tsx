@@ -19,6 +19,7 @@ import RolesList from "./pages/services/RolesList.js";
 import SongsList from "./pages/songs/SongsList.js";
 import ShowcasesList from "./pages/showcases/ShowcasesList.js";
 import AttributionsList from "./pages/attributions/AttributionsList.js";
+import AttributionDetail from "./pages/attributions/AttributionDetail.js";
 import RehearsalsList from "./pages/rehearsals/RehearsalsList.js";
 import ExpensesList from "./pages/expenses/ExpensesList.js";
 import PerformerGigList from "./pages/performer/PerformerGigList.js";
@@ -35,7 +36,7 @@ const NAV_LINKS = [
   { to: "/people", label: "People" },
   { to: "/services", label: "Services" },
   // { to: "/showcases", label: "Showcases" },  // hidden — not in use yet
-  // { to: "/attributions", label: "Attributions" },  // hidden — not in use yet
+  { to: "/attributions", label: "Attributions" },
   // { to: "/rehearsals", label: "Rehearsals" },  // hidden — not in use yet
   { to: "/expenses", label: "Expenses" },
   { to: "/accounts", label: "Accounts" },
@@ -133,6 +134,7 @@ export default function App() {
           <Route path="/services/:id" element={<ServiceDetail />} />
           <Route path="/showcases" element={<ShowcasesList />} />
           <Route path="/attributions" element={<AttributionsList />} />
+          <Route path="/attributions/:id" element={<AttributionDetail />} />
           <Route path="/rehearsals" element={<RehearsalsList />} />
           <Route path="/expenses" element={<ExpensesList />} />
           <Route path="/accounts" element={<AccountsList />} />

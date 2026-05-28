@@ -3,6 +3,7 @@ import multer from "multer";
 import { authenticateToken, requirePartner } from "../middleware/auth.js";
 import * as expensesService from "../services/expenses.js";
 import * as feeAllocationsService from "../services/fee_allocations.js";
+import * as attributionFeesService from "../services/attribution_fees.js";
 import { handle } from "../utils/handle.js";
 import { BadRequestError } from "../errors.js";
 
@@ -42,5 +43,10 @@ router.delete(
 router.get("/expenses/:id/fee-allocations",                        handle(req => feeAllocationsService.getAllocationsByExpense(+req.params.id)));
 router.post("/expenses/:id/fee-allocations",                       handle(req => expensesService.linkAllocationToExpense(+req.params.id, req.body), 204));
 router.delete("/expenses/:id/fee-allocations/:allocationId",       handle(req => expensesService.unlinkAllocationFromExpense(+req.params.id, +req.params.allocationId), 204));
+
+// Attribution fee links
+router.get("/expenses/:id/attribution-fees",                       handle(req => attributionFeesService.getFeesByExpense(+req.params.id)));
+router.post("/expenses/:id/attribution-fees",                      handle(req => expensesService.linkAttributionFeeToExpense(+req.params.id, req.body), 204));
+router.delete("/expenses/:id/attribution-fees/:feeId",             handle(req => expensesService.unlinkAttributionFeeFromExpense(+req.params.id, +req.params.feeId), 204));
 
 export default router;

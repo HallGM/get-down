@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { Expense, CreateExpenseRequest, UpdateExpenseRequest } from "@get-down/shared";
 import * as expensesRepo from "../repository/expenses.js";
 import * as feeAllocationsRepo from "../repository/fee_allocations.js";
+import * as attributionFeesRepo from "../repository/attribution_fees.js";
 import * as accountsRepo from "../repository/accounts.js";
 import * as storage from "../utils/storage.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
@@ -13,28 +14,45 @@ import { parseOrBadRequest } from "../utils/parse.js";
 export async function getAllExpenses(): Promise<Expense[]> {
   const rows = await expensesRepo.readAllExpenses();
   const ids = rows.map((r) => r.id);
-  const allocationMap = await expensesRepo.readAllocationIdsByExpenseIds(ids);
-  return Promise.all(rows.map((row) => mapExpense(row, allocationMap.get(row.id) ?? [])));
+  const [allocationMap, attributionFeeMap] = await Promise.all([
+    expensesRepo.readAllocationIdsByExpenseIds(ids),
+    expensesRepo.readAttributionFeeIdsByExpenseIds(ids),
+  ]);
+  return Promise.all(
+    rows.map((row) =>
+      mapExpense(
+        row,
+        allocationMap.get(row.id) ?? [],
+        attributionFeeMap.get(row.id) ?? []
+      )
+    )
+  );
 }
 
 export async function getExpenseById(id: number): Promise<Expense> {
   const row = await expensesRepo.readExpenseById(id);
   if (!row) throw new NotFoundError("Expense not found");
-  const allocationIds = await expensesRepo.readAllocationIdsByExpenseId(id);
-  return await mapExpense(row, allocationIds);
+  const [allocationIds, attributionFeeIds] = await Promise.all([
+    expensesRepo.readAllocationIdsByExpenseId(id),
+    expensesRepo.readAttributionFeeIdsByExpenseId(id),
+  ]);
+  return await mapExpense(row, allocationIds, attributionFeeIds);
 }
 
 export async function createExpense(input: CreateExpenseRequest): Promise<Expense> {
   const row = await expensesRepo.createExpense(await buildMutationInput(input));
-  return await mapExpense(row, []);
+  return await mapExpense(row, [], []);
 }
 
 export async function updateExpense(id: number, input: UpdateExpenseRequest): Promise<Expense> {
   const existing = await getExpenseById(id);
   const row = await expensesRepo.updateExpense(id, await buildMutationInput(input, existing));
   if (!row) throw new NotFoundError("Expense not found");
-  const allocationIds = await expensesRepo.readAllocationIdsByExpenseId(id);
-  return await mapExpense(row, allocationIds);
+  const [allocationIds, attributionFeeIds] = await Promise.all([
+    expensesRepo.readAllocationIdsByExpenseId(id),
+    expensesRepo.readAttributionFeeIdsByExpenseId(id),
+  ]);
+  return await mapExpense(row, allocationIds, attributionFeeIds);
 }
 
 export async function uploadExpenseDocument(
@@ -105,6 +123,33 @@ export async function unlinkAllocationFromExpense(
   await feeAllocationsRepo.unlinkExpenseFromAllocation(allocationId, expenseId);
 }
 
+// ─── Attribution fee link management ─────────────────────────────────────────
+
+const LinkAttributionFeeSchema = z.object({ feeId: z.number().int() });
+
+export async function linkAttributionFeeToExpense(
+  expenseId: number,
+  body: unknown
+): Promise<void> {
+  const { feeId } = parseOrBadRequest(LinkAttributionFeeSchema, body);
+  const [expense, fee] = await Promise.all([
+    expensesRepo.readExpenseById(expenseId),
+    attributionFeesRepo.readAttributionFeeById(feeId),
+  ]);
+  if (!expense) throw new NotFoundError("Expense not found");
+  if (!fee) throw new NotFoundError("AttributionFee not found");
+  await attributionFeesRepo.linkExpenseToFee(feeId, expenseId);
+}
+
+export async function unlinkAttributionFeeFromExpense(
+  expenseId: number,
+  feeId: number
+): Promise<void> {
+  const expense = await expensesRepo.readExpenseById(expenseId);
+  if (!expense) throw new NotFoundError("Expense not found");
+  await attributionFeesRepo.unlinkExpenseFromFee(feeId, expenseId);
+}
+
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 async function tryDeleteFile(key: string): Promise<void> {
@@ -130,7 +175,11 @@ function toDateString(value: string | Date | null): string | null {
   return value.toISOString().slice(0, 10);
 }
 
-export async function mapExpense(row: expensesRepo.ExpenseRow, feeAllocationIds: number[]): Promise<Expense> {
+export async function mapExpense(
+  row: expensesRepo.ExpenseRow,
+  feeAllocationIds: number[],
+  attributionFeeIds: number[]
+): Promise<Expense> {
   let documentUrl: string | undefined;
   if (row.document_key) {
     try {
@@ -152,6 +201,7 @@ export async function mapExpense(row: expensesRepo.ExpenseRow, feeAllocationIds:
     airtableId: row.airtable_id ?? undefined,
     documentUrl,
     feeAllocationIds,
+    attributionFeeIds,
     paidByAccountId: row.paid_by_account_id ?? undefined,
   };
 }

@@ -4,7 +4,8 @@ import type {
   UpdateAttributionRequest,
 } from "@get-down/shared";
 import * as attributionsRepo from "../repository/attributions.js";
-import { BadRequestError, NotFoundError } from "../errors.js";
+import * as showcasesRepo from "../repository/showcases.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
 
 export async function getAttributions(): Promise<Attribution[]> {
   const rows = await attributionsRepo.readAttributions();
@@ -12,9 +13,21 @@ export async function getAttributions(): Promise<Attribution[]> {
 }
 
 export async function getAttributionById(id: number): Promise<Attribution> {
-  const row = await attributionsRepo.readAttributionById(id);
+  const [row, showcase] = await Promise.all([
+    attributionsRepo.readAttributionById(id),
+    showcasesRepo.readShowcaseByAttributionId(id),
+  ]);
   if (!row) throw new NotFoundError("Attribution not found");
-  return mapAttribution(row);
+  const attribution = mapAttribution(row);
+  if (showcase) {
+    attribution.showcase = {
+      id: showcase.id,
+      name: showcase.name ?? showcase.full_name ?? showcase.nickname ?? undefined,
+      date: typeof showcase.date === "string" ? showcase.date : String(showcase.date),
+      location: showcase.location ?? undefined,
+    };
+  }
+  return attribution;
 }
 
 export async function createAttribution(input: CreateAttributionRequest): Promise<Attribution> {
@@ -33,6 +46,8 @@ export async function updateAttribution(
 }
 
 export async function deleteAttribution(id: number): Promise<void> {
+  const showcase = await showcasesRepo.readShowcaseByAttributionId(id);
+  if (showcase) throw new ConflictError("Cannot delete an attribution that has a linked showcase");
   const deleted = await attributionsRepo.deleteAttribution(id);
   if (!deleted) throw new NotFoundError("Attribution not found");
 }

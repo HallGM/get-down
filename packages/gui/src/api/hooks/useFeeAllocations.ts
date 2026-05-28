@@ -5,10 +5,12 @@ import { useApiMutation } from "./useApiMutation.js";
 
 const KEY = "fee-allocations";
 const GIG_KEY = "gig-fee-allocations";
+const SHOWCASE_KEY = "showcase-fee-allocations";
 
 function invalidateLineItemCaches(qc: QueryClient, allocationId: number) {
   qc.invalidateQueries({ queryKey: [KEY, allocationId] });
   qc.invalidateQueries({ queryKey: [GIG_KEY] });
+  qc.invalidateQueries({ queryKey: [SHOWCASE_KEY] });
   // Line item changes affect the account ledger balance, so invalidate accounts too.
   qc.invalidateQueries({ queryKey: ["accounts"] });
 }
@@ -97,6 +99,28 @@ export function useGenerateFeeAllocations(gigId: number) {
   });
 }
 
+export function useFeeAllocationsByShowcase(showcaseId: number) {
+  return useQuery({
+    queryKey: [SHOWCASE_KEY, showcaseId],
+    queryFn: () => apiFetch<FeeAllocation[]>("GET", `/showcases/${showcaseId}/fee-allocations`),
+    enabled: !!showcaseId,
+  });
+}
+
+export function useGenerateFeeAllocationsForShowcase(showcaseId: number) {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: (force: boolean) =>
+      apiFetch<{ conflict: true } | FeeAllocation[]>("POST", `/showcases/${showcaseId}/fee-allocations/generate`, { force }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [SHOWCASE_KEY, showcaseId] });
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["roles", "showcase", showcaseId] });
+    },
+    successMessage: "Fee allocations generated",
+  });
+}
+
 export function useResetFeeAllocation() {
   const qc = useQueryClient();
   return useApiMutation({
@@ -143,6 +167,7 @@ export function useRemoveFeeLineItem() {
 function invalidateAllocationCaches(qc: QueryClient, allocationId: number, secondaryKey: string) {
   qc.invalidateQueries({ queryKey: [KEY, allocationId] });
   qc.invalidateQueries({ queryKey: [GIG_KEY] });
+  qc.invalidateQueries({ queryKey: [SHOWCASE_KEY] });
   qc.invalidateQueries({ queryKey: [secondaryKey] });
 }
 
