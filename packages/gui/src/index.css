@@ -40,6 +40,33 @@ section + section {
   border-top: 1px solid var(--pico-muted-border-color);
 }
 
+/* Nav: More dropdown flyout */
+.nav-more-dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  background: var(--pico-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius);
+  padding: 0.5rem;
+  min-width: 10rem;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nav-more-dropdown a {
+  padding: 0.35em 0.6em;
+  border-radius: var(--pico-border-radius);
+  text-decoration: none;
+  color: var(--pico-color);
+}
+
+.nav-more-dropdown a:hover {
+  background: var(--pico-muted-border-color);
+}
+
 /* Set list builder: two-column layout on desktop, single column on mobile */
 .set-list-layout {
   display: grid;

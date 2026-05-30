@@ -1,0 +1,1 @@
+ALTER TABLE showcases DROP COLUMN IF EXISTS name;

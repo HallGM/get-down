@@ -27,7 +27,7 @@ export async function createShowcase(input: CreateShowcaseRequest): Promise<Show
     // Auto-create the attribution if no attributionId is supplied
     let attributionId = input.attributionId;
     if (!attributionId) {
-      const name = input.name?.trim() || input.fullName?.trim() || input.nickname?.trim() || "Showcase";
+      const name = input.fullName?.trim() || input.nickname?.trim() || "Showcase";
       const attrRow = await attributionsRepo.createAttribution({ name, type: "showcase" });
       attributionId = attrRow.id;
     }
@@ -36,7 +36,6 @@ export async function createShowcase(input: CreateShowcaseRequest): Promise<Show
       attributionId,
       nickname: input.nickname?.trim(),
       fullName: input.fullName?.trim(),
-      name: input.name?.trim(),
       date,
       location: input.location?.trim(),
       airtableId: input.airtableId,
@@ -69,7 +68,6 @@ function mapShowcase(row: showcasesRepo.ShowcaseRow): Showcase {
     attributionId: row.attribution_id,
     nickname: row.nickname ?? undefined,
     fullName: row.full_name ?? undefined,
-    name: row.name ?? undefined,
     date: toDateString(row.date) ?? row.date,
     location: row.location ?? undefined,
     airtableId: row.airtable_id ?? undefined,
@@ -88,7 +86,6 @@ function buildMutationInput(
     attributionId,
     nickname: input.nickname?.trim() ?? existing.nickname,
     fullName: input.fullName?.trim() ?? existing.fullName,
-    name: input.name?.trim() ?? existing.name,
     date,
     location: input.location?.trim() ?? existing.location,
     airtableId: input.airtableId ?? existing.airtableId,

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useShowcases, useCreateShowcase, useUpdateShowcase, useDeleteShowcase } from "../../api/hooks/useShowcases.js";
 import type { CreateShowcaseRequest, UpdateShowcaseRequest, Showcase } from "@get-down/shared";
 import DataTable, { type Column } from "../../components/DataTable.js";
@@ -11,8 +12,8 @@ import { formatDate, toInputDate } from "../../utils/date.js";
 
 const COLUMNS: Column<Showcase>[] = [
   { key: "date", header: "Date", sortable: true, render: (s) => formatDate(s.date) },
-  { key: "name", header: "Name", sortable: true, render: (s) => s.name ?? s.fullName ?? s.nickname ?? "—" },
-  { key: "location", header: "Location", render: (s) => s.location ?? "—" },
+  { key: "nickname", header: "Nickname", sortable: true, render: (s) => s.nickname ?? "—" },
+  { key: "fullName", header: "Full Name", sortable: true, render: (s) => s.fullName ?? "—" },
 ];
 
 const EMPTY_FORM: CreateShowcaseRequest = { date: "" };
@@ -22,6 +23,7 @@ export default function ShowcasesList() {
   const createShowcase = useCreateShowcase();
   const updateShowcase = useUpdateShowcase();
   const deleteShowcase = useDeleteShowcase();
+  const navigate = useNavigate();
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CreateShowcaseRequest>(EMPTY_FORM);
@@ -45,7 +47,7 @@ export default function ShowcasesList() {
 
   function openEdit(s: Showcase) {
     setEditTarget(s);
-    setEditForm({ name: s.name, nickname: s.nickname, fullName: s.fullName, date: s.date, location: s.location });
+    setEditForm({ nickname: s.nickname, fullName: s.fullName, date: s.date, location: s.location });
   }
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
@@ -66,12 +68,14 @@ export default function ShowcasesList() {
         data={showcases ?? []}
         emptyMessage="No showcases yet."
         filterPlaceholder="Search showcases…"
+        onRowClick={(s) => navigate(`/showcases/${s.id}`)}
       />
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Showcase">
         <form onSubmit={handleCreate}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            <FormField label="Name" value={form.name ?? ""} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            <FormField label="Nickname" value={form.nickname ?? ""} onChange={(e) => setForm((f) => ({ ...f, nickname: e.target.value }))} />
+            <FormField label="Full Name" value={form.fullName ?? ""} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} />
             <FormField label="Date" type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} required />
             <FormField label="Location" value={form.location ?? ""} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
           </div>
@@ -85,7 +89,8 @@ export default function ShowcasesList() {
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit Showcase">
         <form onSubmit={handleUpdate}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            <FormField label="Name" value={editForm.name ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} />
+            <FormField label="Nickname" value={editForm.nickname ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, nickname: e.target.value }))} />
+            <FormField label="Full Name" value={editForm.fullName ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, fullName: e.target.value }))} />
             <FormField label="Date" type="date" value={toInputDate(editForm.date)} onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))} required />
             <FormField label="Location" value={editForm.location ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))} />
           </div>
@@ -100,7 +105,7 @@ export default function ShowcasesList() {
       {deleteTarget && (
         <ConfirmDelete
           open={!!deleteTarget}
-          itemName={deleteTarget.name ?? deleteTarget.fullName ?? deleteTarget.nickname ?? String(deleteTarget.id)}
+          itemName={deleteTarget.fullName ?? deleteTarget.nickname ?? String(deleteTarget.id)}
           onConfirm={async () => { await deleteShowcase.mutateAsync(deleteTarget.id); setDeleteTarget(null); }}
           onCancel={() => setDeleteTarget(null)}
           loading={deleteShowcase.isPending}
