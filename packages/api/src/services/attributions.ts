@@ -22,7 +22,6 @@ export async function getAttributionById(id: number): Promise<Attribution> {
   if (showcase) {
     attribution.showcase = {
       id: showcase.id,
-      name: showcase.name ?? showcase.full_name ?? showcase.nickname ?? undefined,
       date: typeof showcase.date === "string" ? showcase.date : String(showcase.date),
       location: showcase.location ?? undefined,
     };

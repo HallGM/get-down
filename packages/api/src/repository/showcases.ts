@@ -5,7 +5,6 @@ export interface ShowcaseRow {
   attribution_id: number;
   nickname: string | null;
   full_name: string | null;
-  name: string | null;
   date: string;
   location: string | null;
   airtable_id: string | null;
@@ -15,26 +14,24 @@ export interface ShowcaseMutationInput {
   attributionId: number;
   nickname?: string;
   fullName?: string;
-  name?: string;
   date: string;
   location?: string;
   airtableId?: string;
 }
 
-const SELECT_COLS = `id, attribution_id, nickname, full_name, name, date, location, airtable_id`;
+const SELECT_COLS = `id, attribution_id, nickname, full_name, date, location, airtable_id`;
 
 export async function createShowcase(input: ShowcaseMutationInput): Promise<ShowcaseRow> {
   const rows = await run_query<ShowcaseRow>({
     text: `
-      INSERT INTO showcases (attribution_id, nickname, full_name, name, date, location, airtable_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO showcases (attribution_id, nickname, full_name, date, location, airtable_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING ${SELECT_COLS};
     `,
     values: [
       input.attributionId,
       input.nickname ?? null,
       input.fullName ?? null,
-      input.name ?? null,
       input.date,
       input.location ?? null,
       input.airtableId ?? null,
@@ -64,15 +61,14 @@ export async function updateShowcase(
   const rows = await run_query<ShowcaseRow>({
     text: `
       UPDATE showcases
-      SET attribution_id = $1, nickname = $2, full_name = $3, name = $4, date = $5, location = $6, airtable_id = $7
-      WHERE id = $8
+      SET attribution_id = $1, nickname = $2, full_name = $3, date = $4, location = $5, airtable_id = $6
+      WHERE id = $7
       RETURNING ${SELECT_COLS};
     `,
     values: [
       input.attributionId,
       input.nickname ?? null,
       input.fullName ?? null,
-      input.name ?? null,
       input.date,
       input.location ?? null,
       input.airtableId ?? null,

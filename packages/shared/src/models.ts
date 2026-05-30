@@ -157,7 +157,7 @@ export interface Attribution {
   notes?: string;
   airtableId?: string;
   /** Present on single-record fetch only. */
-  showcase?: { id: number; name?: string; date: string; location?: string };
+  showcase?: { id: number; date: string; location?: string };
 }
 
 export interface CreateAttributionRequest {
@@ -421,7 +421,6 @@ export interface Showcase {
   attributionId: number;
   nickname?: string;
   fullName?: string;
-  name?: string;
   date: string;
   location?: string;
   airtableId?: string;
@@ -432,7 +431,6 @@ export interface CreateShowcaseRequest {
   attributionId?: number;
   nickname?: string;
   fullName?: string;
-  name?: string;
   date: string;
   location?: string;
   airtableId?: string;
@@ -442,7 +440,6 @@ export interface UpdateShowcaseRequest {
   attributionId?: number;
   nickname?: string;
   fullName?: string;
-  name?: string;
   date?: string;
   location?: string;
   airtableId?: string;
