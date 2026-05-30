@@ -8,6 +8,19 @@ export interface RehearsalRow {
   cost: number | null;
   notes: string | null;
   airtable_id: string | null;
+  expense_id: number | null;
+}
+
+export interface RehearsalWithGigRow extends RehearsalRow {
+  cost_share: number | null;
+  gig_count: number;
+  expense_description: string | null;
+  expense_amount: number | null;
+}
+
+export interface RehearsalGigLinkRow {
+  gig_id: number;
+  cost_share: number | null;
 }
 
 export interface RehearsalMutationInput {
@@ -20,7 +33,7 @@ export interface RehearsalMutationInput {
   airtableId?: string;
 }
 
-const SELECT_COLS = `id, name, date, location, cost, notes, airtable_id`;
+const SELECT_COLS = `id, name, date, location, cost, notes, airtable_id, expense_id`;
 
 export async function createRehearsal(input: RehearsalMutationInput): Promise<RehearsalRow> {
   const rows = await run_query<RehearsalRow>({
@@ -31,16 +44,7 @@ export async function createRehearsal(input: RehearsalMutationInput): Promise<Re
     `,
     values: [input.name, input.date, input.location ?? null, input.cost ?? null, input.notes ?? null, input.airtableId ?? null],
   });
-  const rehearsal = rows[0];
-  if (input.gigIds && input.gigIds.length > 0) {
-    for (const gigId of input.gigIds) {
-      await run_query({
-        text: `INSERT INTO rehearsals_gigs (rehearsal_id, gig_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;`,
-        values: [rehearsal.id, gigId],
-      });
-    }
-  }
-  return rehearsal;
+  return rows[0];
 }
 
 export async function readRehearsals(): Promise<RehearsalRow[]> {
@@ -55,6 +59,24 @@ export async function readRehearsalById(id: number): Promise<RehearsalRow | null
     values: [id],
   });
   return rows[0] ?? null;
+}
+
+export async function readRehearsalsByGigId(gigId: number): Promise<RehearsalWithGigRow[]> {
+  return run_query<RehearsalWithGigRow>({
+    text: `
+      SELECT
+        r.id, r.name, r.date, r.location, r.cost, r.notes, r.airtable_id, r.expense_id,
+        rg.cost_share,
+        (SELECT COUNT(*) FROM rehearsals_gigs rg2 WHERE rg2.rehearsal_id = r.id)::int AS gig_count,
+        e.description AS expense_description,
+        e.amount      AS expense_amount
+      FROM rehearsals r
+      JOIN rehearsals_gigs rg ON rg.rehearsal_id = r.id AND rg.gig_id = $1
+      LEFT JOIN expenses e ON e.id = r.expense_id
+      ORDER BY r.date DESC;
+    `,
+    values: [gigId],
+  });
 }
 
 export async function updateRehearsal(
@@ -89,4 +111,57 @@ export async function deleteRehearsal(id: number): Promise<boolean> {
     values: [id],
   });
   return rows.length > 0;
+}
+
+export async function getGigLinksForRehearsal(rehearsalId: number): Promise<RehearsalGigLinkRow[]> {
+  return run_query<RehearsalGigLinkRow>({
+    text: `SELECT gig_id, cost_share FROM rehearsals_gigs WHERE rehearsal_id = $1;`,
+    values: [rehearsalId],
+  });
+}
+
+export async function linkRehearsalToGig(
+  rehearsalId: number,
+  gigId: number,
+  costShare: number | null
+): Promise<void> {
+  await run_query({
+    text: `
+      INSERT INTO rehearsals_gigs (rehearsal_id, gig_id, cost_share)
+      VALUES ($1, $2, $3)
+      ON CONFLICT DO NOTHING;
+    `,
+    values: [rehearsalId, gigId, costShare],
+  });
+}
+
+export async function unlinkRehearsalFromGig(rehearsalId: number, gigId: number): Promise<void> {
+  await run_query({
+    text: `DELETE FROM rehearsals_gigs WHERE rehearsal_id = $1 AND gig_id = $2;`,
+    values: [rehearsalId, gigId],
+  });
+}
+
+export async function updateCostShare(
+  rehearsalId: number,
+  gigId: number,
+  costShare: number | null
+): Promise<void> {
+  await run_query({
+    text: `
+      UPDATE rehearsals_gigs SET cost_share = $1
+      WHERE rehearsal_id = $2 AND gig_id = $3;
+    `,
+    values: [costShare, rehearsalId, gigId],
+  });
+}
+
+export async function setRehearsalExpense(
+  rehearsalId: number,
+  expenseId: number | null
+): Promise<void> {
+  await run_query({
+    text: `UPDATE rehearsals SET expense_id = $1 WHERE id = $2;`,
+    values: [expenseId, rehearsalId],
+  });
 }

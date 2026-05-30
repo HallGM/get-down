@@ -952,6 +952,13 @@ export interface Rehearsal {
   cost?: number;
   notes?: string;
   airtableId?: string;
+  /** Only present when fetched via GET /gigs/:id/rehearsals */
+  costShare?: number;
+  /** Total number of gigs this rehearsal is linked to */
+  gigCount?: number;
+  expenseId?: number;
+  expenseDescription?: string;
+  expenseAmount?: number;
 }
 
 export interface CreateRehearsalRequest {
@@ -960,6 +967,7 @@ export interface CreateRehearsalRequest {
   location?: string;
   cost?: number;
   notes?: string;
+  /** Additional gig IDs to link beyond the one in the URL */
   gigIds?: number[];
   airtableId?: string;
 }
@@ -972,6 +980,10 @@ export interface UpdateRehearsalRequest {
   notes?: string;
   gigIds?: number[];
   airtableId?: string;
+}
+
+export interface UpdateRehearsalCostShareRequest {
+  costShare: number;
 }
 
 /**
