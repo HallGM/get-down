@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useShowcase, useUpdateShowcase, useDeleteShowcase } from "../../api/hooks/useShowcases.js";
-import { useAttributionFees } from "../../api/hooks/useAttributionFees.js";
 import type { UpdateShowcaseRequest } from "@get-down/shared";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
-import { FeesSection } from "../../components/FeesSection.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import ShowcaseRolesTab from "../attributions/ShowcaseRolesTab.js";
+import ShowcaseExpensesTab from "./ShowcaseExpensesTab.js";
 
 export default function ShowcaseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -18,14 +17,13 @@ export default function ShowcaseDetail() {
   const navigate = useNavigate();
 
   const { data: showcase, isLoading, error } = useShowcase(showcaseId);
-  const { data: fees = [] } = useAttributionFees(showcase?.attributionId ?? 0);
   const updateShowcase = useUpdateShowcase();
   const deleteShowcase = useDeleteShowcase();
 
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState<UpdateShowcaseRequest>({});
   const [showDelete, setShowDelete] = useState(false);
-  const [activeTab, setActiveTab] = useState<"fees" | "roles">("fees");
+  const [activeTab, setActiveTab] = useState<"expenses" | "roles">("expenses");
 
   function openEdit() {
     if (!showcase) return;
@@ -69,11 +67,11 @@ export default function ShowcaseDetail() {
       {/* Tab bar */}
       <div style={{ display: "flex", gap: "0", borderBottom: "1px solid var(--pico-muted-border-color)", marginBottom: "1.5rem" }}>
         <button
-          className={activeTab === "fees" ? "outline" : "secondary outline"}
-          style={{ borderBottom: activeTab === "fees" ? "2px solid var(--pico-primary)" : "none", borderRadius: 0, padding: "0.4em 1em" }}
-          onClick={() => setActiveTab("fees")}
+          className={activeTab === "expenses" ? "outline" : "secondary outline"}
+          style={{ borderBottom: activeTab === "expenses" ? "2px solid var(--pico-primary)" : "none", borderRadius: 0, padding: "0.4em 1em" }}
+          onClick={() => setActiveTab("expenses")}
         >
-          Fees
+          Expenses
         </button>
         <button
           className={activeTab === "roles" ? "outline" : "secondary outline"}
@@ -84,8 +82,8 @@ export default function ShowcaseDetail() {
         </button>
       </div>
 
-      {activeTab === "fees" && showcase.attributionId && (
-        <FeesSection fees={fees} attributionId={showcase.attributionId} />
+      {activeTab === "expenses" && (
+        <ShowcaseExpensesTab showcase={showcase} />
       )}
       {activeTab === "roles" && (
         <ShowcaseRolesTab showcaseId={showcaseId} />

@@ -171,6 +171,11 @@ function str(val: unknown): string | null {
   return typeof val === "string" && val ? val : null;
 }
 
+/** Build an airtableId → DB id map from any collection that has both fields. */
+function byAirtableId<T extends { id: number; airtableId?: string }>(items: T[]): Map<string, number> {
+  return new Map(items.filter(x => x.airtableId).map(x => [x.airtableId!, x.id]));
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -190,7 +195,7 @@ async function main(): Promise<void> {
   // ── 1. Services ────────────────────────────────────────────────────────────
   console.log("→ services");
   const existingServices = await callApi<{ id: number; name: string; airtableId?: string }[]>("GET", "/services");
-  const serviceByAirtableId = new Map(existingServices.filter(s => s.airtableId).map(s => [s.airtableId!, s.id]));
+  const serviceByAirtableId = byAirtableId(existingServices);
   const serviceByName       = new Map(existingServices.map(s => [s.name, s.id]));
 
   const atServices = await fetchTable(TABLES.services);
@@ -234,7 +239,7 @@ async function main(): Promise<void> {
   // ── 2. People ───────────────────────────────────────────────────────────────
   console.log("→ people");
   const existingPeople = await callApi<{ id: number; email?: string; airtableId?: string }[]>("GET", "/people");
-  const peopleByAirtableId = new Map(existingPeople.filter(p => p.airtableId).map(p => [p.airtableId!, p.id]));
+  const peopleByAirtableId = byAirtableId(existingPeople);
   const existingByEmail    = new Map(existingPeople.filter(p => p.email).map(p => [p.email!, p.id]));
 
   const atPeople = await fetchTable(TABLES.people);
@@ -271,7 +276,7 @@ async function main(): Promise<void> {
   // ── 3. Songs ────────────────────────────────────────────────────────────────
   console.log("→ genres");
   const existingSongs = await callApi<{ id: number; airtableId?: string }[]>("GET", "/songs");
-  const songsByAirtableId = new Map(existingSongs.filter(s => s.airtableId).map(s => [s.airtableId!, s.id]));
+  const songsByAirtableId = byAirtableId(existingSongs);
 
   const atSongs = await fetchTable(TABLES.songs);
 
@@ -319,9 +324,9 @@ async function main(): Promise<void> {
   // ── 4. Attributions + Showcases (from Airtable "Showcases" table) ──────────
   console.log("→ attributions / showcases");
   const existingAttrs = await callApi<{ id: number; airtableId?: string }[]>("GET", "/attributions");
-  const attrsByAirtableId = new Map(existingAttrs.filter(a => a.airtableId).map(a => [a.airtableId!, a.id]));
+  const attrsByAirtableId = byAirtableId(existingAttrs);
   const existingShowcases = await callApi<{ id: number; airtableId?: string }[]>("GET", "/showcases");
-  const showcasesByAirtableId = new Map(existingShowcases.filter(s => s.airtableId).map(s => [s.airtableId!, s.id]));
+  const showcasesByAirtableId = byAirtableId(existingShowcases);
 
   const atShowcases = await fetchTable(TABLES.showcases);
   for (const r of atShowcases) {
@@ -348,6 +353,7 @@ async function main(): Promise<void> {
         name,
         date: f["Date"] as string,
         airtableId: r.id,
+        costAirtable: typeof f["Cost"] === "number" ? Math.round(f["Cost"] * 100) : undefined,
       };
       const existingShowcaseId = showcasesByAirtableId.get(r.id);
       if (existingShowcaseId !== undefined) {
@@ -371,7 +377,7 @@ async function main(): Promise<void> {
   // ── 6. Expenses ─────────────────────────────────────────────────────────────
   console.log("→ expenses");
   const existingExpenses = await callApi<{ id: number; airtableId?: string }[]>("GET", "/expenses");
-  const expensesByAirtableId = new Map(existingExpenses.filter(e => e.airtableId).map(e => [e.airtableId!, e.id]));
+  const expensesByAirtableId = byAirtableId(existingExpenses);
 
   const atExpenses = await fetchTable(TABLES.expenses);
   for (const r of atExpenses) {
@@ -401,6 +407,31 @@ async function main(): Promise<void> {
     }
   }
   console.log(`   ${atExpenses.length} records\n`);
+
+  // ── 6b. Showcase → expense links ────────────────────────────────────────────
+  console.log("→ showcase expense links");
+  // Re-fetch showcases so we have up-to-date local IDs (in case some were just created above)
+  const refreshedShowcases = await callApi<{ id: number; airtableId?: string }[]>("GET", "/showcases");
+  const refreshedShowcasesByAirtableId = byAirtableId(refreshedShowcases);
+  // Re-fetch expenses to ensure we have all newly created ones
+  const refreshedExpenses = await callApi<{ id: number; airtableId?: string }[]>("GET", "/expenses");
+  const refreshedExpensesByAirtableId = byAirtableId(refreshedExpenses);
+
+  let expenseLinksCreated = 0;
+  for (const r of atShowcases) {
+    const f = r.fields;
+    if ((f["type"] as string) !== "Showcase") continue;
+    const showcaseId = refreshedShowcasesByAirtableId.get(r.id);
+    if (!showcaseId) continue;
+    const atExpenseIds = ids(f["Expense"]);
+    for (const atExpenseId of atExpenseIds) {
+      const expenseId = refreshedExpensesByAirtableId.get(atExpenseId);
+      if (!expenseId) continue;
+      await callApi("POST", `/showcases/${showcaseId}/expenses`, { expenseId });
+      expenseLinksCreated++;
+    }
+  }
+  console.log(`   ${expenseLinksCreated} links created\n`);
 
   // ── 7. Enquiries ────────────────────────────────────────────────────────────
   console.log("→ enquiries");
@@ -434,7 +465,7 @@ async function main(): Promise<void> {
   // ── 8. Gigs (+ gig_services + assigned_roles) ───────────────────────────────
   console.log("→ gigs");
   const existingGigs = await callApi<{ id: number; airtableId?: string }[]>("GET", "/gigs");
-  const gigsByAirtableId = new Map(existingGigs.filter(g => g.airtableId).map(g => [g.airtableId!, g.id]));
+  const gigsByAirtableId = byAirtableId(existingGigs);
 
   const atGigs = await fetchTable(TABLES.gigs);
   for (const r of atGigs) {
@@ -536,7 +567,7 @@ async function main(): Promise<void> {
   console.log(`   ${prefsUpdated} gigs updated\n`);
   console.log("→ rehearsals");
   const existingRehearsals = await callApi<{ id: number; airtableId?: string }[]>("GET", "/rehearsals");
-  const rehearsalsByAirtableId = new Map(existingRehearsals.filter(r => r.airtableId).map(r => [r.airtableId!, r.id]));
+  const rehearsalsByAirtableId = byAirtableId(existingRehearsals);
 
   const atRehearsals = await fetchTable(TABLES.rehearsals);
   for (const r of atRehearsals) {
@@ -572,7 +603,7 @@ async function main(): Promise<void> {
   // ── 10. Gig payments → payments table ──────────────────────────────────────
   console.log("→ gig payments (performer fees)");
   const existingPayments = await callApi<{ id: number; airtableId?: string }[]>("GET", "/payments");
-  const paymentsByAirtableId = new Map(existingPayments.filter(p => p.airtableId).map(p => [p.airtableId!, p.id]));
+  const paymentsByAirtableId = byAirtableId(existingPayments);
 
   const atGigPayments = await fetchTable(TABLES.gigPayments);
   let paymentsInserted = 0;
