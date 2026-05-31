@@ -4,49 +4,39 @@ import { groupById } from "../utils/groupById.js";
 export interface ExpenseRow {
   id: number;
   date: string | null;
-  paid_date: string | null;
   amount: number;
   description: string;
   category: string | null;
   recipient_name: string | null;
-  payment_method: string | null;
   airtable_id: string | null;
   document_key: string | null;
-  paid_by_account_id: number | null;
 }
 
 export interface ExpenseMutationInput {
   date?: string;
-  paidDate?: string | null;
   amount: number;
   description: string;
   category?: string;
   recipientName?: string;
-  paymentMethod?: string;
   airtableId?: string;
-  /** null explicitly clears the link; undefined preserves the existing value in updates. */
-  paidByAccountId?: number | null;
 }
 
-const SELECT_COLS = `id, date, paid_date, amount, description, category, recipient_name, payment_method, airtable_id, document_key, paid_by_account_id`;
+const SELECT_COLS = `id, date, amount, description, category, recipient_name, airtable_id, document_key`;
 
 export async function createExpense(input: ExpenseMutationInput): Promise<ExpenseRow> {
   const rows = await run_query<ExpenseRow>({
     text: `
-      INSERT INTO expenses (date, paid_date, amount, description, category, recipient_name, payment_method, airtable_id, paid_by_account_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO expenses (date, amount, description, category, recipient_name, airtable_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING ${SELECT_COLS};
     `,
     values: [
       input.date ?? null,
-      input.paidDate ?? null,
       input.amount,
       input.description,
       input.category ?? null,
       input.recipientName ?? null,
-      input.paymentMethod ?? null,
       input.airtableId ?? null,
-      input.paidByAccountId ?? null,
     ],
   });
   return rows[0];
@@ -73,22 +63,18 @@ export async function updateExpense(
   const rows = await run_query<ExpenseRow>({
     text: `
       UPDATE expenses
-      SET date = $1, paid_date = $2, amount = $3, description = $4, category = $5,
-          recipient_name = $6, payment_method = $7, airtable_id = $8,
-          paid_by_account_id = $9
-      WHERE id = $10
+      SET date = $1, amount = $2, description = $3, category = $4,
+          recipient_name = $5, airtable_id = $6
+      WHERE id = $7
       RETURNING ${SELECT_COLS};
     `,
     values: [
       input.date ?? null,
-      input.paidDate !== undefined ? input.paidDate : null,
       input.amount,
       input.description,
       input.category ?? null,
       input.recipientName ?? null,
-      input.paymentMethod ?? null,
       input.airtableId ?? null,
-      input.paidByAccountId !== undefined ? input.paidByAccountId : null,
       id,
     ],
   });

@@ -5,16 +5,20 @@ import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import Modal from "../../components/Modal.js";
 import { formatPennies } from "../../utils/money.js";
-import { caLabel } from "../../utils/accounts.js";
+import { accountBalanceLabel } from "../../utils/accounts.js";
 import type { Account } from "@get-down/shared";
+import Badge from "../../components/Badge.js";
 
 function AccountCard({ account }: { account: Account }) {
-  const { text, color } = caLabel(account.caBalance);
+  const { text, color } = accountBalanceLabel(account);
   return (
     <Link to={`/accounts/${account.id}`} style={{ textDecoration: "none", color: "inherit" }}>
       <article style={{ cursor: "pointer" }}>
-        <header>
+        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <strong>{account.personName}</strong>
+          {account.isBusiness && (
+            <Badge label="Business" background="var(--pico-primary)" />
+          )}
         </header>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem" }}>
           <div>

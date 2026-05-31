@@ -4,9 +4,8 @@ import { MAX_DOCUMENT_SIZE_BYTES } from "@get-down/shared";
 import Modal from "./Modal.js";
 import FormField from "./FormField.js";
 import MoneyField from "./MoneyField.js";
+import ExpensePaymentsSection from "./ExpensePaymentsSection.js";
 import { toInputDate } from "../utils/date.js";
-import { useAccounts } from "../api/hooks/useAccounts.js";
-import PaidBySelect from "./PaidBySelect.js";
 import {
   useUpdateExpense,
   useUploadExpenseDocument,
@@ -38,16 +37,12 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
   const unlinkAllocation = useUnlinkAllocationFromExpense();
   const linkAttributionFee = useLinkAttributionFeeToExpense();
   const unlinkAttributionFee = useUnlinkAttributionFeeFromExpense();
-  const { data: accounts } = useAccounts();
 
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState<number | undefined>(undefined);
   const [date, setDate] = useState("");
-  const [paidDate, setPaidDate] = useState("");
   const [category, setCategory] = useState("");
   const [recipientName, setRecipientName] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [paidByAccountId, setPaidByAccountId] = useState<number | null>(null);
   const [file, setFile] = useState<File | undefined>(undefined);
   const [fileError, setFileError] = useState<string | undefined>(undefined);
   const [localDocUrl, setLocalDocUrl] = useState<string | undefined>(undefined);
@@ -58,11 +53,8 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
     setDescription(expense.description ?? "");
     setAmount(expense.amount);
     setDate(toInputDate(expense.date));
-    setPaidDate(toInputDate(expense.paidDate));
     setCategory(expense.category ?? "");
     setRecipientName(expense.recipientName ?? "");
-    setPaymentMethod(expense.paymentMethod ?? "");
-    setPaidByAccountId(expense.paidByAccountId ?? null);
     setFile(undefined);
     setFileError(undefined);
     setLocalDocUrl(expense.documentUrl);
@@ -77,11 +69,8 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
         description,
         amount: amount ?? 0,
         date: date || undefined,
-        paidDate: paidDate || null,
         category: category || undefined,
         recipientName: recipientName || undefined,
-        paymentMethod: paymentMethod || undefined,
-        paidByAccountId,
       },
     });
     if (file) {
@@ -129,12 +118,6 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
             onChange={(e) => setDate(e.target.value)}
           />
           <FormField
-            label="Paid date"
-            type="date"
-            value={paidDate}
-            onChange={(e) => setPaidDate(e.target.value)}
-          />
-          <FormField
             label="Category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
@@ -143,18 +126,6 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
             label="Recipient"
             value={recipientName}
             onChange={(e) => setRecipientName(e.target.value)}
-          />
-          <FormField
-            label="Payment Method"
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-          />
-
-          {/* Paid by */}
-          <PaidBySelect
-            accounts={accounts}
-            value={paidByAccountId}
-            onChange={setPaidByAccountId}
           />
 
           {/* Document */}
@@ -217,6 +188,17 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
                 addPlaceholder="+ Link attribution fee..."
                 onLink={(feeId: number) => linkAttributionFee.mutate({ expenseId: expense.id, feeId })}
                 onUnlink={(feeId: number) => unlinkAttributionFee.mutate({ expenseId: expense.id, feeId })}
+              />
+            </div>
+          )}
+
+          {/* Payments */}
+          {expense && (
+            <div style={{ gridColumn: "1 / -1" }}>
+              <ExpensePaymentsSection
+                expenseId={expense.id}
+                amount={expense.amount}
+                paymentStatus={expense.paymentStatus}
               />
             </div>
           )}

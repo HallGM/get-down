@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { useExpenses, useDeleteExpense } from "../../api/hooks/useExpenses.js";
 import { useFeeAllocations } from "../../api/hooks/useFeeAllocations.js";
-import { useAccounts } from "../../api/hooks/useAccounts.js";
 import { useAllAttributionFees } from "../../api/hooks/useAttributionFees.js";
 import type { Expense } from "@get-down/shared";
 import DataTable, { type Column } from "../../components/DataTable.js";
+import PaymentStatusBadge from "../../components/PaymentStatusBadge.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
@@ -23,12 +23,15 @@ import CountBadge from "../../components/CountBadge.js";
 
 const COLUMNS: Column<Expense>[] = [
   { key: "date", header: "Date", sortable: true, render: (e) => formatDate(e.date) },
-  { key: "paidDate", header: "Paid date", render: (e) => formatDate(e.paidDate) },
   { key: "description", header: "Description", sortable: true },
   { key: "category", header: "Category", render: (e) => e.category ?? "—" },
   { key: "amount", header: "Amount", render: (e) => <MoneyDisplay pennies={e.amount} /> },
+  {
+    key: "paymentStatus",
+    header: "Status",
+    render: (e) => <PaymentStatusBadge status={e.paymentStatus} />,
+  },
   { key: "recipientName", header: "Recipient", render: (e) => e.recipientName ?? "—" },
-  { key: "paymentMethod", header: "Method", render: (e) => e.paymentMethod ?? "—" },
   {
     key: "documentUrl",
     header: "Document",
@@ -44,14 +47,8 @@ const COLUMNS: Column<Expense>[] = [
 export default function ExpensesList() {
   const { data: expenses, isLoading, error } = useExpenses();
   const { data: allAllocations = [] } = useFeeAllocations();
-  const { data: accounts = [] } = useAccounts();
   const { data: allAttributionFees = [] } = useAllAttributionFees();
   const deleteExpense = useDeleteExpense();
-
-  const accountMap = useMemo(
-    () => new Map(accounts.map((a) => [a.id, a.personName])),
-    [accounts]
-  );
 
   const [showCreate, setShowCreate] = useState(false);
   const [editTargetId, setEditTargetId] = useState<number | null>(null);
@@ -116,10 +113,6 @@ export default function ExpensesList() {
 
       <DataTable<Expense>
         columns={[...COLUMNS, {
-          key: "paidByAccountId",
-          header: "Paid by",
-          render: (e) => e.paidByAccountId != null ? (accountMap.get(e.paidByAccountId) ?? "—") : "—",
-        }, {
           key: "actions", header: "",
           render: (exp) => (
             <button

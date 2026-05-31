@@ -55,8 +55,19 @@ Table people {
 }
 
 Table accounts {
-  id        serial [pk, increment]
-  person_id int [ref: > people.id, not null, unique]
+  id          serial  [pk, increment]
+  person_id   int     [ref: > people.id, unique]
+  is_business boolean [not null, default: false]
+}
+
+Table expense_payments {
+  id             serial [pk, increment]
+  expense_id     int    [ref: > expenses.id, not null]
+  account_id     int    [ref: > accounts.id, not null]
+  amount         int    [not null]
+  date           date
+  payment_method varchar(100)
+  description    varchar(255)
 }
 
 Table account_transactions {
@@ -186,17 +197,14 @@ Table role_services {
 }
 
 Table expenses {
-  id                  serial [pk, increment]
-  date                date
-  paid_date           date
-  amount              int [not null]
-  description         varchar(255) [not null]
-  category            varchar(100)
-  recipient_name      varchar(255)
-  payment_method      varchar(100)
-  airtable_id         varchar(255)
-  document_key        varchar(255)
-  paid_by_account_id  int [ref: > accounts.id]
+  id             serial       [pk, increment]
+  date           date
+  amount         int          [not null]
+  description    varchar(255) [not null]
+  category       varchar(100)
+  recipient_name varchar(255)
+  airtable_id    varchar(255)
+  document_key   varchar(255)
 }
 
 Table fee_allocations_expenses {

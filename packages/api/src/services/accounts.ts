@@ -8,6 +8,7 @@ import type {
 import * as accountsRepo from "../repository/accounts.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
+import { buildPersonName } from "../utils/people.js";
 import { withTransaction } from "../db/init.js";
 
 const CreateAccountSchema = z.object({
@@ -53,7 +54,7 @@ export async function getPeopleWithoutAccounts(): Promise<{ id: number; personNa
   const rows = await accountsRepo.readPeopleWithoutAccounts();
   return rows.map((r) => ({
     id: r.id,
-    personName: r.display_name ?? `${r.first_name}${r.last_name ? ` ${r.last_name}` : ""}`,
+    personName: buildPersonName(r),
   }));
 }
 
@@ -164,6 +165,7 @@ export async function getLedgerByAccount(
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
+
 function toDateString(value: string | Date | null): string | undefined {
   if (!value) return undefined;
   if (typeof value === "string") return value;
@@ -171,11 +173,13 @@ function toDateString(value: string | Date | null): string | undefined {
 }
 
 function mapAccount(row: accountsRepo.AccountSummaryRow): Account {
+  const personName = row.is_business ? "Business" : buildPersonName(row);
   return {
     id: row.id,
-    personId: row.person_id,
-    personName: row.display_name ?? `${row.first_name}${row.last_name ? ` ${row.last_name}` : ""}`,
+    personId: row.person_id ?? undefined,
+    personName,
     caBalance: row.ca_balance,
+    isBusiness: row.is_business,
   };
 }
 

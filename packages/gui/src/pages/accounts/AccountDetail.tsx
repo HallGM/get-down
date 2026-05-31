@@ -30,7 +30,7 @@ import YearSelect from "../../components/YearSelect.js";
 import CountBadge from "../../components/CountBadge.js";
 import { formatPennies } from "../../utils/money.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
-import { caLabel } from "../../utils/accounts.js";
+import { accountBalanceLabel } from "../../utils/accounts.js";
 
 const TRANSACTION_TYPES = [
   "Drawing",
@@ -38,6 +38,11 @@ const TRANSACTION_TYPES = [
   "Expense Reimbursement",
   "Direct Payment",
   "Other",
+];
+
+/** Entry types that are system-generated and should be rendered muted/italic. */
+const SYSTEM_ENTRY_TYPES: LedgerEntry['entryType'][] = [
+  'allocation', 'expense_payment', 'gig_payment', 'drawing',
 ];
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -186,7 +191,7 @@ export default function AccountDetail() {
   if (ledgerError) return <main className="container"><ErrorBanner error={ledgerError} /></main>;
   if (!account) return <main className="container"><ErrorBanner error={new Error("Account not found")} /></main>;
 
-  const { text: balanceLabel, color: balanceColor } = caLabel(account.caBalance);
+  const { text: balanceLabel, color: balanceColor } = accountBalanceLabel(account);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -247,7 +252,13 @@ export default function AccountDetail() {
           </div>
           <small style={{ color: "var(--pico-muted-color)" }}>All-time balance</small>
         </div>
-        <button onClick={() => setShowCreate(true)}>+ Add Transaction</button>
+        <button
+          onClick={() => setShowCreate(true)}
+          disabled={account.isBusiness}
+          title={account.isBusiness ? "Transactions are recorded automatically via expense payments" : undefined}
+        >
+          + Add Transaction
+        </button>
       </div>
 
       {/* Year filter */}
@@ -283,7 +294,7 @@ export default function AccountDetail() {
                     {entry.date ? formatDate(entry.date) : <span style={{ color: "var(--pico-muted-color)" }}>—</span>}
                   </td>
                   <td>
-                    {(entry.entryType === 'allocation' || entry.entryType === 'expense')
+                    {SYSTEM_ENTRY_TYPES.includes(entry.entryType)
                       ? <span style={{ color: "var(--pico-muted-color)", fontStyle: "italic" }}>{entry.label}</span>
                       : entry.label}
                   </td>

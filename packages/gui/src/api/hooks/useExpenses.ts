@@ -34,7 +34,6 @@ export function useCreateExpense() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
-      qc.invalidateQueries({ queryKey: ["accounts"] });
     },
     successMessage: "Expense added",
   });
@@ -48,7 +47,6 @@ export function useUpdateExpense() {
     onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: [KEY, id] });
-      qc.invalidateQueries({ queryKey: ["accounts"] });
     },
     successMessage: "Expense saved",
   });
@@ -60,7 +58,6 @@ export function useDeleteExpense() {
     mutationFn: (id: number) => apiFetch<void>("DELETE", `/expenses/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
-      qc.invalidateQueries({ queryKey: ["accounts"] });
     },
     successMessage: "Expense deleted",
   });
@@ -145,3 +142,4 @@ export function useUnlinkAllocationFromExpense() {
     successMessage: "Allocation unlinked",
   });
 }
+

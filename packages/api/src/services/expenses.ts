@@ -3,9 +3,10 @@ import { extname } from "path";
 import { z } from "zod";
 import type { Expense, CreateExpenseRequest, UpdateExpenseRequest } from "@get-down/shared";
 import * as expensesRepo from "../repository/expenses.js";
+import * as expensePaymentsRepo from "../repository/expense_payments.js";
+import { mapPayment as mapExpensePayment } from "../services/expense_payments.js";
 import * as feeAllocationsRepo from "../repository/fee_allocations.js";
 import * as attributionFeesRepo from "../repository/attribution_fees.js";
-import * as accountsRepo from "../repository/accounts.js";
 import * as storage from "../utils/storage.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
@@ -14,45 +15,35 @@ import { parseOrBadRequest } from "../utils/parse.js";
 export async function getAllExpenses(): Promise<Expense[]> {
   const rows = await expensesRepo.readAllExpenses();
   const ids = rows.map((r) => r.id);
-  const [allocationMap, attributionFeeMap] = await Promise.all([
+  const [allocationMap, attributionFeeMap, paymentStatusMap] = await Promise.all([
     expensesRepo.readAllocationIdsByExpenseIds(ids),
     expensesRepo.readAttributionFeeIdsByExpenseIds(ids),
+    expensePaymentsRepo.readPaymentStatusByExpenseIds(ids),
   ]);
-  return Promise.all(
-    rows.map((row) =>
-      mapExpense(
-        row,
-        allocationMap.get(row.id) ?? [],
-        attributionFeeMap.get(row.id) ?? []
-      )
-    )
-  );
+  return Promise.all(rows.map(async (row) => {
+    const status = paymentStatusMap.get(row.id);
+    const totalPaid = status?.total_paid ?? 0;
+    const documentUrl = await tryGetPresignedUrl(row.document_key);
+    return mapExpense(row, allocationMap.get(row.id) ?? [], attributionFeeMap.get(row.id) ?? [], totalPaid, documentUrl);
+  }));
 }
 
 export async function getExpenseById(id: number): Promise<Expense> {
   const row = await expensesRepo.readExpenseById(id);
   if (!row) throw new NotFoundError("Expense not found");
-  const [allocationIds, attributionFeeIds] = await Promise.all([
-    expensesRepo.readAllocationIdsByExpenseId(id),
-    expensesRepo.readAttributionFeeIdsByExpenseId(id),
-  ]);
-  return await mapExpense(row, allocationIds, attributionFeeIds);
+  return assembleExpense(row);
 }
 
 export async function createExpense(input: CreateExpenseRequest): Promise<Expense> {
-  const row = await expensesRepo.createExpense(await buildMutationInput(input));
-  return await mapExpense(row, [], []);
+  const row = await expensesRepo.createExpense(buildMutationInput(input));
+  return mapExpense(row, [], [], 0);
 }
 
 export async function updateExpense(id: number, input: UpdateExpenseRequest): Promise<Expense> {
   const existing = await getExpenseById(id);
-  const row = await expensesRepo.updateExpense(id, await buildMutationInput(input, existing));
+  const row = await expensesRepo.updateExpense(id, buildMutationInput(input, existing));
   if (!row) throw new NotFoundError("Expense not found");
-  const [allocationIds, attributionFeeIds] = await Promise.all([
-    expensesRepo.readAllocationIdsByExpenseId(id),
-    expensesRepo.readAttributionFeeIdsByExpenseId(id),
-  ]);
-  return await mapExpense(row, allocationIds, attributionFeeIds);
+  return assembleExpense(row);
 }
 
 export async function uploadExpenseDocument(
@@ -152,6 +143,19 @@ export async function unlinkAttributionFeeFromExpense(
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
+async function assembleExpense(row: expensesRepo.ExpenseRow): Promise<Expense> {
+  const [allocationIds, attributionFeeIds, payments] = await Promise.all([
+    expensesRepo.readAllocationIdsByExpenseId(row.id),
+    expensesRepo.readAttributionFeeIdsByExpenseId(row.id),
+    expensePaymentsRepo.readPaymentsByExpenseId(row.id),
+  ]);
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+  const documentUrl = await tryGetPresignedUrl(row.document_key);
+  const expense = mapExpense(row, allocationIds, attributionFeeIds, totalPaid, documentUrl);
+  expense.payments = payments.map(mapExpensePayment);
+  return expense;
+}
+
 async function tryDeleteFile(key: string): Promise<void> {
   try {
     await storage.deleteFile(key);
@@ -160,13 +164,14 @@ async function tryDeleteFile(key: string): Promise<void> {
   }
 }
 
-function patchField<T>(
-  key: string,
-  input: object,
-  existing: T | undefined
-): T | null {
-  if (key in input) return (input as Record<string, unknown>)[key] as T | null ?? null;
-  return existing ?? null;
+async function tryGetPresignedUrl(key: string | null): Promise<string | undefined> {
+  if (!key) return undefined;
+  try {
+    return await storage.getPresignedUrl(key, 3600);
+  } catch (err) {
+    console.error(`[storage] Failed to generate presigned URL for "${key}":`, err);
+    return undefined;
+  }
 }
 
 function toDateString(value: string | Date | null): string | null {
@@ -175,67 +180,51 @@ function toDateString(value: string | Date | null): string | null {
   return value.toISOString().slice(0, 10);
 }
 
-export async function mapExpense(
+function computePaymentStatus(totalPaid: number, amount: number): 'unpaid' | 'partial' | 'paid' {
+  if (totalPaid >= amount) return 'paid';
+  if (totalPaid > 0) return 'partial';
+  return 'unpaid';
+}
+
+export function mapExpense(
   row: expensesRepo.ExpenseRow,
   feeAllocationIds: number[],
-  attributionFeeIds: number[]
-): Promise<Expense> {
-  let documentUrl: string | undefined;
-  if (row.document_key) {
-    try {
-      documentUrl = await storage.getPresignedUrl(row.document_key, 3600);
-    } catch (err) {
-      console.error(`[storage] Failed to generate presigned URL for "${row.document_key}":`, err);
-    }
-  }
-
+  attributionFeeIds: number[],
+  totalPaid: number,
+  documentUrl?: string
+): Expense {
   return {
     id: row.id,
     date: toDateString(row.date) ?? undefined,
-    paidDate: toDateString(row.paid_date) ?? undefined,
     amount: row.amount,
     description: row.description,
     category: row.category ?? undefined,
     recipientName: row.recipient_name ?? undefined,
-    paymentMethod: row.payment_method ?? undefined,
     airtableId: row.airtable_id ?? undefined,
     documentUrl,
     feeAllocationIds,
     attributionFeeIds,
-    paidByAccountId: row.paid_by_account_id ?? undefined,
+    totalPaid,
+    paymentStatus: computePaymentStatus(totalPaid, row.amount),
   };
 }
 
-async function buildMutationInput(
+function buildMutationInput(
   input: CreateExpenseRequest | UpdateExpenseRequest,
   existing?: Expense
-): Promise<expensesRepo.ExpenseMutationInput> {
+): expensesRepo.ExpenseMutationInput {
   const amount = input.amount ?? existing?.amount;
   if (amount === undefined) throw new BadRequestError("amount is required");
   const description = input.description?.trim() ?? existing?.description;
   if (!description) throw new BadRequestError("description is required");
 
-  // Patch semantics for nullable optional fields:
-  //   - field absent from input → preserve existing value (or null if creating)
-  //   - field explicitly null   → clear
-  //   - field has a value       → set
-  const paidByAccountId = patchField<number>('paidByAccountId', input, existing?.paidByAccountId);
-  const paidDate        = patchField<string>('paidDate',        input, existing?.paidDate);
-
-  if (paidByAccountId !== null) {
-    const account = await accountsRepo.readAccountById(paidByAccountId);
-    if (!account) throw new BadRequestError("paidByAccountId references an account that does not exist");
-  }
-
   return {
     date: input.date ?? existing?.date,
-    paidDate,
     amount,
     description,
     category: input.category?.trim() ?? existing?.category,
     recipientName: input.recipientName?.trim() ?? existing?.recipientName,
-    paymentMethod: input.paymentMethod?.trim() ?? existing?.paymentMethod,
     airtableId: input.airtableId ?? existing?.airtableId,
-    paidByAccountId,
   };
 }
+

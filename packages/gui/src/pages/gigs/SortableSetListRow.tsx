@@ -2,6 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { SetListItemWithSong } from "@get-down/shared";
 import { formatDuration } from "../../utils/formatDuration.js";
+import Badge from "../../components/Badge.js";
 
 interface Props {
   item: SetListItemWithSong;
@@ -114,27 +115,43 @@ export default function SortableSetListRow({ item, index, onRemove, removing, se
 
         {/* Key badge */}
         {displayKey && (
-          <span style={keyBadgeStyle}>{displayKey}</span>
+          <Badge
+            label={displayKey}
+            background="var(--pico-secondary-background)"
+            color="var(--pico-secondary-inverse)"
+            fontSize="0.75rem"
+            style={{ padding: "0.05em 0.45em", letterSpacing: "0.02em", border: "1px solid var(--pico-secondary-border)" }}
+          />
         )}
 
         {/* Key change badge */}
         {displayKeyChange && (
-          <span style={keyChangeBadgeStyle}>{displayKeyChange}</span>
+          <Badge
+            label={displayKeyChange}
+            background="#f59e0b"
+            fontSize="0.75rem"
+            style={{ padding: "0.05em 0.45em", letterSpacing: "0.02em", border: "1px solid transparent" }}
+          />
         )}
 
         {/* Vocal type badge */}
         {displayVocalType && (
-          <span style={vocalTypeBadgeStyle}>{displayVocalType}</span>
+          <Badge
+            label={displayVocalType}
+            background="var(--pico-ins-color)"
+            fontSize="0.75rem"
+            style={{ padding: "0.05em 0.45em", fontWeight: 500 }}
+          />
         )}
       </div>
 
       {/* Badges column — DNP takes priority, then Must Play, then Fav */}
       {item.isDoNotPlay ? (
-        <small style={doNotPlayBadgeStyle}>⚠ DNP</small>
+        <Badge label="⚠ DNP" background="var(--pico-del-color)" fontSize="0.7rem" style={{ padding: "0.1em 0.4em", fontWeight: 700 }} />
       ) : item.isMustPlay ? (
-        <small style={mustPlayBadgeStyle}>MUST PLAY</small>
+        <Badge label="MUST PLAY" background="var(--pico-del-color)" fontSize="0.7rem" style={{ padding: "0.1em 0.4em" }} />
       ) : item.isFavourite ? (
-        <small style={favBadgeStyle}>★ FAV</small>
+        <Badge label="★ FAV" background="var(--pico-ins-color)" fontSize="0.7rem" style={{ padding: "0.1em 0.4em" }} />
       ) : (
         <span />
       )}
@@ -164,71 +181,3 @@ export default function SortableSetListRow({ item, index, onRemove, removing, se
     </div>
   );
 }
-
-// ─── Style constants ──────────────────────────────────────────────────────────
-
-const keyBadgeStyle: React.CSSProperties = {
-  display: "inline-block",
-  background: "var(--pico-secondary-background)",
-  color: "var(--pico-secondary-inverse)",
-  border: "1px solid var(--pico-secondary-border)",
-  padding: "0.05em 0.45em",
-  borderRadius: "0.25em",
-  fontSize: "0.75rem",
-  fontWeight: 600,
-  letterSpacing: "0.02em",
-  whiteSpace: "nowrap",
-};
-
-const keyChangeBadgeStyle: React.CSSProperties = {
-  display: "inline-block",
-  background: "#f59e0b",
-  color: "#fff",
-  border: "1px solid transparent",
-  padding: "0.05em 0.45em",
-  borderRadius: "0.25em",
-  fontSize: "0.75rem",
-  fontWeight: 600,
-  letterSpacing: "0.02em",
-  whiteSpace: "nowrap",
-};
-
-const vocalTypeBadgeStyle: React.CSSProperties = {
-  display: "inline-block",
-  background: "var(--pico-ins-color)",
-  color: "#fff",
-  border: "1px solid transparent",
-  padding: "0.05em 0.45em",
-  borderRadius: "0.25em",
-  fontSize: "0.75rem",
-  fontWeight: 500,
-  whiteSpace: "nowrap",
-};
-
-const mustPlayBadgeStyle: React.CSSProperties = {
-  whiteSpace: "nowrap",
-  background: "var(--pico-del-color)",
-  color: "#fff",
-  padding: "0.1em 0.4em",
-  borderRadius: "0.25em",
-  fontSize: "0.7rem",
-};
-
-const favBadgeStyle: React.CSSProperties = {
-  whiteSpace: "nowrap",
-  background: "var(--pico-ins-color)",
-  color: "#fff",
-  padding: "0.1em 0.4em",
-  borderRadius: "0.25em",
-  fontSize: "0.7rem",
-};
-
-const doNotPlayBadgeStyle: React.CSSProperties = {
-  whiteSpace: "nowrap",
-  background: "var(--pico-del-color)",
-  color: "#fff",
-  padding: "0.1em 0.4em",
-  borderRadius: "0.25em",
-  fontSize: "0.7rem",
-  fontWeight: 700,
-};
