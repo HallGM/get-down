@@ -1,5 +1,9 @@
 -- Seed data — idempotent (ON CONFLICT DO NOTHING relies on UNIQUE constraint on services.name)
 
+-- Business account (singleton — partial unique index on is_business ensures only one)
+INSERT INTO accounts (is_business) VALUES (true)
+ON CONFLICT (is_business) WHERE is_business = true DO NOTHING;
+
 -- Dev user: admin@get-down.com / password (local only — skipped in production)
 DO $$
 BEGIN

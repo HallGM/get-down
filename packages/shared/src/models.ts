@@ -585,49 +585,71 @@ export interface EmailMessageResponse {
 /** Maximum allowed document attachment size in bytes (20 MB). */
 export const MAX_DOCUMENT_SIZE_BYTES = 20 * 1024 * 1024;
 
+export interface ExpensePayment {
+  id: number;
+  expenseId: number;
+  accountId: number;
+  /** Signed amount in pennies: positive = payment, negative = refund. */
+  amount: number;
+  date?: string;
+  paymentMethod?: string;
+  description?: string;
+}
+
+export interface CreateExpensePaymentRequest {
+  accountId: number;
+  /** Signed amount in pennies: positive = payment, negative = refund. */
+  amount: number;
+  date?: string;
+  paymentMethod?: string;
+  description?: string;
+}
+
+export interface UpdateExpensePaymentRequest {
+  accountId?: number;
+  amount?: number;
+  date?: string;
+  paymentMethod?: string;
+  description?: string;
+}
+
 export interface Expense {
   id: number;
   date?: string;
-  paidDate?: string;
   amount: number;
   description: string;
   category?: string;
   recipientName?: string;
-  paymentMethod?: string;
   airtableId?: string;
   documentUrl?: string;
   /** IDs of fee allocations linked to this expense via fee_allocations_expenses. Always present, never undefined. */
   feeAllocationIds: number[];
   /** IDs of attribution fees linked to this expense via attribution_fees_expenses. Always present, never undefined. */
   attributionFeeIds: number[];
-  /** Account ID of the person who paid this expense out of pocket, if any. */
-  paidByAccountId?: number;
+  /** Sum of all payment amounts in pennies (after refunds). */
+  totalPaid: number;
+  /** Derived from totalPaid vs amount. */
+  paymentStatus: 'unpaid' | 'partial' | 'paid';
+  /** Full list of payments. Present on single-record fetch; undefined on list fetch. */
+  payments?: ExpensePayment[];
 }
 
 export interface CreateExpenseRequest {
   date?: string;
-  paidDate?: string | null;
   amount: number;
   description: string;
   category?: string;
   recipientName?: string;
-  paymentMethod?: string;
   airtableId?: string;
-  /** Account ID of the person who paid this expense out of pocket, if any. */
-  paidByAccountId?: number;
 }
 
 export interface UpdateExpenseRequest {
   date?: string;
-  paidDate?: string | null;
   amount?: number;
   description?: string;
   category?: string;
   recipientName?: string;
-  paymentMethod?: string;
   airtableId?: string;
-  /** Account ID of the person who paid this expense out of pocket. Pass null to clear. */
-  paidByAccountId?: number | null;
 }
 
 export interface Payment {
@@ -767,9 +789,11 @@ export interface UpdateInvoicePaymentMadeRequest {
 
 export interface Account {
   id: number;
-  personId: number;
+  /** Undefined for the business account. */
+  personId?: number;
   personName: string;
   caBalance: number;
+  isBusiness: boolean;
 }
 
 export interface CreateAccountRequest {
@@ -778,7 +802,7 @@ export interface CreateAccountRequest {
 
 export interface LedgerEntry {
   sourceId: number;
-  entryType: 'transaction' | 'allocation' | 'expense';
+  entryType: 'transaction' | 'allocation' | 'expense_payment' | 'gig_payment' | 'drawing';
   accountId: number;
   date?: string;
   amount: number;

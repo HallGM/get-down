@@ -1,3 +1,5 @@
+import Badge from "./Badge.js";
+
 const PALETTE: Record<string, string> = {
   // Gig statuses
   enquiry: "#6c757d",
@@ -16,22 +18,6 @@ interface Props {
 }
 
 export default function StatusBadge({ status }: Props) {
-  const color = PALETTE[status.toLowerCase()] ?? "#6c757d";
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "0.1em 0.5em",
-        borderRadius: "var(--pico-border-radius)",
-        background: color,
-        color: "#fff",
-        fontSize: "0.8em",
-        fontWeight: 600,
-        textTransform: "capitalize",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {status}
-    </span>
-  );
+  const bg = PALETTE[status.toLowerCase()] ?? "#6c757d";
+  return <Badge label={status} background={bg} style={{ textTransform: "capitalize" }} />;
 }

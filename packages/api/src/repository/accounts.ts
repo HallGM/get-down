@@ -2,16 +2,18 @@ import { run_query } from "../db/init.js";
 
 export interface AccountSummaryRow {
   id: number;
-  person_id: number;
-  first_name: string;
+  person_id: number | null;
+  first_name: string | null;
   last_name: string | null;
   display_name: string | null;
   ca_balance: number;
+  is_business: boolean;
 }
 
 export interface AccountRow {
   id: number;
-  person_id: number;
+  person_id: number | null;
+  is_business: boolean;
 }
 
 export interface PersonNameRow {
@@ -32,9 +34,9 @@ export interface TransactionRow {
 
 export interface LedgerEntryRow {
   source_id: number;
-  entry_type: 'transaction' | 'allocation' | 'expense';
+  entry_type: 'transaction' | 'allocation' | 'expense_payment' | 'gig_payment' | 'drawing';
   account_id: number;
-  person_id: number;
+  person_id: number | null;
   date: string | null;
   amount: number;
   label: string;
@@ -54,15 +56,16 @@ export async function readAllAccounts(): Promise<AccountSummaryRow[]> {
       SELECT
         a.id,
         a.person_id,
+        a.is_business,
         p.first_name,
         p.last_name,
         p.display_name,
         COALESCE(SUM(l.amount), 0)::int AS ca_balance
       FROM accounts a
-      JOIN people p ON p.id = a.person_id
+      LEFT JOIN people p ON p.id = a.person_id
       LEFT JOIN account_ledger l ON l.account_id = a.id
-      GROUP BY a.id, a.person_id, p.first_name, p.last_name, p.display_name
-      ORDER BY p.first_name, p.last_name;
+      GROUP BY a.id, a.person_id, a.is_business, p.first_name, p.last_name, p.display_name
+      ORDER BY a.is_business DESC, p.first_name, p.last_name;
     `,
   });
 }
@@ -88,7 +91,7 @@ export async function readPeopleWithoutAccounts(): Promise<PersonNameRow[]> {
 
 export async function readAccountById(id: number): Promise<AccountRow | null> {
   const rows = await run_query<AccountRow>({
-    text: `SELECT id, person_id FROM accounts WHERE id = $1 LIMIT 1;`,
+    text: `SELECT id, person_id, is_business FROM accounts WHERE id = $1 LIMIT 1;`,
     values: [id],
   });
   return rows[0] ?? null;
@@ -96,7 +99,7 @@ export async function readAccountById(id: number): Promise<AccountRow | null> {
 
 export async function readAccountByPersonId(personId: number): Promise<AccountRow | null> {
   const rows = await run_query<AccountRow>({
-    text: `SELECT id, person_id FROM accounts WHERE person_id = $1 LIMIT 1;`,
+    text: `SELECT id, person_id, is_business FROM accounts WHERE person_id = $1 LIMIT 1;`,
     values: [personId],
   });
   return rows[0] ?? null;

@@ -18,6 +18,7 @@ import * as accountsRepo from "../repository/accounts.js";
 import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
+import { buildPersonName } from "../utils/people.js";
 import { z } from "zod";
 
 export async function getAllFeeAllocations(): Promise<FeeAllocation[]> {
@@ -371,9 +372,7 @@ export async function generateExpenseForAllocation(allocationId: number): Promis
   const amount = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
 
   const gigLabel = `${gig.first_name} ${gig.last_name}`;
-  const personLabel = person
-    ? person.display_name ?? `${person.first_name}${person.last_name ? ` ${person.last_name}` : ""}`
-    : null;
+  const personLabel = person ? buildPersonName(person) : null;
 
   let description = gigLabel;
   if (personLabel) description += ` — ${personLabel}`;
@@ -386,10 +385,9 @@ export async function generateExpenseForAllocation(allocationId: number): Promis
       date: undefined,
       category: undefined,
       recipientName: undefined,
-      paymentMethod: undefined,
     });
     await feeAllocationsRepo.linkExpenseToAllocation(allocationId, expenseRow.id);
-    return mapExpense(expenseRow, [allocationId], []);
+    return mapExpense(expenseRow, [allocationId], [], 0);
   });
 }
 
