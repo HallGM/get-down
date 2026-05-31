@@ -34,7 +34,7 @@ export async function login(input: LoginRequest): Promise<AuthResponse> {
   const email = input.email.trim().toLowerCase();
   const user = await authRepository.findAuthPersonByEmail(email);
 
-  if (!user || !user.password_hash || !user.is_active || !user.is_partner || !user.account_id) {
+  if (!user || !user.password_hash || !user.is_active || !user.is_partner) {
     throw new UnauthorizedError("Invalid credentials");
   }
 

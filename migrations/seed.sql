@@ -13,8 +13,9 @@ BEGIN
     ON CONFLICT (email) DO NOTHING;
 
     INSERT INTO accounts (person_id)
-    SELECT id FROM people WHERE email = 'admin@get-down.com'
-    ON CONFLICT (person_id) DO NOTHING;
+    SELECT p.id FROM people p
+    WHERE p.email = 'admin@get-down.com'
+      AND NOT EXISTS (SELECT 1 FROM accounts a WHERE a.person_id = p.id);
   END IF;
 END $$;
 

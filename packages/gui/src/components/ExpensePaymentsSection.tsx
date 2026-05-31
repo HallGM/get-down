@@ -52,8 +52,7 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
 
   const accountMap = new Map(accounts.map((a) => [a.id, a.personName]));
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleCreate() {
     if (!form.accountId) return;
     const input: CreateExpensePaymentRequest = {
       accountId: Number(form.accountId),
@@ -62,9 +61,13 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
       paymentMethod: form.paymentMethod || undefined,
       description: form.description || undefined,
     };
-    await createPayment.mutateAsync(input);
-    setShowForm(false);
-    setForm(EMPTY_FORM);
+    try {
+      await createPayment.mutateAsync(input);
+      setShowForm(false);
+      setForm(EMPTY_FORM);
+    } catch {
+      // toast already shown by useApiMutation — keep form open for retry
+    }
   }
 
   function openEdit(payment: ExpensePayment) {
@@ -78,8 +81,7 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
     });
   }
 
-  async function handleUpdate(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleUpdate() {
     if (!editTarget || !editForm.accountId) return;
     const input: UpdateExpensePaymentRequest = {
       accountId: Number(editForm.accountId),
@@ -88,8 +90,12 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
       paymentMethod: editForm.paymentMethod || undefined,
       description: editForm.description || undefined,
     };
-    await updatePayment.mutateAsync({ paymentId: editTarget.id, input });
-    setEditTarget(null);
+    try {
+      await updatePayment.mutateAsync({ paymentId: editTarget.id, input });
+      setEditTarget(null);
+    } catch {
+      // toast already shown by useApiMutation — keep edit form open for retry
+    }
   }
 
   return (
@@ -121,13 +127,13 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "0.75rem" }}>
           {payments.map((p) => (
             editTarget?.id === p.id ? (
-              <form key={p.id} onSubmit={handleUpdate} style={{ border: "1px solid var(--pico-muted-border-color)", borderRadius: "var(--pico-border-radius)", padding: "0.75rem" }}>
+              <div key={p.id} style={{ border: "1px solid var(--pico-muted-border-color)", borderRadius: "var(--pico-border-radius)", padding: "0.75rem" }}>
                 <PaymentFormFields form={editForm} setForm={setEditForm} accounts={accounts} />
                 <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.5rem" }}>
                   <button type="button" className="secondary outline" style={{ padding: "0.2em 0.6em" }} onClick={() => setEditTarget(null)}>Cancel</button>
-                  <button type="submit" style={{ padding: "0.2em 0.6em" }} aria-busy={updatePayment.isPending} disabled={updatePayment.isPending}>Save</button>
+                  <button type="button" style={{ padding: "0.2em 0.6em" }} aria-busy={updatePayment.isPending} disabled={updatePayment.isPending} onClick={handleUpdate}>Save</button>
                 </div>
-              </form>
+              </div>
             ) : (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.4rem 0.6rem", background: "var(--pico-card-background-color)", borderRadius: "var(--pico-border-radius)", border: "1px solid var(--pico-muted-border-color)" }}>
                 <span style={{ flex: "0 0 90px", fontWeight: 600, color: p.amount < 0 ? "var(--pico-del-color, #dc3545)" : "inherit" }}>
@@ -149,13 +155,13 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
 
       {/* Add payment form */}
       {showForm && (
-        <form onSubmit={handleCreate} style={{ border: "1px solid var(--pico-muted-border-color)", borderRadius: "var(--pico-border-radius)", padding: "0.75rem", marginBottom: "0.5rem" }}>
+        <div style={{ border: "1px solid var(--pico-muted-border-color)", borderRadius: "var(--pico-border-radius)", padding: "0.75rem", marginBottom: "0.5rem" }}>
           <PaymentFormFields form={form} setForm={setForm} accounts={accounts} />
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.5rem" }}>
             <button type="button" className="secondary outline" style={{ padding: "0.2em 0.6em" }} onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }}>Cancel</button>
-            <button type="submit" style={{ padding: "0.2em 0.6em" }} aria-busy={createPayment.isPending} disabled={createPayment.isPending || !form.accountId}>Record Payment</button>
+            <button type="button" style={{ padding: "0.2em 0.6em" }} aria-busy={createPayment.isPending} disabled={createPayment.isPending || !form.accountId} onClick={handleCreate}>Record Payment</button>
           </div>
-        </form>
+        </div>
       )}
 
       {/* Delete confirmation */}
