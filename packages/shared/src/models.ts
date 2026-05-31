@@ -416,6 +416,12 @@ export type SaveClientFormRequest = Pick<
   | "ceilidhStyle"
 > & { preferences: GigSongPreferences };
 
+export interface ShowcaseExpenseLink {
+  expenseId: number;
+  /** null means the full expense amount applies to this showcase. */
+  apportionedAmount: number | null;
+}
+
 export interface Showcase {
   id: number;
   attributionId: number;
@@ -424,6 +430,8 @@ export interface Showcase {
   date: string;
   location?: string;
   airtableId?: string;
+  costAirtable?: number;
+  expenseLinks: ShowcaseExpenseLink[];
 }
 
 export interface CreateShowcaseRequest {
@@ -434,6 +442,7 @@ export interface CreateShowcaseRequest {
   date: string;
   location?: string;
   airtableId?: string;
+  costAirtable?: number;
 }
 
 export interface UpdateShowcaseRequest {
@@ -443,6 +452,7 @@ export interface UpdateShowcaseRequest {
   date?: string;
   location?: string;
   airtableId?: string;
+  costAirtable?: number;
 }
 
 export interface FeeAllocation {

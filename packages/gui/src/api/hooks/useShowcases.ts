@@ -1,9 +1,14 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, QueryClient } from "@tanstack/react-query";
 import type { Showcase, CreateShowcaseRequest, UpdateShowcaseRequest } from "@get-down/shared";
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
 const KEY = "showcases";
+
+function invalidateShowcase(qc: QueryClient, showcaseId: number) {
+  qc.invalidateQueries({ queryKey: [KEY] });
+  qc.invalidateQueries({ queryKey: [KEY, showcaseId] });
+}
 
 export function useShowcases() {
   return useQuery({
@@ -46,5 +51,45 @@ export function useDeleteShowcase() {
     mutationFn: (id: number) => apiFetch<void>("DELETE", `/showcases/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
     successMessage: "Showcase deleted",
+  });
+}
+
+export function useLinkExpenseToShowcase() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ showcaseId, expenseId }: { showcaseId: number; expenseId: number }) =>
+      apiFetch<void>("POST", `/showcases/${showcaseId}/expenses`, { expenseId }),
+    onSuccess: (_data, { showcaseId }) => invalidateShowcase(qc, showcaseId),
+    successMessage: "Expense linked",
+  });
+}
+
+export function useUnlinkExpenseFromShowcase() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ showcaseId, expenseId }: { showcaseId: number; expenseId: number }) =>
+      apiFetch<void>("DELETE", `/showcases/${showcaseId}/expenses/${expenseId}`),
+    onSuccess: (_data, { showcaseId }) => invalidateShowcase(qc, showcaseId),
+    successMessage: "Expense unlinked",
+  });
+}
+
+export function useUpdateShowcaseExpenseLink() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({
+      showcaseId,
+      expenseId,
+      apportionedAmount,
+    }: {
+      showcaseId: number;
+      expenseId: number;
+      apportionedAmount: number | null;
+    }) =>
+      apiFetch<void>("PATCH", `/showcases/${showcaseId}/expenses/${expenseId}`, {
+        apportionedAmount,
+      }),
+    onSuccess: (_data, { showcaseId }) => invalidateShowcase(qc, showcaseId),
+    successMessage: "Apportionment updated",
   });
 }

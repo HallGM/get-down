@@ -162,6 +162,13 @@ Table showcases {
   date           date [not null]
   location       varchar(255)
   airtable_id    varchar(255)
+  cost_airtable  int
+}
+
+Table showcase_expenses {
+  showcase_id        int [ref: > showcases.id, not null]
+  expense_id         int [ref: > expenses.id, not null]
+  apportioned_amount int
 }
 
 Table attributions {
