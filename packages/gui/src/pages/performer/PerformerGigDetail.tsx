@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { usePerformerGig } from "../../api/hooks/usePerformer.js";
 import { formatDate } from "../../utils/date.js";
+import { isUrl } from "../../utils/url.js";
 
 export default function PerformerGigDetail() {
   const { token = "", gigId } = useParams<{ token: string; gigId: string }>();
@@ -109,8 +110,10 @@ export default function PerformerGigDetail() {
           {gig.playlistUrl && (
             <div>
               <dt><small><strong>DJ playlist</strong></small></dt>
-              <dd style={{ margin: 0, overflowWrap: "anywhere" }}>
-                <a href={gig.playlistUrl} target="_blank" rel="noopener noreferrer">Open playlist ↗</a>
+              <dd style={{ margin: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                {isUrl(gig.playlistUrl)
+                  ? <a href={gig.playlistUrl} target="_blank" rel="noopener noreferrer">Open playlist ↗</a>
+                  : gig.playlistUrl}
               </dd>
             </div>
           )}
@@ -189,3 +192,4 @@ export default function PerformerGigDetail() {
     </main>
   );
 }
+

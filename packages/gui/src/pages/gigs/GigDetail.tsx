@@ -28,6 +28,7 @@ import StatusBadge from "../../components/StatusBadge.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
+import { isUrl } from "../../utils/url.js";
 import MoneyField from "../../components/MoneyField.js";
 import Modal from "../../components/Modal.js";
 import ExpensePickerModal from "../../components/ExpensePickerModal.js";
@@ -287,16 +288,7 @@ export default function GigDetail() {
             <FormField as="textarea" label="Meal details" value={editForm.mealDetails ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, mealDetails: e.target.value }))} rows={2} />
             <FormField as="textarea" label="Client notes" value={editForm.clientNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, clientNotes: e.target.value }))} rows={3} />
             <FormField as="textarea" label="Performer notes" value={editForm.performerNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, performerNotes: e.target.value }))} rows={3} />
-            <div>
-              <label htmlFor="playlistUrl" style={{ display: "block", marginBottom: "0.25rem" }}>DJ playlist URL</label>
-              <input
-                id="playlistUrl"
-                type="url"
-                value={editForm.playlistUrl ?? ""}
-                onChange={(e) => setEditForm((f) => ({ ...f, playlistUrl: e.target.value }))}
-                style={{ width: "100%" }}
-              />
-            </div>
+            <FormField as="textarea" label="DJ playlist" rows={4} value={editForm.playlistUrl ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, playlistUrl: e.target.value }))} />
 
             <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
               <button type="submit" aria-busy={updateGig.isPending} disabled={updateGig.isPending}>Save</button>
@@ -334,7 +326,7 @@ export default function GigDetail() {
               {gig.mealDetails && <><dt>Meal details</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.mealDetails}</dd></>}
               {gig.clientNotes && <><dt>Client notes</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.clientNotes}</dd></>}
               {gig.performerNotes && <><dt>Performer notes</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.performerNotes}</dd></>}
-              {gig.playlistUrl && <><dt>DJ playlist</dt><dd><a href={gig.playlistUrl} target="_blank" rel="noopener noreferrer">{gig.playlistUrl}</a></dd></>}
+              {gig.playlistUrl && <><dt>DJ playlist</dt><dd style={{ whiteSpace: "pre-wrap" }}><PlaylistValue value={gig.playlistUrl} /></dd></>}
               {gig.endOfNightSong && <><dt>End of night</dt><dd>{gig.endOfNightSong}</dd></>}
               {gig.firstDanceSong && <><dt>First dance</dt><dd>{gig.firstDanceSong}</dd></>}
               {gig.firstDanceType && <><dt>First dance type</dt><dd>{gig.firstDanceType}</dd></>}
@@ -705,3 +697,11 @@ export default function GigDetail() {
     </main>
   );
 }
+
+function PlaylistValue({ value }: { value: string }) {
+  if (isUrl(value)) {
+    return <a href={value} target="_blank" rel="noopener noreferrer">{value}</a>;
+  }
+  return <>{value}</>;
+}
+
