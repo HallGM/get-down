@@ -18,7 +18,7 @@ interface VimeoDownloadLink {
  * video. The video must have downloads enabled in its Vimeo settings.
  */
 export async function getDownloadUrl(videoId: string): Promise<string | null> {
-  const token = process.env.VIMEO_ACCESS_TOKEN;
+  const token = process.env.VIMEO_ACCESS_TOKEN?.trim();
   if (!token) {
     throw new Error("VIMEO_ACCESS_TOKEN is not set.");
   }
