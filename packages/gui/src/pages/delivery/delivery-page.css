@@ -1,0 +1,341 @@
+/* ─── Delivery page — scoped styles ─────────────────────────────────────────── */
+
+.dp-root {
+  min-height: 100vh;
+  background: #0c0c0c;
+  color: #f5f0eb;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+/* ─── Header / branding ─────────────────────────────────────────────────────── */
+
+.dp-header {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1.5rem 0;
+}
+
+.dp-logo {
+  height: 72px;
+  width: auto;
+  display: block;
+  /* The logo PNG has a white background; invert it for the dark page */
+  filter: invert(1) sepia(1) saturate(0.4) brightness(0.85);
+}
+
+/* ─── Hero ───────────────────────────────────────────────────────────────────── */
+
+.dp-hero {
+  text-align: center;
+  padding: 3.5rem 1.5rem 2.5rem;
+}
+
+.dp-hero__eyebrow {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #b89b72;
+  margin: 0 0 1.25rem;
+}
+
+.dp-hero__names {
+  font-size: clamp(2rem, 6vw, 4rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  margin: 0 0 0.6rem;
+  line-height: 1.15;
+  color: #f5f0eb;
+}
+
+.dp-hero__ampersand {
+  color: #b89b72;
+  font-style: italic;
+  margin: 0 0.35em;
+}
+
+.dp-hero__date {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  color: #9c8b7a;
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+}
+
+.dp-hero__venue {
+  font-size: 0.9rem;
+  font-style: italic;
+  color: #7a6f65;
+  margin: 0;
+}
+
+.dp-divider {
+  width: 60px;
+  height: 1px;
+  background: #b89b72;
+  margin: 2rem auto;
+  border: none;
+}
+
+/* ─── Sections ───────────────────────────────────────────────────────────────── */
+
+.dp-section {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem 3.5rem;
+}
+
+.dp-section__heading {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #b89b72;
+  text-align: center;
+  margin: 0 0 1.75rem;
+}
+
+/* ─── Video ───────────────────────────────────────────────────────────────────── */
+
+.dp-video-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #111;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+
+.dp-video-wrapper iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ─── Photo grid ─────────────────────────────────────────────────────────────── */
+
+.dp-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+}
+
+.dp-photo-thumb {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  cursor: pointer;
+  background: #1a1a1a;
+  position: relative;
+}
+
+.dp-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+}
+
+.dp-photo-thumb img.dp-img-loaded {
+  opacity: 1;
+}
+
+.dp-photo-thumb:hover img {
+  transform: scale(1.04);
+}
+
+.dp-photo-thumb__skeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%);
+  background-size: 200% 100%;
+  animation: dp-shimmer 1.4s infinite;
+}
+
+@keyframes dp-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Download button ────────────────────────────────────────────────────────── */
+
+.dp-video-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.dp-video-notice {
+  max-width: 560px;
+  margin: 1.25rem auto 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  color: #5a5550;
+  text-align: center;
+}
+
+.dp-download {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.dp-download__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.75em 2em;
+  border: 1px solid #b89b72;
+  color: #b89b72;
+  background: transparent;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.dp-download__btn:hover {
+  background: #b89b72;
+  color: #0c0c0c;
+}
+
+/* ─── Lightbox ───────────────────────────────────────────────────────────────── */
+
+.dp-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.93);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dp-lightbox__img-wrap {
+  max-width: 92vw;
+  max-height: 88vh;
+  position: relative;
+}
+
+.dp-lightbox__img-wrap img {
+  max-width: 92vw;
+  max-height: 88vh;
+  object-fit: contain;
+  display: block;
+  border-radius: 2px;
+}
+
+.dp-lightbox__close {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.5rem;
+  background: none;
+  border: none;
+  color: #b89b72;
+  font-size: 1.75rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.25rem;
+}
+
+.dp-lightbox__nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #b89b72;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.dp-lightbox__nav:hover {
+  opacity: 1;
+}
+
+.dp-lightbox__nav--prev { left: 0.5rem; }
+.dp-lightbox__nav--next { right: 0.5rem; }
+
+.dp-lightbox__counter {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  color: #7a6f65;
+}
+
+/* ─── Loading / error states ─────────────────────────────────────────────────── */
+
+.dp-loading,
+.dp-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #0c0c0c;
+  color: #7a6f65;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  text-align: center;
+  padding: 2rem;
+}
+
+.dp-error {
+  color: #9c8b7a;
+}
+
+.dp-photos-error {
+  text-align: center;
+  padding: 2rem;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: #5a5550;
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────────────────── */
+
+.dp-footer {
+  text-align: center;
+  padding: 2rem 1.5rem 3rem;
+}
+
+.dp-footer__logo {
+  height: 40px;
+  width: auto;
+  filter: invert(1) sepia(1) saturate(0.4) brightness(0.4);
+  opacity: 0.4;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .dp-photos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 4px;
+  }
+
+  .dp-lightbox__nav {
+    font-size: 1.5rem;
+    padding: 0.5rem 0.6rem;
+  }
+}

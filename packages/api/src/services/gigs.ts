@@ -151,6 +151,15 @@ function toDateString(value: string | Date | null): string | null {
   return value.toISOString().slice(0, 10);
 }
 
+function isValidUrl(value: string): boolean {
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function mapGig(row: gigsRepo.GigRow): Gig {
   return {
     id: row.id,
@@ -184,6 +193,9 @@ function mapGig(row: gigsRepo.GigRow): Gig {
     ceilidh: row.ceilidh,
     ceilidhLength: row.ceilidh_length ?? undefined,
     ceilidhStyle: row.ceilidh_style ?? undefined,
+    vimeoUrl: row.vimeo_url ?? undefined,
+    dropboxUrl: row.dropbox_url ?? undefined,
+    deliveryTitle: row.delivery_title ?? undefined,
   };
 }
 
@@ -214,6 +226,11 @@ function buildMutationInput(
   if (!lastName) throw new BadRequestError("lastName is required");
   const date = input.date ?? existing?.date;
   if (!date) throw new BadRequestError("date is required");
+
+  const vimeoUrl = input.vimeoUrl?.trim() ?? existing?.vimeoUrl;
+  const dropboxUrl = input.dropboxUrl?.trim() ?? existing?.dropboxUrl;
+  if (vimeoUrl && !isValidUrl(vimeoUrl)) throw new BadRequestError("vimeoUrl must be a valid URL");
+  if (dropboxUrl && !isValidUrl(dropboxUrl)) throw new BadRequestError("dropboxUrl must be a valid URL");
 
   return {
     enquiryId: input.enquiryId ?? existing?.enquiryId,
@@ -247,5 +264,8 @@ function buildMutationInput(
     ceilidh: input.ceilidh ?? existing?.ceilidh ?? false,
     ceilidhLength: input.ceilidhLength ?? existing?.ceilidhLength,
     ceilidhStyle: input.ceilidhStyle ?? existing?.ceilidhStyle,
+    vimeoUrl,
+    dropboxUrl,
+    deliveryTitle: input.deliveryTitle ?? existing?.deliveryTitle,
   };
 }

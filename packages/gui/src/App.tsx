@@ -28,6 +28,7 @@ import PerformerGigDetail from "./pages/performer/PerformerGigDetail.js";
 import ClientForm from "./pages/client/ClientForm.js";
 import AccountsList from "./pages/accounts/AccountsList.js";
 import AccountDetail from "./pages/accounts/AccountDetail.js";
+import DeliveryPage from "./pages/delivery/DeliveryPage.js";
 
 const NAV_LINKS = [
   { to: "/", label: "Dashboard", end: true },
@@ -156,7 +157,7 @@ export default function App() {
 
   if (isLoading) return null;
 
-  const isPerformerRoute = location.pathname.startsWith("/p/") || location.pathname.startsWith("/c/");
+  const isPerformerRoute = location.pathname.startsWith("/p/") || location.pathname.startsWith("/c/") || location.pathname.startsWith("/d/");
 
   return (
     <>
@@ -168,6 +169,8 @@ export default function App() {
         <Route path="/p/:token/gigs/:gigId" element={<PerformerGigDetail />} />
         {/* Public client form portal — no auth required */}
         <Route path="/c/:token" element={<ClientForm />} />
+        {/* Public media delivery portal — no auth required */}
+        <Route path="/d/:token" element={<DeliveryPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/gigs" element={<GigsList />} />

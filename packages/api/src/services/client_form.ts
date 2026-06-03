@@ -151,6 +151,8 @@ export async function saveClientForm(
       totalPrice:     gig.total_price     ?? undefined,
       airtableId:     gig.airtable_id     ?? undefined,
       performerNotes: gig.performer_notes ?? undefined,
+      vimeoUrl:       gig.vimeo_url       ?? undefined,
+      dropboxUrl:     gig.dropbox_url     ?? undefined,
       // Fields the client can update:
       venueName:      input.venueName      ?? gig.venue_name        ?? undefined,
       location:       input.location       ?? gig.location          ?? undefined,

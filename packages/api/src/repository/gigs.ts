@@ -34,6 +34,9 @@ export interface GigRow {
   ceilidh_style: string | null;
   client_token: string;
   form_saved_at: string | null;
+  vimeo_url: string | null;
+  dropbox_url: string | null;
+  delivery_title: string | null;
 }
 
 export interface GigMutationInput {
@@ -67,6 +70,9 @@ export interface GigMutationInput {
   ceilidh?: boolean;
   ceilidhLength?: string;
   ceilidhStyle?: string;
+  vimeoUrl?: string;
+  dropboxUrl?: string;
+  deliveryTitle?: string;
 }
 
 const SELECT_COLS = `
@@ -75,7 +81,8 @@ const SELECT_COLS = `
   total_price, travel_cost, discount_percent, airtable_id,
   timings, contact_number, parking_info, meal_details, client_notes, performer_notes,
   playlist_url, end_of_night_song, first_dance_song, first_dance_type,
-  ceilidh, ceilidh_length, ceilidh_style, client_token, form_saved_at
+  ceilidh, ceilidh_length, ceilidh_style, client_token, form_saved_at,
+  vimeo_url, dropbox_url, delivery_title
 `;
 
 export async function createGig(input: GigMutationInput): Promise<GigRow> {
@@ -87,10 +94,10 @@ export async function createGig(input: GigMutationInput): Promise<GigRow> {
         total_price, travel_cost, discount_percent, airtable_id,
         timings, contact_number, parking_info, meal_details, client_notes, performer_notes,
         playlist_url, end_of_night_song, first_dance_song, first_dance_type,
-        ceilidh, ceilidh_length, ceilidh_style
+        ceilidh, ceilidh_length, ceilidh_style, vimeo_url, dropbox_url, delivery_title
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
-              $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
+              $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33)
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -124,6 +131,9 @@ export async function createGig(input: GigMutationInput): Promise<GigRow> {
       input.ceilidh ?? false,
       input.ceilidhLength ?? null,
       input.ceilidhStyle ?? null,
+      input.vimeoUrl ?? null,
+      input.dropboxUrl ?? null,
+      input.deliveryTitle ?? null,
     ],
   });
   return rows[0];
@@ -154,8 +164,9 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
           timings = $18, contact_number = $19, parking_info = $20, meal_details = $21,
           client_notes = $22, performer_notes = $23, playlist_url = $24,
           end_of_night_song = $25, first_dance_song = $26, first_dance_type = $27,
-          ceilidh = $28, ceilidh_length = $29, ceilidh_style = $30
-      WHERE id = $31
+          ceilidh = $28, ceilidh_length = $29, ceilidh_style = $30,
+          vimeo_url = $31, dropbox_url = $32, delivery_title = $33
+      WHERE id = $34
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -189,6 +200,9 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
       input.ceilidh ?? false,
       input.ceilidhLength ?? null,
       input.ceilidhStyle ?? null,
+      input.vimeoUrl ?? null,
+      input.dropboxUrl ?? null,
+      input.deliveryTitle ?? null,
       id,
     ],
   });
