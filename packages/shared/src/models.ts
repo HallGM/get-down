@@ -248,6 +248,10 @@ export interface Gig {
   // Client form
   clientToken?: string;
   formSavedAt?: string;
+  // Media delivery
+  vimeoUrl?: string;
+  dropboxUrl?: string;
+  deliveryTitle?: string;
 }
 
 export interface CreateGigRequest {
@@ -282,6 +286,10 @@ export interface CreateGigRequest {
   ceilidh?: boolean;
   ceilidhLength?: string;
   ceilidhStyle?: string;
+  // Media delivery
+  vimeoUrl?: string;
+  dropboxUrl?: string;
+  deliveryTitle?: string;
 }
 
 export interface UpdateGigRequest {
@@ -316,6 +324,27 @@ export interface UpdateGigRequest {
   ceilidh?: boolean;
   ceilidhLength?: string;
   ceilidhStyle?: string;
+  // Media delivery
+  vimeoUrl?: string;
+  dropboxUrl?: string;
+  deliveryTitle?: string;
+}
+
+// ─── Media delivery types ──────────────────────────────────────────────────────
+
+export interface DeliveryPageResponse {
+  firstName: string;
+  lastName: string;
+  partnerName?: string;
+  date: string;
+  venueName?: string;
+  vimeoUrl?: string;
+  dropboxUrl?: string;
+  deliveryTitle?: string;
+}
+
+export interface DeliveryPhoto {
+  name: string;
 }
 
 // ─── Performer portal types ────────────────────────────────────────────────────

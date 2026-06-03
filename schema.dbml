@@ -146,6 +146,9 @@ Table gigs {
   ceilidh_style     text
   client_token      uuid [not null, unique, default: `gen_random_uuid()`]
   form_saved_at     timestamptz
+  vimeo_url         text
+  dropbox_url       text
+  delivery_title    text
 }
 
 Table gig_line_items {

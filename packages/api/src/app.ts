@@ -24,6 +24,7 @@ import performer from "./controllers/performer.js";
 import genres from "./controllers/genres.js";
 import accounts from "./controllers/accounts.js";
 import clientForm from "./controllers/client_form.js";
+import delivery from "./controllers/delivery.js";
 import { AppError } from "./errors.js";
 
 const app = express();
@@ -34,6 +35,7 @@ const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 app.use("/auth", auth);
 app.use("/", performer);
 app.use("/", clientForm);
+app.use("/", delivery);
 app.use("/", services);
 app.use("/", people);
 app.use("/", attributions);

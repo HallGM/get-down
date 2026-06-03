@@ -111,6 +111,9 @@ export default function GigDetail() {
       ceilidhLength: gig!.ceilidhLength,
       ceilidhStyle: gig!.ceilidhStyle,
       mealDetails: gig!.mealDetails,
+      vimeoUrl: gig!.vimeoUrl,
+      dropboxUrl: gig!.dropboxUrl,
+      deliveryTitle: gig!.deliveryTitle,
     });
     setEditing(true);
   }
@@ -239,6 +242,35 @@ export default function GigDetail() {
         </article>
       )}
 
+      {/* Delivery page link */}
+      {gig.clientToken && (
+        <article style={{ padding: "0.75rem 1rem", marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+          <span style={{ fontSize: "0.9rem" }}>
+            <strong>Delivery page</strong>
+            {gig.vimeoUrl || gig.dropboxUrl
+              ? <span style={{ color: "var(--pico-muted-color)", marginLeft: "0.5rem" }}>
+                  ·{gig.vimeoUrl ? " video" : ""}{gig.vimeoUrl && gig.dropboxUrl ? " +" : ""}{gig.dropboxUrl ? " photos" : ""} added
+                </span>
+              : <span style={{ color: "var(--pico-muted-color)", marginLeft: "0.5rem" }}>· no media added yet</span>}
+          </span>
+          <button
+            className="secondary outline"
+            style={{ padding: "0.2em 0.8em", fontSize: "0.85rem" }}
+            onClick={async () => {
+              const url = `${window.location.origin}/d/${gig.clientToken}`;
+              try {
+                await navigator.clipboard.writeText(url);
+                showToast("Delivery page link copied!", "success");
+              } catch {
+                showToast("Could not copy link. Please copy it manually.", "error");
+              }
+            }}
+          >
+            Copy link
+          </button>
+        </article>
+      )}
+
       {!editing ? (
         <article>
           <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem" }}>
@@ -289,6 +321,11 @@ export default function GigDetail() {
             <FormField as="textarea" label="Client notes" value={editForm.clientNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, clientNotes: e.target.value }))} rows={3} />
             <FormField as="textarea" label="Performer notes" value={editForm.performerNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, performerNotes: e.target.value }))} rows={3} />
             <FormField as="textarea" label="DJ playlist" rows={4} value={editForm.playlistUrl ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, playlistUrl: e.target.value }))} />
+
+            <h3 style={{ marginTop: "1.5rem" }}>Media delivery</h3>
+            <FormField label="Delivery page title" value={editForm.deliveryTitle ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, deliveryTitle: e.target.value }))} placeholder="e.g. Sarah & Sean · Wedding Film" />
+            <FormField label="Vimeo URL" value={editForm.vimeoUrl ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, vimeoUrl: e.target.value }))} />
+            <FormField label="Dropbox folder link" value={editForm.dropboxUrl ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, dropboxUrl: e.target.value }))} />
 
             <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
               <button type="submit" aria-busy={updateGig.isPending} disabled={updateGig.isPending}>Save</button>

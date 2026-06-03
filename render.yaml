@@ -96,6 +96,16 @@ services:
         sync: false
       - key: CLOUDFLARE_R2_BUCKET_NAME
         sync: false
+      # Dropbox API credentials for media delivery photo gallery
+      - key: DROPBOX_APP_KEY
+        sync: false
+      - key: DROPBOX_APP_SECRET
+        sync: false
+      - key: DROPBOX_REFRESH_TOKEN
+        sync: false
+      # Vimeo API credentials for film download
+      - key: VIMEO_ACCESS_TOKEN
+        sync: false
 
   # ── GUI (React / Vite — static site) ─────────────────────────────────────
   - type: web

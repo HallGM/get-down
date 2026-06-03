@@ -4,3 +4,4 @@
 
 export * from "./models.js";
 export * from "./services.js";
+export * from "./vimeo.js";
