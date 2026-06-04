@@ -16,11 +16,9 @@
 }
 
 .dp-logo {
-  height: 72px;
+  height: 50px;
   width: auto;
   display: block;
-  /* The logo PNG has a white background; invert it for the dark page */
-  filter: invert(1) sepia(1) saturate(0.4) brightness(0.85);
 }
 
 /* ─── Hero ───────────────────────────────────────────────────────────────────── */
@@ -322,8 +320,21 @@
 .dp-footer__logo {
   height: 40px;
   width: auto;
-  filter: invert(1) sepia(1) saturate(0.4) brightness(0.4);
-  opacity: 0.4;
+}
+
+.dp-footer__message {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.95rem;
+  color: #9c8b7a;
+  margin: 1.25rem 0 0;
+  letter-spacing: 0.02em;
+}
+
+.dp-footer__message--sub {
+  font-style: italic;
+  font-size: 0.8rem;
+  color: #5a5550;
+  margin-top: 0.4rem;
 }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
