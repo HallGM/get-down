@@ -301,6 +301,9 @@ export default function DeliveryPage() {
                 Download all photos
               </a>
             </div>
+            <p className="dp-video-notice">
+              We recommend downloading your photos and saving a copy in at least two places, such as an external hard drive and cloud storage. We cannot guarantee that this link will remain active indefinitely, so please back up your photos as soon as possible.
+            </p>
           </section>
         </>
       )}
@@ -309,6 +312,8 @@ export default function DeliveryPage() {
 
       <footer className="dp-footer">
         <img src="/logo.png" alt="Every Angle" className="dp-footer__logo" />
+        <p className="dp-footer__message">Thank you for choosing Every Angle.</p>
+        <p className="dp-footer__message dp-footer__message--sub">It was an honour to be part of your day.</p>
       </footer>
 
       {lightboxIndex != null && photos.length > 0 && (
