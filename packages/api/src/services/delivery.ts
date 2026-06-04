@@ -3,6 +3,8 @@ import { extractVimeoId } from "@get-down/shared";
 import type { ServerResponse } from "http";
 import type { Response } from "express";
 import * as gigsRepo from "../repository/gigs.js";
+import * as videosRepo from "../repository/gig_delivery_videos.js";
+import { mapVideo } from "./deliveryVideos.js";
 import { NotFoundError } from "../errors.js";
 import * as dropbox from "../utils/dropbox.js";
 import * as vimeo from "../utils/vimeo.js";
@@ -24,13 +26,16 @@ export async function getDeliveryPage(token: string): Promise<DeliveryPageRespon
   const dateStr =
     typeof gig.date === "string" ? gig.date : new Date(gig.date).toISOString().slice(0, 10);
 
+  const videoRows = await videosRepo.readVideosByGigId(gig.id);
+  const videos = videoRows.map(mapVideo);
+
   return {
     firstName: gig.first_name,
     lastName: gig.last_name,
     partnerName: gig.partner_name ?? undefined,
     date: dateStr,
     venueName: gig.venue_name ?? undefined,
-    vimeoUrl: gig.vimeo_url ?? undefined,
+    videos,
     dropboxUrl: gig.dropbox_url ?? undefined,
     deliveryTitle: gig.delivery_title ?? undefined,
   };
@@ -65,14 +70,19 @@ export async function proxyFile(
   await dropbox.pipeFile(dropboxUrl, `/${name}`, name, res as unknown as ServerResponse);
 }
 
-export async function getVideoDownloadUrl(token: string): Promise<{ url: string | null }> {
+export async function getVideoDownloadUrl(
+  token: string,
+  videoId: number
+): Promise<{ url: string | null }> {
   const gig = await gigsRepo.readGigByClientToken(token);
   if (!gig) throw new NotFoundError("Delivery page not found");
-  if (!gig.vimeo_url) return { url: null };
 
-  const videoId = extractVimeoId(gig.vimeo_url);
-  if (!videoId) return { url: null };
+  const video = await videosRepo.readVideoById(videoId);
+  if (!video || video.gig_id !== gig.id) return { url: null };
 
-  const url = await vimeo.getDownloadUrl(videoId);
+  const vimeoId = extractVimeoId(video.vimeo_url);
+  if (!vimeoId) return { url: null };
+
+  const url = await vimeo.getDownloadUrl(vimeoId);
   return { url };
 }

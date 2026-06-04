@@ -3,6 +3,7 @@ import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
 import * as paymentsRepo from "../repository/payments.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
+import { isValidUrl } from "../utils/validation.js";
 import * as songsRepo from "../repository/songs.js";
 import { withTransaction } from "../db/init.js";
 import { DEFAULT_SECTION_NAME } from "../constants.js";
@@ -149,15 +150,6 @@ function toDateString(value: string | Date | null): string | null {
   if (!value) return null;
   if (typeof value === "string") return value;
   return value.toISOString().slice(0, 10);
-}
-
-function isValidUrl(value: string): boolean {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function mapGig(row: gigsRepo.GigRow): Gig {

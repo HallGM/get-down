@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { extractVimeoId, extractVimeoHash } from "@get-down/shared";
+import type { DeliveryVideo } from "@get-down/shared";
 import { useDeliveryPage, useDeliveryPhotos } from "../../api/hooks/useDelivery.js";
 import "./delivery-page.css";
 
@@ -107,14 +108,14 @@ function DownloadIcon() {
 
 // ─── Video download button ────────────────────────────────────────────────────
 
-function VideoDownloadButton({ token }: { token: string }) {
+function VideoDownloadButton({ token, videoId }: { token: string; videoId: number }) {
   const [loading, setLoading] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
 
   async function handleClick() {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/delivery/${token}/video-download`);
+      const res = await fetch(`${API_BASE}/delivery/${token}/video-download?videoId=${videoId}`);
       if (!res.ok) throw new Error("request failed");
       const data = (await res.json()) as { url: string | null };
       if (data.url) {
@@ -175,7 +176,60 @@ function PhotoThumb({
   );
 }
 
+// ─── Video player section ─────────────────────────────────────────────────────
+
+function VideoSection({ videos, token }: { videos: DeliveryVideo[]; token: string }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const active = videos[activeIndex] ?? videos[0];
+  const vimeoId = active ? extractVimeoId(active.vimeoUrl) : null;
+  const vimeoHash = active ? extractVimeoHash(active.vimeoUrl) : null;
+
+  const showTabs = videos.length > 1;
+
+  return (
+    <section className="dp-section">
+      <p className="dp-section__heading">{showTabs ? "Your films" : (active?.title ?? "Your film")}</p>
+
+      {showTabs && (
+        <div className="dp-tabs" role="tablist">
+          {videos.map((v, i) => (
+            <button
+              key={v.id}
+              role="tab"
+              aria-selected={i === activeIndex}
+              className={`dp-tab${i === activeIndex ? " dp-tab--active" : ""}`}
+              onClick={() => setActiveIndex(i)}
+            >
+              {v.title}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {vimeoId && (
+        <div className="dp-video-wrapper">
+          <iframe
+            key={active.id}
+            src={`https://player.vimeo.com/video/${vimeoId}${vimeoHash ? `?h=${vimeoHash}&` : "?"}title=0&byline=0&portrait=0&color=b89b72`}
+            allow="autoplay; fullscreen; picture-in-picture"
+            title={active.title}
+          />
+        </div>
+      )}
+
+      <div className="dp-video-actions">
+        {active && <VideoDownloadButton token={token} videoId={active.id} />}
+      </div>
+      <p className="dp-video-notice">
+        We recommend downloading your film and saving a copy in at least two places, such as an external hard drive and cloud storage. We cannot guarantee that this link will remain active indefinitely, so please back up your film as soon as possible.
+      </p>
+    </section>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
+
+const PHOTOS_PAGE_SIZE = 40;
 
 export default function DeliveryPage() {
   const { token } = useParams<{ token: string }>();
@@ -186,8 +240,10 @@ export default function DeliveryPage() {
   );
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PHOTOS_PAGE_SIZE);
 
   const photos = photosData?.photos.map((p) => p.name) ?? [];
+  const visiblePhotos = photos.slice(0, visibleCount);
 
   const openLightbox = useCallback((index: number) => setLightboxIndex(index), []);
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
@@ -219,8 +275,16 @@ export default function DeliveryPage() {
     );
   }
 
-  const vimeoId = page.vimeoUrl ? extractVimeoId(page.vimeoUrl) : null;
-  const vimeoHash = page.vimeoUrl ? extractVimeoHash(page.vimeoUrl) : null;
+  const hasVideos = page.videos.length > 0;
+  const hasPhotos = !!page.dropboxUrl;
+
+  const eyebrow = hasVideos && hasPhotos
+    ? "Your film & photos"
+    : hasVideos
+      ? "Your film"
+      : hasPhotos
+        ? "Your photos"
+        : null;
 
   const heroTitle = page.deliveryTitle
     ? page.deliveryTitle
@@ -237,37 +301,22 @@ export default function DeliveryPage() {
 
       {/* Hero */}
       <section className="dp-hero">
-        <p className="dp-hero__eyebrow">Your film &amp; photos</p>
+        {eyebrow && <p className="dp-hero__eyebrow">{eyebrow}</p>}
         <h1 className="dp-hero__names">{heroTitle}</h1>
         <p className="dp-hero__date">{formatEventDate(page.date)}</p>
         {page.venueName && <p className="dp-hero__venue">{page.venueName}</p>}
       </section>
 
-      {/* Video */}
-      {vimeoId && (
+      {/* Videos */}
+      {hasVideos && (
         <>
           <hr className="dp-divider" />
-          <section className="dp-section">
-            <p className="dp-section__heading">Your film</p>
-            <div className="dp-video-wrapper">
-              <iframe
-                src={`https://player.vimeo.com/video/${vimeoId}${vimeoHash ? `?h=${vimeoHash}&` : "?"}title=0&byline=0&portrait=0&color=b89b72`}
-                allow="autoplay; fullscreen; picture-in-picture"
-                title="Your wedding film"
-              />
-            </div>
-            <div className="dp-video-actions">
-              <VideoDownloadButton token={token!} />
-            </div>
-            <p className="dp-video-notice">
-              We recommend downloading your film and saving a copy in at least two places, such as an external hard drive and cloud storage. We cannot guarantee that this link will remain active indefinitely, so please back up your film as soon as possible.
-            </p>
-          </section>
+          <VideoSection videos={page.videos} token={token!} />
         </>
       )}
 
       {/* Photos */}
-      {page.dropboxUrl && (
+      {hasPhotos && (
         <>
           <hr className="dp-divider" />
           <section className="dp-section">
@@ -277,23 +326,35 @@ export default function DeliveryPage() {
               <p className="dp-photos-error">
                 Photos are not available right now. Please try again later or use the download button below.
               </p>
-            ) : photos.length > 0 ? (
-              <div className="dp-photos-grid">
-                {photos.map((name, i) => (
-                  <PhotoThumb
-                    key={name}
-                    name={name}
-                    token={token!}
-                    onClick={() => openLightbox(i)}
-                  />
-                ))}
-              </div>
+            ) : visiblePhotos.length > 0 ? (
+              <>
+                <div className="dp-photos-grid">
+                  {visiblePhotos.map((name) => (
+                    <PhotoThumb
+                      key={name}
+                      name={name}
+                      token={token!}
+                      onClick={() => openLightbox(photos.indexOf(name))}
+                    />
+                  ))}
+                </div>
+                {photos.length > visibleCount && (
+                  <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
+                    <button
+                      className="dp-load-more"
+                      onClick={() => setVisibleCount((c) => c + PHOTOS_PAGE_SIZE)}
+                    >
+                      Load more
+                    </button>
+                  </div>
+                )}
+              </>
             ) : null}
 
             <div className="dp-download">
               <a
                 className="dp-download__btn"
-                href={dropboxDownloadUrl(page.dropboxUrl)}
+                href={dropboxDownloadUrl(page.dropboxUrl!)}
                 target="_blank"
                 rel="noopener noreferrer"
               >
