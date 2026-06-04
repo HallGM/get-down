@@ -369,6 +369,14 @@ Table rehearsals {
   expense_id  int [ref: > expenses.id]
 }
 
+Table gig_delivery_videos {
+  id        serial  [pk, increment]
+  gig_id    integer [not null, ref: > gigs.id]
+  title     text    [not null]
+  vimeo_url text    [not null]
+  position  integer [not null, default: 0]
+}
+
 Table rehearsals_gigs {
   rehearsal_id int [ref: > rehearsals.id, not null]
   gig_id       int [ref: > gigs.id, not null]

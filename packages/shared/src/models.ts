@@ -332,13 +332,30 @@ export interface UpdateGigRequest {
 
 // ─── Media delivery types ──────────────────────────────────────────────────────
 
+export interface DeliveryVideo {
+  id: number;
+  title: string;
+  vimeoUrl: string;
+  position: number;
+}
+
+export interface CreateDeliveryVideoRequest {
+  title: string;
+  vimeoUrl: string;
+}
+
+export interface UpdateDeliveryVideoRequest {
+  title?: string;
+  vimeoUrl?: string;
+}
+
 export interface DeliveryPageResponse {
   firstName: string;
   lastName: string;
   partnerName?: string;
   date: string;
   venueName?: string;
-  vimeoUrl?: string;
+  videos: DeliveryVideo[];
   dropboxUrl?: string;
   deliveryTitle?: string;
 }
