@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useYearFilter } from "../../hooks/useYearFilter.js";
 import { useExpenses, useDeleteExpense } from "../../api/hooks/useExpenses.js";
 import { useFeeAllocations } from "../../api/hooks/useFeeAllocations.js";
 import { useAllAttributionFees } from "../../api/hooks/useAttributionFees.js";
@@ -55,8 +56,7 @@ export default function ExpensesList() {
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
 
   // Filter state — only one active at a time; null means "All"
-  const [calendarYear, setCalendarYear] = useState<string | null>(null);
-  const [taxYear, setTaxYear] = useState<string | null>(null);
+  const { calendarYear, taxYear, setCalendarYear, setTaxYear } = useYearFilter();
 
   // Always derive the edit target from live query data so linked allocation IDs stay fresh
   const editTarget = editTargetId != null ? (expenses ?? []).find((e) => e.id === editTargetId) ?? null : null;
@@ -100,13 +100,13 @@ export default function ExpensesList() {
           label="Year:"
           value={calendarYear ?? ""}
           options={calendarYearOptions}
-          onChange={(val) => { setCalendarYear(val); setTaxYear(null); }}
+          onChange={setCalendarYear}
         />
         <YearSelect
           label="Tax year:"
           value={taxYear ?? ""}
           options={taxYearOptions}
-          onChange={(val) => { setTaxYear(val); setCalendarYear(null); }}
+          onChange={setTaxYear}
         />
         <CountBadge count={filteredExpenses.length} noun="expense" />
       </div>
