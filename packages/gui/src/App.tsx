@@ -29,6 +29,7 @@ import ClientForm from "./pages/client/ClientForm.js";
 import AccountsList from "./pages/accounts/AccountsList.js";
 import AccountDetail from "./pages/accounts/AccountDetail.js";
 import DeliveryPage from "./pages/delivery/DeliveryPage.js";
+import AccountingPage from "./pages/accounting/AccountingPage.js";
 
 const NAV_LINKS = [
   { to: "/", label: "Dashboard", end: true },
@@ -40,6 +41,7 @@ const NAV_LINKS = [
   { to: "/showcases", label: "Showcases" },
   { to: "/expenses", label: "Expenses" },
   { to: "/accounts", label: "Accounts" },
+  { to: "/accounting", label: "Accounting" },
 ];
 
 const MORE_LINKS = [
@@ -194,6 +196,7 @@ export default function App() {
           <Route path="/expenses" element={<ExpensesList />} />
           <Route path="/accounts" element={<AccountsList />} />
           <Route path="/accounts/:id" element={<AccountDetail />} />
+          <Route path="/accounting" element={<AccountingPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
