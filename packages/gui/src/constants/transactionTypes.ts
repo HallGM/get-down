@@ -3,5 +3,6 @@ export const TRANSACTION_TYPES = [
   "Profit Share",
   "Expense Reimbursement",
   "Direct Payment",
+  "Client Payment Received",
   "Other",
 ] as const;

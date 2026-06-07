@@ -14,9 +14,10 @@ interface Props {
   setForm: React.Dispatch<React.SetStateAction<TransactionFormState>>;
   /** Whether the date field is required. Defaults to false. */
   dateRequired?: boolean;
+  children?: React.ReactNode;
 }
 
-export default function TransactionFormFields({ form, setForm, dateRequired }: Props) {
+export default function TransactionFormFields({ form, setForm, dateRequired, children }: Props) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
       <FormField
@@ -49,6 +50,7 @@ export default function TransactionFormFields({ form, setForm, dateRequired }: P
         value={form.description}
         onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
       />
+      {children}
     </div>
   );
 }

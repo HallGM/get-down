@@ -19,8 +19,7 @@ import { FeeAllocationPanel } from "../../components/FeeAllocationPanel.js";
 import type { LedgerEntry, CreateAccountTransactionRequest, UpdateAccountTransactionRequest, LinkedFeeAllocationSummary } from "@get-down/shared";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
-import FormField from "../../components/FormField.js";
-import MoneyField from "../../components/MoneyField.js";
+import TransactionFormFields, { type TransactionFormState } from "../../components/TransactionFormFields.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import EmptyState from "../../components/EmptyState.js";
@@ -30,14 +29,6 @@ import { formatPennies } from "../../utils/money.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { accountBalanceLabel } from "../../utils/accounts.js";
 
-const TRANSACTION_TYPES = [
-  "Drawing",
-  "Profit Share",
-  "Expense Reimbursement",
-  "Direct Payment",
-  "Other",
-];
-
 /** Entry types that are system-generated and should be rendered muted/italic. */
 const SYSTEM_ENTRY_TYPES: LedgerEntry['entryType'][] = [
   'allocation', 'expense_payment', 'gig_payment', 'drawing',
@@ -46,14 +37,7 @@ const SYSTEM_ENTRY_TYPES: LedgerEntry['entryType'][] = [
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - 4 + i);
 
-interface TransactionForm {
-  date: string;
-  amount: number;
-  type: string;
-  description: string;
-}
-
-const EMPTY_FORM: TransactionForm = {
+const EMPTY_FORM: TransactionFormState = {
   date: "",
   amount: 0,
   type: "Drawing",
@@ -95,67 +79,15 @@ function LinkedAllocationsDisplay({ allocations }: { allocations: LinkedFeeAlloc
   );
 }
 
-function TransactionFormFields({
-  form,
-  setForm,
-  linkedAllocations,
-}: {
-  form: TransactionForm;
-  setForm: (fn: (f: TransactionForm) => TransactionForm) => void;
-  linkedAllocations: LinkedFeeAllocationSummary[];
-}) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-      <FormField
-        label="Date"
-        type="date"
-        value={form.date}
-        onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-        required
-      />
-      <MoneyField
-        label="Amount"
-        hint="negative = credit to person"
-        value={form.amount}
-        onChange={(pennies) => setForm((f) => ({ ...f, amount: pennies ?? 0 }))}
-        required
-      />
-      <FormField
-        as="select"
-        label="Type"
-        value={form.type}
-        onChange={(e) => setForm((f) => ({ ...f, type: (e.target as HTMLSelectElement).value }))}
-        required
-      >
-        {TRANSACTION_TYPES.map((t) => (
-          <option key={t} value={t}>{t}</option>
-        ))}
-      </FormField>
-      <FormField
-        label="Description"
-        value={form.description}
-        onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-      />
-      <div style={{ gridColumn: "1 / -1" }}>
-        <label>
-          Linked fee allocations
-          <small style={{ marginLeft: "0.5em", color: "var(--pico-muted-color)" }}>for reference only</small>
-        </label>
-        <LinkedAllocationsDisplay allocations={linkedAllocations} />
-      </div>
-    </div>
-  );
-}
-
 export default function AccountDetail() {
   const { id } = useParams<{ id: string }>();
   const accountId = Number(id);
 
   const [year, setYear] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState<TransactionForm>(EMPTY_FORM);
+  const [form, setForm] = useState<TransactionFormState>(EMPTY_FORM);
   const [editTarget, setEditTarget] = useState<LedgerEntry | null>(null);
-  const [editForm, setEditForm] = useState<TransactionForm>(EMPTY_FORM);
+  const [editForm, setEditForm] = useState<TransactionFormState>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<LedgerEntry | null>(null);
   const [editAllocationId, setEditAllocationId] = useState<number | null>(null);
 
@@ -320,7 +252,15 @@ export default function AccountDetail() {
       {/* Create modal */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Add Transaction">
         <form onSubmit={handleCreate}>
-          <TransactionFormFields form={form} setForm={setForm} linkedAllocations={[]} />
+          <TransactionFormFields form={form} setForm={setForm} dateRequired>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label>
+                Linked fee allocations
+                <small style={{ marginLeft: "0.5em", color: "var(--pico-muted-color)" }}>for reference only</small>
+              </label>
+              <LinkedAllocationsDisplay allocations={[]} />
+            </div>
+          </TransactionFormFields>
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
             <button type="button" className="secondary" onClick={() => setShowCreate(false)}>Cancel</button>
             <button type="submit" aria-busy={createTx.isPending} disabled={createTx.isPending}>Add</button>
@@ -331,7 +271,15 @@ export default function AccountDetail() {
       {/* Edit modal */}
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit Transaction">
         <form onSubmit={handleUpdate}>
-          <TransactionFormFields form={editForm} setForm={setEditForm} linkedAllocations={editTarget?.linkedFeeAllocations ?? []} />
+          <TransactionFormFields form={editForm} setForm={setEditForm} dateRequired>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label>
+                Linked fee allocations
+                <small style={{ marginLeft: "0.5em", color: "var(--pico-muted-color)" }}>for reference only</small>
+              </label>
+              <LinkedAllocationsDisplay allocations={editTarget?.linkedFeeAllocations ?? []} />
+            </div>
+          </TransactionFormFields>
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
             <button
               type="button"
