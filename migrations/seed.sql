@@ -209,3 +209,105 @@ BEGIN
 
   END IF;
 END $$;
+
+-- ─── Dev-only fee allocations (no expenses linked) ────────────────────────────
+-- Provides rows for the "Fee allocations missing expenses" dashboard section.
+
+DO $$
+DECLARE
+  v_garry_id       int;
+  v_scott_id       int;
+  v_alice_gig_id   int;
+  v_balance_gig_id int;
+  v_partial_gig_id int;
+  v_fa1_id         int;
+  v_fa2_id         int;
+  v_fa3_id         int;
+  v_fa4_id         int;
+BEGIN
+  IF current_setting('app.env', true) IS DISTINCT FROM 'production' THEN
+
+    SELECT id INTO v_garry_id       FROM people WHERE email = 'garry@dev.local';
+    SELECT id INTO v_scott_id       FROM people WHERE email = 'scott@dev.local';
+    SELECT id INTO v_alice_gig_id   FROM gigs   WHERE first_name = 'Alice'       AND last_name = 'Sample';
+    SELECT id INTO v_balance_gig_id FROM gigs   WHERE first_name = 'Dev Balance' AND last_name = 'Alert';
+    SELECT id INTO v_partial_gig_id FROM gigs   WHERE first_name = 'Dev Partial' AND last_name = 'Alert';
+
+    -- Allocation 1: Garry on Alice Sample gig
+    INSERT INTO fee_allocations (person_id, gig_id, is_invoiced)
+    SELECT v_garry_id, v_alice_gig_id, false
+    WHERE v_garry_id IS NOT NULL AND v_alice_gig_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM fee_allocations
+        WHERE person_id = v_garry_id AND gig_id = v_alice_gig_id
+      );
+    SELECT id INTO v_fa1_id FROM fee_allocations
+    WHERE person_id = v_garry_id AND gig_id = v_alice_gig_id;
+
+    INSERT INTO fee_allocation_line_items (allocation_id, description, amount)
+    SELECT v_fa1_id, 'Vocals', 25000
+    WHERE v_fa1_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM fee_allocation_line_items
+        WHERE allocation_id = v_fa1_id AND description = 'Vocals'
+      );
+
+    -- Allocation 2: Scott on Alice Sample gig
+    INSERT INTO fee_allocations (person_id, gig_id, is_invoiced)
+    SELECT v_scott_id, v_alice_gig_id, false
+    WHERE v_scott_id IS NOT NULL AND v_alice_gig_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM fee_allocations
+        WHERE person_id = v_scott_id AND gig_id = v_alice_gig_id
+      );
+    SELECT id INTO v_fa2_id FROM fee_allocations
+    WHERE person_id = v_scott_id AND gig_id = v_alice_gig_id;
+
+    INSERT INTO fee_allocation_line_items (allocation_id, description, amount)
+    SELECT v_fa2_id, 'Guitar', 20000
+    WHERE v_fa2_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM fee_allocation_line_items
+        WHERE allocation_id = v_fa2_id AND description = 'Guitar'
+      );
+
+    -- Allocation 3: Garry on Dev Balance Alert gig
+    INSERT INTO fee_allocations (person_id, gig_id, is_invoiced)
+    SELECT v_garry_id, v_balance_gig_id, false
+    WHERE v_garry_id IS NOT NULL AND v_balance_gig_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM fee_allocations
+        WHERE person_id = v_garry_id AND gig_id = v_balance_gig_id
+      );
+    SELECT id INTO v_fa3_id FROM fee_allocations
+    WHERE person_id = v_garry_id AND gig_id = v_balance_gig_id;
+
+    INSERT INTO fee_allocation_line_items (allocation_id, description, amount)
+    SELECT v_fa3_id, 'Vocals', 25000
+    WHERE v_fa3_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM fee_allocation_line_items
+        WHERE allocation_id = v_fa3_id AND description = 'Vocals'
+      );
+
+    -- Allocation 4: unassigned on Dev Partial Alert gig
+    INSERT INTO fee_allocations (person_id, gig_id, is_invoiced)
+    SELECT NULL, v_partial_gig_id, false
+    WHERE v_partial_gig_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM fee_allocations
+        WHERE person_id IS NULL AND gig_id = v_partial_gig_id
+      );
+    SELECT id INTO v_fa4_id FROM fee_allocations
+    WHERE person_id IS NULL AND gig_id = v_partial_gig_id;
+
+    INSERT INTO fee_allocation_line_items (allocation_id, description, amount)
+    SELECT v_fa4_id, 'Keys', 15000
+    WHERE v_fa4_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM fee_allocation_line_items
+        WHERE allocation_id = v_fa4_id AND description = 'Keys'
+      );
+
+  END IF;
+END $$;

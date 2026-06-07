@@ -11,6 +11,16 @@ export interface GigPaymentAlertRow {
   net_received: number;
 }
 
+export interface AllocationAlertRow {
+  id: number;
+  person_name: string | null;
+  event_name: string | null;
+  event_date: string | null;
+  gig_id: number | null;
+  showcase_id: number | null;
+  total_fee: number;
+}
+
 const SELECT_ALERT_COLS = `
   g.id,
   g.first_name,
@@ -67,6 +77,56 @@ export async function readBalanceDueSoonAlerts(): Promise<GigPaymentAlertRow[]> 
         AND g.total_price > 0
         AND COALESCE(p.total_paid, 0) - COALESCE(r.total_refunded, 0) < g.total_price
       ORDER BY g.date ASC;
+    `,
+  });
+}
+
+/**
+ * Fee allocations (gig or showcase) that have no expense linked at all.
+ */
+export async function readAllocationsWithoutExpenses(): Promise<AllocationAlertRow[]> {
+  return run_query<AllocationAlertRow>({
+    text: `
+      SELECT
+        fa.id,
+        COALESCE(
+          p.display_name,
+          p.first_name || COALESCE(' ' || p.last_name, '')
+        ) AS person_name,
+        CASE
+          WHEN g.id IS NOT NULL
+            THEN g.first_name || ' ' || g.last_name
+          WHEN s.id IS NOT NULL
+            THEN COALESCE(s.nickname, s.full_name, 'Showcase #' || s.id::text)
+          ELSE NULL
+        END AS event_name,
+        COALESCE(g.date, s.date) AS event_date,
+        g.id AS gig_id,
+        s.id AS showcase_id,
+        COALESCE(SUM(li.amount), 0) AS total_fee
+      FROM fee_allocations fa
+      LEFT JOIN people p ON p.id = fa.person_id
+      LEFT JOIN gigs g ON g.id = fa.gig_id
+      LEFT JOIN LATERAL (
+        SELECT ar.showcase_id
+        FROM assigned_roles ar
+        WHERE ar.fee_allocation_id = fa.id
+          AND ar.showcase_id IS NOT NULL
+        LIMIT 1
+      ) ar_sc ON true
+      LEFT JOIN showcases s ON s.id = ar_sc.showcase_id
+      LEFT JOIN fee_allocation_line_items li ON li.allocation_id = fa.id
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM fee_allocations_expenses fae
+        WHERE fae.allocation_id = fa.id
+      )
+      GROUP BY
+        fa.id,
+        p.display_name, p.first_name, p.last_name,
+        g.id, g.first_name, g.last_name, g.date,
+        s.id, s.nickname, s.full_name, s.date
+      ORDER BY COALESCE(g.date, s.date) ASC NULLS LAST;
     `,
   });
 }

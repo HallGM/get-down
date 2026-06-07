@@ -93,7 +93,6 @@ function AllocationPicker({
           />
           <span>
             #{a.id}{a.notes ? ` — ${a.notes}` : ""}
-            {a.isPaid && <small style={{ color: "var(--pico-muted-color)", marginLeft: "0.5em" }}>(paid)</small>}
           </span>
         </label>
       ))}
