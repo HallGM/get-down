@@ -7,7 +7,6 @@ export interface FeeAllocationRow {
   gig_id: number | null;
   notes: string | null;
   is_invoiced: boolean;
-  is_paid: boolean;
   invoice_ref: string | null;
 }
 
@@ -23,11 +22,10 @@ export interface FeeAllocationMutationInput {
   gigId?: number;
   notes?: string;
   isInvoiced: boolean;
-  isPaid: boolean;
   invoiceRef?: string;
 }
 
-const SELECT_COLS = `id, person_id, gig_id, notes, is_invoiced, is_paid, invoice_ref`;
+const SELECT_COLS = `id, person_id, gig_id, notes, is_invoiced, invoice_ref`;
 const LINE_ITEM_COLS = `id, allocation_id, description, amount`;
 
 export async function createFeeAllocation(
@@ -35,8 +33,8 @@ export async function createFeeAllocation(
 ): Promise<FeeAllocationRow> {
   const rows = await run_query<FeeAllocationRow>({
     text: `
-      INSERT INTO fee_allocations (person_id, gig_id, notes, is_invoiced, is_paid, invoice_ref)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO fee_allocations (person_id, gig_id, notes, is_invoiced, invoice_ref)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -44,7 +42,6 @@ export async function createFeeAllocation(
       input.gigId ?? null,
       input.notes ?? null,
       input.isInvoiced,
-      input.isPaid,
       input.invoiceRef ?? null,
     ],
   });
@@ -75,7 +72,7 @@ export async function readFeeAllocationsByGigId(gigId: number): Promise<FeeAlloc
 export async function readFeeAllocationsByShowcaseId(showcaseId: number): Promise<FeeAllocationRow[]> {
   return run_query<FeeAllocationRow>({
     text: `
-      SELECT DISTINCT fa.id, fa.person_id, fa.gig_id, fa.notes, fa.is_invoiced, fa.is_paid, fa.invoice_ref
+      SELECT DISTINCT fa.id, fa.person_id, fa.gig_id, fa.notes, fa.is_invoiced, fa.invoice_ref
       FROM fee_allocations fa
       JOIN assigned_roles ar ON ar.fee_allocation_id = fa.id
       WHERE ar.showcase_id = $1
@@ -92,8 +89,8 @@ export async function updateFeeAllocation(
   const rows = await run_query<FeeAllocationRow>({
     text: `
       UPDATE fee_allocations
-      SET person_id = $1, gig_id = $2, notes = $3, is_invoiced = $4, is_paid = $5, invoice_ref = $6
-      WHERE id = $7
+      SET person_id = $1, gig_id = $2, notes = $3, is_invoiced = $4, invoice_ref = $5
+      WHERE id = $6
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -101,7 +98,6 @@ export async function updateFeeAllocation(
       input.gigId ?? null,
       input.notes ?? null,
       input.isInvoiced,
-      input.isPaid,
       input.invoiceRef ?? null,
       id,
     ],

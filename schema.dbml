@@ -85,7 +85,6 @@ Table fee_allocations {
   gig_id        int [ref: > gigs.id]
   notes         text
   is_invoiced   boolean [not null, default: false]
-  is_paid       boolean [not null, default: false]
   invoice_ref   varchar(255)
 }
 

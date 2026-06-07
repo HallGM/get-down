@@ -507,7 +507,6 @@ export interface FeeAllocation {
   gigId?: number;
   notes?: string;
   isInvoiced: boolean;
-  isPaid: boolean;
   invoiceRef?: string;
   lineItems?: FeeAllocationLineItem[];
   /** IDs of expenses linked to this allocation via fee_allocations_expenses. Always present, never undefined. */
@@ -528,7 +527,6 @@ export interface CreateFeeAllocationRequest {
   gigId: number;
   notes?: string;
   isInvoiced?: boolean;
-  isPaid?: boolean;
   invoiceRef?: string;
 }
 
@@ -537,7 +535,6 @@ export interface UpdateFeeAllocationRequest {
   gigId?: number;
   notes?: string;
   isInvoiced?: boolean;
-  isPaid?: boolean;
   invoiceRef?: string;
 }
 
@@ -1138,9 +1135,27 @@ export interface GigPaymentAlert {
   netReceived: number;
 }
 
+export interface FeeAllocationAlert {
+  id: number;
+  /** Performer name, or undefined if the allocation is unassigned. */
+  personName?: string;
+  /** Client name for gig allocations, or showcase name for showcase allocations. */
+  eventName: string;
+  /** ISO date string of the event, or undefined if no event is linked. */
+  eventDate?: string;
+  /** Present when the allocation belongs to a gig. */
+  gigId?: number;
+  /** Present when the allocation belongs to a showcase. */
+  showcaseId?: number;
+  /** Sum of line item amounts in pennies. Zero if there are no line items. */
+  totalFee: number;
+}
+
 export interface DashboardAlerts {
   /** Confirmed upcoming gigs where no payment has been received. */
   noDeposit: GigPaymentAlert[];
   /** Confirmed gigs with a date within the next 2 months that still have an outstanding balance. */
   balanceDueSoon: GigPaymentAlert[];
+  /** Fee allocations (gig or showcase) with no expense record linked. */
+  allocationsWithoutExpenses: FeeAllocationAlert[];
 }

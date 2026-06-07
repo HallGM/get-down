@@ -57,7 +57,6 @@ export async function createFeeAllocation(
     gigId: input.gigId,
     notes: input.notes?.trim(),
     isInvoiced: input.isInvoiced ?? false,
-    isPaid: input.isPaid ?? false,
     invoiceRef: input.invoiceRef?.trim(),
   });
   const allocation = mapAllocation(row, [], []);
@@ -75,7 +74,6 @@ export async function updateFeeAllocation(
     gigId: input.gigId ?? existing.gigId,
     notes: input.notes?.trim() ?? existing.notes,
     isInvoiced: input.isInvoiced ?? existing.isInvoiced,
-    isPaid: input.isPaid ?? existing.isPaid,
     invoiceRef: input.invoiceRef?.trim() ?? existing.invoiceRef,
   });
   if (!row) throw new NotFoundError("FeeAllocation not found");
@@ -178,7 +176,6 @@ export async function generateFeeAllocationsForGig(
         personId,
         gigId,
         isInvoiced: false,
-        isPaid: false,
       });
 
       const lineItems = await populateAllocationLineItems(allocationRow.id, roles);
@@ -198,7 +195,6 @@ export async function generateFeeAllocationsForGig(
       const allocationRow = await feeAllocationsRepo.createFeeAllocation({
         gigId,
         isInvoiced: false,
-        isPaid: false,
       });
 
       const lineItems = await populateAllocationLineItems(allocationRow.id, [ar]);
@@ -261,7 +257,6 @@ export async function generateFeeAllocationsForShowcase(
       const allocationRow = await feeAllocationsRepo.createFeeAllocation({
         personId,
         isInvoiced: false,
-        isPaid: false,
       });
       for (const ar of roles) {
         await setAllocationOnRole(ar, allocationRow.id);
@@ -274,7 +269,6 @@ export async function generateFeeAllocationsForShowcase(
     for (const ar of unassignedSlots) {
       const allocationRow = await feeAllocationsRepo.createFeeAllocation({
         isInvoiced: false,
-        isPaid: false,
       });
       await setAllocationOnRole(ar, allocationRow.id);
       const allocation = mapAllocation(allocationRow, [], []);
@@ -506,7 +500,6 @@ function mapAllocation(
     gigId: row.gig_id ?? undefined,
     notes: row.notes ?? undefined,
     isInvoiced: row.is_invoiced,
-    isPaid: row.is_paid,
     invoiceRef: row.invoice_ref ?? undefined,
     expenseIds,
     transactionIds,

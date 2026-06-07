@@ -66,7 +66,7 @@ export function useUpdateFeeAllocation() {
       input,
     }: {
       id: number;
-      input: { notes?: string; isInvoiced?: boolean; isPaid?: boolean; invoiceRef?: string };
+      input: { notes?: string; isInvoiced?: boolean; invoiceRef?: string };
     }) => apiFetch<FeeAllocation>("PUT", `/fee-allocations/${id}`, input),
     onSuccess: (_data, { id }) =>
       qc.invalidateQueries({ queryKey: [KEY, id] }),

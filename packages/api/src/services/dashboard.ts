@@ -1,16 +1,18 @@
-import type { DashboardAlerts, GigPaymentAlert } from "@get-down/shared";
+import type { DashboardAlerts, GigPaymentAlert, FeeAllocationAlert } from "@get-down/shared";
 import * as repo from "../repository/dashboard.js";
-import type { GigPaymentAlertRow } from "../repository/dashboard.js";
+import type { GigPaymentAlertRow, AllocationAlertRow } from "../repository/dashboard.js";
 
 export async function getDashboardAlerts(): Promise<DashboardAlerts> {
-  const [noDepositRows, balanceDueSoonRows] = await Promise.all([
+  const [noDepositRows, balanceDueSoonRows, allocationRows] = await Promise.all([
     repo.readDepositAlerts(),
     repo.readBalanceDueSoonAlerts(),
+    repo.readAllocationsWithoutExpenses(),
   ]);
 
   return {
     noDeposit: noDepositRows.map(mapAlert),
     balanceDueSoon: balanceDueSoonRows.map(mapAlert),
+    allocationsWithoutExpenses: allocationRows.map(mapAllocationAlert),
   };
 }
 
@@ -24,5 +26,17 @@ function mapAlert(row: GigPaymentAlertRow): GigPaymentAlert {
     location: row.location ?? undefined,
     totalPrice: row.total_price,
     netReceived: Number(row.net_received),
+  };
+}
+
+function mapAllocationAlert(row: AllocationAlertRow): FeeAllocationAlert {
+  return {
+    id: row.id,
+    personName: row.person_name ?? undefined,
+    eventName: row.event_name ?? `Allocation #${row.id}`,
+    eventDate: row.event_date ?? undefined,
+    gigId: row.gig_id ?? undefined,
+    showcaseId: row.showcase_id ?? undefined,
+    totalFee: Number(row.total_fee),
   };
 }
