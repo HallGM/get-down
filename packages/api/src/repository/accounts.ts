@@ -1,4 +1,5 @@
 import { run_query } from "../db/init.js";
+import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS } from "./sql-fragments.js";
 
 export interface AccountSummaryRow {
   id: number;
@@ -237,6 +238,46 @@ export async function readExistingAllocationIds(ids: number[]): Promise<number[]
     values: [ids],
   });
   return rows.map((r) => r.id);
+}
+
+export interface LinkedFeeAllocationSummaryRow {
+  transaction_id: number;
+  allocation_id: number;
+  event_name: string | null;
+  event_date: string | null;
+  gig_id: number | null;
+  showcase_id: number | null;
+  total_fee: number;
+  notes: string | null;
+}
+
+export async function readLinkedFeeAllocationSummariesByTransactionIds(
+  transactionIds: number[]
+): Promise<LinkedFeeAllocationSummaryRow[]> {
+  if (transactionIds.length === 0) return [];
+  return run_query<LinkedFeeAllocationSummaryRow>({
+    text: `
+      SELECT
+        atfa.transaction_id,
+        fa.id AS allocation_id,
+        ${SQL_EVENT_COLS},
+        COALESCE(SUM(li.amount), 0)::int AS total_fee,
+        fa.notes
+      FROM account_transactions_fee_allocations atfa
+      JOIN fee_allocations fa ON fa.id = atfa.allocation_id
+      LEFT JOIN gigs g ON g.id = fa.gig_id
+      ${SQL_SHOWCASE_LATERAL_JOIN}
+      LEFT JOIN fee_allocation_line_items li ON li.allocation_id = fa.id
+      WHERE atfa.transaction_id = ANY($1::int[])
+      GROUP BY
+        atfa.transaction_id,
+        fa.id,
+        fa.notes,
+        ${SQL_EVENT_GROUP_BY_COLS}
+      ORDER BY atfa.transaction_id, fa.id;
+    `,
+    values: [transactionIds],
+  });
 }
 
 export async function replaceTransactionAllocations(

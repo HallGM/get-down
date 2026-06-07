@@ -1,4 +1,5 @@
 import { run_query } from "../db/init.js";
+import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS } from "./sql-fragments.js";
 
 export interface GigPaymentAlertRow {
   id: number;
@@ -93,28 +94,12 @@ export async function readAllocationsWithoutExpenses(): Promise<AllocationAlertR
           p.display_name,
           p.first_name || COALESCE(' ' || p.last_name, '')
         ) AS person_name,
-        CASE
-          WHEN g.id IS NOT NULL
-            THEN g.first_name || ' ' || g.last_name
-          WHEN s.id IS NOT NULL
-            THEN COALESCE(s.nickname, s.full_name, 'Showcase #' || s.id::text)
-          ELSE NULL
-        END AS event_name,
-        COALESCE(g.date, s.date) AS event_date,
-        g.id AS gig_id,
-        s.id AS showcase_id,
+        ${SQL_EVENT_COLS},
         COALESCE(SUM(li.amount), 0) AS total_fee
       FROM fee_allocations fa
       LEFT JOIN people p ON p.id = fa.person_id
       LEFT JOIN gigs g ON g.id = fa.gig_id
-      LEFT JOIN LATERAL (
-        SELECT ar.showcase_id
-        FROM assigned_roles ar
-        WHERE ar.fee_allocation_id = fa.id
-          AND ar.showcase_id IS NOT NULL
-        LIMIT 1
-      ) ar_sc ON true
-      LEFT JOIN showcases s ON s.id = ar_sc.showcase_id
+      ${SQL_SHOWCASE_LATERAL_JOIN}
       LEFT JOIN fee_allocation_line_items li ON li.allocation_id = fa.id
       WHERE NOT EXISTS (
         SELECT 1
@@ -124,8 +109,7 @@ export async function readAllocationsWithoutExpenses(): Promise<AllocationAlertR
       GROUP BY
         fa.id,
         p.display_name, p.first_name, p.last_name,
-        g.id, g.first_name, g.last_name, g.date,
-        s.id, s.nickname, s.full_name, s.date
+        ${SQL_EVENT_GROUP_BY_COLS}
       ORDER BY COALESCE(g.date, s.date) ASC NULLS LAST;
     `,
   });

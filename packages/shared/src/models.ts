@@ -843,6 +843,16 @@ export interface CreateAccountRequest {
   personId: number;
 }
 
+export interface LinkedFeeAllocationSummary {
+  id: number;
+  eventName?: string;
+  eventDate?: string;
+  gigId?: number;
+  showcaseId?: number;
+  totalAmount: number;
+  notes?: string;
+}
+
 export interface LedgerEntry {
   sourceId: number;
   entryType: 'transaction' | 'allocation' | 'expense_payment' | 'gig_payment' | 'drawing';
@@ -853,6 +863,8 @@ export interface LedgerEntry {
   description?: string;
   /** IDs of fee allocations linked to this transaction. Only present for transaction entries. */
   feeAllocationIds?: number[];
+  /** Rich summaries of linked fee allocations. Only present for transaction entries. */
+  linkedFeeAllocations?: LinkedFeeAllocationSummary[];
 }
 
 export interface AccountTransaction {

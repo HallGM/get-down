@@ -7,7 +7,6 @@ import {
   useUpdateTransaction,
   useDeleteTransaction,
 } from "../../api/hooks/useAccounts.js";
-import { useFeeAllocations } from "../../api/hooks/useFeeAllocations.js";
 import {
   useFeeAllocation,
   useAddFeeLineItem,
@@ -17,8 +16,7 @@ import {
   useDeleteFeeAllocation,
 } from "../../api/hooks/useFeeAllocations.js";
 import { FeeAllocationPanel } from "../../components/FeeAllocationPanel.js";
-import type { LedgerEntry, CreateAccountTransactionRequest, UpdateAccountTransactionRequest } from "@get-down/shared";
-import type { FeeAllocation } from "@get-down/shared";
+import type { LedgerEntry, CreateAccountTransactionRequest, UpdateAccountTransactionRequest, LinkedFeeAllocationSummary } from "@get-down/shared";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
@@ -53,7 +51,6 @@ interface TransactionForm {
   amount: number;
   type: string;
   description: string;
-  feeAllocationIds: number[];
 }
 
 const EMPTY_FORM: TransactionForm = {
@@ -61,41 +58,39 @@ const EMPTY_FORM: TransactionForm = {
   amount: 0,
   type: "Drawing",
   description: "",
-  feeAllocationIds: [],
 };
 
-function AllocationPicker({
-  allocations,
-  selected,
-  onChange,
-}: {
-  allocations: FeeAllocation[];
-  selected: number[];
-  onChange: (ids: number[]) => void;
-}) {
-  function toggle(id: number) {
-    onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
-  }
-
+function LinkedAllocationsDisplay({ allocations }: { allocations: LinkedFeeAllocationSummary[] }) {
   if (allocations.length === 0) {
-    return <small style={{ color: "var(--pico-muted-color)" }}>No fee allocations available.</small>;
+    return <small style={{ color: "var(--pico-muted-color)" }}>No linked fee allocations.</small>;
   }
 
   return (
-    <div style={{ maxHeight: "160px", overflowY: "auto", border: "1px solid var(--pico-muted-border-color)", borderRadius: "var(--pico-border-radius)", padding: "0.5rem" }}>
-      {allocations.map((a) => (
-        <label key={a.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.2rem 0", cursor: "pointer" }}>
-          <input
-            type="checkbox"
-            checked={selected.includes(a.id)}
-            onChange={() => toggle(a.id)}
-            style={{ margin: 0 }}
-          />
-          <span>
-            #{a.id}{a.notes ? ` — ${a.notes}` : ""}
-          </span>
-        </label>
-      ))}
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+      {allocations.map((a) => {
+        const href = a.gigId ? `/gigs/${a.gigId}/roles` : a.showcaseId ? `/showcases/${a.showcaseId}` : null;
+        const content = (
+          <>
+            <span style={{ fontWeight: 500 }}>{a.eventName ?? "Unknown event"}</span>
+            {a.eventDate && (
+              <span style={{ color: "var(--pico-muted-color)" }}> · {formatDate(a.eventDate)}</span>
+            )}
+            <span style={{ color: "var(--pico-muted-color)" }}> · {formatPennies(a.totalAmount)}</span>
+            {a.notes && (
+              <span style={{ color: "var(--pico-muted-color)" }}> · {a.notes}</span>
+            )}
+          </>
+        );
+
+        if (href) {
+          return (
+            <div key={a.id}>
+              <Link to={href} style={{ textDecoration: "none" }}>{content}</Link>
+            </div>
+          );
+        }
+        return <div key={a.id}>{content}</div>;
+      })}
     </div>
   );
 }
@@ -103,11 +98,11 @@ function AllocationPicker({
 function TransactionFormFields({
   form,
   setForm,
-  allocations,
+  linkedAllocations,
 }: {
   form: TransactionForm;
   setForm: (fn: (f: TransactionForm) => TransactionForm) => void;
-  allocations: FeeAllocation[];
+  linkedAllocations: LinkedFeeAllocationSummary[];
 }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
@@ -144,13 +139,9 @@ function TransactionFormFields({
       <div style={{ gridColumn: "1 / -1" }}>
         <label>
           Linked fee allocations
-          <small style={{ marginLeft: "0.5em", color: "var(--pico-muted-color)" }}>optional, for reference only</small>
+          <small style={{ marginLeft: "0.5em", color: "var(--pico-muted-color)" }}>for reference only</small>
         </label>
-        <AllocationPicker
-          allocations={allocations}
-          selected={form.feeAllocationIds}
-          onChange={(ids) => setForm((f) => ({ ...f, feeAllocationIds: ids }))}
-        />
+        <LinkedAllocationsDisplay allocations={linkedAllocations} />
       </div>
     </div>
   );
@@ -170,7 +161,6 @@ export default function AccountDetail() {
 
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
   const { data: ledger, isLoading: ledgerLoading, error: ledgerError } = useAccountLedger(accountId, year ?? undefined);
-  const { data: allocations } = useFeeAllocations();
 
   const createTx = useCreateTransaction(accountId);
   const updateTx = useUpdateTransaction(accountId);
@@ -199,7 +189,6 @@ export default function AccountDetail() {
       amount: form.amount,
       type: form.type,
       description: form.description || undefined,
-      feeAllocationIds: form.feeAllocationIds,
     };
     await createTx.mutateAsync(input);
     setShowCreate(false);
@@ -214,7 +203,6 @@ export default function AccountDetail() {
       amount: entry.amount,
       type: entry.label,
       description: entry.description ?? "",
-      feeAllocationIds: entry.feeAllocationIds ?? [],
     });
   }
 
@@ -226,7 +214,6 @@ export default function AccountDetail() {
       amount: editForm.amount,
       type: editForm.type,
       description: editForm.description || undefined,
-      feeAllocationIds: editForm.feeAllocationIds,
     };
     await updateTx.mutateAsync({ id: editTarget.sourceId, input });
     setEditTarget(null);
@@ -333,7 +320,7 @@ export default function AccountDetail() {
       {/* Create modal */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Add Transaction">
         <form onSubmit={handleCreate}>
-          <TransactionFormFields form={form} setForm={setForm} allocations={allocations ?? []} />
+          <TransactionFormFields form={form} setForm={setForm} linkedAllocations={[]} />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
             <button type="button" className="secondary" onClick={() => setShowCreate(false)}>Cancel</button>
             <button type="submit" aria-busy={createTx.isPending} disabled={createTx.isPending}>Add</button>
@@ -344,7 +331,7 @@ export default function AccountDetail() {
       {/* Edit modal */}
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit Transaction">
         <form onSubmit={handleUpdate}>
-          <TransactionFormFields form={editForm} setForm={setEditForm} allocations={allocations ?? []} />
+          <TransactionFormFields form={editForm} setForm={setEditForm} linkedAllocations={editTarget?.linkedFeeAllocations ?? []} />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
             <button
               type="button"

@@ -210,7 +210,192 @@ BEGIN
   END IF;
 END $$;
 
--- ─── Dev-only fee allocations (no expenses linked) ────────────────────────────
+-- ─── Dev-only: showcase with a fee allocation ────────────────────────────────
+-- Provides a showcase-linked allocation for testing the linked fee allocations
+-- display (showcase link path is /showcases/:id, gig path is /gigs/:id/roles).
+
+DO $$
+DECLARE
+  v_garry_id           int;
+  v_garry_account_id   int;
+  v_attribution_id     int;
+  v_showcase_id        int;
+  v_fa_showcase_id     int;
+  v_tx_showcase_id     int;
+BEGIN
+  IF current_setting('app.env', true) IS DISTINCT FROM 'production' THEN
+
+    SELECT id INTO v_garry_id         FROM people   WHERE email = 'garry@dev.local';
+    SELECT id INTO v_garry_account_id FROM accounts WHERE person_id = v_garry_id;
+
+    -- Attribution for the showcase
+    INSERT INTO attributions (name, type)
+    SELECT 'Dev Seed Showcase Co', 'other'
+    WHERE NOT EXISTS (SELECT 1 FROM attributions WHERE name = 'Dev Seed Showcase Co');
+    SELECT id INTO v_attribution_id FROM attributions WHERE name = 'Dev Seed Showcase Co';
+
+    -- Showcase
+    INSERT INTO showcases (attribution_id, nickname, full_name, date, location)
+    SELECT v_attribution_id, 'Dev Seed Showcase', 'Dev Seed Showcase Event',
+           CURRENT_DATE - INTERVAL '1 month', 'Glasgow'
+    WHERE v_attribution_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM showcases WHERE attribution_id = v_attribution_id);
+    SELECT id INTO v_showcase_id FROM showcases WHERE attribution_id = v_attribution_id;
+
+    -- Fee allocation (no gig_id — showcase allocations are linked via assigned_roles)
+    INSERT INTO fee_allocations (person_id, gig_id, notes, is_invoiced)
+    SELECT v_garry_id, NULL, 'Vocals', false
+    WHERE v_garry_id IS NOT NULL AND v_showcase_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM fee_allocations fa
+        JOIN assigned_roles ar ON ar.fee_allocation_id = fa.id
+        WHERE fa.person_id = v_garry_id AND ar.showcase_id = v_showcase_id
+      )
+    RETURNING id INTO v_fa_showcase_id;
+
+    -- If allocation was just created, add a line item and an assigned_role
+    IF v_fa_showcase_id IS NOT NULL THEN
+      INSERT INTO fee_allocation_line_items (allocation_id, description, amount)
+      VALUES (v_fa_showcase_id, 'Vocals', 18000);
+
+      INSERT INTO assigned_roles (showcase_id, person_id, role_name, fee_allocation_id)
+      VALUES (v_showcase_id, v_garry_id, 'Vocals', v_fa_showcase_id);
+    END IF;
+
+    -- Re-fetch allocation ID for idempotent re-runs
+    SELECT fa.id INTO v_fa_showcase_id
+    FROM fee_allocations fa
+    JOIN assigned_roles ar ON ar.fee_allocation_id = fa.id
+    WHERE fa.person_id = v_garry_id AND ar.showcase_id = v_showcase_id
+    LIMIT 1;
+
+    -- Transaction in Garry's account linked to the showcase allocation
+    INSERT INTO account_transactions (account_id, date, amount, type, description)
+    SELECT v_garry_account_id, CURRENT_DATE - INTERVAL '3 weeks', -18000, 'Drawing',
+           'Dev Seed: Dev Seed Showcase fee'
+    WHERE v_garry_account_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM account_transactions
+        WHERE account_id = v_garry_account_id
+          AND description = 'Dev Seed: Dev Seed Showcase fee'
+      )
+    RETURNING id INTO v_tx_showcase_id;
+
+    INSERT INTO account_transactions_fee_allocations (transaction_id, allocation_id)
+    SELECT v_tx_showcase_id, v_fa_showcase_id
+    WHERE v_tx_showcase_id IS NOT NULL AND v_fa_showcase_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM account_transactions_fee_allocations
+        WHERE transaction_id = v_tx_showcase_id AND allocation_id = v_fa_showcase_id
+      );
+
+  END IF;
+END $$;
+
+-- ─── Dev-only: transactions linked to fee allocations ────────────────────────
+
+DO $$
+DECLARE
+  v_garry_id         int;
+  v_scott_id         int;
+  v_garry_account_id int;
+  v_scott_account_id int;
+  v_fa_garry_alice   int;
+  v_fa_garry_balance int;
+  v_fa_scott_alice   int;
+  v_tx1_id           int;
+  v_tx2_id           int;
+  v_tx3_id           int;
+BEGIN
+  IF current_setting('app.env', true) IS DISTINCT FROM 'production' THEN
+
+    SELECT id INTO v_garry_id         FROM people   WHERE email = 'garry@dev.local';
+    SELECT id INTO v_scott_id         FROM people   WHERE email = 'scott@dev.local';
+    SELECT id INTO v_garry_account_id FROM accounts WHERE person_id = v_garry_id;
+    SELECT id INTO v_scott_account_id FROM accounts WHERE person_id = v_scott_id;
+
+    -- Find the allocations inserted in the previous block
+    SELECT fa.id INTO v_fa_garry_alice
+    FROM fee_allocations fa
+    JOIN gigs g ON g.id = fa.gig_id
+    WHERE fa.person_id = v_garry_id
+      AND g.first_name = 'Alice' AND g.last_name = 'Sample';
+
+    SELECT fa.id INTO v_fa_garry_balance
+    FROM fee_allocations fa
+    JOIN gigs g ON g.id = fa.gig_id
+    WHERE fa.person_id = v_garry_id
+      AND g.first_name = 'Dev Balance' AND g.last_name = 'Alert';
+
+    SELECT fa.id INTO v_fa_scott_alice
+    FROM fee_allocations fa
+    JOIN gigs g ON g.id = fa.gig_id
+    WHERE fa.person_id = v_scott_id
+      AND g.first_name = 'Alice' AND g.last_name = 'Sample';
+
+    -- Transaction 1: Garry paid for Alice Sample gig (linked to his allocation)
+    INSERT INTO account_transactions (account_id, date, amount, type, description)
+    SELECT v_garry_account_id, CURRENT_DATE - INTERVAL '2 weeks', -25000, 'Drawing',
+           'Dev Seed: Alice Sample gig fee'
+    WHERE v_garry_account_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM account_transactions
+        WHERE account_id = v_garry_account_id
+          AND description = 'Dev Seed: Alice Sample gig fee'
+      )
+    RETURNING id INTO v_tx1_id;
+
+    INSERT INTO account_transactions_fee_allocations (transaction_id, allocation_id)
+    SELECT v_tx1_id, v_fa_garry_alice
+    WHERE v_tx1_id IS NOT NULL AND v_fa_garry_alice IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM account_transactions_fee_allocations
+        WHERE transaction_id = v_tx1_id AND allocation_id = v_fa_garry_alice
+      );
+
+    -- Transaction 2: Garry paid for Dev Balance Alert gig (linked to his allocation)
+    INSERT INTO account_transactions (account_id, date, amount, type, description)
+    SELECT v_garry_account_id, CURRENT_DATE - INTERVAL '1 week', -25000, 'Drawing',
+           'Dev Seed: Dev Balance Alert gig fee'
+    WHERE v_garry_account_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM account_transactions
+        WHERE account_id = v_garry_account_id
+          AND description = 'Dev Seed: Dev Balance Alert gig fee'
+      )
+    RETURNING id INTO v_tx2_id;
+
+    INSERT INTO account_transactions_fee_allocations (transaction_id, allocation_id)
+    SELECT v_tx2_id, v_fa_garry_balance
+    WHERE v_tx2_id IS NOT NULL AND v_fa_garry_balance IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM account_transactions_fee_allocations
+        WHERE transaction_id = v_tx2_id AND allocation_id = v_fa_garry_balance
+      );
+
+    -- Transaction 3: Scott paid for Alice Sample gig (linked to his allocation)
+    INSERT INTO account_transactions (account_id, date, amount, type, description)
+    SELECT v_scott_account_id, CURRENT_DATE - INTERVAL '2 weeks', -20000, 'Drawing',
+           'Dev Seed: Alice Sample gig fee'
+    WHERE v_scott_account_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM account_transactions
+        WHERE account_id = v_scott_account_id
+          AND description = 'Dev Seed: Alice Sample gig fee'
+      )
+    RETURNING id INTO v_tx3_id;
+
+    INSERT INTO account_transactions_fee_allocations (transaction_id, allocation_id)
+    SELECT v_tx3_id, v_fa_scott_alice
+    WHERE v_tx3_id IS NOT NULL AND v_fa_scott_alice IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM account_transactions_fee_allocations
+        WHERE transaction_id = v_tx3_id AND allocation_id = v_fa_scott_alice
+      );
+
+  END IF;
+END $$;
+
 -- Provides rows for the "Fee allocations missing expenses" dashboard section.
 
 DO $$
