@@ -13,6 +13,7 @@
     "build": "pnpm -r build",
     "build:watch": "pnpm -r build -- --watch",
     "dev": "./scripts/dev.sh",
+    "db:reset": "docker compose down -v && docker compose up -d --wait db minio && docker compose run --rm minio-init && pnpm --filter @get-down/api migrate",
     "test": "pnpm -r test",
     "type-check": "pnpm -r type-check"
   },

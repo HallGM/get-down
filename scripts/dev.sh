@@ -10,7 +10,8 @@ echo "🐘 Starting Colima…"
 colima start
 
 echo "🐘 Starting Postgres…"
-docker compose up -d --wait
+docker compose up -d --wait db minio
+docker compose run --rm minio-init
 
 echo "🐍 Starting Flask invoice service…"
 FLASK_BIN="$ROOT_DIR/invoice/venv/bin/flask"
