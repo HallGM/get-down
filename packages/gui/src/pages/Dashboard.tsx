@@ -1,70 +1,103 @@
 import { Link } from "react-router-dom";
-import { useGigs } from "../api/hooks/useGigs.js";
-import { useEnquiries } from "../api/hooks/useEnquiries.js";
-import { useAuth } from "../api/auth.js";
+import { useDashboardAlerts } from "../api/hooks/useDashboard.js";
 import { formatDate } from "../utils/date.js";
+import { formatPennies } from "../utils/money.js";
+import Badge from "../components/Badge.js";
 import LoadingState from "../components/LoadingState.js";
+import ErrorBanner from "../components/ErrorBanner.js";
+import { formatGigName } from "../utils/people.js";
+import type { GigPaymentAlert } from "@get-down/shared";
 
-function StatCard({ label, value, to }: { label: string; value: number | string; to: string }) {
+function AlertTable({ alerts, showBalance }: { alerts: GigPaymentAlert[]; showBalance?: boolean }) {
+  if (alerts.length === 0) {
+    return <p style={{ color: "var(--pico-muted-color)" }}>None. All clear.</p>;
+  }
   return (
-    <Link to={to} style={{ textDecoration: "none" }}>
-      <article style={{ textAlign: "center", padding: "1.5rem" }}>
-        <strong style={{ fontSize: "2rem" }}>{value}</strong>
-        <p style={{ margin: 0, color: "var(--pico-muted-color)" }}>{label}</p>
-      </article>
-    </Link>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Client</th>
+          <th>Venue</th>
+          <th>Quoted</th>
+          {showBalance && <th>Received</th>}
+          {showBalance && <th>Outstanding</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {alerts.map((g) => (
+          <tr key={g.id}>
+            <td>{formatDate(g.date)}</td>
+            <td>
+              <Link to={`/gigs/${g.id}`}>{formatGigName(g)}</Link>
+            </td>
+            <td>{g.venueName ?? g.location ?? "—"}</td>
+            <td>{formatPennies(g.totalPrice)}</td>
+            {showBalance && <td>{formatPennies(g.netReceived)}</td>}
+            {showBalance && (
+              <td style={{ color: "var(--pico-color-red-500, #e53e3e)", fontWeight: 600 }}>
+                {formatPennies(g.totalPrice - g.netReceived)}
+              </td>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const { data: gigs, isLoading: gigsLoading } = useGigs();
-  const { data: enquiries, isLoading: enquiriesLoading } = useEnquiries();
-
-  const upcomingGigs = gigs?.filter((g) => g.status === "confirmed") ?? [];
-  const upcomingEvents = upcomingGigs
-    .filter((g) => g.date && new Date(g.date) >= new Date())
-    .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""))
-    .slice(0, 5);
+  const { data, isLoading, error } = useDashboardAlerts();
 
   return (
     <main className="container">
       <hgroup>
         <h1>Dashboard</h1>
-        <p>Welcome back, {user?.displayName ?? user?.firstName}</p>
+        <p>Monitoring station. Things that need attention.</p>
       </hgroup>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
-        {gigsLoading ? <LoadingState /> : <StatCard label="Gigs" value={gigs?.length ?? 0} to="/gigs" />}
-        {enquiriesLoading ? <LoadingState /> : <StatCard label="Enquiries" value={enquiries?.length ?? 0} to="/enquiries" />}
-        {gigsLoading ? null : <StatCard label="Confirmed" value={upcomingGigs.length} to="/gigs" />}
-      </div>
+      {isLoading && <LoadingState />}
+      {error && <ErrorBanner error={error} />}
 
-      <div style={{ display: "grid", gap: "2rem" }}>
-        <section>
-          <h2>Upcoming Confirmed Gigs</h2>
-          {gigsLoading ? (
-            <LoadingState />
-          ) : upcomingEvents.length === 0 ? (
-            <p style={{ color: "var(--pico-muted-color)" }}>No upcoming confirmed gigs.</p>
-          ) : (
-            <table>
-              <thead>
-                <tr><th>Date</th><th>Name</th><th>Location</th></tr>
-              </thead>
-              <tbody>
-                {upcomingEvents.map((g) => (
-                  <tr key={g.id}>
-                    <td>{formatDate(g.date ?? "")}</td>
-                    <td>{g.name ?? `${g.firstName} ${g.lastName ?? ""}`.trim()}</td>
-                    <td>{g.venueName ?? g.location ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
-      </div>
+      {data && (
+        <div style={{ display: "grid", gap: "2rem" }}>
+          <section>
+            <h2>
+              No Deposit Paid
+              {data.noDeposit.length > 0 && (
+                <Badge
+                  label={String(data.noDeposit.length)}
+                  background="var(--pico-color-red-500, #e53e3e)"
+                  fontSize="0.85rem"
+                  style={{ marginLeft: "0.6rem", borderRadius: "999px", padding: "0.1em 0.55em", verticalAlign: "middle" }}
+                />
+              )}
+            </h2>
+            <p style={{ color: "var(--pico-muted-color)", fontSize: "0.9rem", marginTop: 0 }}>
+              Confirmed upcoming gigs where no payment has been received.
+            </p>
+            <AlertTable alerts={data.noDeposit} />
+          </section>
+
+          <section>
+            <h2>
+              Balance Due Within 2 Months
+              {data.balanceDueSoon.length > 0 && (
+                <Badge
+                  label={String(data.balanceDueSoon.length)}
+                  background="var(--pico-color-orange-500, #dd6b20)"
+                  fontSize="0.85rem"
+                  style={{ marginLeft: "0.6rem", borderRadius: "999px", padding: "0.1em 0.55em", verticalAlign: "middle" }}
+                />
+              )}
+            </h2>
+            <p style={{ color: "var(--pico-muted-color)", fontSize: "0.9rem", marginTop: 0 }}>
+              Confirmed gigs in the next 2 months with an outstanding balance.
+            </p>
+            <AlertTable alerts={data.balanceDueSoon} showBalance />
+          </section>
+        </div>
+      )}
     </main>
   );
 }

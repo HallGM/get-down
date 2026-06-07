@@ -42,6 +42,7 @@ export default defineConfig({
       "/fee-allocations": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/accounts": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/accounting": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
+      "/dashboard": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/genres": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/client-form": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/delivery": { target: "http://localhost:3000", bypass: bypassHtmlRequests },

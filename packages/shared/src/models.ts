@@ -1122,3 +1122,25 @@ export interface AccountingSummary {
 export function createService(id: number, name: string): Service {
   return { id, name };
 }
+
+// ─── Dashboard types ───────────────────────────────────────────────────────────
+
+export interface GigPaymentAlert {
+  id: number;
+  firstName: string;
+  lastName: string;
+  date: string;
+  venueName?: string;
+  location?: string;
+  /** Quoted price in pennies. */
+  totalPrice: number;
+  /** Net received (payments minus refunds) in pennies. */
+  netReceived: number;
+}
+
+export interface DashboardAlerts {
+  /** Confirmed upcoming gigs where no payment has been received. */
+  noDeposit: GigPaymentAlert[];
+  /** Confirmed gigs with a date within the next 2 months that still have an outstanding balance. */
+  balanceDueSoon: GigPaymentAlert[];
+}
