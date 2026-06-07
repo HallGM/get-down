@@ -3,12 +3,14 @@ import type {
   Account,
   AccountTransaction,
   LedgerEntry,
+  LinkedFeeAllocationSummary,
   UpdateAccountTransactionRequest,
 } from "@get-down/shared";
 import * as accountsRepo from "../repository/accounts.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 import { buildPersonName } from "../utils/people.js";
+import { groupById } from "../utils/groupById.js";
 import { withTransaction } from "../db/init.js";
 
 const CreateAccountSchema = z.object({
@@ -152,15 +154,32 @@ export async function getLedgerByAccount(
   const rows = await accountsRepo.readLedgerByAccountId(accountId, year);
   if (rows.length === 0) return [];
 
-  // For transaction entries, fetch their linked allocation IDs in bulk.
+  // For transaction entries, fetch their linked allocation IDs and rich summaries in bulk.
   const txIds = rows
     .filter((r) => r.entry_type === 'transaction')
     .map((r) => r.source_id);
-  const allocationsMap = txIds.length > 0
-    ? await accountsRepo.readAllocationIdsByTransactionIds(txIds)
-    : new Map<number, number[]>();
+  const [allocationsMap, summariesMap] = txIds.length > 0
+    ? await Promise.all([
+        accountsRepo.readAllocationIdsByTransactionIds(txIds),
+        accountsRepo.readLinkedFeeAllocationSummariesByTransactionIds(txIds).then((rows) =>
+          groupById(
+            rows,
+            (r) => r.transaction_id,
+            (r): LinkedFeeAllocationSummary => ({
+              id: r.allocation_id,
+              eventName: r.event_name ?? undefined,
+              eventDate: r.event_date ?? undefined,
+              gigId: r.gig_id ?? undefined,
+              showcaseId: r.showcase_id ?? undefined,
+              totalAmount: r.total_fee,
+              notes: r.notes ?? undefined,
+            })
+          )
+        ),
+      ])
+    : [new Map<number, number[]>(), new Map<number, LinkedFeeAllocationSummary[]>()];
 
-  return rows.map((row) => mapLedgerEntry(row, allocationsMap));
+  return rows.map((row) => mapLedgerEntry(row, allocationsMap, summariesMap));
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
@@ -200,7 +219,8 @@ function mapTransaction(
 
 function mapLedgerEntry(
   row: accountsRepo.LedgerEntryRow,
-  allocationsMap: Map<number, number[]>
+  allocationsMap: Map<number, number[]>,
+  summariesMap: Map<number, LinkedFeeAllocationSummary[]>
 ): LedgerEntry {
   return {
     sourceId: row.source_id,
@@ -212,6 +232,9 @@ function mapLedgerEntry(
     description: row.description ?? undefined,
     feeAllocationIds: row.entry_type === 'transaction'
       ? (allocationsMap.get(row.source_id) ?? [])
+      : undefined,
+    linkedFeeAllocations: row.entry_type === 'transaction'
+      ? (summariesMap.get(row.source_id) ?? [])
       : undefined,
   };
 }

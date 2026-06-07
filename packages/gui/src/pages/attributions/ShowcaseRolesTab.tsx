@@ -20,7 +20,7 @@ import FormField from "../../components/FormField.js";
 import ExpensePickerModal from "../../components/ExpensePickerModal.js";
 import ExpenseCreateModal from "../../components/ExpenseCreateModal.js";
 import ExpenseModal from "../../components/ExpenseModal.js";
-import { formatPersonName } from "../../utils/people.js";
+import { formatPersonName, resolvePersonName } from "../../utils/people.js";
 
 interface Props {
   showcaseId: number;
@@ -186,7 +186,7 @@ export default function ShowcaseRolesTab({ showcaseId }: Props) {
                           <li key={r.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                             <span>
                               {r.roleName}
-                              {r.personId ? ` (${formatPersonName(people.find((p) => p.id === r.personId)!)})` : ""}
+                              {r.personId ? ` (${resolvePersonName(people, r.personId)})` : ""}
                             </span>
                             <button
                               type="button"

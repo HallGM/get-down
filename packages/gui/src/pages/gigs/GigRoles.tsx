@@ -33,7 +33,7 @@ import TransactionPickerModal from "../../components/TransactionPickerModal.js";
 import TransactionCreateModal from "../../components/TransactionCreateModal.js";
 import TransactionModal from "../../components/TransactionModal.js";
 import { useToast } from "../../components/Toast.js";
-import { formatPersonName, formatGigName } from "../../utils/people.js";
+import { formatPersonName, formatGigName, resolvePersonName } from "../../utils/people.js";
 import { FeeAllocationPanel } from "../../components/FeeAllocationPanel.js";
 import type { FeeAllocation, FeeAllocationLineItem, Account, AccountTransaction, Expense } from "@get-down/shared";
 
@@ -286,7 +286,7 @@ export default function GigRoles() {
                       <ul style={{ margin: "0.25rem 0", paddingLeft: "1rem" }}>
                         {linkedRoles.map((r) => (
                           <li key={r.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                            <span>{r.roleName}{r.personId ? ` (${formatPersonName(people.find((p) => p.id === r.personId)!)})` : ""}</span>
+                            <span>{r.roleName}{r.personId ? ` (${resolvePersonName(people, r.personId)})` : ""}</span>
                             <button
                               type="button"
                               className="contrast outline"
@@ -342,7 +342,7 @@ export default function GigRoles() {
                       allocation={allocation}
                       accounts={accounts}
                       gigName={formatGigName(gig)}
-                      personName={formatPersonName(people.find((p) => p.id === allocation.personId)!)}
+                      personName={resolvePersonName(people, allocation.personId)}
                       onLink={(transactionId: number) => linkTransaction.mutate({ allocationId: allocation.id, transactionId })}
                       onUnlink={(transactionId: number) => unlinkTransaction.mutate({ allocationId: allocation.id, transactionId })}
                     />

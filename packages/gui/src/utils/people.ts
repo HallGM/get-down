@@ -7,3 +7,10 @@ export function formatPersonName(p: Person): string {
 export function formatGigName(gig: Pick<Gig, "firstName" | "lastName">): string {
   return `${gig.firstName}${gig.lastName ? ` ${gig.lastName}` : ""}`.trim();
 }
+
+/** Safely resolve a person's display name from a list. Returns empty string if not found. */
+export function resolvePersonName(people: Person[], personId: number | undefined): string {
+  if (!personId) return "";
+  const person = people.find((p) => p.id === personId);
+  return person ? formatPersonName(person) : "";
+}
