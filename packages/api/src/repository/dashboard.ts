@@ -106,6 +106,7 @@ export async function readAllocationsWithoutExpenses(): Promise<AllocationAlertR
         FROM fee_allocations_expenses fae
         WHERE fae.allocation_id = fa.id
       )
+        AND (fa.person_id IS NULL OR p.is_partner = false)
       GROUP BY
         fa.id,
         p.display_name, p.first_name, p.last_name,
