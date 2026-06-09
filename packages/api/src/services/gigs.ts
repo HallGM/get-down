@@ -7,6 +7,7 @@ import { isValidUrl } from "../utils/validation.js";
 import * as songsRepo from "../repository/songs.js";
 import { withTransaction } from "../db/init.js";
 import { DEFAULT_SECTION_NAME } from "../constants.js";
+import { fireGenerateDeliveryPhotos } from "../jobs/generateDeliveryPhotos.js";
 
 export async function getGigs(): Promise<Gig[]> {
   const rows = await gigsRepo.readGigs();
@@ -53,8 +54,16 @@ export async function createGig(input: CreateGigRequest): Promise<Gig> {
 export async function updateGig(id: number, input: UpdateGigRequest): Promise<Gig> {
   const existing = await gigsRepo.readGigById(id);
   if (!existing) throw new NotFoundError("Gig not found");
-  const row = await gigsRepo.updateGig(id, buildMutationInput(input, mapGig(existing)));
+  const mutationInput = buildMutationInput(input, mapGig(existing));
+  const row = await gigsRepo.updateGig(id, mutationInput);
   if (!row) throw new NotFoundError("Gig not found");
+
+  // Fire background photo generation when the Dropbox URL is set or changed.
+  const newDropboxUrl = mutationInput.dropboxUrl ?? null;
+  if (newDropboxUrl && newDropboxUrl !== (existing.dropbox_url ?? null)) {
+    fireGenerateDeliveryPhotos(id, newDropboxUrl);
+  }
+
   return getGigById(id);
 }
 

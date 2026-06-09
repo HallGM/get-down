@@ -37,14 +37,17 @@ router.get(
   handle((req) => deliveryService.listPhotos(req.params.token))
 );
 
-// Thumbnail and file proxy bypass the standard handle() wrapper because they
-// stream directly to the response rather than returning a JSON value.
+// Thumbnail and file routes redirect to presigned R2 URLs rather than
+// streaming bytes, so they bypass handle() and manage their own response.
 router.get(
   "/delivery/:token/photos/thumbnail",
   (req: Request, res: Response, next: NextFunction): void => {
     const name = validateNameParam(req, res);
     if (!name) return;
-    deliveryService.proxyThumbnail(req.params.token, name, res).catch(next);
+    deliveryService
+      .getThumbnailUrl(req.params.token, name)
+      .then((url) => res.redirect(302, url))
+      .catch(next);
   }
 );
 
@@ -53,7 +56,10 @@ router.get(
   (req: Request, res: Response, next: NextFunction): void => {
     const name = validateNameParam(req, res);
     if (!name) return;
-    deliveryService.proxyFile(req.params.token, name, res).catch(next);
+    deliveryService
+      .getDisplayUrl(req.params.token, name)
+      .then((url) => res.redirect(302, url))
+      .catch(next);
   }
 );
 
@@ -101,6 +107,14 @@ router.delete(
   "/gigs/:id/delivery-videos/:videoId",
   authenticateToken,
   handle((req) => deliveryVideosService.deleteVideo(+req.params.id, +req.params.videoId), 204)
+);
+
+// ─── Authenticated admin route — refresh R2 photos ───────────────────────────
+
+router.post(
+  "/gigs/:id/delivery/refresh-thumbnails",
+  authenticateToken,
+  handle((req) => deliveryService.refreshThumbnails(+req.params.id), 204)
 );
 
 export default router;

@@ -1,4 +1,12 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 let _client: S3Client | null = null;
@@ -78,8 +86,68 @@ export async function deleteFile(key: string): Promise<void> {
   );
 }
 
+/**
+ * Check whether an R2 object exists without downloading it.
+ * Returns false on NoSuchKey / NotFound; re-throws all other errors.
+ */
+export async function headFile(key: string): Promise<boolean> {
+  const { client, bucketName } = getClient();
+  try {
+    await client.send(new HeadObjectCommand({ Bucket: bucketName, Key: key }));
+    return true;
+  } catch (err: unknown) {
+    const name = (err as { name?: string })?.name;
+    const code = (err as { Code?: string })?.Code;
+    if (name === "NoSuchKey" || name === "NotFound" || code === "NoSuchKey" || code === "NotFound") {
+      return false;
+    }
+    // HeadObject returns a generic 404 with no error code on some S3-compatible stores
+    const status = (err as { $metadata?: { httpStatusCode?: number } })?.$metadata?.httpStatusCode;
+    if (status === 404) return false;
+    throw err;
+  }
+}
+
+/**
+ * Delete all R2 objects whose keys start with the given prefix.
+ * Paginates through the full listing in batches of up to 1000.
+ */
+export async function deletePrefix(prefix: string): Promise<void> {
+  const { client, bucketName } = getClient();
+  let continuationToken: string | undefined;
+
+  do {
+    const listRes = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucketName,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      })
+    );
+
+    const objects = listRes.Contents ?? [];
+    if (objects.length > 0) {
+      await client.send(
+        new DeleteObjectsCommand({
+          Bucket: bucketName,
+          Delete: {
+            Objects: objects.map((obj) => ({ Key: obj.Key! })),
+            Quiet: true,
+          },
+        })
+      );
+    }
+
+    continuationToken = listRes.IsTruncated ? listRes.NextContinuationToken : undefined;
+  } while (continuationToken);
+}
+
 export async function getPresignedUrl(key: string, ttlSeconds = 3600): Promise<string> {
-  if (!/^expenses\/\d+\/[0-9a-f-]{36}(\.[a-zA-Z0-9]+)?$/.test(key)) {
+  if (
+    !/^(?:expenses\/\d+\/[0-9a-f-]{36}(?:\.[a-zA-Z0-9]+)?|(?:thumbnails|display)\/\d+\/[^/]+)$/.test(
+      key
+    )
+  ) {
     throw new Error(`Invalid document key format: "${key}"`);
   }
   const { client, bucketName } = getClient();

@@ -152,26 +152,47 @@ function PhotoThumb({
   name,
   token,
   onClick,
+  onError,
 }: {
   name: string;
   token: string;
   onClick: () => void;
+  onError?: () => void;
 }) {
   const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+
+  function handleError() {
+    setErrored(true);
+    onError?.();
+  }
 
   return (
     <div className="dp-photo-thumb" onClick={onClick} role="button" tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
-      aria-label={`View photo ${name}`}
+      aria-label={errored ? `Photo ${name} unavailable` : `View photo ${name}`}
     >
-      {!loaded && <div className="dp-photo-thumb__skeleton" aria-hidden="true" />}
-      <img
-        src={thumbnailUrl(token, name)}
-        alt={name}
-        className={loaded ? "dp-img-loaded" : ""}
-        onLoad={() => setLoaded(true)}
-        loading="lazy"
-      />
+      {errored ? (
+        <div className="dp-photo-thumb__error" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        </div>
+      ) : (
+        <>
+          {!loaded && <div className="dp-photo-thumb__skeleton" aria-hidden="true" />}
+          <img
+            src={thumbnailUrl(token, name)}
+            alt={name}
+            className={loaded ? "dp-img-loaded" : ""}
+            onLoad={() => setLoaded(true)}
+            onError={handleError}
+            loading="lazy"
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -241,6 +262,7 @@ export default function DeliveryPage() {
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [visibleCount, setVisibleCount] = useState(PHOTOS_PAGE_SIZE);
+  const [erroredNames, setErroredNames] = useState(() => new Set<string>());
 
   const photos = photosData?.photos.map((p) => p.name) ?? [];
   const visiblePhotos = photos.slice(0, visibleCount);
@@ -322,7 +344,7 @@ export default function DeliveryPage() {
           <section className="dp-section">
             <p className="dp-section__heading">Your photos</p>
 
-            {photosError ? (
+            {photosError || (visiblePhotos.length > 0 && erroredNames.size === visiblePhotos.length) ? (
               <p className="dp-photos-error">
                 Photos are not available right now. Please try again later or use the download button below.
               </p>
@@ -335,6 +357,7 @@ export default function DeliveryPage() {
                       name={name}
                       token={token!}
                       onClick={() => openLightbox(photos.indexOf(name))}
+                      onError={() => setErroredNames((prev) => new Set(prev).add(name))}
                     />
                   ))}
                 </div>
