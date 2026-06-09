@@ -10,9 +10,6 @@
  *   DROPBOX_REFRESH_TOKEN
  */
 
-import type { ServerResponse } from "http";
-import sharp from "sharp";
-
 // ─── Token cache ──────────────────────────────────────────────────────────────
 
 interface TokenCache {
@@ -72,6 +69,7 @@ export interface DropboxFileEntry {
   ".tag": string;
   name: string;
   path_display: string;
+  rev: string;
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
@@ -97,10 +95,8 @@ async function fetchSharedLinkFile(
   });
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
-
 /** List all image files in a shared folder link. Handles pagination. */
-export async function listFolder(sharedUrl: string): Promise<DropboxFileEntry[]> {
+async function listFolder(sharedUrl: string): Promise<DropboxFileEntry[]> {
   const token = await getAccessToken();
   const IMAGE_EXTS = /\.(jpe?g|png)$/i;
   const results: DropboxFileEntry[] = [];
@@ -177,84 +173,44 @@ export async function listFolder(sharedUrl: string): Promise<DropboxFileEntry[]>
   return results;
 }
 
-/** Pipe a resized JPEG thumbnail for a file in a shared folder to the HTTP response.
- *
- * Dropbox's get_thumbnail_v2 does not support the newer scl/fo URL format, so
- * we fetch the full file via sharing/get_shared_link_file and resize it
- * server-side with sharp before sending.
- */
-export async function pipeThumbnail(
-  sharedUrl: string,
-  filePath: string,
-  res: ServerResponse
-): Promise<void> {
-  const token = await getAccessToken();
+// ─── Folder listing cache ─────────────────────────────────────────────────────
 
-  const dropboxRes = await fetchSharedLinkFile(sharedUrl, filePath, token);
-
-  if (!dropboxRes.ok) {
-    const errText = await dropboxRes.text();
-    console.error(`[dropbox] get_shared_link_file (thumbnail) failed (${dropboxRes.status}):`, errText);
-    res.writeHead(dropboxRes.status);
-    res.end();
-    return;
-  }
-
-  // Stream body into a buffer, then resize with sharp
-  const arrayBuffer = await dropboxRes.arrayBuffer();
-  const resized = await sharp(Buffer.from(arrayBuffer))
-    .resize(640, 480, { fit: "cover", position: "centre" })
-    .jpeg({ quality: 80 })
-    .toBuffer();
-
-  res.writeHead(200, {
-    "Content-Type": "image/jpeg",
-    "Content-Length": resized.length,
-    "Cache-Control": "public, max-age=86400",
-  });
-  res.end(resized);
+interface FolderCacheEntry {
+  entries: DropboxFileEntry[];
+  expiresAt: number;
 }
 
-/** Pipe the full-size image for a file in a shared folder to the HTTP response. */
-export async function pipeFile(
-  sharedUrl: string,
-  filePath: string,
-  fileName: string,
-  res: ServerResponse
-): Promise<void> {
+const folderCache = new Map<string, FolderCacheEntry>();
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * List all image files in a shared folder link, with a 5-minute in-memory
+ * cache. Use this everywhere instead of the private `listFolder`.
+ */
+export async function listFolderCached(sharedUrl: string): Promise<DropboxFileEntry[]> {
+  const now = Date.now();
+  const cached = folderCache.get(sharedUrl);
+  if (cached && now < cached.expiresAt) {
+    return cached.entries;
+  }
+  const entries = await listFolder(sharedUrl);
+  folderCache.set(sharedUrl, { entries, expiresAt: now + 5 * 60_000 });
+  return entries;
+}
+
+/**
+ * Download a file from a Dropbox shared folder and return its raw bytes.
+ * Throws on any non-2xx Dropbox response.
+ */
+export async function fetchFileBuffer(sharedUrl: string, filePath: string): Promise<Buffer> {
   const token = await getAccessToken();
-
-  const dropboxRes = await fetchSharedLinkFile(sharedUrl, filePath, token);
-
-  if (!dropboxRes.ok) {
-    const errText = await dropboxRes.text();
-    console.error(`[dropbox] get_shared_link_file (file) failed (${dropboxRes.status}):`, errText);
-    res.writeHead(dropboxRes.status);
-    res.end();
-    return;
+  const res = await fetchSharedLinkFile(sharedUrl, filePath, token);
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`[dropbox] get_shared_link_file failed (${res.status}):`, errText);
+    throw new Error(`Dropbox file fetch failed (${res.status})`);
   }
-
-  const safeFileName = fileName.replace(/[\r\n"\\]/g, "");
-  res.writeHead(200, {
-    "Content-Type": dropboxRes.headers.get("Content-Type") ?? "image/jpeg",
-    "Content-Disposition": `attachment; filename="${safeFileName}"`,
-    "Cache-Control": "public, max-age=3600",
-  });
-
-  if (dropboxRes.body) {
-    const reader = dropboxRes.body.getReader();
-    try {
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        res.write(value);
-      }
-    } catch (err) {
-      console.error("[dropbox] streaming error:", err);
-    } finally {
-      reader.releaseLock();
-    }
-  }
-
-  res.end();
+  const arrayBuffer = await res.arrayBuffer();
+  return Buffer.from(arrayBuffer);
 }

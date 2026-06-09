@@ -28,6 +28,7 @@ import {
   useUpdateDeliveryVideo,
   useDeleteDeliveryVideo,
   useReorderDeliveryVideos,
+  useRefreshDeliveryPhotos,
 } from "../../api/hooks/useDelivery.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
@@ -78,6 +79,7 @@ export default function GigDetail() {
   const updateDeliveryVideo = useUpdateDeliveryVideo(gigId);
   const deleteDeliveryVideo = useDeleteDeliveryVideo(gigId);
   const reorderDeliveryVideos = useReorderDeliveryVideos(gigId);
+  const refreshDeliveryPhotos = useRefreshDeliveryPhotos(gigId);
 
   const EMPTY_VIDEO = { title: "", vimeoUrl: "" };
   const [newVideoForm, setNewVideoForm] = useState(EMPTY_VIDEO);
@@ -344,6 +346,20 @@ export default function GigDetail() {
             <h3 style={{ marginTop: "1.5rem" }}>Media delivery</h3>
             <FormField label="Delivery page title" value={editForm.deliveryTitle ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, deliveryTitle: e.target.value }))} placeholder="e.g. Sarah & Sean · Wedding Film" />
             <FormField label="Dropbox folder link" value={editForm.dropboxUrl ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, dropboxUrl: e.target.value }))} />
+            {gig.dropboxUrl && (
+              <div style={{ marginTop: "0.5rem" }}>
+                <button
+                  type="button"
+                  className="secondary outline"
+                  style={{ fontSize: "0.85rem", padding: "0.3em 0.8em" }}
+                  aria-busy={refreshDeliveryPhotos.isPending}
+                  disabled={refreshDeliveryPhotos.isPending}
+                  onClick={() => refreshDeliveryPhotos.mutate()}
+                >
+                  Refresh photos
+                </button>
+              </div>
+            )}
 
             <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
               <button type="submit" aria-busy={updateGig.isPending} disabled={updateGig.isPending}>Save</button>

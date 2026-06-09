@@ -74,3 +74,11 @@ export function useReorderDeliveryVideos(gigId: number) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["delivery-videos", gigId] }),
   });
 }
+
+export function useRefreshDeliveryPhotos(gigId: number) {
+  return useApiMutation({
+    mutationFn: () =>
+      apiFetch<void>("POST", `/gigs/${gigId}/delivery/refresh-thumbnails`),
+    successMessage: "Photos are being regenerated.",
+  });
+}
