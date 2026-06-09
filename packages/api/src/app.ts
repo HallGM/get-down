@@ -88,18 +88,44 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction): void 
   res.status(500).json({ message: "Internal Server Error" });
 });
 
+function memMB(): string {
+  const { rss, heapUsed, heapTotal, external } = process.memoryUsage();
+  const mb = (b: number) => (b / 1024 / 1024).toFixed(1);
+  return `rss=${mb(rss)} heap=${mb(heapUsed)}/${mb(heapTotal)} ext=${mb(external)}`;
+}
+
+process.on("unhandledRejection", (reason) => {
+  console.error(`[process] unhandledRejection | ${memMB()}`, reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error(`[process] uncaughtException | ${memMB()}`, err);
+  process.exit(1);
+});
+
 async function start(): Promise<void> {
+  console.log(`[startup] booting | ${memMB()}`);
+
   if (process.env.SKIP_MIGRATION !== "true") {
     await migrate();
   }
+
+  console.log(`[startup] post-migrate | ${memMB()}`);
+
   app.listen(port, () => {
     console.log(`listening on http://localhost:${port}`);
+    console.log(`[startup] listening | ${memMB()}`);
   });
+
+  // Log memory every 60 s so we can see the trend in Render logs.
+  setInterval(() => {
+    console.log(`[mem] ${memMB()}`);
+  }, 60_000);
 
   if (process.env.RENDER_EXTERNAL_URL) {
     const url = process.env.RENDER_EXTERNAL_URL;
     setInterval(() => {
-      console.log(`[keep-alive] pinging ${url}`);
+      console.log(`[keep-alive] pinging ${url} | ${memMB()}`);
       fetch(url).catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
         console.error(`[keep-alive] ping failed: ${message}`);

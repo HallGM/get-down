@@ -8,7 +8,7 @@ import { NotFoundError, BadRequestError } from "../errors.js";
 import * as dropbox from "../utils/dropbox.js";
 import * as storage from "../utils/storage.js";
 import * as vimeo from "../utils/vimeo.js";
-import { semaphore, r2Key, VARIANTS, type VariantName, fireGenerateDeliveryPhotos } from "../jobs/generateDeliveryPhotos.js";
+import { semaphore, r2Key, VARIANTS, type VariantName, fireGenerateDeliveryPhotos, memMB } from "../jobs/generateDeliveryPhotos.js";
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -99,19 +99,28 @@ async function getVariantUrl(token: string, name: string, variant: VariantName):
 
   const key = r2Key(variant, gig.id, entry.rev, entry.name);
   const exists = await storage.headFile(key);
+
   if (!exists) {
     const { width, height, quality } = VARIANTS[variant];
+    console.info(`[delivery] cache-miss: ${variant} "${name}" gig=${gig.id} | sem=${semaphore.available} avail / ${semaphore.queued} waiting | ${memMB()}`);
     await semaphore.acquire();
+    console.info(`[delivery] acquired:   ${variant} "${name}" gig=${gig.id} | sem=${semaphore.available} avail / ${semaphore.queued} waiting | ${memMB()}`);
     try {
       const buffer = await dropbox.fetchFileBuffer(gig.dropbox_url, `/${entry.name}`);
+      console.info(`[delivery] downloaded: ${variant} "${name}" ${(buffer.length / 1024 / 1024).toFixed(2)}MB | ${memMB()}`);
       const out = await sharp(buffer)
         .resize(width, height, { fit: "cover", position: "centre" })
         .jpeg({ quality })
         .toBuffer();
+      console.info(`[delivery] sharp-done: ${variant} "${name}" output=${(out.length / 1024).toFixed(0)}KB | ${memMB()}`);
       await storage.uploadFile(key, out, "image/jpeg");
+      console.info(`[delivery] uploaded:   ${variant} "${name}"`);
     } finally {
       semaphore.release();
+      console.info(`[delivery] released:   ${variant} "${name}" | sem=${semaphore.available} avail / ${semaphore.queued} waiting | ${memMB()}`);
     }
+  } else {
+    console.info(`[delivery] cache-hit:  ${variant} "${name}" gig=${gig.id}`);
   }
 
   return storage.getPresignedUrl(key, 86400);
