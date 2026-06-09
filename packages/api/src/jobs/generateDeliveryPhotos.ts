@@ -30,6 +30,12 @@ class Semaphore {
       this.slots++;
     }
   }
+
+  /** Number of slots currently free. */
+  get available(): number { return this.slots; }
+
+  /** Number of callers waiting for a slot. */
+  get queued(): number { return this.queue.length; }
 }
 
 /**
@@ -54,6 +60,19 @@ export const VARIANTS = {
 
 export type VariantName = keyof typeof VARIANTS;
 
+// ─── Debug helpers ─────────────────────────────────────────────────────────────
+
+/** Returns a compact memory snapshot string. `ext` = libvips / native buffers. */
+export function memMB(): string {
+  const { rss, heapUsed, heapTotal, external } = process.memoryUsage();
+  const mb = (b: number) => (b / 1024 / 1024).toFixed(1);
+  return `rss=${mb(rss)} heap=${mb(heapUsed)}/${mb(heapTotal)} ext=${mb(external)}`;
+}
+
+function semState(): string {
+  return `sem=${semaphore.available} avail / ${semaphore.queued} waiting`;
+}
+
 // ─── Background job ────────────────────────────────────────────────────────────
 
 /**
@@ -65,50 +84,71 @@ export type VariantName = keyof typeof VARIANTS;
  */
 export async function generateDeliveryPhotos(gigId: number, dropboxUrl: string): Promise<void> {
   const entries = await dropbox.listFolderCached(dropboxUrl);
-  console.info(`[generate] Processing ${entries.length} photos for gig ${gigId}`);
+  const total = entries.length;
+  console.info(`[generate] gig=${gigId} total=${total} | ${memMB()}`);
 
-  for (const entry of entries) {
+  let skipped = 0;
+
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    const n = i + 1;
+    const tag = `[generate] [${n}/${total}] ${entry.name}`;
+
+    console.info(`${tag} pre-acquire | ${semState()} | ${memMB()}`);
     await semaphore.acquire();
+    console.info(`${tag} acquired | ${semState()} | ${memMB()}`);
+
     try {
-      const thumbKey = r2Key("thumbnails", gigId, entry.rev, entry.name);
-      const displayKey = r2Key("display", gigId, entry.rev, entry.name);
+      const thumbKey   = r2Key("thumbnails", gigId, entry.rev, entry.name);
+      const displayKey = r2Key("display",    gigId, entry.rev, entry.name);
 
       const [thumbExists, displayExists] = await Promise.all([
         headFile(thumbKey),
         headFile(displayKey),
       ]);
 
+      console.info(`${tag} r2 check: thumb=${thumbExists} display=${displayExists}`);
+
       if (thumbExists && displayExists) {
+        skipped++;
+        console.info(`${tag} skip (both cached) total_skipped=${skipped}`);
         continue;
       }
 
+      console.info(`${tag} downloading | ${memMB()}`);
       const buffer = await dropbox.fetchFileBuffer(dropboxUrl, `/${entry.name}`);
+      console.info(`${tag} downloaded ${(buffer.length / 1024 / 1024).toFixed(2)}MB | ${memMB()}`);
 
       if (!thumbExists) {
+        console.info(`${tag} sharp:thumbnail start | ${memMB()}`);
         const thumbBuffer = await sharp(buffer)
           .resize(VARIANTS.thumbnails.width, VARIANTS.thumbnails.height, { fit: "cover", position: "centre" })
           .jpeg({ quality: VARIANTS.thumbnails.quality })
           .toBuffer();
+        console.info(`${tag} sharp:thumbnail done output=${(thumbBuffer.length / 1024).toFixed(0)}KB | ${memMB()}`);
         await uploadFile(thumbKey, thumbBuffer, "image/jpeg");
-        console.info(`[generate] uploaded thumbnail: ${thumbKey}`);
+        console.info(`${tag} uploaded thumbnail`);
       }
 
       if (!displayExists) {
+        console.info(`${tag} sharp:display start | ${memMB()}`);
         const displayBuffer = await sharp(buffer)
           .resize(VARIANTS.display.width, VARIANTS.display.height, { fit: "cover", position: "centre" })
           .jpeg({ quality: VARIANTS.display.quality })
           .toBuffer();
+        console.info(`${tag} sharp:display done output=${(displayBuffer.length / 1024).toFixed(0)}KB | ${memMB()}`);
         await uploadFile(displayKey, displayBuffer, "image/jpeg");
-        console.info(`[generate] uploaded display: ${displayKey}`);
+        console.info(`${tag} uploaded display`);
       }
     } catch (err) {
-      console.error(`[generate] error processing ${entry.name}:`, err);
+      console.error(`${tag} ERROR | ${memMB()}`, err);
     } finally {
       semaphore.release();
+      console.info(`${tag} released | ${semState()} | ${memMB()}`);
     }
   }
 
-  console.info(`[generate] Completed photo generation for gig ${gigId}`);
+  console.info(`[generate] gig=${gigId} complete skipped=${skipped} | ${memMB()}`);
 }
 
 /**
