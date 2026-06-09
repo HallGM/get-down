@@ -39,11 +39,12 @@ class Semaphore {
 }
 
 /**
- * Shared 4-slot semaphore used by both background generation and on-demand
- * delivery. Bounding simultaneous full-resolution downloads and sharp
- * operations prevents OOM on constrained hosts.
+ * Shared 1-slot semaphore used by both background generation and on-demand
+ * delivery. A single slot ensures only one full-resolution Dropbox download
+ * and sharp operation runs at a time, keeping peak RSS well under the 512 MB
+ * Render instance limit (measured peak with 2 slots: 483 MB on 10 MB photos).
  */
-export const semaphore = new Semaphore(4);
+export const semaphore = new Semaphore(1);
 
 // ─── Key helpers ───────────────────────────────────────────────────────────────
 
