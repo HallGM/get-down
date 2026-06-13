@@ -2,6 +2,7 @@ import type { AccountingSummary } from "@get-down/shared";
 import * as repo from "../repository/accounting.js";
 import { BadRequestError } from "../errors.js";
 import { buildPersonName } from "../utils/people.js";
+import { PARTNERSHIP_START_DATE } from "../constants.js";
 
 export interface SummaryParams {
   year?: number;
@@ -65,17 +66,22 @@ function resolveBounds(params: SummaryParams): DateBounds {
 
   if (year !== undefined) {
     return {
-      start: `${year}-01-01`,
+      start: floorToPartnershipStart(`${year}-01-01`),
       end:   `${year}-12-31`,
     };
   }
 
   if (taxYearStart !== undefined) {
     return {
-      start: `${taxYearStart}-04-06`,
+      start: floorToPartnershipStart(`${taxYearStart}-04-06`),
       end:   `${taxYearStart + 1}-04-05`,
     };
   }
 
-  return { start: null, end: null };
+  // "All time" — floor at the partnership start date.
+  return { start: PARTNERSHIP_START_DATE, end: null };
+}
+
+function floorToPartnershipStart(date: string): string {
+  return date < PARTNERSHIP_START_DATE ? PARTNERSHIP_START_DATE : date;
 }

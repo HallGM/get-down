@@ -1,5 +1,6 @@
 import { run_query } from "../db/init.js";
 import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS } from "./sql-fragments.js";
+import { PARTNERSHIP_START_DATE } from "../constants.js";
 
 export interface AccountSummaryRow {
   id: number;
@@ -65,9 +66,11 @@ export async function readAllAccounts(): Promise<AccountSummaryRow[]> {
       FROM accounts a
       LEFT JOIN people p ON p.id = a.person_id
       LEFT JOIN account_ledger l ON l.account_id = a.id
+        AND (l.date IS NULL OR l.date >= $1) -- NULL date = undated/pending; always included
       GROUP BY a.id, a.person_id, a.is_business, p.first_name, p.last_name, p.display_name
       ORDER BY a.is_business DESC, p.first_name, p.last_name;
     `,
+    values: [PARTNERSHIP_START_DATE],
   });
 }
 
@@ -182,15 +185,17 @@ export async function readLedgerByAccountId(
   accountId: number,
   year?: number
 ): Promise<LedgerEntryRow[]> {
-  const yearFilter = year !== undefined ? `AND EXTRACT(YEAR FROM date) = $2` : "";
+  const yearFilter = year !== undefined ? `AND EXTRACT(YEAR FROM date) = $3` : "";
   return run_query<LedgerEntryRow>({
     text: `
       SELECT source_id, entry_type, account_id, person_id, date, amount, label, description
       FROM account_ledger
-      WHERE account_id = $1 ${yearFilter}
+      WHERE account_id = $1
+        AND (date IS NULL OR date >= $2) -- NULL date = undated/pending; always included
+        ${yearFilter}
       ORDER BY date DESC NULLS LAST, source_id DESC;
     `,
-    values: year !== undefined ? [accountId, year] : [accountId],
+    values: year !== undefined ? [accountId, PARTNERSHIP_START_DATE, year] : [accountId, PARTNERSHIP_START_DATE],
   });
 }
 

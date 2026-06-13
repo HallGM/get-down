@@ -637,3 +637,67 @@ BEGIN
 
   END IF;
 END $$;
+
+-- ─── Dev-only: pre-partnership data (before 2024-09-01) ──────────────────────
+-- These records exist solely to verify the partnership start date floor.
+-- They must NOT appear in accounting summary totals or account balances/ledger.
+-- They WILL appear on the gig and expense list pages (floor only applies to
+-- financial calculations, not list views).
+
+DO $$
+DECLARE
+  v_garry_id         int;
+  v_garry_account_id int;
+  v_pre_gig_id       int;
+BEGIN
+  IF current_setting('app.env', true) IS DISTINCT FROM 'production' THEN
+
+    SELECT id INTO v_garry_id         FROM people   WHERE email = 'garry@dev.local';
+    SELECT id INTO v_garry_account_id FROM accounts WHERE person_id = v_garry_id;
+
+    -- Completed gig dated July 2024 — before the 1 Sep 2024 floor.
+    -- Must not be counted in gigs booked/performed on the accounting page.
+    INSERT INTO gigs (first_name, last_name, date, status, total_price,
+                      travel_cost, discount_percent, venue_name, location)
+    SELECT 'Dev Pre', 'Partnership', '2024-07-20', 'completed', 200000,
+           0, 0, 'Dev Seed: Pre-Partnership Venue', 'Glasgow'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM gigs WHERE first_name = 'Dev Pre' AND last_name = 'Partnership'
+    );
+    SELECT id INTO v_pre_gig_id FROM gigs
+    WHERE first_name = 'Dev Pre' AND last_name = 'Partnership';
+
+    -- Full payment for that gig (payment date also before the floor).
+    -- Must not appear in pot income or earned income on the accounting page.
+    INSERT INTO payments (gig_id, date, amount, method, description)
+    SELECT v_pre_gig_id, '2024-07-20', 200000, 'Bank transfer',
+           'Dev Seed: Pre-partnership full payment'
+    WHERE v_pre_gig_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM payments
+        WHERE gig_id = v_pre_gig_id
+          AND description = 'Dev Seed: Pre-partnership full payment'
+      );
+
+    -- Expense dated August 2024 — must not appear in expenses total.
+    INSERT INTO expenses (date, amount, description, category)
+    SELECT '2024-08-10', 50000, 'Dev Seed: Pre-partnership equipment hire', 'Equipment'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM expenses WHERE description = 'Dev Seed: Pre-partnership equipment hire'
+    );
+
+    -- Account transaction dated August 2024 — must not appear in Garry's
+    -- account balance or ledger list, and must not appear in drawings on the
+    -- accounting page.
+    INSERT INTO account_transactions (account_id, date, amount, type, description)
+    SELECT v_garry_account_id, '2024-08-15', -30000, 'Drawing',
+           'Dev Seed: Pre-partnership drawing'
+    WHERE v_garry_account_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM account_transactions
+        WHERE account_id = v_garry_account_id
+          AND description = 'Dev Seed: Pre-partnership drawing'
+      );
+
+  END IF;
+END $$;
