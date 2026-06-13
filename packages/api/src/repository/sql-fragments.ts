@@ -1,11 +1,15 @@
 /**
- * Shared SQL fragments reused across repository queries that join fee_allocations
- * to their parent event (gig or showcase via assigned_roles).
+ * Shared SQL fragments reused across repository queries.
  *
- * Assumed aliases in the outer query:
+ * Fee-allocation / event fragments — assumed aliases:
  *   fa    → fee_allocations
  *   g     → gigs (LEFT JOIN via fa.gig_id)
  *   ar_sc / s  → introduced by SQL_SHOWCASE_LATERAL_JOIN
+ *
+ * Payment fragments (SQL_PAYMENT_SUBQUERY) — assumed aliases:
+ *   g     → gigs
+ *   p     → payments aggregate (introduced by the subquery)
+ *   r     → refunds aggregate  (introduced by the subquery)
  */
 
 /** SELECT columns: event name, date, and IDs for gig/showcase context. */
@@ -44,3 +48,17 @@ export const SQL_PERSON_NAME = `
     p.display_name,
     p.first_name || COALESCE(' ' || p.last_name, '')
   ) AS person_name`;
+
+/**
+ * LEFT JOIN subqueries for payment and refund aggregates.
+ * Introduces aliases `p` (total_paid) and `r` (total_refunded).
+ * Requires alias `g` on the `gigs` table.
+ */
+export const SQL_PAYMENT_SUBQUERY = `
+  LEFT JOIN (
+    SELECT gig_id, SUM(amount) AS total_paid FROM payments GROUP BY gig_id
+  ) p ON p.gig_id = g.id
+  LEFT JOIN (
+    SELECT gig_id, SUM(amount) AS total_refunded FROM refunds GROUP BY gig_id
+  ) r ON r.gig_id = g.id
+`;

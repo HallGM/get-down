@@ -1,13 +1,16 @@
 import { run_query } from "../db/init.js";
-import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME } from "./sql-fragments.js";
+import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME, SQL_PAYMENT_SUBQUERY } from "./sql-fragments.js";
 
-export interface GigPaymentAlertRow {
+interface GigAlertBaseRow {
   id: number;
   first_name: string;
   last_name: string;
   date: string;
   venue_name: string | null;
   location: string | null;
+}
+
+export interface GigPaymentAlertRow extends GigAlertBaseRow {
   total_price: number;
   net_received: number;
 }
@@ -30,6 +33,8 @@ export interface ApportionmentMismatchRow {
   difference: number;
 }
 
+export type GigNoLineItemsAlertRow = GigAlertBaseRow;
+
 const SELECT_ALERT_COLS = `
   g.id,
   g.first_name,
@@ -41,15 +46,6 @@ const SELECT_ALERT_COLS = `
   COALESCE(p.total_paid, 0) - COALESCE(r.total_refunded, 0) AS net_received
 `;
 
-const PAYMENT_SUBQUERY = `
-  LEFT JOIN (
-    SELECT gig_id, SUM(amount) AS total_paid FROM payments GROUP BY gig_id
-  ) p ON p.gig_id = g.id
-  LEFT JOIN (
-    SELECT gig_id, SUM(amount) AS total_refunded FROM refunds GROUP BY gig_id
-  ) r ON r.gig_id = g.id
-`;
-
 /**
  * Confirmed upcoming gigs where no payment has been received at all.
  */
@@ -58,7 +54,7 @@ export async function readDepositAlerts(): Promise<GigPaymentAlertRow[]> {
     text: `
       SELECT ${SELECT_ALERT_COLS}
       FROM gigs g
-      ${PAYMENT_SUBQUERY}
+      ${SQL_PAYMENT_SUBQUERY}
       WHERE g.status = 'confirmed'
         AND g.date >= CURRENT_DATE
         AND g.total_price IS NOT NULL
@@ -78,7 +74,7 @@ export async function readBalanceDueSoonAlerts(): Promise<GigPaymentAlertRow[]> 
     text: `
       SELECT ${SELECT_ALERT_COLS}
       FROM gigs g
-      ${PAYMENT_SUBQUERY}
+      ${SQL_PAYMENT_SUBQUERY}
       WHERE g.status = 'confirmed'
         AND g.date >= CURRENT_DATE
         AND g.date <= CURRENT_DATE + INTERVAL '2 months'
@@ -136,6 +132,23 @@ export async function readApportionmentMismatches(): Promise<ApportionmentMismat
         COUNT(*) FILTER (WHERE se.apportioned_amount IS NOT NULL) > 0
         AND SUM(COALESCE(se.apportioned_amount, 0)) <> e.amount
       ORDER BY e.id;
+    `,
+  });
+}
+
+/**
+ * Confirmed gigs (past or future) that have no billing line items.
+ */
+export async function readGigsWithoutLineItems(): Promise<GigNoLineItemsAlertRow[]> {
+  return run_query<GigNoLineItemsAlertRow>({
+    text: `
+      SELECT g.id, g.first_name, g.last_name, g.date, g.venue_name, g.location
+      FROM gigs g
+      WHERE g.status = 'confirmed'
+        AND NOT EXISTS (
+          SELECT 1 FROM gig_line_items li WHERE li.gig_id = g.id
+        )
+      ORDER BY g.date ASC;
     `,
   });
 }

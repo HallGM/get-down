@@ -10,8 +10,17 @@ import { DEFAULT_SECTION_NAME } from "../constants.js";
 import { fireGenerateDeliveryPhotos } from "../jobs/generateDeliveryPhotos.js";
 
 export async function getGigs(): Promise<Gig[]> {
-  const rows = await gigsRepo.readGigs();
-  return rows.map(mapGig);
+  const [rows, financials] = await Promise.all([
+    gigsRepo.readGigs(),
+    gigsRepo.readGigFinancialTotals(),
+  ]);
+  const financialMap = new Map(
+    financials.map((f) => [f.gig_id, { netReceived: f.net_received, feesTotal: f.total_fees }])
+  );
+  return rows.map((row) => {
+    const fin = financialMap.get(row.id) ?? { netReceived: 0, feesTotal: 0 };
+    return { ...mapGig(row), netReceived: fin.netReceived, feesTotal: fin.feesTotal };
+  });
 }
 
 export async function getGigById(id: number): Promise<Gig> {

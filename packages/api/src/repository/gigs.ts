@@ -1,4 +1,5 @@
 import { run_query } from "../db/init.js";
+import { SQL_PAYMENT_SUBQUERY } from "./sql-fragments.js";
 
 export interface GigRow {
   id: number;
@@ -309,5 +310,31 @@ export async function readUpcomingGigsByPersonId(personId: number): Promise<Upco
       ORDER BY g.date ASC;
     `,
     values: [personId],
+  });
+}
+
+export interface GigFinancialTotalsRow {
+  gig_id: number;
+  net_received: number;
+  total_fees: number;
+}
+
+export async function readGigFinancialTotals(): Promise<GigFinancialTotalsRow[]> {
+  return run_query<GigFinancialTotalsRow>({
+    text: `
+      SELECT
+        g.id AS gig_id,
+        (COALESCE(p.total_paid, 0) - COALESCE(r.total_refunded, 0))::int AS net_received,
+        COALESCE(fa_totals.total_fees, 0)::int AS total_fees
+      FROM gigs g
+      ${SQL_PAYMENT_SUBQUERY}
+      LEFT JOIN (
+        SELECT fa.gig_id, SUM(fali.amount) AS total_fees
+        FROM fee_allocations fa
+        JOIN fee_allocation_line_items fali ON fali.allocation_id = fa.id
+        GROUP BY fa.gig_id
+      ) fa_totals ON fa_totals.gig_id = g.id
+      ORDER BY g.id;
+    `,
   });
 }

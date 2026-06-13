@@ -7,7 +7,7 @@ import AllocationEventCell from "../components/AllocationEventCell.js";
 import LoadingState from "../components/LoadingState.js";
 import ErrorBanner from "../components/ErrorBanner.js";
 import { formatGigName } from "../utils/people.js";
-import type { GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert } from "@get-down/shared";
+import type { GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase } from "@get-down/shared";
 
 const PICO_RED = "var(--pico-color-red-500, #e53e3e)";
 const PICO_ORANGE = "var(--pico-color-orange-500, #dd6b20)";
@@ -49,7 +49,7 @@ function DashboardSection({
   );
 }
 
-function AlertTable({ alerts, showBalance }: { alerts: GigPaymentAlert[]; showBalance?: boolean }) {
+function AlertTable({ alerts, showQuoted, showBalance }: { alerts: GigAlertBase[]; showQuoted?: boolean; showBalance?: boolean }) {
   if (alerts.length === 0) {
     return <AllClear />;
   }
@@ -60,28 +60,31 @@ function AlertTable({ alerts, showBalance }: { alerts: GigPaymentAlert[]; showBa
           <th>Date</th>
           <th>Client</th>
           <th>Venue</th>
-          <th>Quoted</th>
+          {showQuoted && <th>Quoted</th>}
           {showBalance && <th>Received</th>}
           {showBalance && <th>Outstanding</th>}
         </tr>
       </thead>
       <tbody>
-        {alerts.map((g) => (
-          <tr key={g.id}>
-            <td>{formatDate(g.date)}</td>
-            <td>
-              <Link to={`/gigs/${g.id}`}>{formatGigName(g)}</Link>
-            </td>
-            <td>{g.venueName ?? g.location ?? "—"}</td>
-            <td>{formatPennies(g.totalPrice)}</td>
-            {showBalance && <td>{formatPennies(g.netReceived)}</td>}
-            {showBalance && (
-              <td style={alertCellStyle}>
-                {formatPennies(g.totalPrice - g.netReceived)}
+        {alerts.map((g) => {
+          const p = g as GigPaymentAlert;
+          return (
+            <tr key={g.id}>
+              <td>{formatDate(g.date)}</td>
+              <td>
+                <Link to={`/gigs/${g.id}`}>{formatGigName(g)}</Link>
               </td>
-            )}
-          </tr>
-        ))}
+              <td>{g.venueName ?? g.location ?? "—"}</td>
+              {showQuoted && <td>{formatPennies(p.totalPrice)}</td>}
+              {showBalance && <td>{formatPennies(p.netReceived)}</td>}
+              {showBalance && (
+                <td style={alertCellStyle}>
+                  {formatPennies(p.totalPrice - p.netReceived)}
+                </td>
+              )}
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
@@ -170,12 +173,21 @@ export default function Dashboard() {
           </DashboardSection>
 
           <DashboardSection
+            title="No Line Items"
+            description="Confirmed gigs with no billing line items. Line items must be added before an invoice can be generated."
+            count={data.gigsWithoutLineItems.length}
+            badgeColor={PICO_RED}
+          >
+            <AlertTable alerts={data.gigsWithoutLineItems} />
+          </DashboardSection>
+
+          <DashboardSection
             title="Balance Due Within 2 Months"
             description="Confirmed gigs in the next 2 months with an outstanding balance."
             count={data.balanceDueSoon.length}
             badgeColor={PICO_ORANGE}
           >
-            <AlertTable alerts={data.balanceDueSoon} showBalance />
+            <AlertTable alerts={data.balanceDueSoon} showQuoted showBalance />
           </DashboardSection>
 
           <DashboardSection

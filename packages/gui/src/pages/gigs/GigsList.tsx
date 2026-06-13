@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGigs, useCreateGig, useDeleteGig } from "../../api/hooks/useGigs.js";
 import type { CreateGigRequest } from "@get-down/shared";
-import DataTable, { type Column } from "../../components/DataTable.js";
+import DataTable, { type Column, defaultFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
@@ -10,6 +10,7 @@ import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import StatusBadge from "../../components/StatusBadge.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
+import RunningTotal from "../../components/RunningTotal.js";
 import { formatDate } from "../../utils/date.js";
 import type { Gig } from "@get-down/shared";
 
@@ -23,7 +24,8 @@ const COLUMNS: Column<Gig>[] = [
   { key: "venueName", header: "Venue", sortable: true, render: (g) => g.venueName ?? "—" },
   { key: "location", header: "Location", sortable: true, render: (g) => g.location ?? "—" },
   { key: "status", header: "Status", render: (g) => <StatusBadge status={g.status} /> },
-  { key: "totalPrice", header: "Total", render: (g) => <MoneyDisplay pennies={g.totalPrice} /> },
+  { key: "netReceived", header: "Received", render: (g) => <MoneyDisplay pennies={g.netReceived ?? 0} /> },
+  { key: "profit", header: "Profit", render: (g) => <MoneyDisplay pennies={gigProfit(g)} /> },
 ];
 
 const EMPTY_FORM: CreateGigRequest = {
@@ -40,6 +42,7 @@ export default function GigsList() {
   const deleteGig = useDeleteGig();
 
   const [view, setView] = useState<GigView>("upcoming");
+  const [textQuery, setTextQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CreateGigRequest>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<Gig | null>(null);
@@ -56,6 +59,22 @@ export default function GigsList() {
     // "all"
     return [...all].sort((a, b) => a.date.localeCompare(b.date));
   }, [gigs, view]);
+
+  // Mirror DataTable's default filter so totals always match the visible rows.
+  const visibleGigs = useMemo(() => {
+    if (!textQuery) return displayedGigs;
+    return displayedGigs.filter((g) => defaultFilter(g, textQuery));
+  }, [displayedGigs, textQuery]);
+
+  const totalReceived = useMemo(
+    () => visibleGigs.reduce((sum, g) => sum + (g.netReceived ?? 0), 0),
+    [visibleGigs]
+  );
+
+  const totalProfit = useMemo(
+    () => visibleGigs.reduce((sum, g) => sum + gigProfit(g), 0),
+    [visibleGigs]
+  );
 
   function setField(field: keyof CreateGigRequest, value: string | number | undefined) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -108,7 +127,14 @@ export default function GigsList() {
         onRowClick={(g) => navigate(`/gigs/${g.id}`)}
         emptyMessage="No gigs found."
         filterPlaceholder="Search gigs…"
+        query={textQuery}
+        onQueryChange={setTextQuery}
       />
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "2rem", marginTop: "0.5rem" }}>
+        <RunningTotal label="Received" pennies={totalReceived} />
+        <RunningTotal label="Profit" pennies={totalProfit} />
+      </div>
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Gig">
         <form onSubmit={handleCreate}>
@@ -147,4 +173,10 @@ export default function GigsList() {
       )}
     </main>
   );
+}
+
+// ── private helpers ──────────────────────────────────────────────────────────
+
+function gigProfit(g: Gig): number {
+  return (g.netReceived ?? 0) - (g.feesTotal ?? 0);
 }
