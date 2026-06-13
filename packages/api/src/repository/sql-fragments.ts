@@ -36,3 +36,11 @@ export const SQL_SHOWCASE_LATERAL_JOIN = `
 export const SQL_EVENT_GROUP_BY_COLS = `
   g.id, g.first_name, g.last_name, g.date,
   s.id, s.nickname, s.full_name, s.date`;
+
+/** SELECT expression: person display name, falling back to first + last.
+ *  Alias: `person_name`. Requires alias `p` on the `people` table. */
+export const SQL_PERSON_NAME = `
+  COALESCE(
+    p.display_name,
+    p.first_name || COALESCE(' ' || p.last_name, '')
+  ) AS person_name`;

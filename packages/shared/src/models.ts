@@ -1094,6 +1094,13 @@ export function createEnquiry(data: Partial<Enquiry>): Enquiry {
   };
 }
 
+export interface FeeAllocationSummary extends FeeAllocationAlert {
+  /** Numeric ID of the assigned person, or undefined if unassigned. */
+  personId?: number;
+  isInvoiced: boolean;
+  notes?: string;
+}
+
 export interface FeeAllocationBreakdown {
   personId: number;
   personName: string;

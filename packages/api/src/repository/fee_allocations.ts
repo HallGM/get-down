@@ -1,5 +1,6 @@
 import { run_query } from "../db/init.js";
 import { groupById } from "../utils/groupById.js";
+import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME } from "./sql-fragments.js";
 
 export interface FeeAllocationRow {
   id: number;
@@ -291,5 +292,45 @@ export async function unlinkTransactionFromAllocation(
   await run_query({
     text: `DELETE FROM account_transactions_fee_allocations WHERE allocation_id = $1 AND transaction_id = $2;`,
     values: [allocationId, transactionId],
+  });
+}
+
+// ─── Summary (cross-event list view) ─────────────────────────────────────────
+
+export interface FeeAllocationSummaryRow {
+  id: number;
+  person_id: number | null;
+  person_name: string | null;
+  event_name: string | null;
+  event_date: string | null;
+  gig_id: number | null;
+  showcase_id: number | null;
+  total_fee: number;
+  is_invoiced: boolean;
+  notes: string | null;
+}
+
+export async function readAllFeeAllocationSummaries(): Promise<FeeAllocationSummaryRow[]> {
+  return run_query<FeeAllocationSummaryRow>({
+    text: `
+      SELECT
+        fa.id,
+        fa.person_id,
+        fa.notes,
+        fa.is_invoiced,
+        ${SQL_PERSON_NAME},
+        ${SQL_EVENT_COLS},
+        COALESCE(SUM(li.amount), 0) AS total_fee
+      FROM fee_allocations fa
+      LEFT JOIN people p ON p.id = fa.person_id
+      LEFT JOIN gigs g ON g.id = fa.gig_id
+      ${SQL_SHOWCASE_LATERAL_JOIN}
+      LEFT JOIN fee_allocation_line_items li ON li.allocation_id = fa.id
+      GROUP BY
+        fa.id,
+        p.display_name, p.first_name, p.last_name,
+        ${SQL_EVENT_GROUP_BY_COLS}
+      ORDER BY COALESCE(g.date, s.date) DESC NULLS LAST;
+    `,
   });
 }

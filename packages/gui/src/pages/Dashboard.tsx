@@ -3,6 +3,7 @@ import { useDashboardAlerts } from "../api/hooks/useDashboard.js";
 import { formatDate } from "../utils/date.js";
 import { formatPennies } from "../utils/money.js";
 import Badge from "../components/Badge.js";
+import AllocationEventCell from "../components/AllocationEventCell.js";
 import LoadingState from "../components/LoadingState.js";
 import ErrorBanner from "../components/ErrorBanner.js";
 import { formatGigName } from "../utils/people.js";
@@ -100,21 +101,14 @@ function AllocationAlertTable({ allocations }: { allocations: FeeAllocationAlert
         </tr>
       </thead>
       <tbody>
-        {allocations.map((a) => {
-          const href = a.gigId
-            ? `/gigs/${a.gigId}/roles`
-            : a.showcaseId
-              ? `/showcases/${a.showcaseId}`
-              : null;
-          return (
-            <tr key={a.id}>
-              <td>{a.personName ?? <span style={{ color: "var(--pico-muted-color)" }}>Unassigned</span>}</td>
-              <td>{href ? <Link to={href}>{a.eventName}</Link> : a.eventName}</td>
-              <td>{a.eventDate ? formatDate(a.eventDate) : "—"}</td>
-              <td>{formatPennies(a.totalFee)}</td>
-            </tr>
-          );
-        })}
+        {allocations.map((a) => (
+          <tr key={a.id}>
+            <td>{a.personName ?? <span style={{ color: "var(--pico-muted-color)" }}>Unassigned</span>}</td>
+            <td><AllocationEventCell eventName={a.eventName} gigId={a.gigId} showcaseId={a.showcaseId} /></td>
+            <td>{a.eventDate ? formatDate(a.eventDate) : "—"}</td>
+            <td>{formatPennies(a.totalFee)}</td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );
