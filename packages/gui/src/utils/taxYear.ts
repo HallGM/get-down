@@ -45,6 +45,15 @@ export function parseTaxYearKey(key: string): number {
 }
 
 /**
+ * Return true if the date falls within the given calendar year string (e.g. "2024").
+ * Dates with a null or empty value always return false.
+ */
+export function isInCalendarYear(isoDate: string | null | undefined, year: string): boolean {
+  if (!isoDate) return false;
+  return isoDate.slice(0, 4) === year;
+}
+
+/**
  * Return true if the expense date falls within the given tax year key.
  * Expenses with a null or empty date always return false.
  */
