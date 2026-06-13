@@ -1094,10 +1094,10 @@ export function createEnquiry(data: Partial<Enquiry>): Enquiry {
   };
 }
 
-export interface DrawingBreakdown {
+export interface FeeAllocationBreakdown {
   personId: number;
   personName: string;
-  /** Amount in pence (positive = money taken from business). */
+  /** Amount in pence (positive = money owed to partner for work done). */
   amount: number;
 }
 
@@ -1106,25 +1106,20 @@ export interface AccountingSummary {
   gigsBooked: number;
   gigsPerformed: number;
 
-  // Income in pence
-  /** All payments received in period (by payment date) minus refunds (by refund date). */
-  potIncome: number;
-  /** Payments for non-cancelled past gigs in period (by gig date) minus refunds for those gigs. */
+  // Income in pence — accrual basis: payments for non-cancelled past gigs by gig date
   earnedIncome: number;
 
   // Expenses in pence (all expenses by invoice date, regardless of payment status)
   expenses: number;
 
-  // Profit before drawings (in pence)
-  potProfit: number;
-  taxableProfit: number;
+  // Profit in pence (earned income minus expenses)
+  profit: number;
 
-  // Drawings in pence (positive = money out of business)
-  drawingsTotal: number;
-  drawingsBreakdown: DrawingBreakdown[];
+  // Partner fee allocations in pence (money owed to each partner based on work done)
+  feeAllocationsTotal: number;
+  feeAllocationsBreakdown: FeeAllocationBreakdown[];
 
-  // Profit after drawings (in pence)
-  potAfterDrawings: number;
+  // Remaining profit after fee allocations (to be split equally between partners)
   sharedProfit: number;
 }
 

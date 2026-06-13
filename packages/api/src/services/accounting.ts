@@ -16,41 +16,32 @@ type DateBounds = { start: string | null; end: string | null };
 export async function getSummary(params: SummaryParams): Promise<AccountingSummary> {
   const bounds = resolveBounds(params);
 
-  const [gigCounts, potPayments, potRefunds, earnedPayments, earnedRefunds, expenses, drawings] =
+  const [gigCounts, earnedPayments, earnedRefunds, expenses, partnerAllocations] =
     await Promise.all([
       repo.readGigCounts(bounds),
-      repo.readPotPayments(bounds),
-      repo.readPotRefunds(bounds),
       repo.readEarnedPayments(bounds),
       repo.readEarnedRefunds(bounds),
       repo.readExpensesTotal(bounds),
-      repo.readDrawings(bounds),
+      repo.readPartnerFeeAllocations(bounds),
     ]);
 
-  const potIncome     = potPayments - potRefunds;
-  const earnedIncome  = earnedPayments - earnedRefunds;
-  const drawingsTotal = drawings.reduce((sum, d) => sum + d.amount, 0);
-
-  const potProfit        = potIncome - expenses;
-  const taxableProfit    = earnedIncome - expenses;
-  const potAfterDrawings = potProfit - drawingsTotal;
-  const sharedProfit     = taxableProfit - drawingsTotal;
+  const earnedIncome        = earnedPayments - earnedRefunds;
+  const profit              = earnedIncome - expenses;
+  const feeAllocationsTotal = partnerAllocations.reduce((sum, a) => sum + a.amount, 0);
+  const sharedProfit        = profit - feeAllocationsTotal;
 
   return {
     gigsBooked:    gigCounts.booked,
     gigsPerformed: gigCounts.performed,
-    potIncome,
     earnedIncome,
     expenses,
-    potProfit,
-    taxableProfit,
-    drawingsTotal,
-    drawingsBreakdown: drawings.map((d) => ({
-      personId:   d.person_id,
-      personName: buildPersonName(d),
-      amount:     d.amount,
+    profit,
+    feeAllocationsTotal,
+    feeAllocationsBreakdown: partnerAllocations.map((a) => ({
+      personId:   a.person_id,
+      personName: buildPersonName(a),
+      amount:     a.amount,
     })),
-    potAfterDrawings,
     sharedProfit,
   };
 }
