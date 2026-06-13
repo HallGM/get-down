@@ -41,6 +41,29 @@ function getMigrationFiles(): string[] {
     .sort();
 }
 
+/**
+ * Determines the value to pass as `app.env` when running the seed script.
+ *
+ * Returns "production" whenever DATABASE_URL points at a non-local host,
+ * regardless of NODE_ENV.  This prevents dev seed data from being inserted
+ * into the production database if DATABASE_URL is accidentally uncommented
+ * in the local .env file.
+ */
+function resolveAppEnv(): string {
+  const url = process.env.DATABASE_URL;
+  if (url) {
+    try {
+      const host = new URL(url).hostname;
+      const isLocal =
+        host === "localhost" || host === "127.0.0.1" || host === "::1";
+      if (!isLocal) return "production";
+    } catch {
+      // Malformed URL — fall through to NODE_ENV
+    }
+  }
+  return process.env.NODE_ENV ?? "development";
+}
+
 export async function migrate(): Promise<void> {
   await ensureMigrationsTable();
 
@@ -80,7 +103,12 @@ export async function migrate(): Promise<void> {
   // Always run seed (idempotent via ON CONFLICT DO NOTHING)
   // Set app.env so seed.sql can skip dev-only rows in production.
   // Use set_config() with a parameter to avoid any injection risk.
-  const nodeEnv = process.env.NODE_ENV ?? "development";
+  //
+  // resolveAppEnv() returns "production" if DATABASE_URL points at a
+  // non-local host, regardless of NODE_ENV.  This is a hard safety net:
+  // if the local .env accidentally has a remote DATABASE_URL uncommented,
+  // dev seed data will never be written to the production database.
+  const nodeEnv = resolveAppEnv();
   const seedPath = resolve(migrationsDir, "seed.sql");
   const seedSql = readFileSync(seedPath, "utf-8");
   const client = await pool.connect();

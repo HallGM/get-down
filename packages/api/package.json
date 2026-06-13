@@ -20,7 +20,8 @@
     "migrate:scott-drawings": "tsx src/scripts/migrate_scott_drawings.ts",
     "backfill:scott-payments": "tsx src/scripts/backfill_scott_payments.ts",
     "migrate:scott-account": "tsx src/scripts/migrate_scott_account.ts",
-    "repair:performer-fees": "tsx src/scripts/repair_performer_fee_payments.ts"
+    "repair:performer-fees": "tsx src/scripts/repair_performer_fee_payments.ts",
+    "purge:dev-seed": "tsx src/scripts/purge_dev_seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1039.0",
