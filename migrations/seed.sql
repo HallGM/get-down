@@ -396,6 +396,147 @@ BEGIN
   END IF;
 END $$;
 
+-- ─── Dev-only: showcase apportionment mismatch data ──────────────────────────
+-- Provides rows for the "Showcase Apportionment Mismatches" dashboard section.
+-- expense1 (under) and expense2 (over) should appear; expense3 (exact match)
+-- and expense4 (all-null amounts) should not.
+
+DO $$
+DECLARE
+  v_attr1_id     int;
+  v_attr2_id     int;
+  v_showcase1_id int;
+  v_showcase2_id int;
+  v_expense1_id  int;
+  v_expense2_id  int;
+  v_expense3_id  int;
+  v_expense4_id  int;
+BEGIN
+  IF current_setting('app.env', true) IS DISTINCT FROM 'production' THEN
+
+    SELECT id INTO v_attr1_id FROM attributions WHERE name = 'Dev Seed Showcase Co';
+
+    -- Second attribution and showcase
+    INSERT INTO attributions (name, type)
+    SELECT 'Dev Seed Showcase B Co', 'other'
+    WHERE NOT EXISTS (SELECT 1 FROM attributions WHERE name = 'Dev Seed Showcase B Co');
+    SELECT id INTO v_attr2_id FROM attributions WHERE name = 'Dev Seed Showcase B Co';
+
+    INSERT INTO showcases (attribution_id, nickname, date, location)
+    SELECT v_attr2_id, 'Dev Seed Showcase B', CURRENT_DATE - INTERVAL '2 months', 'Edinburgh'
+    WHERE v_attr2_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM showcases WHERE attribution_id = v_attr2_id);
+
+    SELECT id INTO v_showcase1_id FROM showcases WHERE attribution_id = v_attr1_id;
+    SELECT id INTO v_showcase2_id FROM showcases WHERE attribution_id = v_attr2_id;
+
+    -- Expense 1: UNDER-apportioned → should appear in alert
+    -- Total £500, each showcase gets £200 = £400 assigned, £100 short
+    INSERT INTO expenses (date, amount, description, category)
+    SELECT '2026-03-15', 50000, 'Dev Seed: Sound system hire Mar 2026', 'Equipment'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM expenses WHERE description = 'Dev Seed: Sound system hire Mar 2026'
+    );
+    SELECT id INTO v_expense1_id FROM expenses
+    WHERE description = 'Dev Seed: Sound system hire Mar 2026';
+
+    INSERT INTO showcase_expenses (showcase_id, expense_id, apportioned_amount)
+    SELECT v_showcase1_id, v_expense1_id, 20000
+    WHERE v_showcase1_id IS NOT NULL AND v_expense1_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM showcase_expenses
+        WHERE showcase_id = v_showcase1_id AND expense_id = v_expense1_id
+      );
+
+    INSERT INTO showcase_expenses (showcase_id, expense_id, apportioned_amount)
+    SELECT v_showcase2_id, v_expense1_id, 20000
+    WHERE v_showcase2_id IS NOT NULL AND v_expense1_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM showcase_expenses
+        WHERE showcase_id = v_showcase2_id AND expense_id = v_expense1_id
+      );
+
+    -- Expense 2: OVER-apportioned → should appear in alert
+    -- Total £300, each showcase gets £200 = £400 assigned, £100 over
+    INSERT INTO expenses (date, amount, description, category)
+    SELECT '2026-03-20', 30000, 'Dev Seed: Venue decoration Mar 2026', 'Venue'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM expenses WHERE description = 'Dev Seed: Venue decoration Mar 2026'
+    );
+    SELECT id INTO v_expense2_id FROM expenses
+    WHERE description = 'Dev Seed: Venue decoration Mar 2026';
+
+    INSERT INTO showcase_expenses (showcase_id, expense_id, apportioned_amount)
+    SELECT v_showcase1_id, v_expense2_id, 20000
+    WHERE v_showcase1_id IS NOT NULL AND v_expense2_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM showcase_expenses
+        WHERE showcase_id = v_showcase1_id AND expense_id = v_expense2_id
+      );
+
+    INSERT INTO showcase_expenses (showcase_id, expense_id, apportioned_amount)
+    SELECT v_showcase2_id, v_expense2_id, 20000
+    WHERE v_showcase2_id IS NOT NULL AND v_expense2_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM showcase_expenses
+        WHERE showcase_id = v_showcase2_id AND expense_id = v_expense2_id
+      );
+
+    -- Expense 3: correctly apportioned → should NOT appear in alert
+    -- Total £400, each showcase gets £200 = £400 assigned, exact match
+    INSERT INTO expenses (date, amount, description, category)
+    SELECT '2026-03-10', 40000, 'Dev Seed: Catering Mar 2026', 'Catering'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM expenses WHERE description = 'Dev Seed: Catering Mar 2026'
+    );
+    SELECT id INTO v_expense3_id FROM expenses
+    WHERE description = 'Dev Seed: Catering Mar 2026';
+
+    INSERT INTO showcase_expenses (showcase_id, expense_id, apportioned_amount)
+    SELECT v_showcase1_id, v_expense3_id, 20000
+    WHERE v_showcase1_id IS NOT NULL AND v_expense3_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM showcase_expenses
+        WHERE showcase_id = v_showcase1_id AND expense_id = v_expense3_id
+      );
+
+    INSERT INTO showcase_expenses (showcase_id, expense_id, apportioned_amount)
+    SELECT v_showcase2_id, v_expense3_id, 20000
+    WHERE v_showcase2_id IS NOT NULL AND v_expense3_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM showcase_expenses
+        WHERE showcase_id = v_showcase2_id AND expense_id = v_expense3_id
+      );
+
+    -- Expense 4: all-null amounts → should NOT appear in alert
+    -- No explicit amounts set on either link
+    INSERT INTO expenses (date, amount, description, category)
+    SELECT '2026-03-05', 15000, 'Dev Seed: Printing costs Mar 2026', 'Other'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM expenses WHERE description = 'Dev Seed: Printing costs Mar 2026'
+    );
+    SELECT id INTO v_expense4_id FROM expenses
+    WHERE description = 'Dev Seed: Printing costs Mar 2026';
+
+    INSERT INTO showcase_expenses (showcase_id, expense_id)
+    SELECT v_showcase1_id, v_expense4_id
+    WHERE v_showcase1_id IS NOT NULL AND v_expense4_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM showcase_expenses
+        WHERE showcase_id = v_showcase1_id AND expense_id = v_expense4_id
+      );
+
+    INSERT INTO showcase_expenses (showcase_id, expense_id)
+    SELECT v_showcase2_id, v_expense4_id
+    WHERE v_showcase2_id IS NOT NULL AND v_expense4_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM showcase_expenses
+        WHERE showcase_id = v_showcase2_id AND expense_id = v_expense4_id
+      );
+
+  END IF;
+END $$;
+
 -- Provides rows for the "Fee allocations missing expenses" dashboard section.
 
 DO $$

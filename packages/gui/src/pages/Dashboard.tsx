@@ -6,7 +6,10 @@ import Badge from "../components/Badge.js";
 import LoadingState from "../components/LoadingState.js";
 import ErrorBanner from "../components/ErrorBanner.js";
 import { formatGigName } from "../utils/people.js";
-import type { GigPaymentAlert, FeeAllocationAlert } from "@get-down/shared";
+import type { GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert } from "@get-down/shared";
+
+const PICO_RED = "var(--pico-color-red-500, #e53e3e)";
+const alertCellStyle: React.CSSProperties = { color: PICO_RED, fontWeight: 600 };
 
 function AllClear() {
   return <p style={{ color: "var(--pico-muted-color)" }}>None. All clear.</p>;
@@ -71,7 +74,7 @@ function AlertTable({ alerts, showBalance }: { alerts: GigPaymentAlert[]; showBa
             <td>{formatPennies(g.totalPrice)}</td>
             {showBalance && <td>{formatPennies(g.netReceived)}</td>}
             {showBalance && (
-              <td style={{ color: "var(--pico-color-red-500, #e53e3e)", fontWeight: 600 }}>
+              <td style={alertCellStyle}>
                 {formatPennies(g.totalPrice - g.netReceived)}
               </td>
             )}
@@ -117,6 +120,36 @@ function AllocationAlertTable({ allocations }: { allocations: FeeAllocationAlert
   );
 }
 
+function ApportionmentMismatchTable({ mismatches }: { mismatches: ExpenseApportionmentMismatchAlert[] }) {
+  if (mismatches.length === 0) {
+    return <AllClear />;
+  }
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Expense</th>
+          <th>Total</th>
+          <th>Apportioned</th>
+          <th>Difference</th>
+        </tr>
+      </thead>
+      <tbody>
+        {mismatches.map((m) => (
+          <tr key={m.id}>
+            <td><Link to="/expenses">{m.description}</Link></td>
+            <td>{formatPennies(m.amount)}</td>
+            <td>{formatPennies(m.apportionedTotal)}</td>
+            <td style={alertCellStyle}>
+              {formatPennies(Math.abs(m.difference))}{m.difference < 0 ? " over" : " under"}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export default function Dashboard() {
   const { data, isLoading, error } = useDashboardAlerts();
 
@@ -136,7 +169,7 @@ export default function Dashboard() {
             title="No Deposit Paid"
             description="Confirmed upcoming gigs where no payment has been received."
             count={data.noDeposit.length}
-            badgeColor="var(--pico-color-red-500, #e53e3e)"
+            badgeColor={PICO_RED}
           >
             <AlertTable alerts={data.noDeposit} />
           </DashboardSection>
@@ -157,6 +190,15 @@ export default function Dashboard() {
             badgeColor="var(--pico-color-orange-500, #dd6b20)"
           >
             <AllocationAlertTable allocations={data.allocationsWithoutExpenses} />
+          </DashboardSection>
+
+          <DashboardSection
+            title="Showcase Apportionment Mismatches"
+            description="Expenses linked to showcases where the apportioned amounts don't add up to the expense total."
+            count={data.apportionmentMismatches.length}
+            badgeColor={PICO_RED}
+          >
+            <ApportionmentMismatchTable mismatches={data.apportionmentMismatches} />
           </DashboardSection>
         </div>
       )}

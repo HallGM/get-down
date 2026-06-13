@@ -1,18 +1,20 @@
-import type { DashboardAlerts, GigPaymentAlert, FeeAllocationAlert } from "@get-down/shared";
+import type { DashboardAlerts, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert } from "@get-down/shared";
 import * as repo from "../repository/dashboard.js";
-import type { GigPaymentAlertRow, AllocationAlertRow } from "../repository/dashboard.js";
+import type { GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow } from "../repository/dashboard.js";
 
 export async function getDashboardAlerts(): Promise<DashboardAlerts> {
-  const [noDepositRows, balanceDueSoonRows, allocationRows] = await Promise.all([
+  const [noDepositRows, balanceDueSoonRows, allocationRows, mismatchRows] = await Promise.all([
     repo.readDepositAlerts(),
     repo.readBalanceDueSoonAlerts(),
     repo.readAllocationsWithoutExpenses(),
+    repo.readApportionmentMismatches(),
   ]);
 
   return {
     noDeposit: noDepositRows.map(mapAlert),
     balanceDueSoon: balanceDueSoonRows.map(mapAlert),
     allocationsWithoutExpenses: allocationRows.map(mapAllocationAlert),
+    apportionmentMismatches: mismatchRows.map(mapMismatchAlert),
   };
 }
 
@@ -38,5 +40,15 @@ function mapAllocationAlert(row: AllocationAlertRow): FeeAllocationAlert {
     gigId: row.gig_id ?? undefined,
     showcaseId: row.showcase_id ?? undefined,
     totalFee: Number(row.total_fee),
+  };
+}
+
+function mapMismatchAlert(row: ApportionmentMismatchRow): ExpenseApportionmentMismatchAlert {
+  return {
+    id: row.id,
+    description: row.description,
+    amount: Number(row.amount),
+    apportionedTotal: Number(row.apportioned_total),
+    difference: Number(row.difference),
   };
 }

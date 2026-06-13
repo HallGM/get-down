@@ -22,6 +22,14 @@ export interface AllocationAlertRow {
   total_fee: number;
 }
 
+export interface ApportionmentMismatchRow {
+  id: number;
+  description: string;
+  amount: number;
+  apportioned_total: number;
+  difference: number;
+}
+
 const SELECT_ALERT_COLS = `
   g.id,
   g.first_name,
@@ -112,6 +120,31 @@ export async function readAllocationsWithoutExpenses(): Promise<AllocationAlertR
         p.display_name, p.first_name, p.last_name,
         ${SQL_EVENT_GROUP_BY_COLS}
       ORDER BY COALESCE(g.date, s.date) ASC NULLS LAST;
+    `,
+  });
+}
+
+/**
+ * Expenses linked to showcases where explicit apportioned amounts don't sum to
+ * the expense total. Only expenses with at least one non-null apportioned amount
+ * are considered; expenses where every showcase link has no amount set are ignored.
+ */
+export async function readApportionmentMismatches(): Promise<ApportionmentMismatchRow[]> {
+  return run_query<ApportionmentMismatchRow>({
+    text: `
+      SELECT
+        e.id,
+        e.description,
+        e.amount::int                                        AS amount,
+        SUM(COALESCE(se.apportioned_amount, 0))::int         AS apportioned_total,
+        (e.amount - SUM(COALESCE(se.apportioned_amount, 0)))::int AS difference
+      FROM expenses e
+      JOIN showcase_expenses se ON se.expense_id = e.id
+      GROUP BY e.id, e.description, e.amount
+      HAVING
+        COUNT(*) FILTER (WHERE se.apportioned_amount IS NOT NULL) > 0
+        AND SUM(COALESCE(se.apportioned_amount, 0)) <> e.amount
+      ORDER BY e.id;
     `,
   });
 }
