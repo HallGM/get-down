@@ -3,10 +3,11 @@ import * as repo from "../repository/dashboard.js";
 import type { GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow } from "../repository/dashboard.js";
 
 export async function getDashboardAlerts(): Promise<DashboardAlerts> {
-  const [noDepositRows, balanceDueSoonRows, allocationRows, mismatchRows] = await Promise.all([
+  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows] = await Promise.all([
     repo.readDepositAlerts(),
     repo.readBalanceDueSoonAlerts(),
     repo.readAllocationsWithoutExpenses(),
+    repo.readAllocationsWithoutRoles(),
     repo.readApportionmentMismatches(),
   ]);
 
@@ -14,6 +15,7 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     noDeposit: noDepositRows.map(mapAlert),
     balanceDueSoon: balanceDueSoonRows.map(mapAlert),
     allocationsWithoutExpenses: allocationRows.map(mapAllocationAlert),
+    allocationsWithoutRoles: withoutRoleRows.map(mapAllocationAlert),
     apportionmentMismatches: mismatchRows.map(mapMismatchAlert),
   };
 }
