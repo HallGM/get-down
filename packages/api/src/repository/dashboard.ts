@@ -1,5 +1,5 @@
 import { run_query } from "../db/init.js";
-import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS } from "./sql-fragments.js";
+import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME } from "./sql-fragments.js";
 
 export interface GigPaymentAlertRow {
   id: number;
@@ -98,10 +98,7 @@ export async function readAllocationsWithoutExpenses(): Promise<AllocationAlertR
     text: `
       SELECT
         fa.id,
-        COALESCE(
-          p.display_name,
-          p.first_name || COALESCE(' ' || p.last_name, '')
-        ) AS person_name,
+        ${SQL_PERSON_NAME},
         ${SQL_EVENT_COLS},
         COALESCE(SUM(li.amount), 0) AS total_fee
       FROM fee_allocations fa

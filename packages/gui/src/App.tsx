@@ -30,6 +30,7 @@ import AccountsList from "./pages/accounts/AccountsList.js";
 import AccountDetail from "./pages/accounts/AccountDetail.js";
 import DeliveryPage from "./pages/delivery/DeliveryPage.js";
 import AccountingPage from "./pages/accounting/AccountingPage.js";
+import FeeAllocationsList from "./pages/fee-allocations/FeeAllocationsList.js";
 
 const NAV_LINKS = [
   { to: "/", label: "Dashboard", end: true },
@@ -48,6 +49,7 @@ const MORE_LINKS = [
   { to: "/attributions", label: "Attributions" },
   { to: "/rehearsals", label: "Rehearsals" },
   { to: "/services/roles", label: "Roles" },
+  { to: "/fee-allocations", label: "Fee allocations" },
 ];
 
 const navLinkStyle: NavLinkProps["style"] = ({ isActive }) => ({
@@ -197,6 +199,7 @@ export default function App() {
           <Route path="/accounts" element={<AccountsList />} />
           <Route path="/accounts/:id" element={<AccountDetail />} />
           <Route path="/accounting" element={<AccountingPage />} />
+          <Route path="/fee-allocations" element={<FeeAllocationsList />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

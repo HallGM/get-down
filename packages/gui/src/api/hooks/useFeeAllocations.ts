@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import type { Expense, FeeAllocation, FeeAllocationLineItem, UpdateFeeAllocationLineItemRequest, CreateFeeAllocationLineItemRequest } from "@get-down/shared";
+import type { Expense, FeeAllocation, FeeAllocationLineItem, FeeAllocationSummary, UpdateFeeAllocationLineItemRequest, CreateFeeAllocationLineItemRequest } from "@get-down/shared";
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
 const KEY = "fee-allocations";
 const GIG_KEY = "gig-fee-allocations";
 const SHOWCASE_KEY = "showcase-fee-allocations";
+const SUMMARY_KEY = "fee-allocation-summaries";
 
 function invalidateLineItemCaches(qc: QueryClient, allocationId: number) {
   qc.invalidateQueries({ queryKey: [KEY, allocationId] });
@@ -19,6 +20,13 @@ export function useFeeAllocations() {
   return useQuery({
     queryKey: [KEY],
     queryFn: () => apiFetch<FeeAllocation[]>("GET", "/fee-allocations"),
+  });
+}
+
+export function useFeeAllocationSummaries() {
+  return useQuery({
+    queryKey: [SUMMARY_KEY],
+    queryFn: () => apiFetch<FeeAllocationSummary[]>("GET", "/fee-allocations/summary"),
   });
 }
 

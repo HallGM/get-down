@@ -1,6 +1,7 @@
 import type {
   FeeAllocation,
   FeeAllocationLineItem,
+  FeeAllocationSummary,
   Expense,
   CreateFeeAllocationRequest,
   UpdateFeeAllocationRequest,
@@ -20,6 +21,22 @@ import { BadRequestError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 import { buildPersonName } from "../utils/people.js";
 import { z } from "zod";
+
+export async function getAllFeeAllocationSummaries(): Promise<FeeAllocationSummary[]> {
+  const rows = await feeAllocationsRepo.readAllFeeAllocationSummaries();
+  return rows.map((row) => ({
+    id: row.id,
+    personId: row.person_id ?? undefined,
+    personName: row.person_name ?? undefined,
+    eventName: row.event_name ?? `Allocation #${row.id}`,
+    eventDate: row.event_date ?? undefined,
+    gigId: row.gig_id ?? undefined,
+    showcaseId: row.showcase_id ?? undefined,
+    totalFee: Number(row.total_fee),
+    isInvoiced: row.is_invoiced,
+    notes: row.notes ?? undefined,
+  }));
+}
 
 export async function getAllFeeAllocations(): Promise<FeeAllocation[]> {
   const rows = await feeAllocationsRepo.readAllFeeAllocations();
