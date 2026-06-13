@@ -7,6 +7,12 @@ export interface Column<T> {
   sortable?: boolean;
 }
 
+export function defaultFilter<T extends object>(row: T, q: string): boolean {
+  return Object.values(row as Record<string, unknown>).some((v) =>
+    String(v ?? "").toLowerCase().includes(q.toLowerCase())
+  );
+}
+
 interface Props<T> {
   columns: Column<T>[];
   data: T[];
@@ -14,6 +20,11 @@ interface Props<T> {
   emptyMessage?: string;
   filterPlaceholder?: string;
   filterFn?: (row: T, query: string) => boolean;
+  /** Controlled search query. When provided together with onQueryChange, the
+   *  component delegates query state to the parent instead of managing it internally. */
+  query?: string;
+  /** Called when the search input changes in controlled mode. */
+  onQueryChange?: (q: string) => void;
 }
 
 export default function DataTable<T extends object>({
@@ -23,15 +34,24 @@ export default function DataTable<T extends object>({
   emptyMessage = "No items found.",
   filterPlaceholder = "Search…",
   filterFn,
+  query: controlledQuery,
+  onQueryChange,
 }: Props<T>) {
-  const [query, setQuery] = useState("");
+  const [internalQuery, setInternalQuery] = useState("");
+
+  // Use controlled mode when both props are provided; otherwise fall back to
+  // internal state so all existing callers are unaffected.
+  const query = controlledQuery !== undefined ? controlledQuery : internalQuery;
+  function handleQueryChange(q: string) {
+    if (onQueryChange !== undefined) {
+      onQueryChange(q);
+    } else {
+      setInternalQuery(q);
+    }
+  }
+
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-
-  const defaultFilter = (row: T, q: string) =>
-    Object.values(row as Record<string, unknown>).some((v) =>
-      String(v ?? "").toLowerCase().includes(q.toLowerCase())
-    );
 
   let rows = filterFn
     ? data.filter((r) => filterFn(r, query))
@@ -63,7 +83,7 @@ export default function DataTable<T extends object>({
           type="search"
           placeholder={filterPlaceholder}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleQueryChange(e.target.value)}
           style={{ marginBottom: "var(--pico-spacing)" }}
         />
       )}

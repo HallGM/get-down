@@ -1,18 +1,20 @@
-import type { DashboardAlerts, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert } from "@get-down/shared";
+import type { DashboardAlerts, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigNoLineItemsAlert } from "@get-down/shared";
 import * as repo from "../repository/dashboard.js";
-import type { GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow } from "../repository/dashboard.js";
+import type { GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow, GigNoLineItemsAlertRow } from "../repository/dashboard.js";
 
 export async function getDashboardAlerts(): Promise<DashboardAlerts> {
-  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows] = await Promise.all([
+  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows, noLineItemsRows] = await Promise.all([
     repo.readDepositAlerts(),
     repo.readBalanceDueSoonAlerts(),
     repo.readAllocationsWithoutExpenses(),
     repo.readAllocationsWithoutRoles(),
     repo.readApportionmentMismatches(),
+    repo.readGigsWithoutLineItems(),
   ]);
 
   return {
     noDeposit: noDepositRows.map(mapAlert),
+    gigsWithoutLineItems: noLineItemsRows.map(mapNoLineItemsAlert),
     balanceDueSoon: balanceDueSoonRows.map(mapAlert),
     allocationsWithoutExpenses: allocationRows.map(mapAllocationAlert),
     allocationsWithoutRoles: withoutRoleRows.map(mapAllocationAlert),
@@ -25,7 +27,7 @@ function mapAlert(row: GigPaymentAlertRow): GigPaymentAlert {
     id: row.id,
     firstName: row.first_name,
     lastName: row.last_name,
-    date: typeof row.date === "string" ? row.date : (row.date as Date).toISOString().slice(0, 10),
+    date: toDateString(row.date),
     venueName: row.venue_name ?? undefined,
     location: row.location ?? undefined,
     totalPrice: row.total_price,
@@ -53,4 +55,21 @@ function mapMismatchAlert(row: ApportionmentMismatchRow): ExpenseApportionmentMi
     apportionedTotal: Number(row.apportioned_total),
     difference: Number(row.difference),
   };
+}
+
+function mapNoLineItemsAlert(row: GigNoLineItemsAlertRow): GigNoLineItemsAlert {
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    date: toDateString(row.date),
+    venueName: row.venue_name ?? undefined,
+    location: row.location ?? undefined,
+  };
+}
+
+// ── private helpers ──────────────────────────────────────────────────────────
+
+function toDateString(value: string | Date): string {
+  return typeof value === "string" ? value : value.toISOString().slice(0, 10);
 }

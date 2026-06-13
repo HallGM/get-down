@@ -228,6 +228,10 @@ export interface Gig {
   balanceAmount?: number;
   travelCost: number;
   discountPercent: number;
+  /** Net amount received in pennies: total payments minus total refunds. Only present on list responses. */
+  netReceived?: number;
+  /** Total fee allocation line items in pennies for this gig. Only present on list responses. */
+  feesTotal?: number;
   lineItems?: GigLineItem[];
   services?: Service[];
   airtableId?: string;
@@ -1136,13 +1140,17 @@ export function createService(id: number, name: string): Service {
 
 // ─── Dashboard types ───────────────────────────────────────────────────────────
 
-export interface GigPaymentAlert {
+/** Shared base for all gig-row alert types (Date / Client / Venue columns). */
+export interface GigAlertBase {
   id: number;
   firstName: string;
   lastName: string;
   date: string;
   venueName?: string;
   location?: string;
+}
+
+export interface GigPaymentAlert extends GigAlertBase {
   /** Quoted price in pennies. */
   totalPrice: number;
   /** Net received (payments minus refunds) in pennies. */
@@ -1178,9 +1186,13 @@ export interface ExpenseApportionmentMismatchAlert {
   difference: number;
 }
 
+export type GigNoLineItemsAlert = GigAlertBase;
+
 export interface DashboardAlerts {
   /** Confirmed upcoming gigs where no payment has been received. */
   noDeposit: GigPaymentAlert[];
+  /** Confirmed gigs (past or future) with no billing line items recorded. */
+  gigsWithoutLineItems: GigNoLineItemsAlert[];
   /** Confirmed gigs with a date within the next 2 months that still have an outstanding balance. */
   balanceDueSoon: GigPaymentAlert[];
   /** Fee allocations (gig or showcase) with no expense record linked. */
