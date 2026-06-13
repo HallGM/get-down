@@ -134,11 +134,6 @@ function SummaryTable({ data }: { data: AccountingSummary }) {
           {/* ── Income ── */}
           <SectionHeader title="Income" />
           <Row
-            label="Pot income"
-            hint="All payments received in period (by payment date), minus refunds"
-            value={<MoneyDisplay pennies={data.potIncome} colorNegative bold />}
-          />
-          <Row
             label="Earned income"
             hint="Payments for completed gigs in period (by gig date), minus refunds"
             value={<MoneyDisplay pennies={data.earnedIncome} colorNegative bold />}
@@ -152,48 +147,39 @@ function SummaryTable({ data }: { data: AccountingSummary }) {
             value={<MoneyDisplay pennies={data.expenses} colorNegative bold />}
           />
 
-          {/* ── Profit before drawings ── */}
-          <SectionHeader title="Profit before drawings" />
+          {/* ── Profit ── */}
+          <SectionHeader title="Profit" />
           <Row
-            label="Pot profit"
-            hint="Pot income minus expenses"
-            value={<MoneyDisplay pennies={data.potProfit} colorNegative bold />}
-          />
-          <Row
-            label="Taxable profit"
+            label="Profit"
             hint="Earned income minus expenses"
-            value={<MoneyDisplay pennies={data.taxableProfit} colorNegative bold />}
+            value={<MoneyDisplay pennies={data.profit} colorNegative bold />}
           />
 
-          {/* ── Drawings ── */}
-          <SectionHeader title="Drawings" />
-          {data.drawingsBreakdown.length === 0 ? (
-            <Row label="No drawings recorded" value={<MoneyDisplay pennies={0} bold />} />
+          {/* ── Partner fee allocations ── */}
+          <SectionHeader title="Partner fee allocations" />
+          {data.feeAllocationsBreakdown.length === 0 ? (
+            <Row label="No fee allocations recorded" value={<MoneyDisplay pennies={0} bold />} />
           ) : (
             <>
-              {data.drawingsBreakdown.map((d) => (
+              {data.feeAllocationsBreakdown.map((a) => (
                 <Row
-                  key={d.personId}
-                  label={d.personName}
-                  value={<MoneyDisplay pennies={d.amount} colorNegative bold />}
+                  key={a.personId}
+                  label={a.personName}
+                  hint="Fee allocations for work done in period"
+                  value={<MoneyDisplay pennies={a.amount} colorNegative bold />}
                   indent
                 />
               ))}
               <Divider />
-              <Row label="Total drawings" value={<MoneyDisplay pennies={data.drawingsTotal} colorNegative bold />} />
+              <Row label="Total fee allocations" value={<MoneyDisplay pennies={data.feeAllocationsTotal} colorNegative bold />} />
             </>
           )}
 
-          {/* ── Profit after drawings ── */}
-          <SectionHeader title="Profit after drawings" />
-          <Row
-            label="Pot after drawings"
-            hint="Pot profit minus total drawings"
-            value={<MoneyDisplay pennies={data.potAfterDrawings} colorNegative bold />}
-          />
+          {/* ── Remaining profit ── */}
+          <SectionHeader title="Remaining profit" />
           <Row
             label="Shared profit"
-            hint="Taxable profit minus total drawings"
+            hint="Profit minus total fee allocations, split between partners"
             value={<MoneyDisplay pennies={data.sharedProfit} colorNegative bold />}
           />
 
