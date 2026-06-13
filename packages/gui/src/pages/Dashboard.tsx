@@ -10,6 +10,7 @@ import { formatGigName } from "../utils/people.js";
 import type { GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert } from "@get-down/shared";
 
 const PICO_RED = "var(--pico-color-red-500, #e53e3e)";
+const PICO_ORANGE = "var(--pico-color-orange-500, #dd6b20)";
 const alertCellStyle: React.CSSProperties = { color: PICO_RED, fontWeight: 600 };
 
 function AllClear() {
@@ -172,7 +173,7 @@ export default function Dashboard() {
             title="Balance Due Within 2 Months"
             description="Confirmed gigs in the next 2 months with an outstanding balance."
             count={data.balanceDueSoon.length}
-            badgeColor="var(--pico-color-orange-500, #dd6b20)"
+            badgeColor={PICO_ORANGE}
           >
             <AlertTable alerts={data.balanceDueSoon} showBalance />
           </DashboardSection>
@@ -181,9 +182,18 @@ export default function Dashboard() {
             title="Fee Allocations Missing Expenses"
             description="Fee allocations with no expense record linked."
             count={data.allocationsWithoutExpenses.length}
-            badgeColor="var(--pico-color-orange-500, #dd6b20)"
+            badgeColor={PICO_ORANGE}
           >
             <AllocationAlertTable allocations={data.allocationsWithoutExpenses} />
+          </DashboardSection>
+
+          <DashboardSection
+            title="Fee Allocations Not Assigned to a Role"
+            description="Fee allocations that exist without being assigned to a performer role."
+            count={data.allocationsWithoutRoles.length}
+            badgeColor={PICO_ORANGE}
+          >
+            <AllocationAlertTable allocations={data.allocationsWithoutRoles} />
           </DashboardSection>
 
           <DashboardSection

@@ -95,29 +95,23 @@ export async function readBalanceDueSoonAlerts(): Promise<GigPaymentAlertRow[]> 
  */
 export async function readAllocationsWithoutExpenses(): Promise<AllocationAlertRow[]> {
   return run_query<AllocationAlertRow>({
-    text: `
-      SELECT
-        fa.id,
-        ${SQL_PERSON_NAME},
-        ${SQL_EVENT_COLS},
-        COALESCE(SUM(li.amount), 0) AS total_fee
-      FROM fee_allocations fa
-      LEFT JOIN people p ON p.id = fa.person_id
-      LEFT JOIN gigs g ON g.id = fa.gig_id
-      ${SQL_SHOWCASE_LATERAL_JOIN}
-      LEFT JOIN fee_allocation_line_items li ON li.allocation_id = fa.id
-      WHERE NOT EXISTS (
-        SELECT 1
-        FROM fee_allocations_expenses fae
-        WHERE fae.allocation_id = fa.id
-      )
-        AND (fa.person_id IS NULL OR p.is_partner = false)
-      GROUP BY
-        fa.id,
-        p.display_name, p.first_name, p.last_name,
-        ${SQL_EVENT_GROUP_BY_COLS}
-      ORDER BY COALESCE(g.date, s.date) ASC NULLS LAST;
-    `,
+    text: buildAllocationAlertQuery(
+      `SELECT 1 FROM fee_allocations_expenses fae WHERE fae.allocation_id = fa.id`,
+      `fa.person_id IS NULL OR p.is_partner = false`,
+    ),
+  });
+}
+
+/**
+ * Fee allocations that have no assigned_roles row pointing at them.
+ * Covers gig allocations, showcase allocations, and fully orphaned allocations.
+ * No partner exclusion — all allocations are in scope.
+ */
+export async function readAllocationsWithoutRoles(): Promise<AllocationAlertRow[]> {
+  return run_query<AllocationAlertRow>({
+    text: buildAllocationAlertQuery(
+      `SELECT 1 FROM assigned_roles ar WHERE ar.fee_allocation_id = fa.id`,
+    ),
   });
 }
 
@@ -144,4 +138,26 @@ export async function readApportionmentMismatches(): Promise<ApportionmentMismat
       ORDER BY e.id;
     `,
   });
+}
+
+function buildAllocationAlertQuery(notExistsBody: string, extraWhere?: string): string {
+  return `
+    SELECT
+      fa.id,
+      ${SQL_PERSON_NAME},
+      ${SQL_EVENT_COLS},
+      COALESCE(SUM(li.amount), 0) AS total_fee
+    FROM fee_allocations fa
+    LEFT JOIN people p ON p.id = fa.person_id
+    LEFT JOIN gigs g ON g.id = fa.gig_id
+    ${SQL_SHOWCASE_LATERAL_JOIN}
+    LEFT JOIN fee_allocation_line_items li ON li.allocation_id = fa.id
+    WHERE NOT EXISTS (${notExistsBody})
+    ${extraWhere ? `AND (${extraWhere})` : ""}
+    GROUP BY
+      fa.id,
+      p.display_name, p.first_name, p.last_name,
+      ${SQL_EVENT_GROUP_BY_COLS}
+    ORDER BY COALESCE(g.date, s.date) ASC NULLS LAST;
+  `;
 }

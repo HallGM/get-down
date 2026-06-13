@@ -1185,6 +1185,8 @@ export interface DashboardAlerts {
   balanceDueSoon: GigPaymentAlert[];
   /** Fee allocations (gig or showcase) with no expense record linked. */
   allocationsWithoutExpenses: FeeAllocationAlert[];
+  /** Fee allocations with no assigned_roles row pointing at them. */
+  allocationsWithoutRoles: FeeAllocationAlert[];
   /** Expenses linked to showcases where explicit apportioned amounts don't sum to the expense total. */
   apportionmentMismatches: ExpenseApportionmentMismatchAlert[];
 }
