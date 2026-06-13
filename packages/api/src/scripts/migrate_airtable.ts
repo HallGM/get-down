@@ -600,41 +600,64 @@ async function main(): Promise<void> {
   }
   console.log(`   ${atRehearsals.length} records\n`);
 
-  // ── 10. Gig payments → payments table ──────────────────────────────────────
-  console.log("→ gig payments (performer fees)");
-  const existingPayments = await callApi<{ id: number; airtableId?: string }[]>("GET", "/payments");
-  const paymentsByAirtableId = byAirtableId(existingPayments);
+  // ── 10. Gig payments → fee allocations ─────────────────────────────────────
+  console.log("→ gig payments (performer fee allocations)");
+  const existingAllocations = await callApi<{ id: number; personId?: number; gigId?: number }[]>("GET", "/fee-allocations");
+  const allocationMap = new Map<string, number>(
+    existingAllocations
+      .filter((a): a is { id: number; personId: number; gigId: number } =>
+        a.personId !== undefined && a.gigId !== undefined)
+      .map(a => [`${a.personId}:${a.gigId}`, a.id]),
+  );
 
   const atGigPayments = await fetchTable(TABLES.gigPayments);
-  let paymentsInserted = 0;
+  let allocationsCreated = 0;
   for (const r of atGigPayments) {
     const f = r.fields;
+
     const gigAirtableIds = ids(f["Gig"]);
     if (!gigAirtableIds.length) continue;
-
     const gigId = gigMap.get(gigAirtableIds[0]);
     if (!gigId) continue;
 
-    const amount    = toP(f["amount"]);
-    const dateArr   = f["Gig Date"] as string[] | undefined;
-    const date      = Array.isArray(dateArr) ? (dateArr[0] ?? undefined) : undefined;
-    const nameArr   = f["Name (from person)"] as unknown[] | undefined;
-    const personName = Array.isArray(nameArr) && nameArr[0] != null
-      ? String(nameArr[0])
-      : null;
-    const description = personName ? `Performer fee: ${personName}` : "Performer fee";
+    const personAirtableIds = ids(f["person"]);
+    if (!personAirtableIds.length) continue;
+    const personId = peopleMap.get(personAirtableIds[0]);
+    if (!personId) continue;
 
-    const payload = { gigId, date, amount, description, airtableId: r.id };
+    const amountPence = toP(f["amount"]);
+    if (!amountPence) continue;
 
-    const existingId = paymentsByAirtableId.get(r.id);
-    if (existingId !== undefined) {
-      await callApi("PUT", `/payments/${existingId}`, payload);
-    } else {
-      await callApi("POST", "/payments", payload);
-      paymentsInserted++;
+    const key = `${personId}:${gigId}`;
+    if (allocationMap.has(key)) {
+      // Allocation already exists — verify the line item is present
+      const existingId = allocationMap.get(key)!;
+      const full = await callApi<{ lineItems?: { amount?: number }[] }>(
+        "GET", `/fee-allocations/${existingId}`
+      );
+      const hasItem = (full.lineItems ?? []).some(li => li.amount === amountPence);
+      if (!hasItem) {
+        await callApi("POST", `/fee-allocations/${existingId}/line-items`, {
+          description: "Performer fee",
+          amount: amountPence,
+        });
+      }
+      continue;
     }
+
+    const allocation = await callApi<{ id: number }>("POST", "/fee-allocations", {
+      personId,
+      gigId,
+      isInvoiced: ids(f["Invoices"]).length > 0,
+    });
+    await callApi("POST", `/fee-allocations/${allocation.id}/line-items`, {
+      description: "Performer fee",
+      amount: amountPence,
+    });
+    allocationMap.set(key, allocation.id);
+    allocationsCreated++;
   }
-  console.log(`   ${paymentsInserted} new / ${atGigPayments.length} total records\n`);
+  console.log(`   ${allocationsCreated} new / ${atGigPayments.length} total records\n`);
 
   console.log("=== Migration complete ===");
   void rehearsalMap; // suppress unused warning
