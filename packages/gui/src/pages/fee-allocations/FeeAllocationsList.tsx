@@ -8,7 +8,12 @@ import EmptyState from "../../components/EmptyState.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import BooleanCell from "../../components/BooleanCell.js";
 import AllocationEventCell from "../../components/AllocationEventCell.js";
+import YearSelect from "../../components/YearSelect.js";
+import CountBadge from "../../components/CountBadge.js";
 import { formatDate } from "../../utils/date.js";
+import { useYearFilter } from "../../hooks/useYearFilter.js";
+import { calendarYearsFromDates, taxYearsFromDates, isInCalendarYear, isInTaxYear } from "../../utils/taxYear.js";
+import RunningTotal from "../../components/RunningTotal.js";
 
 // ─── Person filter ─────────────────────────────────────────────────────────────
 
@@ -44,11 +49,27 @@ function applyFilter(allocations: FeeAllocationSummary[], filter: FilterValue): 
 
 export default function FeeAllocationsList() {
   const { data: allocations = [], isLoading, error } = useFeeAllocationSummaries();
-  const [filter, setFilter] = useState<FilterValue>("all");
+  const [personFilter, setPersonFilter] = useState<FilterValue>("all");
+  const { calendarYear, taxYear, setCalendarYear, setTaxYear } = useYearFilter();
   const navigate = useNavigate();
 
   const personOptions = useMemo(() => buildPersonOptions(allocations), [allocations]);
-  const filtered = useMemo(() => applyFilter(allocations, filter), [allocations, filter]);
+
+  const allDates = useMemo(() => allocations.map((a) => a.eventDate), [allocations]);
+  const calendarYearOptions = useMemo(() => calendarYearsFromDates(allDates), [allDates]);
+  const taxYearOptions = useMemo(() => taxYearsFromDates(allDates), [allDates]);
+
+  const filtered = useMemo(() => {
+    let result = applyFilter(allocations, personFilter);
+    if (calendarYear) {
+      result = result.filter((a) => isInCalendarYear(a.eventDate, calendarYear));
+    } else if (taxYear) {
+      result = result.filter((a) => isInTaxYear(a.eventDate, taxYear));
+    }
+    return result;
+  }, [allocations, personFilter, calendarYear, taxYear]);
+
+  const total = useMemo(() => filtered.reduce((sum, a) => sum + a.totalFee, 0), [filtered]);
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
   if (error)     return <main className="container"><ErrorBanner error={error} /></main>;
@@ -57,13 +78,29 @@ export default function FeeAllocationsList() {
     <main className="container">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
         <h1 style={{ margin: 0 }}>Fee Allocations</h1>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+        <YearSelect
+          label="Year:"
+          value={calendarYear ?? ""}
+          options={calendarYearOptions}
+          onChange={setCalendarYear}
+        />
+        <YearSelect
+          label="Tax year:"
+          value={taxYear ?? ""}
+          options={taxYearOptions}
+          onChange={setTaxYear}
+        />
         <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: 0 }}>
           <span style={{ color: "var(--pico-muted-color)", fontSize: "0.9em", whiteSpace: "nowrap" }}>Person:</span>
           <select
-            value={String(filter)}
+            value={String(personFilter)}
             onChange={(e) => {
               const v = e.target.value;
-              setFilter(v === "all" ? "all" : v === "none" ? "none" : Number(v));
+              setPersonFilter(v === "all" ? "all" : v === "none" ? "none" : Number(v));
             }}
             style={{ margin: 0 }}
           >
@@ -74,6 +111,7 @@ export default function FeeAllocationsList() {
             ))}
           </select>
         </label>
+        <CountBadge count={filtered.length} noun="allocation" />
       </div>
 
       {filtered.length === 0 ? (
@@ -127,6 +165,9 @@ export default function FeeAllocationsList() {
           </table>
         </div>
       )}
+
+      {/* Total */}
+      <RunningTotal pennies={total} />
     </main>
   );
 }

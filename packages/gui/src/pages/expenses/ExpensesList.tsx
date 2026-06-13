@@ -13,14 +13,15 @@ import MoneyDisplay from "../../components/MoneyDisplay.js";
 import ExpenseModal from "../../components/ExpenseModal.js";
 import ExpenseCreateModal from "../../components/ExpenseCreateModal.js";
 import { formatDate } from "../../utils/date.js";
-import { formatPennies } from "../../utils/money.js";
 import {
   calendarYearsFromDates,
   taxYearsFromDates,
+  isInCalendarYear,
   isInTaxYear,
 } from "../../utils/taxYear.js";
 import YearSelect from "../../components/YearSelect.js";
 import CountBadge from "../../components/CountBadge.js";
+import RunningTotal from "../../components/RunningTotal.js";
 
 const COLUMNS: Column<Expense>[] = [
   { key: "date", header: "Date", sortable: true, render: (e) => formatDate(e.date) },
@@ -70,7 +71,7 @@ export default function ExpensesList() {
   const filteredExpenses = useMemo(() => {
     const all = expenses ?? [];
     if (calendarYear) {
-      return all.filter((e) => e.date?.slice(0, 4) === calendarYear);
+      return all.filter((e) => isInCalendarYear(e.date, calendarYear));
     }
     if (taxYear) {
       return all.filter((e) => isInTaxYear(e.date, taxYear));
@@ -130,11 +131,7 @@ export default function ExpensesList() {
       />
 
       {/* Total */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
-        <span style={{ fontWeight: 600 }}>
-          Total: {formatPennies(total)}
-        </span>
-      </div>
+      <RunningTotal pennies={total} />
 
       {/* New Expense modal */}
       <ExpenseCreateModal
