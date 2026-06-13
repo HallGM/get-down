@@ -1163,6 +1163,19 @@ export interface FeeAllocationAlert {
   totalFee: number;
 }
 
+export interface ExpenseApportionmentMismatchAlert {
+  /** Expense id. */
+  id: number;
+  /** Expense description. */
+  description: string;
+  /** Expense total in pennies. */
+  amount: number;
+  /** Sum of all apportioned amounts across showcase links (null links count as zero) in pennies. */
+  apportionedTotal: number;
+  /** Difference between expense total and apportioned total (amount - apportionedTotal) in pennies. */
+  difference: number;
+}
+
 export interface DashboardAlerts {
   /** Confirmed upcoming gigs where no payment has been received. */
   noDeposit: GigPaymentAlert[];
@@ -1170,4 +1183,6 @@ export interface DashboardAlerts {
   balanceDueSoon: GigPaymentAlert[];
   /** Fee allocations (gig or showcase) with no expense record linked. */
   allocationsWithoutExpenses: FeeAllocationAlert[];
+  /** Expenses linked to showcases where explicit apportioned amounts don't sum to the expense total. */
+  apportionmentMismatches: ExpenseApportionmentMismatchAlert[];
 }
