@@ -232,6 +232,11 @@ export interface Gig {
   netReceived?: number;
   /** Total fee allocation line items in pennies for this gig. Only present on list responses. */
   feesTotal?: number;
+  /**
+   * Predicted profit in pennies: discounted sum of service client prices minus total role fees.
+   * null means unavailable (cancelled gig, no services attached, or a price/fee is missing).
+   */
+  predictedProfit?: number | null;
   lineItems?: GigLineItem[];
   services?: Service[];
   airtableId?: string;
@@ -1152,6 +1157,14 @@ export interface AccountingSummary {
 
   // Remaining profit after fee allocations (to be split equally between partners)
   sharedProfit: number;
+
+  // Predicted profit combining actual figures from past gigs and forecast from upcoming gigs
+  /** Sum of (net received minus fee allocation total) for all non-cancelled gigs in the period whose date is before today. */
+  predictedProfitFromPast: number;
+  /** Sum of predicted profit for all non-cancelled gigs in the period whose date is today or later, excluding gigs with unavailable predictions. */
+  predictedProfitFromUpcoming: number;
+  /** Count of non-cancelled upcoming gigs in the period whose predicted profit is unavailable (excluded from predictedProfitFromUpcoming). */
+  predictedProfitExcludedCount: number;
 }
 
 export function createService(id: number, name: string): Service {

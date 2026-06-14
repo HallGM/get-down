@@ -1,5 +1,6 @@
 import type { ExpensesBreakdown } from "@get-down/shared";
 import { run_query } from "../db/init.js";
+import { PREDICTED_PROFIT_LATERALS, PREDICTED_PROFIT_CASE } from "./gigs.js";
 
 export interface GigCounts {
   booked: number;
@@ -190,4 +191,68 @@ export async function readPartnerFeeAllocations(bounds: DateBounds): Promise<Par
     `,
     values: [bounds.start, bounds.end],
   });
+}
+
+// ─── Predicted profit summary ─────────────────────────────────────────────────
+
+export interface PredictedProfitSummary {
+  actualFromPast:        number;
+  predictedFromUpcoming: number;
+  excludedCount:         number;
+}
+
+/**
+ * For all non-cancelled gigs in the period:
+ *   actualFromPast        — sum of (net received − fee allocation total) for gigs
+ *                           whose date is before today.
+ *   predictedFromUpcoming — sum of predicted profit (service subtotal after discount
+ *                           minus role fees) for gigs whose date is today or later,
+ *                           excluding gigs where the prediction is unavailable.
+ *   excludedCount         — count of upcoming gigs whose predicted profit is NULL
+ *                           (cancelled already excluded; this flags missing data).
+ */
+export async function readPredictedProfitSummary(bounds: DateBounds): Promise<PredictedProfitSummary> {
+  const rows = await run_query<{ actual_from_past: string; predicted_from_upcoming: string; excluded_count: string }>({
+    text: `
+      WITH gig_data AS (
+        SELECT
+          g.id,
+          g.date,
+          (COALESCE(pmt.total_paid, 0) - COALESCE(rfnd.total_refunded, 0))
+            - COALESCE(fa_totals.total_fees, 0)                         AS actual_profit,
+          ${PREDICTED_PROFIT_CASE}
+        FROM gigs g
+        LEFT JOIN (
+          SELECT gig_id, SUM(amount) AS total_paid
+          FROM payments GROUP BY gig_id
+        ) pmt ON pmt.gig_id = g.id
+        LEFT JOIN (
+          SELECT gig_id, SUM(amount) AS total_refunded
+          FROM refunds GROUP BY gig_id
+        ) rfnd ON rfnd.gig_id = g.id
+        LEFT JOIN (
+          SELECT fa.gig_id, SUM(fali.amount) AS total_fees
+          FROM fee_allocations fa
+          JOIN fee_allocation_line_items fali ON fali.allocation_id = fa.id
+          GROUP BY fa.gig_id
+        ) fa_totals ON fa_totals.gig_id = g.id
+        ${PREDICTED_PROFIT_LATERALS}
+        WHERE g.status != 'cancelled'
+          AND ($1::date IS NULL OR g.date >= $1)
+          AND ($2::date IS NULL OR g.date <= $2)
+      )
+      SELECT
+        COALESCE(SUM(actual_profit)      FILTER (WHERE date <  CURRENT_DATE), 0)::bigint AS actual_from_past,
+        COALESCE(SUM(predicted_profit)   FILTER (WHERE date >= CURRENT_DATE AND predicted_profit IS NOT NULL), 0)::bigint AS predicted_from_upcoming,
+        COALESCE(COUNT(*)                FILTER (WHERE date >= CURRENT_DATE AND predicted_profit IS NULL), 0)::int AS excluded_count
+      FROM gig_data;
+    `,
+    values: [bounds.start, bounds.end],
+  });
+  const row = rows[0]!;
+  return {
+    actualFromPast:        parseInt(row.actual_from_past, 10),
+    predictedFromUpcoming: parseInt(row.predicted_from_upcoming, 10),
+    excludedCount:         parseInt(row.excluded_count, 10),
+  };
 }
