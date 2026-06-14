@@ -7,7 +7,7 @@ import AllocationEventCell from "../components/AllocationEventCell.js";
 import LoadingState from "../components/LoadingState.js";
 import ErrorBanner from "../components/ErrorBanner.js";
 import { formatGigName } from "../utils/people.js";
-import type { GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase } from "@get-down/shared";
+import type { GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert } from "@get-down/shared";
 
 const PICO_RED = "var(--pico-color-red-500, #e53e3e)";
 const PICO_ORANGE = "var(--pico-color-orange-500, #dd6b20)";
@@ -148,6 +148,48 @@ function ApportionmentMismatchTable({ mismatches }: { mismatches: ExpenseApporti
   );
 }
 
+function PaymentMismatchTable({ mismatches }: { mismatches: GigPaymentMismatchAlert[] }) {
+  if (mismatches.length === 0) {
+    return <AllClear />;
+  }
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Client</th>
+          <th>Venue</th>
+          <th>Billing total</th>
+          <th>Received</th>
+          <th>Difference</th>
+        </tr>
+      </thead>
+      <tbody>
+        {mismatches.map((m) => {
+          const isUnder = m.difference > 0;
+          const diffStyle: React.CSSProperties = isUnder
+            ? alertCellStyle
+            : { color: PICO_ORANGE, fontWeight: 600 };
+          return (
+            <tr key={m.id}>
+              <td>{formatDate(m.date)}</td>
+              <td>
+                <Link to={`/gigs/${m.id}/invoices`}>{formatGigName(m)}</Link>
+              </td>
+              <td>{m.venueName ?? m.location ?? "—"}</td>
+              <td>{formatPennies(m.billingTotal)}</td>
+              <td>{formatPennies(m.netReceived)}</td>
+              <td style={diffStyle}>
+                {formatPennies(Math.abs(m.difference))}{isUnder ? " under" : " over"}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
 export default function Dashboard() {
   const { data, isLoading, error } = useDashboardAlerts();
 
@@ -188,6 +230,15 @@ export default function Dashboard() {
             badgeColor={PICO_ORANGE}
           >
             <AlertTable alerts={data.balanceDueSoon} showQuoted showBalance />
+          </DashboardSection>
+
+          <DashboardSection
+            title="Past Gigs with Payment Mismatches"
+            description="Confirmed past gigs where the amount received does not match the billing total. Includes both underpayments and overpayments."
+            count={data.pastPaymentMismatches.length}
+            badgeColor={PICO_RED}
+          >
+            <PaymentMismatchTable mismatches={data.pastPaymentMismatches} />
           </DashboardSection>
 
           <DashboardSection

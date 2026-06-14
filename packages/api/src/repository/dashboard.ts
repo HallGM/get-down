@@ -1,7 +1,7 @@
 import { run_query } from "../db/init.js";
 import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME, SQL_PAYMENT_SUBQUERY } from "./sql-fragments.js";
 
-interface GigAlertBaseRow {
+export interface GigAlertBaseRow {
   id: number;
   first_name: string;
   last_name: string;
@@ -34,6 +34,12 @@ export interface ApportionmentMismatchRow {
 }
 
 export type GigNoLineItemsAlertRow = GigAlertBaseRow;
+
+export interface GigPaymentMismatchAlertRow extends GigAlertBaseRow {
+  billing_total: number;
+  net_received: number;
+  difference: number;
+}
 
 const SELECT_ALERT_COLS = `
   g.id,
@@ -149,6 +155,53 @@ export async function readGigsWithoutLineItems(): Promise<GigNoLineItemsAlertRow
           SELECT 1 FROM gig_line_items li WHERE li.gig_id = g.id
         )
       ORDER BY g.date ASC;
+    `,
+  });
+}
+
+/**
+ * Confirmed past gigs (date < today) with at least one billing line item where
+ * net received (payments minus refunds) does not equal the calculated billing
+ * total (sum of line items minus discount plus travel). Returns both
+ * underpayments and overpayments, ordered most-recent first.
+ */
+export async function readPastPaymentMismatches(): Promise<GigPaymentMismatchAlertRow[]> {
+  return run_query<GigPaymentMismatchAlertRow>({
+    text: `
+      WITH gig_totals AS (
+        SELECT
+          g.id,
+          g.first_name,
+          g.last_name,
+          g.date,
+          g.venue_name,
+          g.location,
+          (
+            SUM(COALESCE(li.amount, 0))
+            - ROUND(SUM(COALESCE(li.amount, 0)) * g.discount_percent::numeric / 100)::int
+            + g.travel_cost
+          )::int AS billing_total,
+          (COALESCE(p.total_paid, 0) - COALESCE(r.total_refunded, 0))::int AS net_received
+        FROM gigs g
+        JOIN gig_line_items li ON li.gig_id = g.id
+        ${SQL_PAYMENT_SUBQUERY}
+        WHERE g.status = 'confirmed'
+          AND g.date < CURRENT_DATE
+        GROUP BY g.id, p.total_paid, r.total_refunded
+      )
+      SELECT
+        id,
+        first_name,
+        last_name,
+        date,
+        venue_name,
+        location,
+        billing_total,
+        net_received,
+        (billing_total - net_received)::int AS difference
+      FROM gig_totals
+      WHERE billing_total <> net_received
+      ORDER BY date DESC;
     `,
   });
 }
