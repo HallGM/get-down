@@ -1221,6 +1221,15 @@ export interface ExpenseApportionmentMismatchAlert {
 
 export type GigNoLineItemsAlert = GigAlertBase;
 
+export interface GigPaymentMismatchAlert extends GigAlertBase {
+  /** Calculated billing total (line items minus discount plus travel) in pennies. */
+  billingTotal: number;
+  /** Net received (payments minus refunds) in pennies. */
+  netReceived: number;
+  /** Difference (billingTotal - netReceived) in pennies. Positive = underpaid; negative = overpaid. */
+  difference: number;
+}
+
 export interface DashboardAlerts {
   /** Confirmed upcoming gigs where no payment has been received. */
   noDeposit: GigPaymentAlert[];
@@ -1228,6 +1237,8 @@ export interface DashboardAlerts {
   gigsWithoutLineItems: GigNoLineItemsAlert[];
   /** Confirmed gigs with a date within the next 2 months that still have an outstanding balance. */
   balanceDueSoon: GigPaymentAlert[];
+  /** Confirmed past gigs with at least one line item where net received does not equal the billing total. */
+  pastPaymentMismatches: GigPaymentMismatchAlert[];
   /** Fee allocations (gig or showcase) with no expense record linked. */
   allocationsWithoutExpenses: FeeAllocationAlert[];
   /** Fee allocations with no assigned_roles row pointing at them. */

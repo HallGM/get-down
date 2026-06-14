@@ -1,21 +1,23 @@
-import type { DashboardAlerts, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigNoLineItemsAlert } from "@get-down/shared";
+import type { DashboardAlerts, GigAlertBase, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigNoLineItemsAlert, GigPaymentMismatchAlert } from "@get-down/shared";
 import * as repo from "../repository/dashboard.js";
-import type { GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow, GigNoLineItemsAlertRow } from "../repository/dashboard.js";
+import type { GigAlertBaseRow, GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow, GigNoLineItemsAlertRow, GigPaymentMismatchAlertRow } from "../repository/dashboard.js";
 
 export async function getDashboardAlerts(): Promise<DashboardAlerts> {
-  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows, noLineItemsRows] = await Promise.all([
+  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows, noLineItemsRows, paymentMismatchRows] = await Promise.all([
     repo.readDepositAlerts(),
     repo.readBalanceDueSoonAlerts(),
     repo.readAllocationsWithoutExpenses(),
     repo.readAllocationsWithoutRoles(),
     repo.readApportionmentMismatches(),
     repo.readGigsWithoutLineItems(),
+    repo.readPastPaymentMismatches(),
   ]);
 
   return {
     noDeposit: noDepositRows.map(mapAlert),
     gigsWithoutLineItems: noLineItemsRows.map(mapNoLineItemsAlert),
     balanceDueSoon: balanceDueSoonRows.map(mapAlert),
+    pastPaymentMismatches: paymentMismatchRows.map(mapPaymentMismatchAlert),
     allocationsWithoutExpenses: allocationRows.map(mapAllocationAlert),
     allocationsWithoutRoles: withoutRoleRows.map(mapAllocationAlert),
     apportionmentMismatches: mismatchRows.map(mapMismatchAlert),
@@ -24,12 +26,7 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
 
 function mapAlert(row: GigPaymentAlertRow): GigPaymentAlert {
   return {
-    id: row.id,
-    firstName: row.first_name,
-    lastName: row.last_name,
-    date: toDateString(row.date),
-    venueName: row.venue_name ?? undefined,
-    location: row.location ?? undefined,
+    ...mapGigAlertBase(row),
     totalPrice: row.total_price,
     netReceived: Number(row.net_received),
   };
@@ -58,6 +55,21 @@ function mapMismatchAlert(row: ApportionmentMismatchRow): ExpenseApportionmentMi
 }
 
 function mapNoLineItemsAlert(row: GigNoLineItemsAlertRow): GigNoLineItemsAlert {
+  return mapGigAlertBase(row);
+}
+
+function mapPaymentMismatchAlert(row: GigPaymentMismatchAlertRow): GigPaymentMismatchAlert {
+  return {
+    ...mapGigAlertBase(row),
+    billingTotal: Number(row.billing_total),
+    netReceived: Number(row.net_received),
+    difference: Number(row.difference),
+  };
+}
+
+// ── private helpers ──────────────────────────────────────────────────────────
+
+function mapGigAlertBase(row: GigAlertBaseRow): GigAlertBase {
   return {
     id: row.id,
     firstName: row.first_name,
@@ -67,8 +79,6 @@ function mapNoLineItemsAlert(row: GigNoLineItemsAlertRow): GigNoLineItemsAlert {
     location: row.location ?? undefined,
   };
 }
-
-// ── private helpers ──────────────────────────────────────────────────────────
 
 function toDateString(value: string | Date): string {
   return typeof value === "string" ? value : value.toISOString().slice(0, 10);
