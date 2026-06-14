@@ -65,3 +65,25 @@ export const SQL_PAYMENT_SUBQUERY = `
     SELECT gig_id, SUM(amount) AS total_refunded FROM refunds GROUP BY gig_id
   ) r ON r.gig_id = g.id
 `;
+
+/**
+ * SELECT columns for a billing CTE.
+ * Produces: id, first_name, last_name, date, venue_name, location,
+ *           billing_total (line items minus discount plus travel), net_received.
+ * Requires aliases: g (gigs), li (gig_line_items via JOIN), p and r (SQL_PAYMENT_SUBQUERY).
+ * Pair with: GROUP BY g.id, p.total_paid, r.total_refunded
+ */
+export const SQL_BILLING_CTE_COLS = `
+  g.id,
+  g.first_name,
+  g.last_name,
+  g.date,
+  g.venue_name,
+  g.location,
+  (
+    SUM(COALESCE(li.amount, 0))
+    - ROUND(SUM(COALESCE(li.amount, 0)) * g.discount_percent::numeric / 100)::int
+    + g.travel_cost
+  )::int AS billing_total,
+  (COALESCE(p.total_paid, 0) - COALESCE(r.total_refunded, 0))::int AS net_received
+`;

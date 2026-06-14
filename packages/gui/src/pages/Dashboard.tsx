@@ -7,7 +7,7 @@ import AllocationEventCell from "../components/AllocationEventCell.js";
 import LoadingState from "../components/LoadingState.js";
 import ErrorBanner from "../components/ErrorBanner.js";
 import { formatGigName } from "../utils/people.js";
-import type { GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert } from "@get-down/shared";
+import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert } from "@get-down/shared";
 
 const PICO_RED = "var(--pico-color-red-500, #e53e3e)";
 const PICO_ORANGE = "var(--pico-color-orange-500, #dd6b20)";
@@ -49,7 +49,17 @@ function DashboardSection({
   );
 }
 
-function AlertTable({ alerts, showQuoted, showBalance }: { alerts: GigAlertBase[]; showQuoted?: boolean; showBalance?: boolean }) {
+function BalanceCells({ alert }: { alert: GigPaymentMismatchAlert }) {
+  return (
+    <>
+      <td>{formatPennies(alert.billingTotal)}</td>
+      <td>{formatPennies(alert.netReceived)}</td>
+      <td style={alertCellStyle}>{formatPennies(alert.billingTotal - alert.netReceived)}</td>
+    </>
+  );
+}
+
+function AlertTable({ alerts, showBalance }: { alerts: GigAlertBase[]; showBalance?: boolean }) {
   if (alerts.length === 0) {
     return <AllClear />;
   }
@@ -60,31 +70,22 @@ function AlertTable({ alerts, showQuoted, showBalance }: { alerts: GigAlertBase[
           <th>Date</th>
           <th>Client</th>
           <th>Venue</th>
-          {showQuoted && <th>Quoted</th>}
+          {showBalance && <th>Total</th>}
           {showBalance && <th>Received</th>}
           {showBalance && <th>Outstanding</th>}
         </tr>
       </thead>
       <tbody>
-        {alerts.map((g) => {
-          const p = g as GigPaymentAlert;
-          return (
-            <tr key={g.id}>
-              <td>{formatDate(g.date)}</td>
-              <td>
-                <Link to={`/gigs/${g.id}`}>{formatGigName(g)}</Link>
-              </td>
-              <td>{g.venueName ?? g.location ?? "—"}</td>
-              {showQuoted && <td>{formatPennies(p.totalPrice)}</td>}
-              {showBalance && <td>{formatPennies(p.netReceived)}</td>}
-              {showBalance && (
-                <td style={alertCellStyle}>
-                  {formatPennies(p.totalPrice - p.netReceived)}
-                </td>
-              )}
-            </tr>
-          );
-        })}
+        {alerts.map((g) => (
+          <tr key={g.id}>
+            <td>{formatDate(g.date)}</td>
+            <td>
+              <Link to={`/gigs/${g.id}`}>{formatGigName(g)}</Link>
+            </td>
+            <td>{g.venueName ?? g.location ?? "—"}</td>
+            {showBalance && <BalanceCells alert={g as GigPaymentMismatchAlert} />}
+          </tr>
+        ))}
       </tbody>
     </table>
   );
@@ -229,7 +230,7 @@ export default function Dashboard() {
             count={data.balanceDueSoon.length}
             badgeColor={PICO_ORANGE}
           >
-            <AlertTable alerts={data.balanceDueSoon} showQuoted showBalance />
+            <AlertTable alerts={data.balanceDueSoon} showBalance />
           </DashboardSection>
 
           <DashboardSection

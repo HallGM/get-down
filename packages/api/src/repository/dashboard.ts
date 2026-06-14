@@ -1,5 +1,5 @@
 import { run_query } from "../db/init.js";
-import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME, SQL_PAYMENT_SUBQUERY } from "./sql-fragments.js";
+import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME, SQL_PAYMENT_SUBQUERY, SQL_BILLING_CTE_COLS } from "./sql-fragments.js";
 
 export interface GigAlertBaseRow {
   id: number;
@@ -73,21 +73,36 @@ export async function readDepositAlerts(): Promise<GigPaymentAlertRow[]> {
 
 /**
  * Confirmed gigs with a date within the next 2 months that still have
- * an outstanding balance (net received < total price).
+ * an outstanding balance (net received < calculated billing total).
+ * Only gigs with at least one billing line item are included.
  */
-export async function readBalanceDueSoonAlerts(): Promise<GigPaymentAlertRow[]> {
-  return run_query<GigPaymentAlertRow>({
+export async function readBalanceDueSoonAlerts(): Promise<GigPaymentMismatchAlertRow[]> {
+  return run_query<GigPaymentMismatchAlertRow>({
     text: `
-      SELECT ${SELECT_ALERT_COLS}
-      FROM gigs g
-      ${SQL_PAYMENT_SUBQUERY}
-      WHERE g.status = 'confirmed'
-        AND g.date >= CURRENT_DATE
-        AND g.date <= CURRENT_DATE + INTERVAL '2 months'
-        AND g.total_price IS NOT NULL
-        AND g.total_price > 0
-        AND COALESCE(p.total_paid, 0) - COALESCE(r.total_refunded, 0) < g.total_price
-      ORDER BY g.date ASC;
+      WITH billing AS (
+        SELECT ${SQL_BILLING_CTE_COLS}
+        FROM gigs g
+        JOIN gig_line_items li ON li.gig_id = g.id
+        ${SQL_PAYMENT_SUBQUERY}
+        WHERE g.status = 'confirmed'
+          AND g.date >= CURRENT_DATE
+          AND g.date <= CURRENT_DATE + INTERVAL '2 months'
+        GROUP BY g.id, p.total_paid, r.total_refunded
+      )
+      SELECT
+        id,
+        first_name,
+        last_name,
+        date,
+        venue_name,
+        location,
+        billing_total,
+        net_received,
+        (billing_total - net_received)::int AS difference
+      FROM billing
+      WHERE billing_total > 0
+        AND net_received < billing_total
+      ORDER BY date ASC;
     `,
   });
 }
@@ -169,19 +184,7 @@ export async function readPastPaymentMismatches(): Promise<GigPaymentMismatchAle
   return run_query<GigPaymentMismatchAlertRow>({
     text: `
       WITH gig_totals AS (
-        SELECT
-          g.id,
-          g.first_name,
-          g.last_name,
-          g.date,
-          g.venue_name,
-          g.location,
-          (
-            SUM(COALESCE(li.amount, 0))
-            - ROUND(SUM(COALESCE(li.amount, 0)) * g.discount_percent::numeric / 100)::int
-            + g.travel_cost
-          )::int AS billing_total,
-          (COALESCE(p.total_paid, 0) - COALESCE(r.total_refunded, 0))::int AS net_received
+        SELECT ${SQL_BILLING_CTE_COLS}
         FROM gigs g
         JOIN gig_line_items li ON li.gig_id = g.id
         ${SQL_PAYMENT_SUBQUERY}

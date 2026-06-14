@@ -1235,8 +1235,8 @@ export interface DashboardAlerts {
   noDeposit: GigPaymentAlert[];
   /** Confirmed gigs (past or future) with no billing line items recorded. */
   gigsWithoutLineItems: GigNoLineItemsAlert[];
-  /** Confirmed gigs with a date within the next 2 months that still have an outstanding balance. */
-  balanceDueSoon: GigPaymentAlert[];
+  /** Confirmed gigs with a date within the next 2 months that still have an outstanding balance, based on the calculated billing total. */
+  balanceDueSoon: GigPaymentMismatchAlert[];
   /** Confirmed past gigs with at least one line item where net received does not equal the billing total. */
   pastPaymentMismatches: GigPaymentMismatchAlert[];
   /** Fee allocations (gig or showcase) with no expense record linked. */
