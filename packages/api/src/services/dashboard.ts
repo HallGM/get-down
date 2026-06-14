@@ -16,7 +16,7 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
   return {
     noDeposit: noDepositRows.map(mapAlert),
     gigsWithoutLineItems: noLineItemsRows.map(mapNoLineItemsAlert),
-    balanceDueSoon: balanceDueSoonRows.map(mapAlert),
+    balanceDueSoon: balanceDueSoonRows.map(mapPaymentMismatchAlert),
     pastPaymentMismatches: paymentMismatchRows.map(mapPaymentMismatchAlert),
     allocationsWithoutExpenses: allocationRows.map(mapAllocationAlert),
     allocationsWithoutRoles: withoutRoleRows.map(mapAllocationAlert),
