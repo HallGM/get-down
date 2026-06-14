@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ExpensePayment } from "@get-down/shared";
+import type { ExpensePayment, ExpensePaymentSummary } from "@get-down/shared";
 import * as repo from "../repository/expense_payments.js";
 import * as expensesRepo from "../repository/expenses.js";
 import * as accountsRepo from "../repository/accounts.js";
@@ -18,6 +18,18 @@ const UpdatePaymentSchema = CreatePaymentSchema.partial().extend({
   accountId: z.number().int().positive().optional(),
   amount: z.number().int().optional(),
 });
+
+export async function getAllPaymentSummaries(): Promise<ExpensePaymentSummary[]> {
+  const rows = await repo.readAllPaymentSummaries();
+  return rows.map((row) => ({
+    id: row.id,
+    expenseId: row.expense_id,
+    expenseDescription: row.expense_description,
+    date: row.date ?? undefined,
+    amount: row.amount,
+    paidForBy: row.paid_for_by,
+  }));
+}
 
 export async function getPaymentsByExpense(expenseId: number): Promise<ExpensePayment[]> {
   const expense = await expensesRepo.readExpenseById(expenseId);

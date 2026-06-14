@@ -14,6 +14,7 @@ router.use(authenticateToken);
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 router.get("/expenses",     handle(() => expensesService.getAllExpenses()));
+router.get("/expense-payments", handle(() => expensePaymentsService.getAllPaymentSummaries()));
 router.get("/expenses/:id", handle(req => expensesService.getExpenseById(+req.params.id)));
 router.post("/expenses",    handle(req => expensesService.createExpense(req.body), 201));
 router.put("/expenses/:id", handle(req => expensesService.updateExpense(+req.params.id, req.body)));

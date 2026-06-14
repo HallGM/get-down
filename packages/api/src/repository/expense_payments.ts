@@ -1,4 +1,5 @@
 import { run_query } from "../db/init.js";
+import { SQL_PERSON_NAME_EXPR } from "./sql-fragments.js";
 
 export interface ExpensePaymentRow {
   id: number;
@@ -117,6 +118,37 @@ export async function updateExpensePayment(
     ],
   });
   return rows[0] ?? null;
+}
+
+export interface ExpensePaymentSummaryRow {
+  id: number;
+  expense_id: number;
+  expense_description: string;
+  date: string | null;
+  amount: number;
+  paid_for_by: string;
+}
+
+export async function readAllPaymentSummaries(): Promise<ExpensePaymentSummaryRow[]> {
+  return run_query<ExpensePaymentSummaryRow>({
+    text: `
+      SELECT
+        ep.id,
+        ep.expense_id,
+        e.description AS expense_description,
+        ep.date,
+        ep.amount,
+        CASE
+          WHEN a.is_business THEN 'Business'
+          ELSE ${SQL_PERSON_NAME_EXPR}
+        END AS paid_for_by
+      FROM expense_payments ep
+      JOIN expenses e  ON e.id = ep.expense_id
+      JOIN accounts a  ON a.id = ep.account_id
+      LEFT JOIN people p ON p.id = a.person_id
+      ORDER BY ep.date DESC NULLS LAST, ep.id DESC;
+    `,
+  });
 }
 
 export async function deleteExpensePayment(id: number): Promise<boolean> {
