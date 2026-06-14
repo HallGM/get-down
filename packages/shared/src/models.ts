@@ -643,6 +643,15 @@ export interface ExpensePayment {
   description?: string;
 }
 
+export interface ExpensePaymentSummary {
+  id: number;
+  expenseId: number;
+  expenseDescription: string;
+  date?: string;
+  amount: number;
+  paidForBy: string;
+}
+
 export interface CreateExpensePaymentRequest {
   accountId: number;
   /** Signed amount in pennies: positive = payment, negative = refund. */
