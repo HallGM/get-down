@@ -16,7 +16,7 @@ type DateBounds = { start: string | null; end: string | null };
 export async function getSummary(params: SummaryParams): Promise<AccountingSummary> {
   const bounds = resolveBounds(params);
 
-  const [gigCounts, earnedPayments, earnedRefunds, expenses, expensesBreakdown, partnerAllocations] =
+  const [gigCounts, earnedPayments, earnedRefunds, expenses, expensesBreakdown, partnerAllocations, predictedSummary] =
     await Promise.all([
       repo.readGigCounts(bounds),
       repo.readEarnedPayments(bounds),
@@ -24,6 +24,7 @@ export async function getSummary(params: SummaryParams): Promise<AccountingSumma
       repo.readExpensesTotal(bounds),
       repo.readExpensesBreakdown(bounds),
       repo.readPartnerFeeAllocations(bounds),
+      repo.readPredictedProfitSummary(bounds),
     ]);
 
   const earnedIncome        = earnedPayments - earnedRefunds;
@@ -45,6 +46,9 @@ export async function getSummary(params: SummaryParams): Promise<AccountingSumma
       amount:     a.amount,
     })),
     sharedProfit,
+    predictedProfitFromPast:      predictedSummary.actualFromPast,
+    predictedProfitFromUpcoming:  predictedSummary.predictedFromUpcoming,
+    predictedProfitExcludedCount: predictedSummary.excludedCount,
   };
 }
 

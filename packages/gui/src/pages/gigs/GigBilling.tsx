@@ -26,6 +26,7 @@ import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
 import MoneyField from "../../components/MoneyField.js";
 import Modal from "../../components/Modal.js";
+import UnavailableMoney from "../../components/UnavailableMoney.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { formatPennies } from "../../utils/money.js";
 import type { CreatePaymentRequest, CreateGigLineItemRequest, CreateRefundRequest, Invoice } from "@get-down/shared";
@@ -311,6 +312,16 @@ export default function GigBilling() {
             <><dt>Deposit Status</dt><dd>{depositPaid >= depositRequired ? "✓ Deposit paid" : "Deposit not yet paid"}</dd></>
           )}
           <dt>Balance Due</dt><dd><strong><MoneyDisplay pennies={balanceAmount} /></strong></dd>
+          {gig.status !== "cancelled" && (
+            <>
+              <dt>Predicted profit</dt>
+              <dd>
+                {gig.predictedProfit == null
+                  ? <UnavailableMoney />
+                  : <MoneyDisplay pennies={gig.predictedProfit} />}
+              </dd>
+            </>
+          )}
         </dl>
       </article>
 

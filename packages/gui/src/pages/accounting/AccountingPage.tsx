@@ -198,6 +198,28 @@ function SummaryTable({ data }: { data: AccountingSummary }) {
             value={<MoneyDisplay pennies={data.sharedProfit} colorNegative bold />}
           />
 
+          {/* ── Predicted profit ── */}
+          <SectionHeader title="Predicted profit" />
+          <Row
+            label="Actual from past gigs"
+            hint="Net received minus fee allocations for non-cancelled gigs before today"
+            value={<MoneyDisplay pennies={data.predictedProfitFromPast} colorNegative bold />}
+          />
+          <Row
+            label="Predicted from upcoming gigs"
+            hint={
+              data.predictedProfitExcludedCount > 0
+                ? `${data.predictedProfitExcludedCount} gig(s) excluded due to missing prices or fees`
+                : undefined
+            }
+            value={<MoneyDisplay pennies={data.predictedProfitFromUpcoming} colorNegative bold />}
+          />
+          <Divider />
+          <Row
+            label="Combined total"
+            value={<MoneyDisplay pennies={data.predictedProfitFromPast + data.predictedProfitFromUpcoming} colorNegative bold />}
+          />
+
         </tbody>
       </table>
     </div>

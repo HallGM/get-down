@@ -11,6 +11,7 @@ import ErrorBanner from "../../components/ErrorBanner.js";
 import StatusBadge from "../../components/StatusBadge.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import RunningTotal from "../../components/RunningTotal.js";
+import UnavailableMoney from "../../components/UnavailableMoney.js";
 import { formatDate } from "../../utils/date.js";
 import type { Gig } from "@get-down/shared";
 
@@ -26,6 +27,15 @@ const COLUMNS: Column<Gig>[] = [
   { key: "status", header: "Status", render: (g) => <StatusBadge status={g.status} /> },
   { key: "netReceived", header: "Received", render: (g) => <MoneyDisplay pennies={g.netReceived ?? 0} /> },
   { key: "profit", header: "Profit", render: (g) => <MoneyDisplay pennies={gigProfit(g)} /> },
+  {
+    key: "predictedProfit",
+    header: "Predicted profit",
+    render: (g) => {
+      if (g.status === "cancelled") return <span style={{ color: "var(--pico-muted-color)" }}>—</span>;
+      if (g.predictedProfit == null) return <UnavailableMoney />;
+      return <MoneyDisplay pennies={g.predictedProfit} />;
+    },
+  },
 ];
 
 const EMPTY_FORM: CreateGigRequest = {
@@ -75,6 +85,16 @@ export default function GigsList() {
     () => visibleGigs.reduce((sum, g) => sum + gigProfit(g), 0),
     [visibleGigs]
   );
+
+  const totalPredictedProfit = useMemo((): number | null => {
+    const hasUnavailable = visibleGigs.some(
+      (g) => g.status !== "cancelled" && g.predictedProfit == null
+    );
+    if (hasUnavailable) return null;
+    return visibleGigs
+      .filter((g) => g.status !== "cancelled")
+      .reduce((sum, g) => sum + (g.predictedProfit ?? 0), 0);
+  }, [visibleGigs]);
 
   function setField(field: keyof CreateGigRequest, value: string | number | undefined) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -134,6 +154,7 @@ export default function GigsList() {
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "2rem", marginTop: "0.5rem" }}>
         <RunningTotal label="Received" pennies={totalReceived} />
         <RunningTotal label="Profit" pennies={totalProfit} />
+        <RunningTotal label="Predicted profit" pennies={totalPredictedProfit} />
       </div>
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Gig">
