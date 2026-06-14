@@ -6,6 +6,7 @@ import { handle } from "../utils/handle.js";
 const router: Router = express.Router();
 router.use(authenticateToken);
 
+router.get("/gig-payments",       handle(() => paymentsService.getAllGigPaymentSummaries()));
 router.get("/payments",           handle(() => paymentsService.getAllPayments()));
 router.get("/gigs/:id/payments", handle(req => paymentsService.getPaymentsByGig(+req.params.id)));
 router.post("/payments",         handle(req => paymentsService.createPayment(req.body), 201));

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useYearFilter } from "../../hooks/useYearFilter.js";
+import { useYearFilterData } from "../../hooks/useYearFilter.js";
 import { useExpenses, useDeleteExpense } from "../../api/hooks/useExpenses.js";
 import { useFeeAllocations } from "../../api/hooks/useFeeAllocations.js";
 import { useAllAttributionFees } from "../../api/hooks/useAttributionFees.js";
@@ -12,15 +12,8 @@ import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import ExpenseModal from "../../components/ExpenseModal.js";
 import ExpenseCreateModal from "../../components/ExpenseCreateModal.js";
+import YearFilterBar from "../../components/YearFilterBar.js";
 import { formatDate } from "../../utils/date.js";
-import {
-  calendarYearsFromDates,
-  taxYearsFromDates,
-  isInCalendarYear,
-  isInTaxYear,
-} from "../../utils/taxYear.js";
-import YearSelect from "../../components/YearSelect.js";
-import CountBadge from "../../components/CountBadge.js";
 import RunningTotal from "../../components/RunningTotal.js";
 
 const COLUMNS: Column<Expense>[] = [
@@ -57,27 +50,14 @@ export default function ExpensesList() {
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
 
   // Filter state — only one active at a time; null means "All"
-  const { calendarYear, taxYear, setCalendarYear, setTaxYear } = useYearFilter();
+  const {
+    calendarYear, taxYear, setCalendarYear, setTaxYear,
+    calendarYearOptions, taxYearOptions,
+    filtered: filteredExpenses,
+  } = useYearFilterData(expenses ?? [], (e) => e.date);
 
   // Always derive the edit target from live query data so linked allocation IDs stay fresh
   const editTarget = editTargetId != null ? (expenses ?? []).find((e) => e.id === editTargetId) ?? null : null;
-
-  // Derive available filter options from actual data
-  const allDates = useMemo(() => (expenses ?? []).map((e) => e.date), [expenses]);
-  const calendarYearOptions = useMemo(() => calendarYearsFromDates(allDates), [allDates]);
-  const taxYearOptions = useMemo(() => taxYearsFromDates(allDates), [allDates]);
-
-  // Apply the active filter
-  const filteredExpenses = useMemo(() => {
-    const all = expenses ?? [];
-    if (calendarYear) {
-      return all.filter((e) => isInCalendarYear(e.date, calendarYear));
-    }
-    if (taxYear) {
-      return all.filter((e) => isInTaxYear(e.date, taxYear));
-    }
-    return all;
-  }, [expenses, calendarYear, taxYear]);
 
   // Running total for visible expenses
   const total = useMemo(
@@ -95,22 +75,16 @@ export default function ExpensesList() {
         <button onClick={() => setShowCreate(true)}>+ New Expense</button>
       </div>
 
-      {/* Filters */}
-      <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
-        <YearSelect
-          label="Year:"
-          value={calendarYear ?? ""}
-          options={calendarYearOptions}
-          onChange={setCalendarYear}
-        />
-        <YearSelect
-          label="Tax year:"
-          value={taxYear ?? ""}
-          options={taxYearOptions}
-          onChange={setTaxYear}
-        />
-        <CountBadge count={filteredExpenses.length} noun="expense" />
-      </div>
+      <YearFilterBar
+        calendarYear={calendarYear}
+        taxYear={taxYear}
+        calendarYearOptions={calendarYearOptions}
+        taxYearOptions={taxYearOptions}
+        setCalendarYear={setCalendarYear}
+        setTaxYear={setTaxYear}
+        count={filteredExpenses.length}
+        noun="expense"
+      />
 
       <DataTable<Expense>
         columns={[...COLUMNS, {
