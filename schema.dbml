@@ -260,7 +260,7 @@ Table invoice_sequences {
 Table payments {
   id          serial [pk, increment]
   date        date
-  amount      int
+  amount      int [not null]
   method      varchar(100)
   description varchar(255)
   gig_id      int [ref: > gigs.id, not null]

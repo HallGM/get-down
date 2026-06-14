@@ -94,6 +94,54 @@ export async function deletePayment(id: number): Promise<boolean> {
   return rows.length > 0;
 }
 
+export interface GigPaymentSummaryRow {
+  id: number;
+  type: string;
+  gig_id: number;
+  date: string | null;
+  amount: number;
+  method: string | null;
+  description: string | null;
+  client_first_name: string;
+  client_last_name: string;
+  gig_date: string;
+}
+
+export async function readAllGigPaymentSummaries(): Promise<GigPaymentSummaryRow[]> {
+  return run_query<GigPaymentSummaryRow>({
+    text: `
+      SELECT
+        p.id,
+        'payment'    AS type,
+        p.gig_id,
+        p.date,
+        p.amount,
+        p.method,
+        p.description,
+        g.first_name AS client_first_name,
+        g.last_name  AS client_last_name,
+        g.date       AS gig_date
+      FROM payments p
+      JOIN gigs g ON g.id = p.gig_id
+      UNION ALL
+      SELECT
+        r.id,
+        'refund'     AS type,
+        r.gig_id,
+        r.date,
+        r.amount,
+        r.method,
+        r.description,
+        g.first_name AS client_first_name,
+        g.last_name  AS client_last_name,
+        g.date       AS gig_date
+      FROM refunds r
+      JOIN gigs g ON g.id = r.gig_id
+      ORDER BY date DESC NULLS LAST, id DESC;
+    `,
+  });
+}
+
 export async function readPaymentsByInvoiceId(invoiceId: number): Promise<PaymentRow[]> {
   return run_query<PaymentRow>({
     text: `SELECT ${SELECT_COLS} FROM payments WHERE invoice_id = $1 ORDER BY date, id;`,

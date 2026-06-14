@@ -11,8 +11,7 @@ import AllocationEventCell from "../../components/AllocationEventCell.js";
 import YearSelect from "../../components/YearSelect.js";
 import CountBadge from "../../components/CountBadge.js";
 import { formatDate } from "../../utils/date.js";
-import { useYearFilter } from "../../hooks/useYearFilter.js";
-import { calendarYearsFromDates, taxYearsFromDates, isInCalendarYear, isInTaxYear } from "../../utils/taxYear.js";
+import { useYearFilterData } from "../../hooks/useYearFilter.js";
 import RunningTotal from "../../components/RunningTotal.js";
 
 // ─── Person filter ─────────────────────────────────────────────────────────────
@@ -50,24 +49,16 @@ function applyFilter(allocations: FeeAllocationSummary[], filter: FilterValue): 
 export default function FeeAllocationsList() {
   const { data: allocations = [], isLoading, error } = useFeeAllocationSummaries();
   const [personFilter, setPersonFilter] = useState<FilterValue>("all");
-  const { calendarYear, taxYear, setCalendarYear, setTaxYear } = useYearFilter();
+  const {
+    calendarYear, taxYear, setCalendarYear, setTaxYear,
+    calendarYearOptions, taxYearOptions,
+    filtered: yearFiltered,
+  } = useYearFilterData(allocations, (a) => a.eventDate);
   const navigate = useNavigate();
 
   const personOptions = useMemo(() => buildPersonOptions(allocations), [allocations]);
 
-  const allDates = useMemo(() => allocations.map((a) => a.eventDate), [allocations]);
-  const calendarYearOptions = useMemo(() => calendarYearsFromDates(allDates), [allDates]);
-  const taxYearOptions = useMemo(() => taxYearsFromDates(allDates), [allDates]);
-
-  const filtered = useMemo(() => {
-    let result = applyFilter(allocations, personFilter);
-    if (calendarYear) {
-      result = result.filter((a) => isInCalendarYear(a.eventDate, calendarYear));
-    } else if (taxYear) {
-      result = result.filter((a) => isInTaxYear(a.eventDate, taxYear));
-    }
-    return result;
-  }, [allocations, personFilter, calendarYear, taxYear]);
+  const filtered = useMemo(() => applyFilter(yearFiltered, personFilter), [yearFiltered, personFilter]);
 
   const total = useMemo(() => filtered.reduce((sum, a) => sum + a.totalFee, 0), [filtered]);
 

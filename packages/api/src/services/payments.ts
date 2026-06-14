@@ -1,10 +1,15 @@
-import type { Payment, CreatePaymentRequest, UpdatePaymentRequest } from "@get-down/shared";
+import type { Payment, GigPaymentSummary, CreatePaymentRequest, UpdatePaymentRequest } from "@get-down/shared";
 import * as paymentsRepo from "../repository/payments.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 
 export async function getAllPayments(): Promise<Payment[]> {
   const rows = await paymentsRepo.readAllPayments();
   return rows.map(mapPayment);
+}
+
+export async function getAllGigPaymentSummaries(): Promise<GigPaymentSummary[]> {
+  const rows = await paymentsRepo.readAllGigPaymentSummaries();
+  return rows.map(mapGigPaymentSummary);
 }
 
 export async function getPaymentsByGig(gigId: number): Promise<Payment[]> {
@@ -51,6 +56,24 @@ function mapPayment(row: paymentsRepo.PaymentRow): Payment {
     description: row.description ?? undefined,
     airtableId: row.airtable_id ?? undefined,
     invoiceId: row.invoice_id ?? undefined,
+  };
+}
+
+function mapGigPaymentSummary(row: paymentsRepo.GigPaymentSummaryRow): GigPaymentSummary {
+  if (row.type !== 'payment' && row.type !== 'refund') {
+    throw new Error(`Unexpected gig payment summary type: ${row.type}`);
+  }
+  return {
+    id: row.id,
+    type: row.type,
+    gigId: row.gig_id,
+    date: toDateString(row.date) ?? undefined,
+    amount: row.amount,
+    method: row.method ?? undefined,
+    description: row.description ?? undefined,
+    clientFirstName: row.client_first_name,
+    clientLastName: row.client_last_name,
+    gigDate: row.gig_date,
   };
 }
 

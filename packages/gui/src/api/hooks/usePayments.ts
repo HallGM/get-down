@@ -1,9 +1,17 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Payment, CreatePaymentRequest, UpdatePaymentRequest } from "@get-down/shared";
+import type { Payment, GigPaymentSummary, CreatePaymentRequest, UpdatePaymentRequest } from "@get-down/shared";
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
 const KEY = "payments";
+const ALL_GIG_PAYMENTS_KEY = "gig-payments";
+
+export function useAllGigPayments() {
+  return useQuery({
+    queryKey: [ALL_GIG_PAYMENTS_KEY],
+    queryFn: () => apiFetch<GigPaymentSummary[]>("GET", "/gig-payments"),
+  });
+}
 
 export function useGigPayments(gigId: number) {
   return useQuery({

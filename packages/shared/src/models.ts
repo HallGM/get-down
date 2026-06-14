@@ -749,6 +749,22 @@ export interface UpdateRefundRequest {
   description?: string;
 }
 
+export interface GigPaymentSummary {
+  id: number;
+  /** Discriminates between a client payment and a refund. */
+  type: 'payment' | 'refund';
+  gigId: number;
+  date?: string;
+  /** Always a positive integer (pennies). Use `type` to determine direction. */
+  amount: number;
+  method?: string;
+  description?: string;
+  clientFirstName: string;
+  clientLastName: string;
+  /** ISO date string for the gig event date. */
+  gigDate: string;
+}
+
 export interface CreatePaymentRequest {
   gigId: number;
   date?: string;
