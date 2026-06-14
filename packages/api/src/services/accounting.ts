@@ -16,12 +16,13 @@ type DateBounds = { start: string | null; end: string | null };
 export async function getSummary(params: SummaryParams): Promise<AccountingSummary> {
   const bounds = resolveBounds(params);
 
-  const [gigCounts, earnedPayments, earnedRefunds, expenses, partnerAllocations] =
+  const [gigCounts, earnedPayments, earnedRefunds, expenses, expensesBreakdown, partnerAllocations] =
     await Promise.all([
       repo.readGigCounts(bounds),
       repo.readEarnedPayments(bounds),
       repo.readEarnedRefunds(bounds),
       repo.readExpensesTotal(bounds),
+      repo.readExpensesBreakdown(bounds),
       repo.readPartnerFeeAllocations(bounds),
     ]);
 
@@ -35,6 +36,7 @@ export async function getSummary(params: SummaryParams): Promise<AccountingSumma
     gigsPerformed: gigCounts.performed,
     earnedIncome,
     expenses,
+    expensesBreakdown,
     profit,
     feeAllocationsTotal,
     feeAllocationsBreakdown: partnerAllocations.map((a) => ({

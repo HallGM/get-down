@@ -1121,6 +1121,15 @@ export interface FeeAllocationBreakdown {
   amount: number;
 }
 
+export interface ExpensesBreakdown {
+  /** Expenses linked to a fee allocation, in pence. */
+  feeAllocation: number;
+  /** Expenses linked directly to a showcase (but not via a fee allocation), in pence. */
+  showcase: number;
+  /** Expenses with no fee allocation or showcase link, in pence. */
+  other: number;
+}
+
 export interface AccountingSummary {
   // Gig activity (counts for the selected period, filtered by gig date)
   gigsBooked: number;
@@ -1131,6 +1140,8 @@ export interface AccountingSummary {
 
   // Expenses in pence (all expenses by invoice date, regardless of payment status)
   expenses: number;
+  // Breakdown of expenses into fee allocation, showcase, and other buckets
+  expensesBreakdown: ExpensesBreakdown;
 
   // Profit in pence (earned income minus expenses)
   profit: number;

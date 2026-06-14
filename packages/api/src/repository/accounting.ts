@@ -1,3 +1,4 @@
+import type { ExpensesBreakdown } from "@get-down/shared";
 import { run_query } from "../db/init.js";
 
 export interface GigCounts {
@@ -105,6 +106,57 @@ export async function readExpensesTotal(bounds: DateBounds): Promise<number> {
     values: [bounds.start, bounds.end],
   });
   return parseInt(rows[0]!.total, 10);
+}
+
+// ─── Expenses breakdown ───────────────────────────────────────────────────────
+
+export interface ExpensesBreakdownRow {
+  fee_allocation: string;
+  showcase: string;
+  other: string;
+}
+
+/**
+ * Split the date-filtered expenses total into three mutually exclusive buckets:
+ *   fee_allocation — expense has at least one row in fee_allocations_expenses
+ *   showcase       — expense has a row in showcase_expenses but none in fee_allocations_expenses
+ *   other          — expense has no link to either
+ *
+ * The DISTINCT subqueries prevent double-counting expenses that are linked to
+ * multiple fee allocations. Fee allocation takes priority over showcase when
+ * an expense appears in both join tables.
+ *
+ * The three values always sum to the result of readExpensesTotal for the same bounds.
+ */
+export async function readExpensesBreakdown(bounds: DateBounds): Promise<ExpensesBreakdown> {
+  const rows = await run_query<ExpensesBreakdownRow>({
+    text: `
+      SELECT
+        COALESCE(SUM(e.amount) FILTER (
+          WHERE fae.expense_id IS NOT NULL
+        ), 0)::bigint AS fee_allocation,
+        COALESCE(SUM(e.amount) FILTER (
+          WHERE fae.expense_id IS NULL AND sce.expense_id IS NOT NULL
+        ), 0)::bigint AS showcase,
+        COALESCE(SUM(e.amount) FILTER (
+          WHERE fae.expense_id IS NULL AND sce.expense_id IS NULL
+        ), 0)::bigint AS other
+      FROM expenses e
+      LEFT JOIN (SELECT DISTINCT expense_id FROM fee_allocations_expenses) fae
+        ON fae.expense_id = e.id
+      LEFT JOIN (SELECT DISTINCT expense_id FROM showcase_expenses) sce
+        ON sce.expense_id = e.id
+      WHERE ($1::date IS NULL OR e.date >= $1)
+        AND ($2::date IS NULL OR e.date <= $2);
+    `,
+    values: [bounds.start, bounds.end],
+  });
+  const row = rows[0]!;
+  return {
+    feeAllocation: parseInt(row.fee_allocation, 10),
+    showcase:      parseInt(row.showcase, 10),
+    other:         parseInt(row.other, 10),
+  };
 }
 
 // ─── Partner fee allocations ──────────────────────────────────────────────────

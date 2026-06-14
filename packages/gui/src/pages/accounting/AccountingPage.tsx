@@ -146,6 +146,21 @@ function SummaryTable({ data }: { data: AccountingSummary }) {
             hint="All expenses by invoice date"
             value={<MoneyDisplay pennies={data.expenses} colorNegative bold />}
           />
+          <Row
+            label="Fee allocation"
+            value={<MoneyDisplay pennies={data.expensesBreakdown.feeAllocation} colorNegative bold />}
+            indent
+          />
+          <Row
+            label="Showcase"
+            value={<MoneyDisplay pennies={data.expensesBreakdown.showcase} colorNegative bold />}
+            indent
+          />
+          <Row
+            label="Other"
+            value={<MoneyDisplay pennies={data.expensesBreakdown.other} colorNegative bold />}
+            indent
+          />
 
           {/* ── Profit ── */}
           <SectionHeader title="Profit" />
