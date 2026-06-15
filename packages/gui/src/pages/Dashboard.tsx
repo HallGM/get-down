@@ -175,7 +175,7 @@ function PaymentMismatchTable({ mismatches }: { mismatches: GigPaymentMismatchAl
             <tr key={m.id}>
               <td>{formatDate(m.date)}</td>
               <td>
-                <Link to={`/gigs/${m.id}/invoices`}>{formatGigName(m)}</Link>
+                <Link to={`/gigs/${m.id}`}>{formatGigName(m)}</Link>
               </td>
               <td>{m.venueName ?? m.location ?? "—"}</td>
               <td>{formatPennies(m.billingTotal)}</td>

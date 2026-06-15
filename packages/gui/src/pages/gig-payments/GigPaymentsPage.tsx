@@ -70,7 +70,7 @@ export default function GigPaymentsPage() {
                   </td>
                   <td style={{ textTransform: "capitalize" }}>{s.type}</td>
                   <td>
-                    <Link to={`/gigs/${s.gigId}/invoices`}>
+                    <Link to={`/gigs/${s.gigId}`}>
                       {s.clientFirstName} {s.clientLastName}
                     </Link>
                   </td>

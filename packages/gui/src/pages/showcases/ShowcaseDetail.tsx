@@ -8,8 +8,16 @@ import FormField from "../../components/FormField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
+import TabBar from "../../components/TabBar.js";
 import ShowcaseRolesTab from "../attributions/ShowcaseRolesTab.js";
 import ShowcaseExpensesTab from "./ShowcaseExpensesTab.js";
+
+type ShowcaseTab = "expenses" | "roles";
+const SHOWCASE_TABS: ShowcaseTab[] = ["expenses", "roles"];
+const SHOWCASE_TAB_LABELS: Record<ShowcaseTab, string> = {
+  expenses: "Expenses",
+  roles: "Roles & Billing",
+};
 
 export default function ShowcaseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +31,7 @@ export default function ShowcaseDetail() {
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState<UpdateShowcaseRequest>({});
   const [showDelete, setShowDelete] = useState(false);
-  const [activeTab, setActiveTab] = useState<"expenses" | "roles">("expenses");
+  const [activeTab, setActiveTab] = useState<ShowcaseTab>("expenses");
 
   function openEdit() {
     if (!showcase) return;
@@ -64,23 +72,7 @@ export default function ShowcaseDetail() {
         <button className="secondary outline" style={{ padding: "0.3em 0.7em" }} onClick={openEdit}>Edit</button>
       </div>
 
-      {/* Tab bar */}
-      <div style={{ display: "flex", gap: "0", borderBottom: "1px solid var(--pico-muted-border-color)", marginBottom: "1.5rem" }}>
-        <button
-          className={activeTab === "expenses" ? "outline" : "secondary outline"}
-          style={{ borderBottom: activeTab === "expenses" ? "2px solid var(--pico-primary)" : "none", borderRadius: 0, padding: "0.4em 1em" }}
-          onClick={() => setActiveTab("expenses")}
-        >
-          Expenses
-        </button>
-        <button
-          className={activeTab === "roles" ? "outline" : "secondary outline"}
-          style={{ borderBottom: activeTab === "roles" ? "2px solid var(--pico-primary)" : "none", borderRadius: 0, padding: "0.4em 1em" }}
-          onClick={() => setActiveTab("roles")}
-        >
-          Roles &amp; Billing
-        </button>
-      </div>
+      <TabBar tabs={SHOWCASE_TABS} labels={SHOWCASE_TAB_LABELS} active={activeTab} onChange={setActiveTab} />
 
       {activeTab === "expenses" && (
         <ShowcaseExpensesTab showcase={showcase} />

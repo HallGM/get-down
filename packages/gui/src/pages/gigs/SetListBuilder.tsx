@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   DndContext,
   closestCenter,
@@ -252,22 +252,14 @@ export default function SetListBuilder() {
     }
   }
 
-  if (isLoading) return <main className="container"><LoadingState /></main>;
-  if (error) return <main className="container"><ErrorBanner error={error} /></main>;
+  if (isLoading) return <LoadingState />;
+  if (error) return <ErrorBanner error={error} />;
 
   // Build a rendered list with per-section duration footers injected
   const listWithSectionTotals = buildRenderedList(ordered);
 
   return (
-    <main className="container">
-      <nav aria-label="breadcrumb">
-        <ul>
-          <li><Link to="/gigs">Gigs</Link></li>
-          <li><Link to={`/gigs/${gigId}`}>{gig ? `${gig.firstName} ${gig.lastName}` : `Gig ${gigId}`}</Link></li>
-          <li>Set List</li>
-        </ul>
-      </nav>
-
+    <>
       {/* Page header row with action buttons */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
         <h1 style={{ margin: 0 }}>Set List</h1>
@@ -543,7 +535,7 @@ export default function SetListBuilder() {
         onSubmit={handleEditItem}
         isPending={addItem.isPending || updateItem.isPending}
       />
-    </main>
+    </>
   );
 }
 
