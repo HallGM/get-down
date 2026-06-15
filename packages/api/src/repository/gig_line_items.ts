@@ -26,6 +26,19 @@ export async function readGigLineItemsByGigId(gigId: number): Promise<GigLineIte
   });
 }
 
+export async function updateGigLineItem(
+  id: number,
+  gigId: number,
+  description: string | null,
+  amount: number | null
+): Promise<GigLineItemRow | null> {
+  const rows = await run_query<GigLineItemRow>({
+    text: `UPDATE gig_line_items SET description = $3, amount = $4 WHERE id = $1 AND gig_id = $2 RETURNING id, gig_id, description, amount;`,
+    values: [id, gigId, description, amount],
+  });
+  return rows[0] ?? null;
+}
+
 export async function deleteGigLineItem(id: number): Promise<boolean> {
   const rows = await run_query<{ id: number }>({
     text: `DELETE FROM gig_line_items WHERE id = $1 RETURNING id;`,

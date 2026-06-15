@@ -1,4 +1,4 @@
-import type { Gig, GigLineItem, Service, CreateGigRequest, UpdateGigRequest, CreateGigLineItemRequest } from "@get-down/shared";
+import type { Gig, GigLineItem, Service, CreateGigRequest, UpdateGigRequest, CreateGigLineItemRequest, UpdateGigLineItemRequest } from "@get-down/shared";
 import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
 import * as paymentsRepo from "../repository/payments.js";
@@ -96,32 +96,41 @@ export async function addGigLineItem(
   gigId: number,
   input: CreateGigLineItemRequest
 ): Promise<GigLineItem> {
-  const gig = await gigsRepo.readGigById(gigId);
-  if (!gig) throw new NotFoundError("Gig not found");
-  const row = await gigLineItemsRepo.createGigLineItem(
-    gigId,
-    input.description?.trim() ?? null,
-    input.amount ?? null
-  );
+  await requireGig(gigId);
+  if (input.amount === undefined) throw new BadRequestError("amount is required");
+  const { description, amount } = normaliseLineItemInput(input);
+  const row = await gigLineItemsRepo.createGigLineItem(gigId, description, amount);
   return mapGigLineItem(row);
 }
 
 export async function removeGigLineItem(gigId: number, lineItemId: number): Promise<void> {
-  const gig = await gigsRepo.readGigById(gigId);
-  if (!gig) throw new NotFoundError("Gig not found");
+  await requireGig(gigId);
   const deleted = await gigLineItemsRepo.deleteGigLineItem(lineItemId);
   if (!deleted) throw new NotFoundError("Line item not found");
 }
 
+export async function updateGigLineItem(
+  gigId: number,
+  lineItemId: number,
+  input: UpdateGigLineItemRequest
+): Promise<GigLineItem> {
+  await requireGig(gigId);
+  if (input.description === undefined && input.amount === undefined) {
+    throw new BadRequestError("At least one of description or amount must be provided");
+  }
+  const { description, amount } = normaliseLineItemInput(input);
+  const row = await gigLineItemsRepo.updateGigLineItem(lineItemId, gigId, description, amount);
+  if (!row) throw new NotFoundError("Line item not found");
+  return mapGigLineItem(row);
+}
+
 export async function setGigServices(gigId: number, serviceIds: number[]): Promise<void> {
-  const gig = await gigsRepo.readGigById(gigId);
-  if (!gig) throw new NotFoundError("Gig not found");
+  await requireGig(gigId);
   await gigsRepo.setGigServices(gigId, serviceIds);
 }
 
 export async function generateLineItemsFromServices(gigId: number): Promise<GigLineItem[]> {
-  const gig = await gigsRepo.readGigById(gigId);
-  if (!gig) throw new NotFoundError("Gig not found");
+  await requireGig(gigId);
   const services = await gigsRepo.readGigServicesByGigId(gigId);
   const created = await Promise.all(
     services.map((s) =>
@@ -234,6 +243,18 @@ function mapGigService(row: gigsRepo.GigServiceRow): Service {
     id: row.id,
     name: row.name,
     priceToClient: row.price_to_client ?? undefined,
+  };
+}
+
+async function requireGig(gigId: number): Promise<void> {
+  const gig = await gigsRepo.readGigById(gigId);
+  if (!gig) throw new NotFoundError("Gig not found");
+}
+
+function normaliseLineItemInput(input: { description?: string; amount?: number }) {
+  return {
+    description: input.description?.trim() ?? null,
+    amount: input.amount ?? null,
   };
 }
 

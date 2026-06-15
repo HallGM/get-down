@@ -203,10 +203,13 @@ export interface GigLineItem {
   amount?: number;
 }
 
-export interface CreateGigLineItemRequest {
+export interface LineItemFields {
   description?: string;
   amount?: number;
 }
+
+export type CreateGigLineItemRequest = LineItemFields;
+export type UpdateGigLineItemRequest = LineItemFields;
 
 export interface Gig {
   id: number;
@@ -547,15 +550,8 @@ export interface UpdateFeeAllocationRequest {
   invoiceRef?: string;
 }
 
-export interface UpdateFeeAllocationLineItemRequest {
-  description?: string;
-  amount?: number;
-}
-
-export interface CreateFeeAllocationLineItemRequest {
-  description?: string;
-  amount?: number;
-}
+export type UpdateFeeAllocationLineItemRequest = LineItemFields;
+export type CreateFeeAllocationLineItemRequest = LineItemFields;
 
 export interface AssignedRole {
   id: number;
@@ -843,15 +839,8 @@ export interface UpdateInvoiceRequest {
   invoiceType?: 'deposit' | 'balance';
 }
 
-export interface CreateInvoiceLineItemRequest {
-  description?: string;
-  amount?: number;
-}
-
-export interface UpdateInvoiceLineItemRequest {
-  description?: string;
-  amount?: number;
-}
+export type CreateInvoiceLineItemRequest = LineItemFields;
+export type UpdateInvoiceLineItemRequest = LineItemFields;
 
 export interface UpdateInvoiceAdditionalChargeRequest {
   description?: string;

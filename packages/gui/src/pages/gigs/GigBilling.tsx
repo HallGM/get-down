@@ -5,6 +5,7 @@ import {
   useUpdateGig,
   useAddGigLineItem,
   useRemoveGigLineItem,
+  useUpdateGigLineItem,
   useGenerateLineItems,
 } from "../../api/hooks/useGigs.js";
 import { useGigPayments, useCreatePayment, useDeletePayment } from "../../api/hooks/usePayments.js";
@@ -29,7 +30,7 @@ import Modal from "../../components/Modal.js";
 import UnavailableMoney from "../../components/UnavailableMoney.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { formatPennies } from "../../utils/money.js";
-import type { CreatePaymentRequest, CreateGigLineItemRequest, CreateRefundRequest, Invoice } from "@get-down/shared";
+import type { CreatePaymentRequest, CreateGigLineItemRequest, UpdateGigLineItemRequest, CreateRefundRequest, Invoice } from "@get-down/shared";
 
 // ---------------------------------------------------------------------------
 // Local hook: manages a single PDF blob modal (load → display → revoke on close)
@@ -105,6 +106,37 @@ function AddTransactionModal({ open, title, form, onChange, onSubmit, onClose, i
 }
 
 // ---------------------------------------------------------------------------
+// Shared modal for adding or editing a line item
+// ---------------------------------------------------------------------------
+interface LineItemFormModalProps {
+  open: boolean;
+  title: string;
+  submitLabel: string;
+  form: { description?: string; amount?: number };
+  onChange: (form: { description?: string; amount?: number }) => void;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
+  onClose: () => void;
+  isPending: boolean;
+  error?: Error | null;
+}
+
+function LineItemFormModal({ open, title, submitLabel, form, onChange, onSubmit, onClose, isPending, error }: LineItemFormModalProps) {
+  return (
+    <Modal open={open} onClose={onClose} title={title}>
+      <form onSubmit={onSubmit}>
+        <FormField label="Description" value={form.description ?? ""} onChange={(e) => onChange({ ...form, description: e.target.value })} required placeholder="e.g. 3-piece band" />
+        <MoneyField label="Amount" value={form.amount ?? undefined} onChange={(pennies) => onChange({ ...form, amount: pennies ?? 0 })} required min={0} />
+        {error && <ErrorBanner error={error.message} />}
+        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+          <button type="button" className="secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" aria-busy={isPending} disabled={isPending}>{submitLabel}</button>
+        </footer>
+      </form>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page component
 // ---------------------------------------------------------------------------
 export default function GigBilling() {
@@ -125,6 +157,7 @@ export default function GigBilling() {
   const generateCreditNoteMutation = useGenerateCreditNote();
   const addGigLineItem = useAddGigLineItem();
   const removeGigLineItem = useRemoveGigLineItem();
+  const updateGigLineItem = useUpdateGigLineItem();
   const generateLineItems = useGenerateLineItems();
   const createInvoice = useCreateInvoice();
   const previewMutation = useInvoicePreview();
@@ -149,6 +182,10 @@ export default function GigBilling() {
   // Add line item modal
   const [showAddLineItem, setShowAddLineItem] = useState(false);
   const [lineItemForm, setLineItemForm] = useState<CreateGigLineItemRequest>({ description: "", amount: 0 });
+
+  // Edit line item modal
+  const [editLineItemId, setEditLineItemId] = useState<number | null>(null);
+  const [editLineItemForm, setEditLineItemForm] = useState<UpdateGigLineItemRequest>({ description: "", amount: 0 });
 
   // Add payment / refund modals
   const [showAddPayment, setShowAddPayment] = useState(false);
@@ -220,6 +257,27 @@ export default function GigBilling() {
     });
     setShowAddLineItem(false);
     setLineItemForm({ description: "", amount: 0 });
+  }
+
+  function openEditLineItem(item: { id: number; description?: string; amount?: number }) {
+    setEditLineItemId(item.id);
+    setEditLineItemForm({ description: item.description ?? "", amount: item.amount });
+  }
+
+  function closeEditLineItem() {
+    setEditLineItemId(null);
+    setEditLineItemForm({ description: "", amount: 0 });
+  }
+
+  async function handleEditLineItem(e: React.FormEvent) {
+    e.preventDefault();
+    if (editLineItemId === null) return;
+    await updateGigLineItem.mutateAsync({
+      gigId,
+      itemId: editLineItemId,
+      input: { ...editLineItemForm, amount: editLineItemForm.amount ?? 0 },
+    });
+    closeEditLineItem();
   }
 
   async function handleAddPayment(e: React.FormEvent) {
@@ -366,12 +424,20 @@ export default function GigBilling() {
                   <td>{item.description ?? "—"}</td>
                   <td><MoneyDisplay pennies={item.amount} /></td>
                   <td>
-                    <button
-                      className="contrast outline"
-                      style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
-                      aria-label={`Remove line item: ${item.description ?? "untitled"}`}
-                      onClick={() => removeGigLineItem.mutate({ gigId, itemId: item.id })}
-                    >✕</button>
+                    <div style={{ display: "flex", gap: "0.25rem" }}>
+                      <button
+                        className="secondary outline"
+                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                        aria-label={`Edit line item: ${item.description ?? "untitled"}`}
+                        onClick={() => openEditLineItem(item)}
+                      >✏️</button>
+                      <button
+                        className="contrast outline"
+                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                        aria-label={`Remove line item: ${item.description ?? "untitled"}`}
+                        onClick={() => removeGigLineItem.mutate({ gigId, itemId: item.id })}
+                      >✕</button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -581,16 +647,28 @@ export default function GigBilling() {
       </section>
 
       {/* Modals */}
-      <Modal open={showAddLineItem} onClose={() => setShowAddLineItem(false)} title="Add Line Item">
-        <form onSubmit={handleAddLineItem}>
-          <FormField label="Description" value={lineItemForm.description ?? ""} onChange={(e) => setLineItemForm((f) => ({ ...f, description: e.target.value }))} required placeholder="e.g. 3-piece band" />
-          <MoneyField label="Amount" value={lineItemForm.amount ?? undefined} onChange={(pennies) => setLineItemForm((f) => ({ ...f, amount: pennies ?? 0 }))} required min={0} />
-          <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-            <button type="button" className="secondary" onClick={() => setShowAddLineItem(false)}>Cancel</button>
-            <button type="submit" aria-busy={addGigLineItem.isPending} disabled={addGigLineItem.isPending}>Add</button>
-          </footer>
-        </form>
-      </Modal>
+      <LineItemFormModal
+        open={showAddLineItem}
+        title="Add Line Item"
+        submitLabel="Add"
+        form={lineItemForm}
+        onChange={(f) => setLineItemForm(f)}
+        onSubmit={handleAddLineItem}
+        onClose={() => setShowAddLineItem(false)}
+        isPending={addGigLineItem.isPending}
+      />
+
+      <LineItemFormModal
+        open={editLineItemId !== null}
+        title="Edit Line Item"
+        submitLabel="Save"
+        form={editLineItemForm}
+        onChange={(f) => setEditLineItemForm(f)}
+        onSubmit={handleEditLineItem}
+        onClose={closeEditLineItem}
+        isPending={updateGigLineItem.isPending}
+        error={updateGigLineItem.error}
+      />
 
       <AddTransactionModal
         open={showAddPayment}
