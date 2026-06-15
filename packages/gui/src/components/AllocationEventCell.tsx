@@ -18,7 +18,7 @@ interface Props {
  */
 export default function AllocationEventCell({ eventName, gigId, showcaseId }: Props) {
   const href = gigId
-    ? `/gigs/${gigId}/roles`
+    ? `/gigs/${gigId}`
     : showcaseId
       ? `/showcases/${showcaseId}`
       : null;

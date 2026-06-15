@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   useGig,
   useUpdateGig,
@@ -181,8 +181,8 @@ export default function GigBilling() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (isLoading) return <main className="container"><LoadingState /></main>;
-  if (error || !gig) return <main className="container"><ErrorBanner error={error ?? "Gig not found"} /></main>;
+  if (isLoading) return <LoadingState />;
+  if (error || !gig) return <ErrorBanner error={error ?? "Gig not found"} />;
 
   // Compute financial summary fully client-side from live data
   const subtotal = (gig.lineItems ?? []).reduce((sum, li) => sum + (li.amount ?? 0), 0);
@@ -285,17 +285,7 @@ export default function GigBilling() {
   const unlinkedPayments = (payments ?? []).filter(p => !p.invoiceId);
 
   return (
-    <main className="container">
-      <nav aria-label="breadcrumb">
-        <ul>
-          <li><Link to="/gigs">Gigs</Link></li>
-          <li><Link to={`/gigs/${gigId}`}>{gig.firstName} {gig.lastName}</Link></li>
-          <li aria-current="page">Invoice &amp; Billing</li>
-        </ul>
-      </nav>
-
-      <h1 style={{ marginBottom: "1rem" }}>Invoice &amp; Billing</h1>
-
+    <>
       {/* Financial Summary */}
       <article>
         <header><strong>Financial Summary</strong></header>
@@ -748,6 +738,6 @@ export default function GigBilling() {
         onCancel={() => setDeleteInvoiceTarget(null)}
         loading={deleteInvoice.isPending}
       />
-    </main>
+    </>
   );
 }

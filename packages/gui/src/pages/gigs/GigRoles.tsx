@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useGig } from "../../api/hooks/useGigs.js";
 import { useGigRoles, useCreateRole, useUpdateRole, useDeleteRole, useImportRolesFromServices } from "../../api/hooks/useAssignedRoles.js";
 import { usePeople } from "../../api/hooks/usePeople.js";
@@ -105,8 +105,8 @@ export default function GigRoles() {
     return { description, amount };
   }
 
-  if (gigLoading) return <main className="container"><LoadingState /></main>;
-  if (gigError || !gig) return <main className="container"><ErrorBanner error={gigError ?? "Gig not found"} /></main>;
+  if (gigLoading) return <LoadingState />;
+  if (gigError || !gig) return <ErrorBanner error={gigError ?? "Gig not found"} />;
 
   async function handleAddRole(e: React.FormEvent) {
     e.preventDefault();
@@ -153,18 +153,7 @@ export default function GigRoles() {
   }
 
   return (
-    <main className="container">
-      <nav aria-label="breadcrumb">
-        <ul>
-          <li><Link to="/gigs">Gigs</Link></li>
-          <li><Link to={`/gigs/${gigId}`}>{gig.firstName} {gig.lastName}</Link></li>
-          <li>Roles &amp; Fees</li>
-        </ul>
-      </nav>
-
-      <h1>Roles &amp; Fees</h1>
-      <p style={{ color: "var(--pico-muted-color)" }}>{gig.firstName} {gig.lastName}</p>
-
+    <>
       {/* Assigned Roles */}
       <section>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -495,7 +484,7 @@ export default function GigRoles() {
           </button>
         </footer>
       </Modal>
-    </main>
+    </>
   );
 }
 

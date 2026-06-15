@@ -6,9 +6,6 @@ import Login from "./pages/Login.js";
 import Dashboard from "./pages/Dashboard.js";
 import GigsList from "./pages/gigs/GigsList.js";
 import GigDetail from "./pages/gigs/GigDetail.js";
-import GigRoles from "./pages/gigs/GigRoles.js";
-import SetListBuilder from "./pages/gigs/SetListBuilder.js";
-import GigBilling from "./pages/gigs/GigBilling.js";
 import InvoiceEdit from "./pages/gigs/InvoiceEdit.js";
 import EnquiriesList from "./pages/enquiries/EnquiriesList.js";
 import EmailGenerator from "./pages/enquiries/EmailGenerator.js";
@@ -183,9 +180,6 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/gigs" element={<GigsList />} />
           <Route path="/gigs/:id" element={<GigDetail />} />
-          <Route path="/gigs/:id/roles" element={<GigRoles />} />
-          <Route path="/gigs/:id/set-list" element={<SetListBuilder />} />
-          <Route path="/gigs/:id/invoices" element={<GigBilling />} />
           <Route path="/gigs/:id/invoices/:invoiceId/edit" element={<InvoiceEdit />} />
           <Route path="/enquiries" element={<EnquiriesList />} />
           <Route path="/enquiries/email-generator" element={<EmailGenerator />} />

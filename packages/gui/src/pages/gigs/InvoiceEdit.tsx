@@ -528,13 +528,13 @@ export default function InvoiceEdit() {
         <ul>
           <li><Link to="/gigs">Gigs</Link></li>
           <li><Link to={`/gigs/${gigId}`}>{gig ? `${gig.firstName} ${gig.lastName}` : gigId}</Link></li>
-          <li><Link to={`/gigs/${gigId}/invoices`}>Invoice &amp; Billing</Link></li>
+          <li><Link to={`/gigs/${gigId}`}>Invoice &amp; Billing</Link></li>
           <li aria-current="page">Edit Invoice {invoice.invoiceNumber}</li>
         </ul>
       </nav>
 
       <div style={{ marginBottom: "1rem" }}>
-        <button className="secondary outline" style={{ padding: "0.35em 0.85em", marginBottom: "0.75rem" }} onClick={() => navigate(`/gigs/${gigId}/invoices`)}>
+        <button className="secondary outline" style={{ padding: "0.35em 0.85em", marginBottom: "0.75rem" }} onClick={() => navigate(`/gigs/${gigId}`)}>
           ← Back to Billing
         </button>
         <h1 style={{ margin: 0 }}>Edit Invoice {invoice.invoiceNumber}</h1>

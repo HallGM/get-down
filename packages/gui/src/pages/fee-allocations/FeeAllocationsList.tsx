@@ -123,7 +123,7 @@ export default function FeeAllocationsList() {
             <tbody>
               {filtered.map((a) => {
                 const href = a.gigId
-                  ? `/gigs/${a.gigId}/roles`
+                  ? `/gigs/${a.gigId}`
                   : a.showcaseId
                     ? `/showcases/${a.showcaseId}`
                     : null;

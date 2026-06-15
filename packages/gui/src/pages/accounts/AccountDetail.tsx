@@ -52,7 +52,7 @@ function LinkedAllocationsDisplay({ allocations }: { allocations: LinkedFeeAlloc
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
       {allocations.map((a) => {
-        const href = a.gigId ? `/gigs/${a.gigId}/roles` : a.showcaseId ? `/showcases/${a.showcaseId}` : null;
+        const href = a.gigId ? `/gigs/${a.gigId}` : a.showcaseId ? `/showcases/${a.showcaseId}` : null;
         const content = (
           <>
             <span style={{ fontWeight: 500 }}>{a.eventName ?? "Unknown event"}</span>
