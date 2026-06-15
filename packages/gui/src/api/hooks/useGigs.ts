@@ -5,6 +5,7 @@ import type {
   CreateGigRequest,
   UpdateGigRequest,
   CreateGigLineItemRequest,
+  UpdateGigLineItemRequest,
 } from "@get-down/shared";
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
@@ -86,6 +87,16 @@ export function useAddGigLineItem() {
       apiFetch<GigLineItem>("POST", `/gigs/${gigId}/line-items`, input),
     onSuccess: (_data, { gigId }) => qc.invalidateQueries({ queryKey: [KEY, gigId] }),
     successMessage: "Line item added",
+  });
+}
+
+export function useUpdateGigLineItem() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ gigId, itemId, input }: { gigId: number; itemId: number; input: UpdateGigLineItemRequest }) =>
+      apiFetch<GigLineItem>("PUT", `/gigs/${gigId}/line-items/${itemId}`, input),
+    onSuccess: (_data, { gigId }) => qc.invalidateQueries({ queryKey: [KEY, gigId] }),
+    successMessage: "Line item saved",
   });
 }
 
