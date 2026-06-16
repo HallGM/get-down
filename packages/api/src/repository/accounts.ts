@@ -10,12 +10,14 @@ export interface AccountSummaryRow {
   display_name: string | null;
   ca_balance: number;
   is_business: boolean;
+  is_partner: boolean;
 }
 
 export interface AccountRow {
   id: number;
   person_id: number | null;
   is_business: boolean;
+  is_partner: boolean;
 }
 
 export interface PersonNameRow {
@@ -36,7 +38,7 @@ export interface TransactionRow {
 
 export interface LedgerEntryRow {
   source_id: number;
-  entry_type: 'transaction' | 'allocation' | 'expense_payment' | 'gig_payment' | 'drawing';
+  entry_type: 'transaction' | 'allocation' | 'expense_payment' | 'gig_payment' | 'drawing' | 'received_gig_payment';
   account_id: number;
   person_id: number | null;
   date: string | null;
@@ -62,12 +64,13 @@ export async function readAllAccounts(): Promise<AccountSummaryRow[]> {
         p.first_name,
         p.last_name,
         p.display_name,
+        COALESCE(p.is_partner, false) AS is_partner,
         COALESCE(SUM(l.amount), 0)::int AS ca_balance
       FROM accounts a
       LEFT JOIN people p ON p.id = a.person_id
       LEFT JOIN account_ledger l ON l.account_id = a.id
         AND (l.date IS NULL OR l.date >= $1) -- NULL date = undated/pending; always included
-      GROUP BY a.id, a.person_id, a.is_business, p.first_name, p.last_name, p.display_name
+      GROUP BY a.id, a.person_id, a.is_business, p.first_name, p.last_name, p.display_name, p.is_partner
       ORDER BY a.is_business DESC, p.first_name, p.last_name;
     `,
     values: [PARTNERSHIP_START_DATE],
@@ -95,7 +98,12 @@ export async function readPeopleWithoutAccounts(): Promise<PersonNameRow[]> {
 
 export async function readAccountById(id: number): Promise<AccountRow | null> {
   const rows = await run_query<AccountRow>({
-    text: `SELECT id, person_id, is_business FROM accounts WHERE id = $1 LIMIT 1;`,
+    text: `
+      SELECT a.id, a.person_id, a.is_business, COALESCE(p.is_partner, false) AS is_partner
+      FROM accounts a
+      LEFT JOIN people p ON p.id = a.person_id
+      WHERE a.id = $1 LIMIT 1;
+    `,
     values: [id],
   });
   return rows[0] ?? null;

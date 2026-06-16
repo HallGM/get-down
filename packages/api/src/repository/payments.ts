@@ -9,6 +9,7 @@ export interface PaymentRow {
   description: string | null;
   airtable_id: string | null;
   invoice_id: number | null;
+  received_by_account_id: number | null;
 }
 
 export interface PaymentMutationInput {
@@ -18,15 +19,16 @@ export interface PaymentMutationInput {
   method?: string;
   description?: string;
   airtableId?: string;
+  receivedByAccountId?: number | null;
 }
 
-const SELECT_COLS = `id, gig_id, date, amount, method, description, airtable_id, invoice_id`;
+const SELECT_COLS = `id, gig_id, date, amount, method, description, airtable_id, invoice_id, received_by_account_id`;
 
 export async function createPayment(input: PaymentMutationInput): Promise<PaymentRow> {
   const rows = await run_query<PaymentRow>({
     text: `
-      INSERT INTO payments (gig_id, date, amount, method, description, airtable_id)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO payments (gig_id, date, amount, method, description, airtable_id, received_by_account_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -36,6 +38,7 @@ export async function createPayment(input: PaymentMutationInput): Promise<Paymen
       input.method ?? null,
       input.description ?? null,
       input.airtableId ?? null,
+      input.receivedByAccountId ?? null,
     ],
   });
   return rows[0];
@@ -69,8 +72,9 @@ export async function updatePayment(
   const rows = await run_query<PaymentRow>({
     text: `
       UPDATE payments
-      SET gig_id = $1, date = $2, amount = $3, method = $4, description = $5, airtable_id = $6
-      WHERE id = $7
+      SET gig_id = $1, date = $2, amount = $3, method = $4, description = $5, airtable_id = $6,
+          received_by_account_id = $7
+      WHERE id = $8
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -80,6 +84,7 @@ export async function updatePayment(
       input.method ?? null,
       input.description ?? null,
       input.airtableId ?? null,
+      input.receivedByAccountId ?? null,
       id,
     ],
   });
@@ -105,6 +110,8 @@ export interface GigPaymentSummaryRow {
   client_first_name: string;
   client_last_name: string;
   gig_date: string;
+  received_by: string | null;
+  received_by_account_id: number | null;
 }
 
 export async function readAllGigPaymentSummaries(): Promise<GigPaymentSummaryRow[]> {
@@ -120,9 +127,17 @@ export async function readAllGigPaymentSummaries(): Promise<GigPaymentSummaryRow
         p.description,
         g.first_name AS client_first_name,
         g.last_name  AS client_last_name,
-        g.date       AS gig_date
+        g.date       AS gig_date,
+        CASE
+          WHEN rb_a.id IS NOT NULL
+            THEN COALESCE(rb_p.display_name, rb_p.first_name || COALESCE(' ' || rb_p.last_name, ''))
+          ELSE NULL
+        END          AS received_by,
+        p.received_by_account_id
       FROM payments p
       JOIN gigs g ON g.id = p.gig_id
+      LEFT JOIN accounts rb_a ON rb_a.id = p.received_by_account_id
+      LEFT JOIN people   rb_p ON rb_p.id = rb_a.person_id
       UNION ALL
       SELECT
         r.id,
@@ -134,7 +149,9 @@ export async function readAllGigPaymentSummaries(): Promise<GigPaymentSummaryRow
         r.description,
         g.first_name AS client_first_name,
         g.last_name  AS client_last_name,
-        g.date       AS gig_date
+        g.date       AS gig_date,
+        NULL         AS received_by,
+        NULL::int    AS received_by_account_id
       FROM refunds r
       JOIN gigs g ON g.id = r.gig_id
       ORDER BY date DESC NULLS LAST, id DESC;

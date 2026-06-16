@@ -20,6 +20,11 @@ export function useAccounts() {
   });
 }
 
+export function usePartnerAccounts() {
+  const { data: accounts = [], ...rest } = useAccounts();
+  return { ...rest, data: accounts.filter((a) => a.isPartner) };
+}
+
 export function usePeopleWithoutAccounts() {
   return useQuery({
     queryKey: [PEOPLE_KEY],

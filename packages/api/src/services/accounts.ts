@@ -199,6 +199,7 @@ function mapAccount(row: accountsRepo.AccountSummaryRow): Account {
     personName,
     caBalance: row.ca_balance,
     isBusiness: row.is_business,
+    isPartner: row.is_partner,
   };
 }
 

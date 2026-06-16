@@ -31,7 +31,7 @@ import { accountBalanceLabel } from "../../utils/accounts.js";
 
 /** Entry types that are system-generated and should be rendered muted/italic. */
 const SYSTEM_ENTRY_TYPES: LedgerEntry['entryType'][] = [
-  'allocation', 'expense_payment', 'gig_payment', 'drawing',
+  'allocation', 'expense_payment', 'gig_payment', 'received_gig_payment', 'drawing',
 ];
 
 const CURRENT_YEAR = new Date().getFullYear();
