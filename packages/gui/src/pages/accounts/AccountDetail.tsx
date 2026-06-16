@@ -25,6 +25,9 @@ import ErrorBanner from "../../components/ErrorBanner.js";
 import EmptyState from "../../components/EmptyState.js";
 import YearSelect from "../../components/YearSelect.js";
 import CountBadge from "../../components/CountBadge.js";
+import SearchInput from "../../components/SearchInput.js";
+import { useSearch } from "../../hooks/useSearch.js";
+import { matchesTypeAndDescription } from "../../utils/search.js";
 import { formatPennies } from "../../utils/money.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { accountBalanceLabel } from "../../utils/accounts.js";
@@ -79,6 +82,10 @@ function LinkedAllocationsDisplay({ allocations }: { allocations: LinkedFeeAlloc
   );
 }
 
+function filterLedgerEntry(entry: LedgerEntry, q: string): boolean {
+  return matchesTypeAndDescription(entry.label, entry.description, q);
+}
+
 export default function AccountDetail() {
   const { id } = useParams<{ id: string }>();
   const accountId = Number(id);
@@ -106,6 +113,8 @@ export default function AccountDetail() {
   const deleteAllocation = useDeleteFeeAllocation();
 
   const account = accounts?.find((a) => a.id === accountId);
+
+  const { search, setSearch, displayed: displayedEntries } = useSearch(ledger ?? [], filterLedgerEntry);
 
   if (accountsLoading || ledgerLoading) return <main className="container"><LoadingState /></main>;
   if (accountsError) return <main className="container"><ErrorBanner error={accountsError} /></main>;
@@ -179,20 +188,34 @@ export default function AccountDetail() {
         </button>
       </div>
 
-      {/* Year filter */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
+      {/* Year filter + search */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
         <YearSelect
           label="Year:"
           value={year != null ? String(year) : ""}
           options={YEAR_OPTIONS.map(String)}
           onChange={(val) => setYear(val ? Number(val) : null)}
         />
-        <CountBadge count={ledger?.length ?? 0} noun="entry" plural="entries" />
+        <CountBadge count={displayedEntries.length} noun="entry" plural="entries" />
+      </div>
+      <div style={{ marginBottom: "1rem" }}>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by type or description..."
+          ariaLabel="Search ledger entries"
+        />
       </div>
 
       {/* Ledger list */}
-      {ledger?.length === 0 ? (
-        <EmptyState message={year != null ? `No entries in ${year}.` : "No entries yet."} />
+      {displayedEntries.length === 0 ? (
+        <EmptyState message={
+          search
+            ? "No entries match your search."
+            : year != null
+              ? `No entries in ${year}.`
+              : "No entries yet."
+        } />
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table>
@@ -206,7 +229,7 @@ export default function AccountDetail() {
               </tr>
             </thead>
             <tbody>
-              {(ledger ?? []).map((entry) => (
+              {displayedEntries.map((entry) => (
                 <tr key={`${entry.entryType}-${entry.sourceId}`}>
                   <td style={{ whiteSpace: "nowrap" }}>
                     {entry.date ? formatDate(entry.date) : <span style={{ color: "var(--pico-muted-color)" }}>—</span>}

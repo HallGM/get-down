@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { GigPaymentSummary } from "@get-down/shared";
+import { useSearch } from "../../hooks/useSearch.js";
 import { useAllGigPayments, useUpdatePayment } from "../../api/hooks/usePayments.js";
 import { usePartnerAccounts } from "../../api/hooks/useAccounts.js";
 import LoadingState from "../../components/LoadingState.js";
@@ -10,9 +11,23 @@ import MoneyDisplay from "../../components/MoneyDisplay.js";
 import RunningTotal from "../../components/RunningTotal.js";
 import DateCell from "../../components/DateCell.js";
 import YearFilterBar from "../../components/YearFilterBar.js";
+import SearchInput from "../../components/SearchInput.js";
 import EditReceivedByModal from "../../components/EditReceivedByModal.js";
 import { formatDate } from "../../utils/date.js";
 import { useYearFilterData } from "../../hooks/useYearFilter.js";
+
+// ---------------------------------------------------------------------------
+// Filter predicate (module-scope keeps the reference stable for useSearch)
+// ---------------------------------------------------------------------------
+function filterGigPayment(s: GigPaymentSummary, q: string): boolean {
+  const client = `${s.clientFirstName} ${s.clientLastName}`.toLowerCase();
+  return (
+    client.includes(q) ||
+    (s.method ?? "").toLowerCase().includes(q) ||
+    (s.description ?? "").toLowerCase().includes(q) ||
+    (s.receivedBy ?? "Business").toLowerCase().includes(q)
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Page component
@@ -30,9 +45,11 @@ export default function GigPaymentsPage() {
     filtered,
   } = useYearFilterData(summaries, (s) => s.date);
 
+  const { search, setSearch, displayed: displayedRows } = useSearch(filtered, filterGigPayment);
+
   const netTotal = useMemo(
-    () => filtered.reduce((sum, s) => (s.type === "payment" ? sum + s.amount : sum - s.amount), 0),
-    [filtered],
+    () => displayedRows.reduce((sum, s) => (s.type === "payment" ? sum + s.amount : sum - s.amount), 0),
+    [displayedRows],
   );
 
   function openEdit(s: GigPaymentSummary) {
@@ -61,12 +78,21 @@ export default function GigPaymentsPage() {
         taxYearOptions={taxYearOptions}
         setCalendarYear={setCalendarYear}
         setTaxYear={setTaxYear}
-        count={filtered.length}
+        count={displayedRows.length}
         noun="transaction"
       />
 
-      {filtered.length === 0 ? (
-        <EmptyState message="No gig payments found." />
+      <div style={{ marginBottom: "1rem" }}>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by client, method, description or recipient..."
+          ariaLabel="Search gig payments"
+        />
+      </div>
+
+      {displayedRows.length === 0 ? (
+        <EmptyState message={search ? "No payments match your search." : "No gig payments found."} />
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table>
@@ -84,7 +110,7 @@ export default function GigPaymentsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s) => (
+              {displayedRows.map((s) => (
                 <tr key={`${s.type}-${s.id}`}>
                   <td style={{ whiteSpace: "nowrap" }}>
                     <DateCell date={s.date} />
