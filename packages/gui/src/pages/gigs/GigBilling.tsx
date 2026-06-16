@@ -28,7 +28,7 @@ import FormField from "../../components/FormField.js";
 import MoneyField from "../../components/MoneyField.js";
 import Modal from "../../components/Modal.js";
 import UnavailableMoney from "../../components/UnavailableMoney.js";
-import { useAccounts, usePartnerAccounts } from "../../api/hooks/useAccounts.js";
+import { useAccounts, useReceivedByAccounts } from "../../api/hooks/useAccounts.js";
 import EditReceivedByModal from "../../components/EditReceivedByModal.js";
 import PartnerAccountSelect from "../../components/PartnerAccountSelect.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
@@ -202,7 +202,7 @@ export default function GigBilling() {
   const [editLineItemForm, setEditLineItemForm] = useState<UpdateGigLineItemRequest>({ description: "", amount: 0 });
 
   const { data: accounts = [] } = useAccounts();
-  const { data: partnerAccounts = [] } = usePartnerAccounts();
+  const { data: receivedByAccounts = [] } = useReceivedByAccounts();
   const accountNameById = new Map(accounts.map((a) => [a.id, a.personName]));
 
   // Add payment / refund modals
@@ -499,7 +499,7 @@ export default function GigBilling() {
                       {linkedInvoice ? linkedInvoice.invoiceNumber : "—"}
                     </td>
                     <td style={{ color: receivedByName ? "inherit" : "var(--pico-muted-color)" }}>
-                      {receivedByName ?? "Business"}
+                      {receivedByName ?? "Not set"}
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: "0.25rem" }}>
@@ -720,7 +720,7 @@ export default function GigBilling() {
         onSubmit={handleAddPayment}
         onClose={() => setShowAddPayment(false)}
         isPending={createPayment.isPending}
-        partnerAccounts={partnerAccounts}
+        partnerAccounts={receivedByAccounts}
       />
 
       <AddTransactionModal
@@ -863,7 +863,7 @@ export default function GigBilling() {
       <EditReceivedByModal
         open={!!editReceivedByTarget}
         receivedByAccountId={editReceivedByTarget?.receivedByAccountId ?? null}
-        partnerAccounts={partnerAccounts}
+        accounts={receivedByAccounts}
         onSave={handleEditReceivedBy}
         onClose={() => setEditReceivedByTarget(null)}
         isPending={updatePayment.isPending}

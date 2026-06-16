@@ -5,13 +5,13 @@ import PartnerAccountSelect from "./PartnerAccountSelect.js";
 export interface EditReceivedByModalProps {
   open: boolean;
   receivedByAccountId: number | null;
-  partnerAccounts: { id: number; personName: string }[];
+  accounts: { id: number; personName: string }[];
   onSave: (accountId: number | null) => Promise<void>;
   onClose: () => void;
   isPending: boolean;
 }
 
-export default function EditReceivedByModal({ open, receivedByAccountId, partnerAccounts, onSave, onClose, isPending }: EditReceivedByModalProps) {
+export default function EditReceivedByModal({ open, receivedByAccountId, accounts, onSave, onClose, isPending }: EditReceivedByModalProps) {
   const [value, setValue] = useState<number | null>(receivedByAccountId);
 
   // Sync when the modal opens for a different payment
@@ -27,7 +27,7 @@ export default function EditReceivedByModal({ open, receivedByAccountId, partner
       <form onSubmit={handleSubmit}>
         <PartnerAccountSelect
           value={value}
-          accounts={partnerAccounts}
+          accounts={accounts}
           onChange={setValue}
         />
         <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>

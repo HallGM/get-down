@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import type { GigPaymentSummary } from "@get-down/shared";
 import { useSearch } from "../../hooks/useSearch.js";
 import { useAllGigPayments, useUpdatePayment } from "../../api/hooks/usePayments.js";
-import { usePartnerAccounts } from "../../api/hooks/useAccounts.js";
+import { useReceivedByAccounts } from "../../api/hooks/useAccounts.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import EmptyState from "../../components/EmptyState.js";
@@ -25,7 +25,7 @@ function filterGigPayment(s: GigPaymentSummary, q: string): boolean {
     client.includes(q) ||
     (s.method ?? "").toLowerCase().includes(q) ||
     (s.description ?? "").toLowerCase().includes(q) ||
-    (s.receivedBy ?? "Business").toLowerCase().includes(q)
+    (s.receivedBy ?? "not set").toLowerCase().includes(q)
   );
 }
 
@@ -34,7 +34,7 @@ function filterGigPayment(s: GigPaymentSummary, q: string): boolean {
 // ---------------------------------------------------------------------------
 export default function GigPaymentsPage() {
   const { data: summaries = [], isLoading, error } = useAllGigPayments();
-  const { data: partnerAccounts = [] } = usePartnerAccounts();
+  const { data: receivedByAccounts = [] } = useReceivedByAccounts();
   const updatePayment = useUpdatePayment();
 
   const [editTarget, setEditTarget] = useState<{ id: number; receivedByAccountId: number | null } | null>(null);
@@ -127,8 +127,8 @@ export default function GigPaymentsPage() {
                   </td>
                   <td>{s.method ?? <span style={{ color: "var(--pico-muted-color)" }}>—</span>}</td>
                   <td>{s.description ?? <span style={{ color: "var(--pico-muted-color)" }}>—</span>}</td>
-                  <td style={{ color: s.receivedBy ? "inherit" : "var(--pico-muted-color)" }}>
-                    {s.receivedBy ?? "Business"}
+                   <td style={{ color: s.receivedBy ? "inherit" : "var(--pico-muted-color)" }}>
+                    {s.receivedBy ?? "Not set"}
                   </td>
                   <td>
                     {s.type === "payment" && (
@@ -152,7 +152,7 @@ export default function GigPaymentsPage() {
       <EditReceivedByModal
         open={!!editTarget}
         receivedByAccountId={editTarget?.receivedByAccountId ?? null}
-        partnerAccounts={partnerAccounts}
+        accounts={receivedByAccounts}
         onSave={handleEditReceivedBy}
         onClose={() => setEditTarget(null)}
         isPending={updatePayment.isPending}
