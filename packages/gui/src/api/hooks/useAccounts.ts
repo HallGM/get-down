@@ -25,6 +25,11 @@ export function usePartnerAccounts() {
   return { ...rest, data: accounts.filter((a) => a.isPartner) };
 }
 
+export function useReceivedByAccounts() {
+  const { data: accounts = [], ...rest } = useAccounts();
+  return { ...rest, data: accounts.filter((a) => a.isPartner || a.isBusiness) };
+}
+
 export function usePeopleWithoutAccounts() {
   return useQuery({
     queryKey: [PEOPLE_KEY],

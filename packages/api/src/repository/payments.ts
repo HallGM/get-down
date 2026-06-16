@@ -129,9 +129,9 @@ export async function readAllGigPaymentSummaries(): Promise<GigPaymentSummaryRow
         g.last_name  AS client_last_name,
         g.date       AS gig_date,
         CASE
-          WHEN rb_a.id IS NOT NULL
-            THEN COALESCE(rb_p.display_name, rb_p.first_name || COALESCE(' ' || rb_p.last_name, ''))
-          ELSE NULL
+          WHEN rb_a.id IS NULL    THEN NULL
+          WHEN rb_a.is_business   THEN 'Business'
+          ELSE COALESCE(rb_p.display_name, rb_p.first_name || COALESCE(' ' || rb_p.last_name, ''))
         END          AS received_by,
         p.received_by_account_id
       FROM payments p

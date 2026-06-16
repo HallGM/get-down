@@ -14,7 +14,7 @@ export default function PartnerAccountSelect({ value, accounts, onChange }: Part
           onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
           style={{ marginTop: "0.25rem" }}
         >
-          <option value="">Business</option>
+          <option value="">Not set</option>
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>{a.personName}</option>
           ))}

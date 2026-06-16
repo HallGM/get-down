@@ -51,8 +51,8 @@ async function validateReceivedByAccount(
   if (receivedByAccountId == null) return;
   const account = await accountsRepo.readAccountById(receivedByAccountId);
   if (!account) throw new BadRequestError("receivedByAccountId references an account that does not exist");
-  if (account.is_business) throw new BadRequestError("receivedByAccountId must be a partner account, not the business account");
-  if (!account.is_partner) throw new BadRequestError("receivedByAccountId must be a partner account");
+  if (account.is_business) return;
+  if (!account.is_partner) throw new BadRequestError("receivedByAccountId must be the business account or a partner account");
 }
 
 function toDateString(value: string | Date | null): string | null {

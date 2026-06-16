@@ -718,7 +718,7 @@ export interface Payment {
   description?: string;
   airtableId?: string;
   invoiceId?: number;
-  /** Account ID of the partner who received this payment directly. Undefined when the business received it. */
+  /** Account ID of the account that received this payment. Undefined when not yet assigned. */
   receivedByAccountId?: number;
 }
 
@@ -761,9 +761,9 @@ export interface GigPaymentSummary {
   clientLastName: string;
   /** ISO date string for the gig event date. */
   gigDate: string;
-  /** Display name of the partner who received this payment directly. Undefined when the business received it. */
+  /** Display name of the account that received this payment. Undefined when not yet assigned. */
   receivedBy?: string;
-  /** Account ID of the partner who received this payment directly. Undefined when the business received it. */
+  /** Account ID of the account that received this payment. Undefined when not yet assigned. */
   receivedByAccountId?: number;
 }
 
@@ -774,7 +774,7 @@ export interface CreatePaymentRequest {
   method?: string;
   description?: string;
   airtableId?: string;
-  /** Account ID of the partner who received this payment directly. Omit or set null for business. */
+  /** Account ID that received this payment. Omit or set null to leave unassigned. */
   receivedByAccountId?: number | null;
 }
 
@@ -785,7 +785,7 @@ export interface UpdatePaymentRequest {
   method?: string;
   description?: string;
   airtableId?: string;
-  /** Account ID of the partner who received this payment directly. Set null to clear (business receives). */
+  /** Account ID that received this payment. Set null to clear (leaves unassigned). */
   receivedByAccountId?: number | null;
 }
 
