@@ -258,14 +258,15 @@ Table invoice_sequences {
 }
 
 Table payments {
-  id          serial [pk, increment]
-  date        date
-  amount      int [not null]
-  method      varchar(100)
-  description varchar(255)
-  gig_id      int [ref: > gigs.id, not null]
-  airtable_id varchar(255)
-  invoice_id  int [ref: > invoices.id]
+  id                    serial [pk, increment]
+  date                  date
+  amount                int [not null]
+  method                varchar(100)
+  description           varchar(255)
+  gig_id                int [ref: > gigs.id, not null]
+  airtable_id           varchar(255)
+  invoice_id            int [ref: > invoices.id]
+  received_by_account_id int [ref: > accounts.id]
 }
 
 Table refunds {

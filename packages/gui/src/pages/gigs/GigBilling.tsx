@@ -8,7 +8,7 @@ import {
   useUpdateGigLineItem,
   useGenerateLineItems,
 } from "../../api/hooks/useGigs.js";
-import { useGigPayments, useCreatePayment, useDeletePayment } from "../../api/hooks/usePayments.js";
+import { useGigPayments, useCreatePayment, useUpdatePayment, useDeletePayment } from "../../api/hooks/usePayments.js";
 import { useGigRefunds, useCreateRefund, useDeleteRefund, useGenerateCreditNote } from "../../api/hooks/useRefunds.js";
 import {
   useCreateInvoice,
@@ -28,6 +28,9 @@ import FormField from "../../components/FormField.js";
 import MoneyField from "../../components/MoneyField.js";
 import Modal from "../../components/Modal.js";
 import UnavailableMoney from "../../components/UnavailableMoney.js";
+import { useAccounts, usePartnerAccounts } from "../../api/hooks/useAccounts.js";
+import EditReceivedByModal from "../../components/EditReceivedByModal.js";
+import PartnerAccountSelect from "../../components/PartnerAccountSelect.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { formatPennies } from "../../utils/money.js";
 import type { CreatePaymentRequest, CreateGigLineItemRequest, UpdateGigLineItemRequest, CreateRefundRequest, Invoice } from "@get-down/shared";
@@ -76,6 +79,7 @@ interface TransactionForm {
   date?: string;
   method?: string;
   description?: string;
+  receivedByAccountId?: number | null;
 }
 
 interface AddTransactionModalProps {
@@ -86,9 +90,11 @@ interface AddTransactionModalProps {
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onClose: () => void;
   isPending: boolean;
+  /** When provided, shows a "Received by" dropdown for partner selection. */
+  partnerAccounts?: { id: number; personName: string }[];
 }
 
-function AddTransactionModal({ open, title, form, onChange, onSubmit, onClose, isPending }: AddTransactionModalProps) {
+function AddTransactionModal({ open, title, form, onChange, onSubmit, onClose, isPending, partnerAccounts }: AddTransactionModalProps) {
   return (
     <Modal open={open} onClose={onClose} title={title}>
       <form onSubmit={onSubmit}>
@@ -96,6 +102,13 @@ function AddTransactionModal({ open, title, form, onChange, onSubmit, onClose, i
         <FormField label="Date" type="date" value={toInputDate(form.date)} onChange={(e) => onChange({ ...form, date: e.target.value })} />
         <FormField label="Method" value={form.method ?? ""} onChange={(e) => onChange({ ...form, method: e.target.value })} placeholder="e.g. Bank transfer" />
         <FormField label="Description" value={form.description ?? ""} onChange={(e) => onChange({ ...form, description: e.target.value })} />
+        {partnerAccounts && (
+          <PartnerAccountSelect
+            value={form.receivedByAccountId ?? null}
+            accounts={partnerAccounts}
+            onChange={(id) => onChange({ ...form, receivedByAccountId: id })}
+          />
+        )}
         <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
           <button type="button" className="secondary" onClick={onClose}>Cancel</button>
           <button type="submit" aria-busy={isPending} disabled={isPending}>Add</button>
@@ -151,6 +164,7 @@ export default function GigBilling() {
 
   const updateGig = useUpdateGig();
   const createPayment = useCreatePayment();
+  const updatePayment = useUpdatePayment();
   const deletePayment = useDeletePayment();
   const createRefund = useCreateRefund();
   const deleteRefund = useDeleteRefund();
@@ -187,12 +201,19 @@ export default function GigBilling() {
   const [editLineItemId, setEditLineItemId] = useState<number | null>(null);
   const [editLineItemForm, setEditLineItemForm] = useState<UpdateGigLineItemRequest>({ description: "", amount: 0 });
 
+  const { data: accounts = [] } = useAccounts();
+  const { data: partnerAccounts = [] } = usePartnerAccounts();
+  const accountNameById = new Map(accounts.map((a) => [a.id, a.personName]));
+
   // Add payment / refund modals
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [paymentForm, setPaymentForm] = useState<Omit<CreatePaymentRequest, "gigId">>({ amount: 0 });
 
   const [showAddRefund, setShowAddRefund] = useState(false);
   const [refundForm, setRefundForm] = useState<Omit<CreateRefundRequest, "gigId">>({ amount: 0 });
+
+  // Edit received-by modal
+  const [editReceivedByTarget, setEditReceivedByTarget] = useState<{ id: number; receivedByAccountId: number | null } | null>(null);
 
   // Invoice preview modal
   const [showPreview, setShowPreview] = useState(false);
@@ -292,6 +313,15 @@ export default function GigBilling() {
     await createRefund.mutateAsync({ gigId, ...refundForm, amount: refundForm.amount ?? 0 });
     setShowAddRefund(false);
     setRefundForm({ amount: 0 });
+  }
+
+  async function handleEditReceivedBy(receivedByAccountId: number | null) {
+    if (!editReceivedByTarget) return;
+    await updatePayment.mutateAsync({
+      id: editReceivedByTarget.id,
+      input: { gigId, receivedByAccountId },
+    });
+    setEditReceivedByTarget(null);
   }
 
   async function openPreview(invoiceType: 'deposit' | 'balance') {
@@ -454,10 +484,11 @@ export default function GigBilling() {
         </div>
         {payments && payments.length > 0 ? (
           <table>
-            <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Description</th><th>Invoice</th><th aria-label="Actions"></th></tr></thead>
+            <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Description</th><th>Invoice</th><th>Received by</th><th aria-label="Actions"></th></tr></thead>
             <tbody>
               {payments.map((p) => {
                 const linkedInvoice = p.invoiceId ? (invoices ?? []).find(inv => inv.id === p.invoiceId) : undefined;
+                const receivedByName = p.receivedByAccountId ? accountNameById.get(p.receivedByAccountId) : undefined;
                 return (
                   <tr key={p.id}>
                     <td>{formatDate(p.date)}</td>
@@ -467,13 +498,24 @@ export default function GigBilling() {
                     <td style={{ color: linkedInvoice ? undefined : "var(--pico-muted-color)" }}>
                       {linkedInvoice ? linkedInvoice.invoiceNumber : "—"}
                     </td>
+                    <td style={{ color: receivedByName ? "inherit" : "var(--pico-muted-color)" }}>
+                      {receivedByName ?? "Business"}
+                    </td>
                     <td>
-                      <button
-                        className="contrast outline"
-                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
-                        aria-label={`Delete payment of ${formatPennies(p.amount)}`}
-                        onClick={() => deletePayment.mutate({ id: p.id, gigId })}
-                      >✕</button>
+                      <div style={{ display: "flex", gap: "0.25rem" }}>
+                        <button
+                          className="secondary outline"
+                          style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                          aria-label={`Edit received by for payment of ${formatPennies(p.amount)}`}
+                          onClick={() => setEditReceivedByTarget({ id: p.id, receivedByAccountId: p.receivedByAccountId ?? null })}
+                        >✏️</button>
+                        <button
+                          className="contrast outline"
+                          style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                          aria-label={`Delete payment of ${formatPennies(p.amount)}`}
+                          onClick={() => deletePayment.mutate({ id: p.id, gigId })}
+                        >✕</button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -678,6 +720,7 @@ export default function GigBilling() {
         onSubmit={handleAddPayment}
         onClose={() => setShowAddPayment(false)}
         isPending={createPayment.isPending}
+        partnerAccounts={partnerAccounts}
       />
 
       <AddTransactionModal
@@ -815,6 +858,15 @@ export default function GigBilling() {
         onConfirm={handleDeleteInvoice}
         onCancel={() => setDeleteInvoiceTarget(null)}
         loading={deleteInvoice.isPending}
+      />
+
+      <EditReceivedByModal
+        open={!!editReceivedByTarget}
+        receivedByAccountId={editReceivedByTarget?.receivedByAccountId ?? null}
+        partnerAccounts={partnerAccounts}
+        onSave={handleEditReceivedBy}
+        onClose={() => setEditReceivedByTarget(null)}
+        isPending={updatePayment.isPending}
       />
     </>
   );

@@ -718,6 +718,8 @@ export interface Payment {
   description?: string;
   airtableId?: string;
   invoiceId?: number;
+  /** Account ID of the partner who received this payment directly. Undefined when the business received it. */
+  receivedByAccountId?: number;
 }
 
 export interface Refund {
@@ -759,6 +761,10 @@ export interface GigPaymentSummary {
   clientLastName: string;
   /** ISO date string for the gig event date. */
   gigDate: string;
+  /** Display name of the partner who received this payment directly. Undefined when the business received it. */
+  receivedBy?: string;
+  /** Account ID of the partner who received this payment directly. Undefined when the business received it. */
+  receivedByAccountId?: number;
 }
 
 export interface CreatePaymentRequest {
@@ -768,6 +774,8 @@ export interface CreatePaymentRequest {
   method?: string;
   description?: string;
   airtableId?: string;
+  /** Account ID of the partner who received this payment directly. Omit or set null for business. */
+  receivedByAccountId?: number | null;
 }
 
 export interface UpdatePaymentRequest {
@@ -777,6 +785,8 @@ export interface UpdatePaymentRequest {
   method?: string;
   description?: string;
   airtableId?: string;
+  /** Account ID of the partner who received this payment directly. Set null to clear (business receives). */
+  receivedByAccountId?: number | null;
 }
 
 export interface InvoiceLineItem {
@@ -860,6 +870,7 @@ export interface Account {
   personName: string;
   caBalance: number;
   isBusiness: boolean;
+  isPartner: boolean;
 }
 
 export interface CreateAccountRequest {
@@ -878,7 +889,7 @@ export interface LinkedFeeAllocationSummary {
 
 export interface LedgerEntry {
   sourceId: number;
-  entryType: 'transaction' | 'allocation' | 'expense_payment' | 'gig_payment' | 'drawing';
+  entryType: 'transaction' | 'allocation' | 'expense_payment' | 'gig_payment' | 'drawing' | 'received_gig_payment';
   accountId: number;
   date?: string;
   amount: number;
