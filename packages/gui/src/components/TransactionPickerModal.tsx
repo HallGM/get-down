@@ -3,6 +3,7 @@ import Modal from "./Modal.js";
 import DataTable, { type Column } from "./DataTable.js";
 import MoneyDisplay from "./MoneyDisplay.js";
 import { formatDate } from "../utils/date.js";
+import { matchesTypeAndDescription } from "../utils/search.js";
 
 interface Props {
   open: boolean;
@@ -42,13 +43,7 @@ export default function TransactionPickerModal({ open, onClose, transactions, on
         onRowClick={handleSelect}
         emptyMessage="No transactions available to link."
         filterPlaceholder="Search by type or description…"
-        filterFn={(t, q) => {
-          const lq = q.toLowerCase();
-          return (
-            t.type.toLowerCase().includes(lq) ||
-            (t.description ?? "").toLowerCase().includes(lq)
-          );
-        }}
+        filterFn={(t, q) => matchesTypeAndDescription(t.type, t.description, q)}
       />
       <footer style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
         <button type="button" className="secondary" onClick={onClose}>Cancel</button>
