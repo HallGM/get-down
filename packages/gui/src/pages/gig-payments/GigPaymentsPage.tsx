@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import type { GigPaymentSummary } from "@get-down/shared";
+import type { GigPaymentSummary, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
 import { useSearch } from "../../hooks/useSearch.js";
 import { useAllGigPayments, useUpdatePayment } from "../../api/hooks/usePayments.js";
+import { useUpdateRefund } from "../../api/hooks/useRefunds.js";
 import { useReceivedByAccounts } from "../../api/hooks/useAccounts.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
@@ -12,7 +13,9 @@ import RunningTotal from "../../components/RunningTotal.js";
 import DateCell from "../../components/DateCell.js";
 import YearFilterBar from "../../components/YearFilterBar.js";
 import SearchInput from "../../components/SearchInput.js";
-import EditReceivedByModal from "../../components/EditReceivedByModal.js";
+import EditPaymentModal from "../../components/EditPaymentModal.js";
+import EditRefundModal from "../../components/EditRefundModal.js";
+import useEditTarget from "../../hooks/useEditTarget.js";
 import { formatDate } from "../../utils/date.js";
 import { useYearFilterData } from "../../hooks/useYearFilter.js";
 
@@ -36,8 +39,10 @@ export default function GigPaymentsPage() {
   const { data: summaries = [], isLoading, error } = useAllGigPayments();
   const { data: receivedByAccounts = [] } = useReceivedByAccounts();
   const updatePayment = useUpdatePayment();
+  const updateRefund = useUpdateRefund();
 
-  const [editTarget, setEditTarget] = useState<{ id: number; receivedByAccountId: number | null } | null>(null);
+  const editPayment = useEditTarget<GigPaymentSummary, UpdatePaymentRequest>(updatePayment);
+  const editRefund = useEditTarget<GigPaymentSummary, UpdateRefundRequest>(updateRefund);
 
   const {
     calendarYear, taxYear, setCalendarYear, setTaxYear,
@@ -51,16 +56,6 @@ export default function GigPaymentsPage() {
     () => displayedRows.reduce((sum, s) => (s.type === "payment" ? sum + s.amount : sum - s.amount), 0),
     [displayedRows],
   );
-
-  function openEdit(s: GigPaymentSummary) {
-    setEditTarget({ id: s.id, receivedByAccountId: s.receivedByAccountId ?? null });
-  }
-
-  async function handleEditReceivedBy(receivedByAccountId: number | null) {
-    if (!editTarget) return;
-    await updatePayment.mutateAsync({ id: editTarget.id, input: { receivedByAccountId } });
-    setEditTarget(null);
-  }
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
   if (error)     return <main className="container"><ErrorBanner error={error} /></main>;
@@ -127,18 +122,18 @@ export default function GigPaymentsPage() {
                   </td>
                   <td>{s.method ?? <span style={{ color: "var(--pico-muted-color)" }}>—</span>}</td>
                   <td>{s.description ?? <span style={{ color: "var(--pico-muted-color)" }}>—</span>}</td>
-                   <td style={{ color: s.receivedBy ? "inherit" : "var(--pico-muted-color)" }}>
-                    {s.receivedBy ?? "Not set"}
+                  <td style={{ color: s.receivedBy ? "inherit" : "var(--pico-muted-color)" }}>
+                    {s.type === "payment"
+                      ? (s.receivedBy ?? "Not set")
+                      : <span style={{ color: "var(--pico-muted-color)" }}>—</span>}
                   </td>
                   <td>
-                    {s.type === "payment" && (
-                      <button
-                        className="secondary outline"
-                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
-                        aria-label={`Edit received by for payment from ${s.clientFirstName} ${s.clientLastName}`}
-                        onClick={() => openEdit(s)}
-                      >✏️</button>
-                    )}
+                    <button
+                      className="secondary outline"
+                      style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                      aria-label={`Edit ${s.type} from ${s.clientFirstName} ${s.clientLastName}`}
+                      onClick={() => s.type === "payment" ? editPayment.setTarget(s) : editRefund.setTarget(s)}
+                    >✏️</button>
                   </td>
                 </tr>
               ))}
@@ -149,13 +144,21 @@ export default function GigPaymentsPage() {
 
       <RunningTotal pennies={netTotal} label="Net received" />
 
-      <EditReceivedByModal
-        open={!!editTarget}
-        receivedByAccountId={editTarget?.receivedByAccountId ?? null}
+      <EditPaymentModal
+        open={!!editPayment.target}
+        payment={editPayment.target}
         accounts={receivedByAccounts}
-        onSave={handleEditReceivedBy}
-        onClose={() => setEditTarget(null)}
+        onSave={editPayment.handleSave}
+        onClose={() => editPayment.setTarget(null)}
         isPending={updatePayment.isPending}
+      />
+
+      <EditRefundModal
+        open={!!editRefund.target}
+        refund={editRefund.target}
+        onSave={editRefund.handleSave}
+        onClose={() => editRefund.setTarget(null)}
+        isPending={updateRefund.isPending}
       />
     </main>
   );

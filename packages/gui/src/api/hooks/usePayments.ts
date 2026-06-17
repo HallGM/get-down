@@ -4,7 +4,7 @@ import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
 const KEY = "payments";
-const ALL_GIG_PAYMENTS_KEY = "gig-payments";
+export const ALL_GIG_PAYMENTS_KEY = "gig-payments";
 const ACCOUNTS_KEY = "accounts";
 
 export function useAllGigPayments() {

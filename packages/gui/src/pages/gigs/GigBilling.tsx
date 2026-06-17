@@ -9,7 +9,7 @@ import {
   useGenerateLineItems,
 } from "../../api/hooks/useGigs.js";
 import { useGigPayments, useCreatePayment, useUpdatePayment, useDeletePayment } from "../../api/hooks/usePayments.js";
-import { useGigRefunds, useCreateRefund, useDeleteRefund, useGenerateCreditNote } from "../../api/hooks/useRefunds.js";
+import { useGigRefunds, useCreateRefund, useUpdateRefund, useDeleteRefund, useGenerateCreditNote } from "../../api/hooks/useRefunds.js";
 import {
   useCreateInvoice,
   useGigInvoices,
@@ -27,13 +27,16 @@ import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
 import MoneyField from "../../components/MoneyField.js";
 import Modal from "../../components/Modal.js";
+import ModalFooter from "../../components/ModalFooter.js";
+import PaymentRefundFormFields, { type PaymentRefundFormState } from "../../components/PaymentRefundFormFields.js";
 import UnavailableMoney from "../../components/UnavailableMoney.js";
 import { useAccounts, useReceivedByAccounts } from "../../api/hooks/useAccounts.js";
-import EditReceivedByModal from "../../components/EditReceivedByModal.js";
-import PartnerAccountSelect from "../../components/PartnerAccountSelect.js";
+import EditPaymentModal from "../../components/EditPaymentModal.js";
+import EditRefundModal from "../../components/EditRefundModal.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { formatPennies } from "../../utils/money.js";
-import type { CreatePaymentRequest, CreateGigLineItemRequest, UpdateGigLineItemRequest, CreateRefundRequest, Invoice } from "@get-down/shared";
+import useEditTarget from "../../hooks/useEditTarget.js";
+import type { CreateGigLineItemRequest, UpdateGigLineItemRequest, Invoice, Payment, Refund, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
 
 // ---------------------------------------------------------------------------
 // Local hook: manages a single PDF blob modal (load → display → revoke on close)
@@ -74,19 +77,11 @@ function usePdfModal(generateFn: (id: number) => Promise<string>) {
 // ---------------------------------------------------------------------------
 // Shared modal for adding a payment or refund (identical fields)
 // ---------------------------------------------------------------------------
-interface TransactionForm {
-  amount: number;
-  date?: string;
-  method?: string;
-  description?: string;
-  receivedByAccountId?: number | null;
-}
-
 interface AddTransactionModalProps {
   open: boolean;
   title: string;
-  form: TransactionForm;
-  onChange: (form: TransactionForm) => void;
+  form: PaymentRefundFormState;
+  onChange: React.Dispatch<React.SetStateAction<PaymentRefundFormState>>;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onClose: () => void;
   isPending: boolean;
@@ -98,21 +93,15 @@ function AddTransactionModal({ open, title, form, onChange, onSubmit, onClose, i
   return (
     <Modal open={open} onClose={onClose} title={title}>
       <form onSubmit={onSubmit}>
-        <MoneyField label="Amount" value={form.amount ?? undefined} onChange={(pennies) => onChange({ ...form, amount: pennies ?? 0 })} required min={0} />
-        <FormField label="Date" type="date" value={toInputDate(form.date)} onChange={(e) => onChange({ ...form, date: e.target.value })} />
-        <FormField label="Method" value={form.method ?? ""} onChange={(e) => onChange({ ...form, method: e.target.value })} placeholder="e.g. Bank transfer" />
-        <FormField label="Description" value={form.description ?? ""} onChange={(e) => onChange({ ...form, description: e.target.value })} />
-        {partnerAccounts && (
-          <PartnerAccountSelect
-            value={form.receivedByAccountId ?? null}
-            accounts={partnerAccounts}
-            onChange={(id) => onChange({ ...form, receivedByAccountId: id })}
-          />
-        )}
-        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+        <PaymentRefundFormFields
+          form={{ ...form, date: toInputDate(form.date) }}
+          setForm={onChange}
+          accounts={partnerAccounts}
+        />
+        <ModalFooter>
           <button type="button" className="secondary" onClick={onClose}>Cancel</button>
           <button type="submit" aria-busy={isPending} disabled={isPending}>Add</button>
-        </footer>
+        </ModalFooter>
       </form>
     </Modal>
   );
@@ -140,10 +129,10 @@ function LineItemFormModal({ open, title, submitLabel, form, onChange, onSubmit,
         <FormField label="Description" value={form.description ?? ""} onChange={(e) => onChange({ ...form, description: e.target.value })} required placeholder="e.g. 3-piece band" />
         <MoneyField label="Amount" value={form.amount ?? undefined} onChange={(pennies) => onChange({ ...form, amount: pennies ?? 0 })} required min={0} />
         {error && <ErrorBanner error={error.message} />}
-        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+        <ModalFooter>
           <button type="button" className="secondary" onClick={onClose}>Cancel</button>
           <button type="submit" aria-busy={isPending} disabled={isPending}>{submitLabel}</button>
-        </footer>
+        </ModalFooter>
       </form>
     </Modal>
   );
@@ -167,6 +156,7 @@ export default function GigBilling() {
   const updatePayment = useUpdatePayment();
   const deletePayment = useDeletePayment();
   const createRefund = useCreateRefund();
+  const updateRefund = useUpdateRefund();
   const deleteRefund = useDeleteRefund();
   const generateCreditNoteMutation = useGenerateCreditNote();
   const addGigLineItem = useAddGigLineItem();
@@ -207,13 +197,14 @@ export default function GigBilling() {
 
   // Add payment / refund modals
   const [showAddPayment, setShowAddPayment] = useState(false);
-  const [paymentForm, setPaymentForm] = useState<Omit<CreatePaymentRequest, "gigId">>({ amount: 0 });
+  const [paymentForm, setPaymentForm] = useState<PaymentRefundFormState>({ amount: 0, date: "", method: "", description: "", receivedByAccountId: null });
 
   const [showAddRefund, setShowAddRefund] = useState(false);
-  const [refundForm, setRefundForm] = useState<Omit<CreateRefundRequest, "gigId">>({ amount: 0 });
+  const [refundForm, setRefundForm] = useState<PaymentRefundFormState>({ amount: 0, date: "", method: "", description: "" });
 
-  // Edit received-by modal
-  const [editReceivedByTarget, setEditReceivedByTarget] = useState<{ id: number; receivedByAccountId: number | null } | null>(null);
+  // Edit payment / refund modals
+  const editPayment = useEditTarget<Payment, UpdatePaymentRequest>(updatePayment);
+  const editRefund = useEditTarget<Refund, UpdateRefundRequest>(updateRefund);
 
   // Invoice preview modal
   const [showPreview, setShowPreview] = useState(false);
@@ -305,23 +296,14 @@ export default function GigBilling() {
     e.preventDefault();
     await createPayment.mutateAsync({ gigId, ...paymentForm, amount: paymentForm.amount ?? 0 });
     setShowAddPayment(false);
-    setPaymentForm({ amount: 0 });
+    setPaymentForm({ amount: 0, date: "", method: "", description: "", receivedByAccountId: null });
   }
 
   async function handleAddRefund(e: React.FormEvent) {
     e.preventDefault();
     await createRefund.mutateAsync({ gigId, ...refundForm, amount: refundForm.amount ?? 0 });
     setShowAddRefund(false);
-    setRefundForm({ amount: 0 });
-  }
-
-  async function handleEditReceivedBy(receivedByAccountId: number | null) {
-    if (!editReceivedByTarget) return;
-    await updatePayment.mutateAsync({
-      id: editReceivedByTarget.id,
-      input: { gigId, receivedByAccountId },
-    });
-    setEditReceivedByTarget(null);
+    setRefundForm({ amount: 0, date: "", method: "", description: "" });
   }
 
   async function openPreview(invoiceType: 'deposit' | 'balance') {
@@ -506,8 +488,8 @@ export default function GigBilling() {
                         <button
                           className="secondary outline"
                           style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
-                          aria-label={`Edit received by for payment of ${formatPennies(p.amount)}`}
-                          onClick={() => setEditReceivedByTarget({ id: p.id, receivedByAccountId: p.receivedByAccountId ?? null })}
+                          aria-label={`Edit payment of ${formatPennies(p.amount)}`}
+                          onClick={() => editPayment.setTarget(p)}
                         >✏️</button>
                         <button
                           className="contrast outline"
@@ -546,10 +528,16 @@ export default function GigBilling() {
                       <button
                         className="secondary outline"
                         style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                        aria-label={`Edit refund of ${formatPennies(r.amount)}`}
+                        onClick={() => editRefund.setTarget(r)}
+                      >✏️</button>
+                      <button
+                        className="secondary outline"
+                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
                         aria-busy={creditNoteModal.loadingId === r.id}
-                        aria-label={`Generate credit note for refund of ${formatPennies(r.amount)}`}
-                        title="Generate credit note PDF"
-                        onClick={() => creditNoteModal.open(r.id)}
+                          aria-label={`Generate credit note for refund of ${formatPennies(r.amount)}`}
+                          title="Generate credit note PDF"
+                          onClick={() => creditNoteModal.open(r.id)}
                       >CN</button>
                       <button
                         className="contrast outline"
@@ -744,12 +732,12 @@ export default function GigBilling() {
             style={{ width: "100%", height: "70vh", border: "none", display: "block" }}
           />
         )}
-        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
+        <ModalFooter>
           <button className="secondary" onClick={creditNoteModal.close}>Close</button>
           {creditNoteModal.url && (
             <a href={creditNoteModal.url} download="credit-note.pdf">Download PDF</a>
           )}
-        </footer>
+        </ModalFooter>
       </Modal>
 
       {/* Invoice Preview Modal */}
@@ -764,7 +752,7 @@ export default function GigBilling() {
             style={{ width: "100%", height: "70vh", border: "none", display: "block" }}
           />
         )}
-        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
+        <ModalFooter>
           <button className="secondary" onClick={() => setShowPreview(false)}>Close</button>
           <button
             onClick={handleSaveInvoice}
@@ -773,7 +761,7 @@ export default function GigBilling() {
           >
             Save Invoice
           </button>
-        </footer>
+        </ModalFooter>
       </Modal>
 
       {/* Invoice PDF Modal */}
@@ -787,12 +775,12 @@ export default function GigBilling() {
             style={{ width: "100%", height: "70vh", border: "none", display: "block" }}
           />
         )}
-        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
+        <ModalFooter>
           <button className="secondary" onClick={invoicePdfModal.close}>Close</button>
           {invoicePdfModal.url && (
             <a href={invoicePdfModal.url} download="invoice.pdf">Download PDF</a>
           )}
-        </footer>
+        </ModalFooter>
       </Modal>
 
       {/* Receipt PDF Modal */}
@@ -806,12 +794,12 @@ export default function GigBilling() {
             style={{ width: "100%", height: "70vh", border: "none", display: "block" }}
           />
         )}
-        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
+        <ModalFooter>
           <button className="secondary" onClick={receiptModal.close}>Close</button>
           {receiptModal.url && (
             <a href={receiptModal.url} download={`receipt-${receiptInvoiceNumber}.pdf`}>Download PDF</a>
           )}
-        </footer>
+        </ModalFooter>
       </Modal>
 
       {/* Link Payment Modal */}
@@ -860,13 +848,21 @@ export default function GigBilling() {
         loading={deleteInvoice.isPending}
       />
 
-      <EditReceivedByModal
-        open={!!editReceivedByTarget}
-        receivedByAccountId={editReceivedByTarget?.receivedByAccountId ?? null}
+      <EditPaymentModal
+        open={!!editPayment.target}
+        payment={editPayment.target}
         accounts={receivedByAccounts}
-        onSave={handleEditReceivedBy}
-        onClose={() => setEditReceivedByTarget(null)}
+        onSave={editPayment.handleSave}
+        onClose={() => editPayment.setTarget(null)}
         isPending={updatePayment.isPending}
+      />
+
+      <EditRefundModal
+        open={!!editRefund.target}
+        refund={editRefund.target}
+        onSave={editRefund.handleSave}
+        onClose={() => editRefund.setTarget(null)}
+        isPending={updateRefund.isPending}
       />
     </>
   );

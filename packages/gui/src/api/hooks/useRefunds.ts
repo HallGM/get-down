@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Refund, CreateRefundRequest, UpdateRefundRequest } from "@get-down/shared";
 import { apiFetch, apiFetchBlob } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
+import { ALL_GIG_PAYMENTS_KEY } from "./usePayments.js";
 
 const KEY = "refunds";
 const INVOICES_KEY = "invoices";
@@ -33,6 +34,7 @@ export function useUpdateRefund() {
     mutationFn: ({ id, input }: { id: number; input: UpdateRefundRequest }) =>
       apiFetch<Refund>("PUT", `/refunds/${id}`, input),
     onSuccess: (_data, { input }) => {
+      qc.invalidateQueries({ queryKey: [ALL_GIG_PAYMENTS_KEY] });
       if (input.gigId) {
         qc.invalidateQueries({ queryKey: [KEY, input.gigId] });
         qc.invalidateQueries({ queryKey: [INVOICES_KEY, "gig", input.gigId] });
