@@ -1,6 +1,7 @@
 import FormField from "./FormField.js";
 import MoneyField from "./MoneyField.js";
 import PartnerAccountSelect from "./PartnerAccountSelect.js";
+import { REFUND_SUBTYPE_DEFAULT } from "@get-down/shared";
 
 export interface PaymentRefundFormState {
   amount: number;
@@ -8,15 +9,17 @@ export interface PaymentRefundFormState {
   method: string;
   description: string;
   receivedByAccountId?: number | null;
+  subtype?: 'credit' | 'adjustment';
 }
 
 interface Props {
   form: PaymentRefundFormState;
   setForm: React.Dispatch<React.SetStateAction<PaymentRefundFormState>>;
   accounts?: { id: number; personName: string }[];
+  showSubtype?: boolean;
 }
 
-export default function PaymentRefundFormFields({ form, setForm, accounts }: Props) {
+export default function PaymentRefundFormFields({ form, setForm, accounts, showSubtype }: Props) {
   return (
     <>
       <MoneyField
@@ -49,6 +52,33 @@ export default function PaymentRefundFormFields({ form, setForm, accounts }: Pro
           accounts={accounts}
           onChange={(id) => setForm((f) => ({ ...f, receivedByAccountId: id }))}
         />
+      )}
+      {showSubtype && (
+        <fieldset>
+          <legend>Type</legend>
+          <label>
+            <input
+              type="radio"
+              name="subtype"
+              value="adjustment"
+              checked={(form.subtype ?? REFUND_SUBTYPE_DEFAULT) === 'adjustment'}
+              onChange={() => setForm((f) => ({ ...f, subtype: REFUND_SUBTYPE_DEFAULT }))}
+            />
+            Adjustment
+          </label>
+          <small>A correction for a client who has overpaid, for example after a service is removed.</small>
+          <label>
+            <input
+              type="radio"
+              name="subtype"
+              value="credit"
+              checked={(form.subtype ?? REFUND_SUBTYPE_DEFAULT) === 'credit'}
+              onChange={() => setForm((f) => ({ ...f, subtype: 'credit' }))}
+            />
+            Credit
+          </label>
+          <small>A goodwill gesture that reduces the amount charged.</small>
+        </fieldset>
       )}
     </>
   );

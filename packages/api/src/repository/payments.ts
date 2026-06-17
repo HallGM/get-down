@@ -112,6 +112,7 @@ export interface GigPaymentSummaryRow {
   gig_date: string;
   received_by: string | null;
   received_by_account_id: number | null;
+  subtype: string | null;
 }
 
 export async function readAllGigPaymentSummaries(): Promise<GigPaymentSummaryRow[]> {
@@ -133,7 +134,8 @@ export async function readAllGigPaymentSummaries(): Promise<GigPaymentSummaryRow
           WHEN rb_a.is_business   THEN 'Business'
           ELSE COALESCE(rb_p.display_name, rb_p.first_name || COALESCE(' ' || rb_p.last_name, ''))
         END          AS received_by,
-        p.received_by_account_id
+        p.received_by_account_id,
+        NULL::text   AS subtype
       FROM payments p
       JOIN gigs g ON g.id = p.gig_id
       LEFT JOIN accounts rb_a ON rb_a.id = p.received_by_account_id
@@ -151,7 +153,8 @@ export async function readAllGigPaymentSummaries(): Promise<GigPaymentSummaryRow
         g.last_name  AS client_last_name,
         g.date       AS gig_date,
         NULL         AS received_by,
-        NULL::int    AS received_by_account_id
+        NULL::int    AS received_by_account_id,
+        r.subtype    AS subtype
       FROM refunds r
       JOIN gigs g ON g.id = r.gig_id
       ORDER BY date DESC NULLS LAST, id DESC;

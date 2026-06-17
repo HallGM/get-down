@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import type { GigPaymentSummary, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
+import type { GigPaymentSummary, Refund, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
+import { REFUND_SUBTYPE_DEFAULT } from "@get-down/shared";
 import { useSearch } from "../../hooks/useSearch.js";
 import { useAllGigPayments, useUpdatePayment } from "../../api/hooks/usePayments.js";
 import { useUpdateRefund } from "../../api/hooks/useRefunds.js";
@@ -110,7 +111,9 @@ export default function GigPaymentsPage() {
                   <td style={{ whiteSpace: "nowrap" }}>
                     <DateCell date={s.date} />
                   </td>
-                  <td style={{ textTransform: "capitalize" }}>{s.type}</td>
+                  <td style={{ textTransform: "capitalize" }}>
+                    {s.type === 'refund' ? (s.subtype ?? REFUND_SUBTYPE_DEFAULT) : s.type}
+                  </td>
                   <td>
                     <Link to={`/gigs/${s.gigId}`}>
                       {s.clientFirstName} {s.clientLastName}
@@ -155,7 +158,7 @@ export default function GigPaymentsPage() {
 
       <EditRefundModal
         open={!!editRefund.target}
-        refund={editRefund.target}
+        refund={editRefund.target as Refund | null}
         onSave={editRefund.handleSave}
         onClose={() => editRefund.setTarget(null)}
         isPending={updateRefund.isPending}

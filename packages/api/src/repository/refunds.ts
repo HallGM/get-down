@@ -7,6 +7,7 @@ export interface RefundRow {
   amount: number;
   method: string | null;
   description: string | null;
+  subtype: string;
 }
 
 export interface RefundMutationInput {
@@ -15,18 +16,19 @@ export interface RefundMutationInput {
   amount: number;
   method?: string;
   description?: string;
+  subtype: string;
 }
 
-const SELECT_COLS = `id, gig_id, date, amount, method, description`;
+const SELECT_COLS = `id, gig_id, date, amount, method, description, subtype`;
 
 export async function createRefund(input: RefundMutationInput): Promise<RefundRow> {
   const rows = await run_query<RefundRow>({
     text: `
-      INSERT INTO refunds (gig_id, date, amount, method, description)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO refunds (gig_id, date, amount, method, description, subtype)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING ${SELECT_COLS};
     `,
-    values: [input.gigId, input.date ?? null, input.amount, input.method ?? null, input.description ?? null],
+    values: [input.gigId, input.date ?? null, input.amount, input.method ?? null, input.description ?? null, input.subtype],
   });
   return rows[0]!;
 }
@@ -53,11 +55,11 @@ export async function updateRefund(
   const rows = await run_query<RefundRow>({
     text: `
       UPDATE refunds
-      SET gig_id = $1, date = $2, amount = $3, method = $4, description = $5
-      WHERE id = $6
+      SET gig_id = $1, date = $2, amount = $3, method = $4, description = $5, subtype = $6
+      WHERE id = $7
       RETURNING ${SELECT_COLS};
     `,
-    values: [input.gigId, input.date ?? null, input.amount, input.method ?? null, input.description ?? null, id],
+    values: [input.gigId, input.date ?? null, input.amount, input.method ?? null, input.description ?? null, input.subtype, id],
   });
   return rows[0] ?? null;
 }
