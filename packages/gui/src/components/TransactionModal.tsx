@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useUpdateTransaction } from "../api/hooks/useAccounts.js";
 import type { AccountTransaction } from "@get-down/shared";
 import Modal from "./Modal.js";
+import ModalFooter from "./ModalFooter.js";
 import TransactionFormFields, { type TransactionFormState } from "./TransactionFormFields.js";
 import { toInputDate } from "../utils/date.js";
 
@@ -53,7 +54,7 @@ export default function TransactionModal({ transaction, accountId, onClose }: Pr
     <Modal open={!!transaction} onClose={onClose} title="Edit Transaction">
       <form onSubmit={handleSave}>
         <TransactionFormFields form={form} setForm={setForm} />
-        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
+        <ModalFooter>
           <button type="button" className="secondary" onClick={onClose}>Cancel</button>
           <button
             type="submit"
@@ -62,7 +63,7 @@ export default function TransactionModal({ transaction, accountId, onClose }: Pr
           >
             Save
           </button>
-        </footer>
+        </ModalFooter>
       </form>
     </Modal>
   );

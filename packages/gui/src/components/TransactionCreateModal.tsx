@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useCreateTransaction } from "../api/hooks/useAccounts.js";
 import type { AccountTransaction } from "@get-down/shared";
 import Modal from "./Modal.js";
+import ModalFooter from "./ModalFooter.js";
 import TransactionFormFields, { type TransactionFormState } from "./TransactionFormFields.js";
 
 export interface TransactionCreateModalProps {
@@ -54,7 +55,7 @@ export default function TransactionCreateModal({
     <Modal open={open} onClose={onClose} title="New Transaction">
       <form onSubmit={handleSubmit}>
         <TransactionFormFields form={form} setForm={setForm} dateRequired />
-        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
+        <ModalFooter>
           <button type="button" className="secondary" onClick={onClose}>Cancel</button>
           <button
             type="submit"
@@ -63,7 +64,7 @@ export default function TransactionCreateModal({
           >
             Create
           </button>
-        </footer>
+        </ModalFooter>
       </form>
     </Modal>
   );
