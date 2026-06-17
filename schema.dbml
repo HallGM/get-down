@@ -276,6 +276,7 @@ Table refunds {
   amount      int [not null]
   method      varchar(100)
   description varchar(255)
+  subtype     varchar(50) [not null, default: 'adjustment']
 }
 
 Table gig_services {

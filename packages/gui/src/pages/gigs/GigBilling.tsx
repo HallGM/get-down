@@ -37,6 +37,7 @@ import { formatDate, toInputDate } from "../../utils/date.js";
 import { formatPennies } from "../../utils/money.js";
 import useEditTarget from "../../hooks/useEditTarget.js";
 import type { CreateGigLineItemRequest, UpdateGigLineItemRequest, Invoice, Payment, Refund, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
+import { calcBillingTotals, REFUND_SUBTYPE_DEFAULT } from "@get-down/shared";
 
 // ---------------------------------------------------------------------------
 // Local hook: manages a single PDF blob modal (load → display → revoke on close)
@@ -87,9 +88,11 @@ interface AddTransactionModalProps {
   isPending: boolean;
   /** When provided, shows a "Received by" dropdown for partner selection. */
   partnerAccounts?: { id: number; personName: string }[];
+  /** When true, shows the refund subtype radio group. */
+  showSubtype?: boolean;
 }
 
-function AddTransactionModal({ open, title, form, onChange, onSubmit, onClose, isPending, partnerAccounts }: AddTransactionModalProps) {
+function AddTransactionModal({ open, title, form, onChange, onSubmit, onClose, isPending, partnerAccounts, showSubtype }: AddTransactionModalProps) {
   return (
     <Modal open={open} onClose={onClose} title={title}>
       <form onSubmit={onSubmit}>
@@ -97,6 +100,7 @@ function AddTransactionModal({ open, title, form, onChange, onSubmit, onClose, i
           form={{ ...form, date: toInputDate(form.date) }}
           setForm={onChange}
           accounts={partnerAccounts}
+          showSubtype={showSubtype}
         />
         <ModalFooter>
           <button type="button" className="secondary" onClick={onClose}>Cancel</button>
@@ -200,7 +204,7 @@ export default function GigBilling() {
   const [paymentForm, setPaymentForm] = useState<PaymentRefundFormState>({ amount: 0, date: "", method: "", description: "", receivedByAccountId: null });
 
   const [showAddRefund, setShowAddRefund] = useState(false);
-  const [refundForm, setRefundForm] = useState<PaymentRefundFormState>({ amount: 0, date: "", method: "", description: "" });
+  const [refundForm, setRefundForm] = useState<PaymentRefundFormState>({ amount: 0, date: "", method: "", description: "", subtype: REFUND_SUBTYPE_DEFAULT });
 
   // Edit payment / refund modals
   const editPayment = useEditTarget<Payment, UpdatePaymentRequest>(updatePayment);
@@ -234,15 +238,18 @@ export default function GigBilling() {
   if (error || !gig) return <ErrorBanner error={error ?? "Gig not found"} />;
 
   // Compute financial summary fully client-side from live data
-  const subtotal = (gig.lineItems ?? []).reduce((sum, li) => sum + (li.amount ?? 0), 0);
-  const discountAmount = Math.round(subtotal * gig.discountPercent / 100);
-  const billingTotal = subtotal - discountAmount + gig.travelCost;
-  const totalPaid = (payments ?? []).reduce((sum, p) => sum + p.amount, 0);
+  const subtotal      = (gig.lineItems ?? []).reduce((sum, li) => sum + (li.amount ?? 0), 0);
+  const totalCredits  = (refunds ?? []).filter(r => r.subtype === 'credit').reduce((sum, r) => sum + r.amount, 0);
+  const totalPaid     = (payments ?? []).reduce((sum, p) => sum + p.amount, 0);
   const totalRefunded = (refunds ?? []).reduce((sum, r) => sum + r.amount, 0);
-  const netReceived = totalPaid - totalRefunded;
-  const depositRequired = Math.round(billingTotal * 0.20);
-  const depositPaid = Math.min(netReceived, depositRequired);
-  const balanceAmount = Math.max(0, billingTotal - netReceived);
+  const { discountAmount, billingTotal, netReceived, depositRequired, depositPaid, balanceAmount } = calcBillingTotals({
+    subtotal,
+    discountPercent: gig.discountPercent,
+    travelCost:      gig.travelCost,
+    totalCredits,
+    totalPaid,
+    totalRefunded,
+  });
 
   function startEditBilling() {
     setBillingForm({ travelCost: gig!.travelCost, discountPercent: gig!.discountPercent });
@@ -303,7 +310,7 @@ export default function GigBilling() {
     e.preventDefault();
     await createRefund.mutateAsync({ gigId, ...refundForm, amount: refundForm.amount ?? 0 });
     setShowAddRefund(false);
-    setRefundForm({ amount: 0, date: "", method: "", description: "" });
+    setRefundForm({ amount: 0, date: "", method: "", description: "", subtype: REFUND_SUBTYPE_DEFAULT });
   }
 
   async function openPreview(invoiceType: 'deposit' | 'balance') {
@@ -364,6 +371,7 @@ export default function GigBilling() {
           <dt>Subtotal</dt><dd><MoneyDisplay pennies={subtotal} /></dd>
           {gig.discountPercent > 0 && <><dt>Discount ({gig.discountPercent}%)</dt><dd>−<MoneyDisplay pennies={discountAmount} /></dd></>}
           {gig.travelCost > 0 && <><dt>Travel Cost</dt><dd><MoneyDisplay pennies={gig.travelCost} /></dd></>}
+          {totalCredits > 0 && <><dt>Credits applied</dt><dd>−<MoneyDisplay pennies={totalCredits} /></dd></>}
           <dt>Billing Total</dt><dd><strong><MoneyDisplay pennies={billingTotal} /></strong></dd>
           <dt>Total Paid</dt><dd><MoneyDisplay pennies={totalPaid} /></dd>
           {totalRefunded > 0 && <><dt>Total Refunded</dt><dd>−<MoneyDisplay pennies={totalRefunded} /></dd></>}
@@ -515,7 +523,7 @@ export default function GigBilling() {
         </div>
         {refunds && refunds.length > 0 ? (
           <table>
-            <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Description</th><th aria-label="Actions"></th></tr></thead>
+            <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Description</th><th>Type</th><th aria-label="Actions"></th></tr></thead>
             <tbody>
               {refunds.map((r) => (
                 <tr key={r.id}>
@@ -523,6 +531,11 @@ export default function GigBilling() {
                   <td><MoneyDisplay pennies={r.amount} /></td>
                   <td>{r.method ?? "—"}</td>
                   <td>{r.description ?? "—"}</td>
+                  <td>
+                    {r.subtype === 'credit'
+                      ? <span>Credit <small>(goodwill gesture)</small></span>
+                      : <span>Adjustment <small>(overpayment correction)</small></span>}
+                  </td>
                   <td>
                     <div style={{ display: "flex", gap: "0.25rem" }}>
                       <button
@@ -719,6 +732,7 @@ export default function GigBilling() {
         onSubmit={handleAddRefund}
         onClose={() => setShowAddRefund(false)}
         isPending={createRefund.isPending}
+        showSubtype
       />
 
       {/* Credit Note PDF Modal */}

@@ -54,8 +54,12 @@ export const SQL_PERSON_NAME = `
 
 /**
  * LEFT JOIN subqueries for payment and refund aggregates.
- * Introduces aliases `p` (total_paid) and `r` (total_refunded).
+ * Introduces aliases `p` (total_paid), `r` (total_refunded), and `cr` (total_credits).
  * Requires alias `g` on the `gigs` table.
+ *
+ * `cr.total_credits` — sum of credit-subtype refunds only; used to reduce billing_total
+ *                      in SQL_BILLING_CTE_COLS.  Queries that do not use SQL_BILLING_CTE_COLS
+ *                      can safely ignore the `cr` alias.
  */
 export const SQL_PAYMENT_SUBQUERY = `
   LEFT JOIN (
@@ -64,14 +68,17 @@ export const SQL_PAYMENT_SUBQUERY = `
   LEFT JOIN (
     SELECT gig_id, SUM(amount) AS total_refunded FROM refunds GROUP BY gig_id
   ) r ON r.gig_id = g.id
+  LEFT JOIN (
+    SELECT gig_id, SUM(amount) AS total_credits FROM refunds WHERE subtype = 'credit' GROUP BY gig_id
+  ) cr ON cr.gig_id = g.id
 `;
 
 /**
  * SELECT columns for a billing CTE.
  * Produces: id, first_name, last_name, date, venue_name, location,
- *           billing_total (line items minus discount plus travel), net_received.
- * Requires aliases: g (gigs), li (gig_line_items via JOIN), p and r (SQL_PAYMENT_SUBQUERY).
- * Pair with: GROUP BY g.id, p.total_paid, r.total_refunded
+ *           billing_total (line items minus discount plus travel minus credits), net_received.
+ * Requires aliases: g (gigs), li (gig_line_items via JOIN), p, r, and cr (SQL_PAYMENT_SUBQUERY).
+ * Pair with: GROUP BY g.id, p.total_paid, r.total_refunded, cr.total_credits
  */
 export const SQL_BILLING_CTE_COLS = `
   g.id,
@@ -84,6 +91,7 @@ export const SQL_BILLING_CTE_COLS = `
     SUM(COALESCE(li.amount, 0))
     - ROUND(SUM(COALESCE(li.amount, 0)) * g.discount_percent::numeric / 100)::int
     + g.travel_cost
+    - COALESCE(cr.total_credits, 0)
   )::int AS billing_total,
   (COALESCE(p.total_paid, 0) - COALESCE(r.total_refunded, 0))::int AS net_received
 `;

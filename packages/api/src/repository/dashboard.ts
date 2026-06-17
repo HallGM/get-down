@@ -87,7 +87,7 @@ export async function readBalanceDueSoonAlerts(): Promise<GigPaymentMismatchAler
         WHERE g.status = 'confirmed'
           AND g.date >= CURRENT_DATE
           AND g.date <= CURRENT_DATE + INTERVAL '2 months'
-        GROUP BY g.id, p.total_paid, r.total_refunded
+        GROUP BY g.id, p.total_paid, r.total_refunded, cr.total_credits
       )
       SELECT
         id,
@@ -190,7 +190,7 @@ export async function readPastPaymentMismatches(): Promise<GigPaymentMismatchAle
         ${SQL_PAYMENT_SUBQUERY}
         WHERE g.status = 'confirmed'
           AND g.date < CURRENT_DATE
-        GROUP BY g.id, p.total_paid, r.total_refunded
+        GROUP BY g.id, p.total_paid, r.total_refunded, cr.total_credits
       )
       SELECT
         id,

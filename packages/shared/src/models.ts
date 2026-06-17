@@ -729,6 +729,8 @@ export interface Refund {
   amount: number;
   method?: string;
   description?: string;
+  /** Discriminates the refund's purpose: 'credit' reduces the billing total; 'adjustment' returns an overpayment. */
+  subtype: 'credit' | 'adjustment';
 }
 
 export interface CreateRefundRequest {
@@ -737,6 +739,8 @@ export interface CreateRefundRequest {
   amount: number;
   method?: string;
   description?: string;
+  /** Defaults to 'adjustment' when omitted. */
+  subtype?: 'credit' | 'adjustment';
 }
 
 export interface UpdateRefundRequest {
@@ -745,6 +749,7 @@ export interface UpdateRefundRequest {
   amount?: number;
   method?: string;
   description?: string;
+  subtype?: 'credit' | 'adjustment';
 }
 
 export interface GigPaymentSummary {
@@ -765,6 +770,8 @@ export interface GigPaymentSummary {
   receivedBy?: string;
   /** Account ID of the account that received this payment. Undefined when not yet assigned. */
   receivedByAccountId?: number;
+  /** Refund subtype. Only present when type === 'refund'. */
+  subtype?: 'credit' | 'adjustment';
 }
 
 export interface CreatePaymentRequest {

@@ -1,7 +1,9 @@
 import type { Gig, GigLineItem, Service, CreateGigRequest, UpdateGigRequest, CreateGigLineItemRequest, UpdateGigLineItemRequest } from "@get-down/shared";
+import { calcBillingTotals } from "@get-down/shared";
 import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
 import * as paymentsRepo from "../repository/payments.js";
+import * as refundsRepo from "../repository/refunds.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { isValidUrl } from "../utils/validation.js";
 import * as songsRepo from "../repository/songs.js";
@@ -33,23 +35,28 @@ export async function getGigs(): Promise<Gig[]> {
 }
 
 export async function getGigById(id: number): Promise<Gig> {
-  const [row, lineItems, services, payments, predictedProfit] = await Promise.all([
+  const [row, lineItems, services, payments, refunds, predictedProfit] = await Promise.all([
     gigsRepo.readGigById(id),
     gigLineItemsRepo.readGigLineItemsByGigId(id),
     gigsRepo.readGigServicesByGigId(id),
     paymentsRepo.readPaymentsByGigId(id),
+    refundsRepo.readRefundsByGigId(id),
     gigsRepo.readGigPredictedProfitById(id),
   ]);
   if (!row) throw new NotFoundError("Gig not found");
 
-  const subtotal = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
-  const discountAmount = Math.round(subtotal * row.discount_percent / 100);
-  const total = subtotal - discountAmount + row.travel_cost;
-  const totalPaid = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
-  const depositRate = 0.20;
-  const depositRequired = Math.round(total * depositRate);
-  const depositPaid = Math.min(totalPaid, depositRequired);
-  const balanceAmount = Math.max(0, total - totalPaid);
+  const subtotal      = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
+  const totalCredits  = refunds.filter(r => r.subtype === 'credit').reduce((sum, r) => sum + r.amount, 0);
+  const totalRefunded = refunds.reduce((sum, r) => sum + r.amount, 0);
+  const totalPaid     = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
+  const { depositPaid, balanceAmount } = calcBillingTotals({
+    subtotal,
+    discountPercent: row.discount_percent,
+    travelCost:      row.travel_cost,
+    totalCredits,
+    totalPaid,
+    totalRefunded,
+  });
 
   return {
     ...mapGig(row),
