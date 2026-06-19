@@ -6,23 +6,24 @@
 export interface Service {
   id: number;
   name: string;
-  category?: string;
   description?: string;
   priceToClient?: number;
   /** Computed: count of role slots linked to this service (read-only, not in mutation requests). */
   numberOfPeople?: number;
+  /** Computed: client price minus sum of all role fees. null when client price is not set. */
+  profitMargin?: number | null;
+  /** Computed: number of non-cancelled gigs this service has been used on. */
+  timesUsed?: number;
   extraFee?: number;
   extraFeeDescription?: string;
   isBand?: boolean;
   isDjOnly?: boolean;
   requiresMeal?: boolean;
-  isActive?: boolean;
   airtableId?: string;
 }
 
 export interface CreateServiceRequest {
   name: string;
-  category?: string;
   description?: string;
   priceToClient?: number;
   extraFee?: number;
@@ -30,13 +31,11 @@ export interface CreateServiceRequest {
   isBand?: boolean;
   isDjOnly?: boolean;
   requiresMeal?: boolean;
-  isActive?: boolean;
   airtableId?: string;
 }
 
 export interface UpdateServiceRequest {
   name?: string;
-  category?: string;
   description?: string;
   priceToClient?: number;
   extraFee?: number;
@@ -44,7 +43,6 @@ export interface UpdateServiceRequest {
   isBand?: boolean;
   isDjOnly?: boolean;
   requiresMeal?: boolean;
-  isActive?: boolean;
   airtableId?: string;
 }
 
@@ -235,6 +233,8 @@ export interface Gig {
   netReceived?: number;
   /** Total fee allocation line items in pennies for this gig. Only present on list responses. */
   feesTotal?: number;
+  /** IDs of services attached to this gig. Only present on list responses. */
+  serviceIds?: number[];
   /**
    * Predicted profit in pennies: discounted sum of service client prices minus total role fees.
    * null means unavailable (cancelled gig, no services attached, or a price/fee is missing).

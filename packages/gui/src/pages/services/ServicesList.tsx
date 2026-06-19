@@ -9,17 +9,19 @@ import MoneyField from "../../components/MoneyField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
-import BooleanCell from "../../components/BooleanCell.js";
 
 const COLUMNS: Column<Service>[] = [
   { key: "name", header: "Name", sortable: true },
-  { key: "category", header: "Category", sortable: true, render: (s) => s.category ?? "—" },
   { key: "priceToClient", header: "Client Price", render: (s) => <MoneyDisplay pennies={s.priceToClient} /> },
-  { key: "numberOfPeople", header: "No. Roles", render: (s) => s.numberOfPeople ?? "—" },
-  { key: "isActive", header: "Active", render: (s) => <BooleanCell value={!!s.isActive} /> },
+  { key: "numberOfPeople", header: "No. Roles", render: (s) => s.numberOfPeople ?? 0 },
+  {
+    key: "profitMargin",
+    header: "Profit Margin",
+    render: (s) => s.profitMargin == null ? <span style={{ color: "var(--pico-muted-color)" }}>—</span> : <MoneyDisplay pennies={s.profitMargin} />,
+  },
 ];
 
-const EMPTY_FORM: CreateServiceRequest = { name: "", isActive: true };
+const EMPTY_FORM: CreateServiceRequest = { name: "" };
 
 export default function ServicesList() {
   const { data: services, isLoading, error } = useServices();
@@ -55,6 +57,18 @@ export default function ServicesList() {
 
       <DataTable<Service>
         columns={[...COLUMNS, {
+          key: "timesUsed",
+          header: "Times Used",
+          render: (s) => (
+            <button
+              className="secondary outline"
+              style={{ padding: "0.2em 0.6em" }}
+              onClick={(e) => { e.stopPropagation(); navigate(`/gigs?service=${s.id}`); }}
+            >
+              {s.timesUsed ?? 0}
+            </button>
+          ),
+        }, {
           key: "actions", header: "",
           render: (s) => (
             <button
@@ -75,7 +89,6 @@ export default function ServicesList() {
         <form onSubmit={handleCreate}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
             <FormField label="Name" value={form.name} onChange={(e) => field("name", e.target.value)} required />
-            <FormField label="Category" value={form.category ?? ""} onChange={(e) => field("category", e.target.value)} />
             <MoneyField label="Price to Client" value={form.priceToClient} onChange={(pennies) => field("priceToClient", pennies)} min={0} />
           </div>
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
