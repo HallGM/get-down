@@ -6,16 +6,18 @@ import * as paymentsRepo from "../repository/payments.js";
 import * as refundsRepo from "../repository/refunds.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { isValidUrl } from "../utils/validation.js";
+import { groupById } from "../utils/groupById.js";
 import * as songsRepo from "../repository/songs.js";
 import { withTransaction } from "../db/init.js";
 import { DEFAULT_SECTION_NAME } from "../constants.js";
 import { fireGenerateDeliveryPhotos } from "../jobs/generateDeliveryPhotos.js";
 
 export async function getGigs(): Promise<Gig[]> {
-  const [rows, financials, predictedProfits] = await Promise.all([
+  const [rows, financials, predictedProfits, serviceMappings] = await Promise.all([
     gigsRepo.readGigs(),
     gigsRepo.readGigFinancialTotals(),
     gigsRepo.readGigPredictedProfits(),
+    gigsRepo.readGigServiceMappings(),
   ]);
   const financialMap = new Map(
     financials.map((f) => [f.gig_id, { netReceived: f.net_received, feesTotal: f.total_fees }])
@@ -23,6 +25,7 @@ export async function getGigs(): Promise<Gig[]> {
   const predictedProfitMap = new Map(
     predictedProfits.map((p) => [p.gig_id, p.predicted_profit])
   );
+  const serviceIdsMap = groupById(serviceMappings, (m) => m.gig_id, (m) => m.service_id);
   return rows.map((row) => {
     const fin = financialMap.get(row.id) ?? { netReceived: 0, feesTotal: 0 };
     return {
@@ -30,6 +33,7 @@ export async function getGigs(): Promise<Gig[]> {
       netReceived: fin.netReceived,
       feesTotal: fin.feesTotal,
       predictedProfit: predictedProfitMap.get(row.id) ?? null,
+      serviceIds: serviceIdsMap.get(row.id) ?? [],
     };
   });
 }

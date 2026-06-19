@@ -3,18 +3,18 @@ import type { Service, CreateServiceRequest, UpdateServiceRequest } from "@get-d
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
-const KEY = "services";
+export const SERVICES_KEY = "services";
 
 export function useServices() {
   return useQuery({
-    queryKey: [KEY],
+    queryKey: [SERVICES_KEY],
     queryFn: () => apiFetch<Service[]>("GET", "/services"),
   });
 }
 
 export function useService(id: number) {
   return useQuery({
-    queryKey: [KEY, id],
+    queryKey: [SERVICES_KEY, id],
     queryFn: () => apiFetch<Service>("GET", `/services/${id}`),
     enabled: !!id,
   });
@@ -25,7 +25,7 @@ export function useCreateService() {
   return useApiMutation({
     mutationFn: (input: CreateServiceRequest) =>
       apiFetch<Service>("POST", "/services", input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [SERVICES_KEY] }),
     successMessage: "Service created",
   });
 }
@@ -36,8 +36,8 @@ export function useUpdateService() {
     mutationFn: ({ id, input }: { id: number; input: UpdateServiceRequest }) =>
       apiFetch<Service>("PUT", `/services/${id}`, input),
     onSuccess: (_data, { id }) => {
-      qc.invalidateQueries({ queryKey: [KEY] });
-      qc.invalidateQueries({ queryKey: [KEY, id] });
+      qc.invalidateQueries({ queryKey: [SERVICES_KEY] });
+      qc.invalidateQueries({ queryKey: [SERVICES_KEY, id] });
     },
     successMessage: "Service saved",
   });
@@ -47,7 +47,7 @@ export function useDeleteService() {
   const qc = useQueryClient();
   return useApiMutation({
     mutationFn: (id: number) => apiFetch<void>("DELETE", `/services/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [SERVICES_KEY] }),
     successMessage: "Service deleted",
   });
 }

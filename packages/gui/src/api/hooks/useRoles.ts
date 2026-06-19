@@ -1,7 +1,8 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, QueryClient } from "@tanstack/react-query";
 import type { Role, CreateRoleRequest, UpdateRoleRequest } from "@get-down/shared";
 import { apiFetch, ApiError } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
+import { SERVICES_KEY } from "./useServices.js";
 
 const ROLES_KEY = "roles-list";
 const SERVICE_ROLES_KEY = "service-roles";
@@ -54,7 +55,7 @@ export function useAddRoleToService(serviceId: number) {
   return useApiMutation({
     mutationFn: (roleId: number) =>
       apiFetch<void>("POST", `/services/${serviceId}/roles`, { roleId }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [SERVICE_ROLES_KEY, serviceId] }),
+    onSuccess: () => invalidateServiceCaches(qc, serviceId),
     successMessage: "Role added to service",
   });
 }
@@ -64,7 +65,7 @@ export function useRemoveRoleFromService(serviceId: number) {
   return useApiMutation({
     mutationFn: (roleServicesId: number) =>
       apiFetch<void>("DELETE", `/services/${serviceId}/roles/${roleServicesId}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [SERVICE_ROLES_KEY, serviceId] }),
+    onSuccess: () => invalidateServiceCaches(qc, serviceId),
     successMessage: "Role removed from service",
   });
 }
@@ -80,7 +81,7 @@ export function useCreateAndAttachRole(serviceId: number) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [ROLES_KEY] });
-      qc.invalidateQueries({ queryKey: [SERVICE_ROLES_KEY, serviceId] });
+      invalidateServiceCaches(qc, serviceId);
     },
     errorMessage: (err) =>
       err instanceof ApiError && err.status === 409
@@ -88,4 +89,12 @@ export function useCreateAndAttachRole(serviceId: number) {
         : err.message,
     successMessage: "Role created and added to service",
   });
+}
+
+// ── private helpers ──────────────────────────────────────────────────────────
+
+function invalidateServiceCaches(qc: QueryClient, serviceId: number): void {
+  qc.invalidateQueries({ queryKey: [SERVICE_ROLES_KEY, serviceId] });
+  qc.invalidateQueries({ queryKey: [SERVICES_KEY] });
+  qc.invalidateQueries({ queryKey: [SERVICES_KEY, serviceId] });
 }

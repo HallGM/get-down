@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useGigs, useCreateGig, useDeleteGig } from "../../api/hooks/useGigs.js";
+import { useServices } from "../../api/hooks/useServices.js";
 import type { CreateGigRequest } from "@get-down/shared";
 import DataTable, { type Column, defaultFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
@@ -47,7 +48,9 @@ const EMPTY_FORM: CreateGigRequest = {
 
 export default function GigsList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: gigs, isLoading, error } = useGigs();
+  const { data: services = [] } = useServices();
   const createGig = useCreateGig();
   const deleteGig = useDeleteGig();
 
@@ -57,18 +60,36 @@ export default function GigsList() {
   const [form, setForm] = useState<CreateGigRequest>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<Gig | null>(null);
 
+  const serviceParam = searchParams.get("service");
+  const selectedServiceId = serviceParam ? Number(serviceParam) : null;
+
+  function handleServiceChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const val = e.target.value;
+    if (val) {
+      setSearchParams({ service: val }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  }
+
   const displayedGigs = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const all = gigs ?? [];
+    let all = gigs ?? [];
+
     if (view === "upcoming") {
-      return [...all].filter((g) => g.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+      all = all.filter((g) => g.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+    } else if (view === "past") {
+      all = all.filter((g) => g.date < today).sort((a, b) => b.date.localeCompare(a.date));
+    } else {
+      all = [...all].sort((a, b) => a.date.localeCompare(b.date));
     }
-    if (view === "past") {
-      return [...all].filter((g) => g.date < today).sort((a, b) => b.date.localeCompare(a.date));
+
+    if (selectedServiceId !== null) {
+      all = all.filter((g) => g.serviceIds?.includes(selectedServiceId));
     }
-    // "all"
-    return [...all].sort((a, b) => a.date.localeCompare(b.date));
-  }, [gigs, view]);
+
+    return all;
+  }, [gigs, view, selectedServiceId]);
 
   // Mirror DataTable's default filter so totals always match the visible rows.
   const visibleGigs = useMemo(() => {
@@ -110,6 +131,10 @@ export default function GigsList() {
   if (isLoading) return <main className="container"><LoadingState /></main>;
   if (error) return <main className="container"><ErrorBanner error={error} /></main>;
 
+  const selectedServiceName = selectedServiceId
+    ? (services.find((s) => s.id === selectedServiceId)?.name ?? null)
+    : null;
+
   return (
     <main className="container">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
@@ -117,7 +142,7 @@ export default function GigsList() {
         <button onClick={() => setShowCreate(true)}>+ New Gig</button>
       </div>
 
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap", alignItems: "center" }}>
         <button
           className={view !== "upcoming" ? "secondary" : undefined}
           aria-pressed={view === "upcoming"}
@@ -139,6 +164,29 @@ export default function GigsList() {
         >
           All
         </button>
+
+        <label style={{ marginLeft: "auto", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+          Service
+          <select
+            value={selectedServiceId ?? ""}
+            onChange={handleServiceChange}
+            style={{ width: "auto" }}
+          >
+            <option value="">All</option>
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </label>
+        {selectedServiceId !== null && (
+          <button
+            className="secondary outline"
+            style={{ padding: "0.3em 0.7em" }}
+            onClick={() => setSearchParams({}, { replace: true })}
+          >
+            ✕ {selectedServiceName ?? "Clear filter"}
+          </button>
+        )}
       </div>
 
       <DataTable<Gig>

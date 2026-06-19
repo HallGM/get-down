@@ -218,6 +218,17 @@ export async function deleteGig(id: number): Promise<boolean> {
   return rows.length > 0;
 }
 
+export interface GigServiceMappingRow {
+  gig_id: number;
+  service_id: number;
+}
+
+export async function readGigServiceMappings(): Promise<GigServiceMappingRow[]> {
+  return run_query<GigServiceMappingRow>({
+    text: `SELECT gig_id, service_id FROM gig_services ORDER BY gig_id;`,
+  });
+}
+
 export async function setGigServices(gigId: number, serviceIds: number[]): Promise<void> {
   await run_query({
     text: `DELETE FROM gig_services WHERE gig_id = $1;`,

@@ -47,16 +47,16 @@ function mapService(row: servicesRepository.ServiceRow): Service {
   return {
     id: row.id,
     name: row.name,
-    category: row.category ?? undefined,
     description: row.description ?? undefined,
     priceToClient: row.price_to_client ?? undefined,
-    numberOfPeople: row.number_of_people ?? undefined,
+    numberOfPeople: row.number_of_people,
+    profitMargin: row.profit_margin,
+    timesUsed: row.times_used,
     extraFee: row.extra_fee ?? undefined,
     extraFeeDescription: row.extra_fee_description ?? undefined,
     isBand: row.is_band,
     isDjOnly: row.is_dj_only,
     requiresMeal: row.requires_meal,
-    isActive: row.is_active,
     airtableId: row.airtable_id ?? undefined,
   };
 }
@@ -72,7 +72,6 @@ function buildMutationInput(
 
   return {
     name,
-    category: trimOptional(input.category) ?? existing?.category,
     description: trimOptional(input.description) ?? existing?.description,
     priceToClient: input.priceToClient ?? existing?.priceToClient,
     extraFee: input.extraFee ?? existing?.extraFee,
@@ -80,7 +79,6 @@ function buildMutationInput(
     isBand: input.isBand ?? existing?.isBand ?? false,
     isDjOnly: input.isDjOnly ?? existing?.isDjOnly ?? false,
     requiresMeal: input.requiresMeal ?? existing?.requiresMeal ?? false,
-    isActive: input.isActive ?? existing?.isActive ?? true,
     airtableId: input.airtableId ?? existing?.airtableId,
   };
 }

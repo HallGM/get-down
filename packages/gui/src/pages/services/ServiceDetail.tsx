@@ -46,7 +46,6 @@ export default function ServiceDetail() {
   function startEdit() {
     setEditForm({
       name: service!.name,
-      category: service!.category,
       description: service!.description,
       priceToClient: service!.priceToClient,
       extraFee: service!.extraFee,
@@ -54,7 +53,6 @@ export default function ServiceDetail() {
       isBand: service!.isBand,
       isDjOnly: service!.isDjOnly,
       requiresMeal: service!.requiresMeal ?? false,
-      isActive: service!.isActive,
     });
     setEditing(true);
   }
@@ -90,10 +88,7 @@ export default function ServiceDetail() {
       </nav>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.5rem" }}>
-        <hgroup>
-          <h1>{service.name}</h1>
-          <p>{service.category ?? "—"}{service.isActive === false ? " · Inactive" : ""}</p>
-        </hgroup>
+        <h1>{service.name}</h1>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           {!editing && <button className="secondary" onClick={startEdit}>Edit</button>}
           {!editing && <button className="contrast outline" onClick={() => setShowDelete(true)}>Delete</button>}
@@ -103,15 +98,13 @@ export default function ServiceDetail() {
       {!editing ? (
         <article>
           <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem" }}>
-            <dt>Category</dt><dd>{service.category ?? "—"}</dd>
             <dt>Client price</dt><dd><MoneyDisplay pennies={service.priceToClient} /></dd>
-            <dt>No. of roles</dt><dd>{service.numberOfPeople ?? "—"}</dd>
+            <dt>No. of roles</dt><dd>{service.numberOfPeople ?? 0}</dd>
             <dt>Extra fee</dt><dd><MoneyDisplay pennies={service.extraFee} /></dd>
             {service.extraFeeDescription && <><dt>Extra fee desc.</dt><dd>{service.extraFeeDescription}</dd></>}
             <dt>Band</dt><dd>{service.isBand ? "Yes" : "No"}</dd>
             <dt>DJ only</dt><dd>{service.isDjOnly ? "Yes" : "No"}</dd>
             <dt>Requires meal</dt><dd>{service.requiresMeal ? "Yes" : "No"}</dd>
-            <dt>Active</dt><dd>{service.isActive !== false ? "Yes" : "No"}</dd>
             {service.description && <><dt>Description</dt><dd>{service.description}</dd></>}
           </dl>
         </article>
@@ -120,7 +113,6 @@ export default function ServiceDetail() {
           <form onSubmit={handleSave}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem" }}>
               <FormField label="Name" value={editForm.name ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} required />
-              <FormField label="Category" value={editForm.category ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))} />
               <MoneyField label="Price to Client" value={editForm.priceToClient} onChange={(pennies) => setEditForm((f) => ({ ...f, priceToClient: pennies }))} min={0} />
               <MoneyField label="Extra Fee" value={editForm.extraFee} onChange={(pennies) => setEditForm((f) => ({ ...f, extraFee: pennies }))} min={0} />
               <FormField label="Extra Fee Description" value={editForm.extraFeeDescription ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, extraFeeDescription: e.target.value }))} />
@@ -135,9 +127,6 @@ export default function ServiceDetail() {
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <input type="checkbox" checked={!!editForm.requiresMeal} onChange={(e) => setEditForm((f) => ({ ...f, requiresMeal: e.target.checked }))} /> Requires meal
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <input type="checkbox" checked={editForm.isActive !== false} onChange={(e) => setEditForm((f) => ({ ...f, isActive: e.target.checked }))} /> Active
               </label>
             </div>
             <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
