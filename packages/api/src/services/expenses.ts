@@ -4,10 +4,12 @@ import { z } from "zod";
 import type { Expense, CreateExpenseRequest, UpdateExpenseRequest } from "@get-down/shared";
 import * as expensesRepo from "../repository/expenses.js";
 import * as expensePaymentsRepo from "../repository/expense_payments.js";
-import { mapPayment as mapExpensePayment } from "../services/expense_payments.js";
+import { mapPayment as mapExpensePayment, CreatePaymentSchema } from "../services/expense_payments.js";
 import * as feeAllocationsRepo from "../repository/fee_allocations.js";
 import * as attributionFeesRepo from "../repository/attribution_fees.js";
+import * as accountsRepo from "../repository/accounts.js";
 import * as storage from "../utils/storage.js";
+import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 
@@ -35,7 +37,22 @@ export async function getExpenseById(id: number): Promise<Expense> {
 }
 
 export async function createExpense(input: CreateExpenseRequest): Promise<Expense> {
-  const row = await expensesRepo.createExpense(buildMutationInput(input));
+  const mutationInput = buildMutationInput(input);
+
+  if (input.payment) {
+    const paymentInput = parseOrBadRequest(CreatePaymentSchema, input.payment);
+    if (paymentInput.amount === 0) throw new BadRequestError("payment amount must not be zero");
+    const account = await accountsRepo.readAccountById(paymentInput.accountId);
+    if (!account) throw new BadRequestError("payment accountId references an account that does not exist");
+
+    return withTransaction(async () => {
+      const row = await expensesRepo.createExpense(mutationInput);
+      await expensePaymentsRepo.createExpensePayment(row.id, paymentInput);
+      return mapExpense(row, [], [], paymentInput.amount);
+    });
+  }
+
+  const row = await expensesRepo.createExpense(mutationInput);
   return mapExpense(row, [], [], 0);
 }
 

@@ -16,6 +16,13 @@ import { useApiMutation } from "./useApiMutation.js";
 
 const KEY = "invoices";
 
+export function useAllInvoices() {
+  return useQuery({
+    queryKey: [KEY, "all"],
+    queryFn: () => apiFetch<Invoice[]>("GET", "/invoices"),
+  });
+}
+
 export function useGigInvoices(gigId: number) {
   return useQuery({
     queryKey: [KEY, "gig", gigId],

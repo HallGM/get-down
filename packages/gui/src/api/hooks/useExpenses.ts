@@ -34,6 +34,8 @@ export function useCreateExpense() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      qc.invalidateQueries({ queryKey: ["all-expense-payments"] });
     },
     successMessage: "Expense added",
   });

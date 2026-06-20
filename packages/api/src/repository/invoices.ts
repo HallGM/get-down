@@ -119,6 +119,12 @@ export async function readInvoiceById(id: number): Promise<InvoiceRow | null> {
   return rows[0] ?? null;
 }
 
+export async function readAllInvoices(): Promise<InvoiceRow[]> {
+  return run_query<InvoiceRow>({
+    text: `SELECT ${INVOICE_COLS} FROM invoices ORDER BY date DESC;`,
+  });
+}
+
 export async function readInvoicesByGigId(gigId: number): Promise<InvoiceRow[]> {
   return run_query<InvoiceRow>({
     text: `SELECT ${INVOICE_COLS} FROM invoices WHERE gig_id = $1 ORDER BY date DESC;`,
