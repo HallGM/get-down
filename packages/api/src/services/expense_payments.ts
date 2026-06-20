@@ -6,12 +6,15 @@ import * as accountsRepo from "../repository/accounts.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 
-const CreatePaymentSchema = z.object({
+export const BasePaymentSchema = z.object({
   accountId: z.number().int().positive("accountId must be a positive integer"),
-  amount: z.number().int("amount must be an integer number of pennies"),
-  date: z.string().optional(),
+  amount:    z.number().int("amount must be an integer number of pennies"),
+  date:      z.string().optional(),
+});
+
+export const CreatePaymentSchema = BasePaymentSchema.extend({
   paymentMethod: z.string().optional(),
-  description: z.string().optional(),
+  description:   z.string().optional(),
 });
 
 const UpdatePaymentSchema = CreatePaymentSchema.partial().extend({

@@ -7,28 +7,11 @@ import {
   useUpdateExpensePayment,
   useDeleteExpensePayment,
 } from "../api/hooks/useExpensePayments.js";
-import MoneyField from "./MoneyField.js";
-import FormField from "./FormField.js";
+import { PaymentFormFields, EMPTY_PAYMENT_FORM, type PaymentFormState } from "./ExpensePaymentFormFields.js";
 import ConfirmDelete from "./ConfirmDelete.js";
 import MoneyDisplay from "./MoneyDisplay.js";
 import PaymentStatusBadge from "./PaymentStatusBadge.js";
 import { formatDate, toInputDate } from "../utils/date.js";
-
-interface PaymentFormState {
-  accountId: number | "";
-  amount: number;
-  date: string;
-  paymentMethod: string;
-  description: string;
-}
-
-const EMPTY_FORM: PaymentFormState = {
-  accountId: "",
-  amount: 0,
-  date: "",
-  paymentMethod: "",
-  description: "",
-};
 
 
 interface Props {
@@ -45,9 +28,9 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
   const deletePayment = useDeleteExpensePayment(expenseId);
 
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<PaymentFormState>(EMPTY_FORM);
+  const [form, setForm] = useState<PaymentFormState>(EMPTY_PAYMENT_FORM);
   const [editTarget, setEditTarget] = useState<ExpensePayment | null>(null);
-  const [editForm, setEditForm] = useState<PaymentFormState>(EMPTY_FORM);
+  const [editForm, setEditForm] = useState<PaymentFormState>(EMPTY_PAYMENT_FORM);
   const [deleteTarget, setDeleteTarget] = useState<ExpensePayment | null>(null);
 
   const accountMap = new Map(accounts.map((a) => [a.id, a.personName]));
@@ -64,7 +47,7 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
     try {
       await createPayment.mutateAsync(input);
       setShowForm(false);
-      setForm(EMPTY_FORM);
+      setForm(EMPTY_PAYMENT_FORM);
     } catch {
       // toast already shown by useApiMutation — keep form open for retry
     }
@@ -158,7 +141,7 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
         <div style={{ border: "1px solid var(--pico-muted-border-color)", borderRadius: "var(--pico-border-radius)", padding: "0.75rem", marginBottom: "0.5rem" }}>
           <PaymentFormFields form={form} setForm={setForm} accounts={accounts} />
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.5rem" }}>
-            <button type="button" className="secondary outline" style={{ padding: "0.2em 0.6em" }} onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }}>Cancel</button>
+            <button type="button" className="secondary outline" style={{ padding: "0.2em 0.6em" }} onClick={() => { setShowForm(false); setForm(EMPTY_PAYMENT_FORM); }}>Cancel</button>
             <button type="button" style={{ padding: "0.2em 0.6em" }} aria-busy={createPayment.isPending} disabled={createPayment.isPending || !form.accountId} onClick={handleCreate}>Record Payment</button>
           </div>
         </div>
@@ -177,63 +160,6 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
           loading={deletePayment.isPending}
         />
       )}
-    </div>
-  );
-}
-
-// ─── Shared form fields ───────────────────────────────────────────────────────
-
-function PaymentFormFields({
-  form,
-  setForm,
-  accounts,
-}: {
-  form: PaymentFormState;
-  setForm: (fn: (f: PaymentFormState) => PaymentFormState) => void;
-  accounts: { id: number; personName: string }[];
-}) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-      <div>
-        <label>
-          <small><strong>Paid by</strong></small>
-          <select
-            value={form.accountId}
-            onChange={(e) => setForm((f) => ({ ...f, accountId: e.target.value ? Number(e.target.value) : "" }))}
-            required
-            style={{ marginTop: "0.25rem" }}
-          >
-            <option value="">— select payer —</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>{a.personName}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <MoneyField
-        label="Amount"
-        hint="negative = refund"
-        value={form.amount}
-        onChange={(pennies) => setForm((f) => ({ ...f, amount: pennies ?? 0 }))}
-        required
-      />
-      <FormField
-        label="Date"
-        type="date"
-        value={form.date}
-        onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-      />
-      <FormField
-        label="Payment method"
-        value={form.paymentMethod}
-        onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))}
-      />
-      <FormField
-        label="Note"
-        value={form.description}
-        onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-        style={{ gridColumn: "1 / -1" }}
-      />
     </div>
   );
 }

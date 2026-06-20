@@ -18,6 +18,11 @@ import * as refundsRepo from "../repository/refunds.js";
 import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 
+export async function getAllInvoices(): Promise<Invoice[]> {
+  const rows = await invoicesRepo.readAllInvoices();
+  return rows.map(mapInvoice);
+}
+
 export async function getInvoicesByGig(gigId: number): Promise<Invoice[]> {
   const rows = await invoicesRepo.readInvoicesByGigId(gigId);
   return rows.map(mapInvoice);

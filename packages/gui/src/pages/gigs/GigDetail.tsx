@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   useGig,
   useUpdateGig,
@@ -31,16 +31,24 @@ const TAB_LABELS: Record<GigTab, string> = {
   billing: "Invoice & Billing",
 };
 
+function isGigTab(s: string | null): s is GigTab {
+  return s !== null && ALL_TABS.includes(s as GigTab);
+}
+
 export default function GigDetail() {
   const { id } = useParams<{ id: string }>();
   const gigId = Number(id);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const tabParam = searchParams.get("tab");
+  const initialTab: GigTab = isGigTab(tabParam) ? tabParam : "overview";
 
   const { data: gig, isLoading, error } = useGig(gigId);
   const updateGig = useUpdateGig();
   const deleteGig = useDeleteGig();
 
-  const [activeTab, setActiveTab] = useState<GigTab>("overview");
+  const [activeTab, setActiveTab] = useState<GigTab>(initialTab);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<UpdateGigRequest>({});
   const [showDeleteGig, setShowDeleteGig] = useState(false);

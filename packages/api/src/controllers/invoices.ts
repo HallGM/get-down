@@ -7,6 +7,7 @@ import { proxyToFlask, handleFlask } from "../utils/proxyToFlask.js";
 const router: Router = express.Router();
 router.use(authenticateToken);
 
+router.get("/invoices",           handle(() => invoicesService.getAllInvoices()));
 router.get("/gigs/:id/invoices",  handle(req => invoicesService.getInvoicesByGig(+req.params.id)));
 router.get("/invoices/:id",       handle(req => invoicesService.getInvoiceById(+req.params.id)));
 router.post("/invoices",          handle(req => invoicesService.createInvoice(req.body), 201));

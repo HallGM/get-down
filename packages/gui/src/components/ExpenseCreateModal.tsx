@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useCreateExpense } from "../api/hooks/useExpenses.js";
+import { useAccounts } from "../api/hooks/useAccounts.js";
 import type { CreateExpenseRequest, Expense } from "@get-down/shared";
 import { MAX_DOCUMENT_SIZE_BYTES } from "@get-down/shared";
 import Modal from "./Modal.js";
 import FormField from "./FormField.js";
 import MoneyField from "./MoneyField.js";
+import { PaymentFormFields, EMPTY_PAYMENT_FORM, type PaymentFormState } from "./ExpensePaymentFormFields.js";
 import { toInputDate } from "../utils/date.js";
 
 function makeFileChangeHandler(
@@ -25,6 +27,18 @@ function makeFileChangeHandler(
   };
 }
 
+// Extends the shared form state with dirty-tracking for auto-sync behaviour
+interface LocalPaymentState extends PaymentFormState {
+  amountDirty: boolean;
+  dateDirty: boolean;
+}
+
+const EMPTY_LOCAL_PAYMENT: LocalPaymentState = {
+  ...EMPTY_PAYMENT_FORM,
+  amountDirty: false,
+  dateDirty: false,
+};
+
 export interface ExpenseCreateModalProps {
   open: boolean;
   onClose: () => void;
@@ -39,6 +53,7 @@ export default function ExpenseCreateModal({
   initialValues,
 }: ExpenseCreateModalProps) {
   const createExpense = useCreateExpense();
+  const { data: accounts = [] } = useAccounts();
 
   const [form, setForm] = useState<CreateExpenseRequest>(() => ({
     description: initialValues?.description ?? "",
@@ -46,10 +61,12 @@ export default function ExpenseCreateModal({
   }));
   const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
   const [fileError, setFileError] = useState<string | undefined>(undefined);
+  const [recordPayment, setRecordPayment] = useState(false);
+  const [paymentForm, setPaymentForm] = useState<LocalPaymentState>(EMPTY_LOCAL_PAYMENT);
 
   const handleFileChange = makeFileChangeHandler(setSelectedFile, setFileError);
 
-  // Reset form whenever the modal opens so pre-filled values stay current
+  // Reset everything whenever the modal opens
   useEffect(() => {
     if (open) {
       setForm({
@@ -58,9 +75,52 @@ export default function ExpenseCreateModal({
       });
       setSelectedFile(undefined);
       setFileError(undefined);
+      setRecordPayment(false);
+      setPaymentForm(EMPTY_LOCAL_PAYMENT);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Keep payment amount/date in sync with expense (unless user has edited them)
+  useEffect(() => {
+    if (recordPayment) {
+      setPaymentForm((f) => ({
+        ...f,
+        amount: f.amountDirty ? f.amount : form.amount,
+        date:   f.dateDirty   ? f.date   : (form.date ?? ""),
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.amount, form.date]);
+
+  function handleRecordPaymentToggle(checked: boolean) {
+    setRecordPayment(checked);
+    if (checked) {
+      const businessAccount = accounts.find((a) => a.isBusiness);
+      setPaymentForm({
+        accountId: businessAccount?.id ?? "",
+        amount: form.amount,
+        date: form.date ?? "",
+        paymentMethod: "",
+        description: "",
+        amountDirty: false,
+        dateDirty: false,
+      });
+    }
+  }
+
+  // Wrapper setter for PaymentFormFields — tracks which fields the user has edited
+  function setPaymentFormFields(fn: (f: PaymentFormState) => PaymentFormState) {
+    setPaymentForm((f) => {
+      const { amountDirty, dateDirty, ...base } = f;
+      const next = fn(base);
+      return {
+        ...next,
+        amountDirty: amountDirty || next.amount !== base.amount,
+        dateDirty:   dateDirty   || next.date   !== base.date,
+      };
+    });
+  }
 
   function handleClose() {
     onClose();
@@ -69,9 +129,23 @@ export default function ExpenseCreateModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (fileError) return;
-    const created = await createExpense.mutateAsync({ input: form, file: selectedFile });
+
+    const input: CreateExpenseRequest = { ...form };
+    if (recordPayment && typeof paymentForm.accountId === "number") {
+      input.payment = {
+        accountId:     paymentForm.accountId,
+        amount:        paymentForm.amount,
+        date:          paymentForm.date || undefined,
+        paymentMethod: paymentForm.paymentMethod || undefined,
+        description:   paymentForm.description   || undefined,
+      };
+    }
+
+    const created = await createExpense.mutateAsync({ input, file: selectedFile });
     onCreated?.(created);
   }
+
+  const paymentMissing = recordPayment && (paymentForm.accountId === "" || paymentForm.amount === 0);
 
   return (
     <Modal open={open} onClose={handleClose} title="New Expense">
@@ -113,13 +187,38 @@ export default function ExpenseCreateModal({
             </label>
             {fileError && <small style={{ color: "var(--pico-color-red-500)" }}>{fileError}</small>}
           </div>
+
+          {/* Record payment toggle */}
+          <div style={{ gridColumn: "1 / -1", marginTop: "0.25rem" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", userSelect: "none" }}>
+              <input
+                type="checkbox"
+                checked={recordPayment}
+                onChange={(e) => handleRecordPaymentToggle(e.target.checked)}
+                style={{ margin: 0 }}
+              />
+              <span>Record payment now</span>
+            </label>
+          </div>
+
+          {/* Inline payment fields */}
+          {recordPayment && (
+            <div style={{ gridColumn: "1 / -1" }}>
+              <PaymentFormFields
+                form={paymentForm}
+                setForm={setPaymentFormFields}
+                accounts={accounts}
+              />
+            </div>
+          )}
         </div>
+
         <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
           <button type="button" className="secondary" onClick={handleClose}>Cancel</button>
           <button
             type="submit"
             aria-busy={createExpense.isPending}
-            disabled={createExpense.isPending || !!fileError}
+            disabled={createExpense.isPending || !!fileError || paymentMissing}
           >
             Create
           </button>

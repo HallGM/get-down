@@ -698,6 +698,15 @@ export interface CreateExpenseRequest {
   category?: string;
   recipientName?: string;
   airtableId?: string;
+  /** When present, a payment is created atomically alongside the expense. */
+  payment?: {
+    accountId: number;
+    /** Signed amount in pennies. */
+    amount: number;
+    date?: string;
+    paymentMethod?: string;
+    description?: string;
+  };
 }
 
 export interface UpdateExpenseRequest {
