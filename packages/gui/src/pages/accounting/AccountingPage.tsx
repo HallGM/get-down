@@ -157,13 +157,13 @@ function SummaryTable({ data }: { data: AccountingSummary }) {
           <SectionHeader title="Expenses" />
           <Row
             label="Fee allocations (settled gigs)"
-            hint="Expense amounts linked to settled-gig fee allocations or showcase fee allocations"
+            hint="Expense amounts linked to fee allocations on settled gigs."
             value={<MoneyDisplay pennies={data.expensesBreakdown.feeAllocation} colorNegative bold />}
             indent
           />
           <Row
             label="Showcases"
-            hint="Expenses linked directly to showcases"
+            hint="Expense amounts linked to showcases, either via a showcase fee allocation or directly."
             value={<MoneyDisplay pennies={data.expensesBreakdown.showcase} colorNegative bold />}
             indent
           />

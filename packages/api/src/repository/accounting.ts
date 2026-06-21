@@ -57,44 +57,61 @@ export interface ExpensesBreakdownRow {
 
 /**
  * Split the date-filtered expenses total into three mutually exclusive buckets:
- *   fee_allocation — expense is linked to a settled-gig fee allocation OR a showcase fee allocation
- *   showcase       — expense has a row in showcase_expenses but none in the fee_allocation bucket
- *   other          — expense has no link to either
  *
- * Fee allocation takes priority over showcase when an expense appears in both join tables.
+ *   fee_allocation — expense is linked to a fee allocation on a settled gig.
+ *   showcase       — expense is linked to a showcase fee allocation (fa.gig_id IS NULL) OR
+ *                    directly via showcase_expenses, but not in the fee_allocation bucket.
+ *   other          — expense has no fee allocation link and no showcase link.
  *
- * The three values always sum to the period's total expenses.
+ * Expenses linked only to fee allocations on unsettled gigs are invisible: they do not appear
+ * in any bucket and do not contribute to the returned totals. They will enter fee_allocation
+ * once their gig settles.
+ *
+ * Priority order (highest wins): settled-gig fee allocation > showcase > other.
+ *
+ * The three values sum to settled/showcase/unlinked expenses only — not to the grand total
+ * of all expenses in the period.
  */
 export async function readExpensesBreakdown(bounds: DateBounds): Promise<ExpensesBreakdown> {
   const rows = await run_query<ExpensesBreakdownRow>({
     text: `
+      WITH fae_all AS (
+        SELECT fae2.expense_id, fa2.gig_id
+        FROM fee_allocations_expenses fae2
+        JOIN fee_allocations fa2 ON fa2.id = fae2.allocation_id
+      )
       SELECT
         COALESCE(SUM(e.amount) FILTER (
-          WHERE fae.expense_id IS NOT NULL
+          WHERE settled_fae.expense_id IS NOT NULL
         ), 0)::bigint AS fee_allocation,
         COALESCE(SUM(e.amount) FILTER (
-          WHERE fae.expense_id IS NULL AND sce.expense_id IS NOT NULL
+          WHERE settled_fae.expense_id IS NULL
+            AND showcase_linked.expense_id IS NOT NULL
         ), 0)::bigint AS showcase,
         COALESCE(SUM(e.amount) FILTER (
-          WHERE fae.expense_id IS NULL AND sce.expense_id IS NULL
+          WHERE settled_fae.expense_id IS NULL
+            AND showcase_linked.expense_id IS NULL
+            AND any_gig_fae.expense_id IS NULL
         ), 0)::bigint AS other
       FROM expenses e
+      -- Arm 1: expenses linked to fee allocations on settled gigs only
       LEFT JOIN (
-        -- Expenses linked to settled-gig fee allocations
-        SELECT DISTINCT fae2.expense_id
-        FROM fee_allocations_expenses fae2
-        JOIN fee_allocations fa2 ON fa2.id = fae2.allocation_id
-        JOIN gigs g ON g.id = fa2.gig_id
+        SELECT DISTINCT f.expense_id
+        FROM fae_all f
+        JOIN gigs g ON g.id = f.gig_id
         WHERE ${SETTLED_CONDITION}
+      ) settled_fae ON settled_fae.expense_id = e.id
+      -- Arm 2: expenses linked to a showcase, via a showcase fee allocation or directly
+      LEFT JOIN (
+        SELECT DISTINCT expense_id FROM fae_all WHERE gig_id IS NULL
         UNION
-        -- Expenses linked to showcase fee allocations (no settled concept; always treated as realised)
-        SELECT DISTINCT fae2.expense_id
-        FROM fee_allocations_expenses fae2
-        JOIN fee_allocations fa2 ON fa2.id = fae2.allocation_id
-        WHERE fa2.gig_id IS NULL
-      ) fae ON fae.expense_id = e.id
-      LEFT JOIN (SELECT DISTINCT expense_id FROM showcase_expenses) sce
-        ON sce.expense_id = e.id
+        SELECT DISTINCT expense_id FROM showcase_expenses
+      ) showcase_linked ON showcase_linked.expense_id = e.id
+      -- Arm 3: expenses linked to any gig fee allocation (settled or unsettled)
+      --        used to keep unsettled-only-linked expenses out of the other bucket
+      LEFT JOIN (
+        SELECT DISTINCT expense_id FROM fae_all WHERE gig_id IS NOT NULL
+      ) any_gig_fae ON any_gig_fae.expense_id = e.id
       WHERE ($1::date IS NULL OR e.date >= $1)
         AND ($2::date IS NULL OR e.date <= $2);
     `,
