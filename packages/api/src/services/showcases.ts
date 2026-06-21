@@ -2,6 +2,7 @@ import { z } from "zod";
 import type {
   Showcase,
   ShowcaseExpenseLink,
+  ShowcaseGigSummary,
   CreateShowcaseRequest,
   UpdateShowcaseRequest,
 } from "@get-down/shared";
@@ -104,6 +105,20 @@ export async function updateShowcase(id: number, input: UpdateShowcaseRequest): 
 export async function deleteShowcase(id: number): Promise<void> {
   const deleted = await showcasesRepo.deleteShowcase(id);
   if (!deleted) throw new NotFoundError("Showcase not found");
+}
+
+export async function getGigsByShowcase(id: number): Promise<ShowcaseGigSummary[]> {
+  const showcase = await showcasesRepo.readShowcaseById(id);
+  if (!showcase) throw new NotFoundError("Showcase not found");
+  const rows = await showcasesRepo.readGigSummariesByShowcaseId(id);
+  return rows.map((r) => ({
+    id: r.id,
+    date: toDateString(r.date) ?? r.date,
+    firstName: r.first_name,
+    lastName: r.last_name,
+    status: r.status,
+    totalPrice: r.total_price,
+  }));
 }
 
 // ─── Expense link management ──────────────────────────────────────────────────

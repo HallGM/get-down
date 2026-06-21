@@ -1,4 +1,5 @@
 import type { Gig, UpdateGigRequest } from "@get-down/shared";
+import { Link } from "react-router-dom";
 import { useServices } from "../../api/hooks/useServices.js";
 import { useSetGigServices } from "../../api/hooks/useGigs.js";
 import { useRefreshDeliveryPhotos } from "../../api/hooks/useDelivery.js";
@@ -51,6 +52,7 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
             {gig.venueName && <><dt>Venue</dt><dd>{gig.venueName}</dd></>}
             {gig.location && <><dt>Address</dt><dd>{gig.location}</dd></>}
             <dt>Quoted Price</dt><dd><MoneyDisplay pennies={gig.totalPrice} /></dd>
+            {gig.showcaseId && <><dt>Source</dt><dd><Link to={`/showcases/${gig.showcaseId}`}>{gig.showcaseName ?? "Showcase"}</Link></dd></>}
             {gig.description && <><dt>Notes</dt><dd>{gig.description}</dd></>}
           </dl>
         </article>

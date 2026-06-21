@@ -209,10 +209,23 @@ export interface LineItemFields {
 export type CreateGigLineItemRequest = LineItemFields;
 export type UpdateGigLineItemRequest = LineItemFields;
 
+export interface ShowcaseGigSummary {
+  id: number;
+  date: string;
+  firstName: string;
+  lastName: string;
+  status: string;
+  totalPrice: number | null;
+}
+
 export interface Gig {
   id: number;
   enquiryId?: number;
   attributionId?: number;
+  /** Present on detail (GET /gigs/:id) only. ID of the showcase that sourced this gig, if any. */
+  showcaseId?: number;
+  /** Present on detail (GET /gigs/:id) only. Display name of the showcase that sourced this gig. */
+  showcaseName?: string;
   name?: string;
   status: string;
   firstName: string;
@@ -500,7 +513,7 @@ export interface Showcase {
   expenseLinks: ShowcaseExpenseLink[];
   /** Computed: sum of apportioned (or full) expense amounts linked to this showcase, in pennies. */
   calculatedCost?: number;
-  /** Computed: number of distinct gigs linked to this showcase via assigned_roles. */
+  /** Computed: number of distinct gigs linked to this showcase via shared attribution. */
   linkedGigCount?: number;
   /** Computed: total gig income (actual for settled gigs, predicted for unsettled), in pennies. */
   incomeFromGigs?: number;

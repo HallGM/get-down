@@ -12,10 +12,12 @@ import { formatDate, toInputDate } from "../../utils/date.js";
 import TabBar from "../../components/TabBar.js";
 import ShowcaseRolesTab from "../attributions/ShowcaseRolesTab.js";
 import ShowcaseExpensesTab from "./ShowcaseExpensesTab.js";
+import ShowcaseGigsTab from "./ShowcaseGigsTab.js";
 
-type ShowcaseTab = "expenses" | "roles";
-const SHOWCASE_TABS: ShowcaseTab[] = ["expenses", "roles"];
+type ShowcaseTab = "gigs" | "expenses" | "roles";
+const SHOWCASE_TABS: ShowcaseTab[] = ["gigs", "expenses", "roles"];
 const SHOWCASE_TAB_LABELS: Record<ShowcaseTab, string> = {
+  gigs: "Gigs",
   expenses: "Expenses",
   roles: "Roles & Billing",
 };
@@ -32,7 +34,7 @@ export default function ShowcaseDetail() {
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState<UpdateShowcaseRequest>({});
   const [showDelete, setShowDelete] = useState(false);
-  const [activeTab, setActiveTab] = useState<ShowcaseTab>("expenses");
+  const [activeTab, setActiveTab] = useState<ShowcaseTab>("gigs");
 
   function openEdit() {
     if (!showcase) return;
@@ -88,6 +90,9 @@ export default function ShowcaseDetail() {
 
       <TabBar tabs={SHOWCASE_TABS} labels={SHOWCASE_TAB_LABELS} active={activeTab} onChange={setActiveTab} />
 
+      {activeTab === "gigs" && (
+        <ShowcaseGigsTab showcaseId={showcaseId} />
+      )}
       {activeTab === "expenses" && (
         <ShowcaseExpensesTab showcase={showcase} />
       )}

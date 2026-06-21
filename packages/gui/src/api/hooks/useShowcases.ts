@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, QueryClient } from "@tanstack/react-query";
-import type { Showcase, CreateShowcaseRequest, UpdateShowcaseRequest } from "@get-down/shared";
+import type { Showcase, ShowcaseGigSummary, CreateShowcaseRequest, UpdateShowcaseRequest } from "@get-down/shared";
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
@@ -8,6 +8,7 @@ const KEY = "showcases";
 function invalidateShowcase(qc: QueryClient, showcaseId: number) {
   qc.invalidateQueries({ queryKey: [KEY] });
   qc.invalidateQueries({ queryKey: [KEY, showcaseId] });
+  qc.invalidateQueries({ queryKey: [KEY, showcaseId, "gigs"] });
 }
 
 export function useShowcases() {
@@ -91,5 +92,13 @@ export function useUpdateShowcaseExpenseLink() {
       }),
     onSuccess: (_data, { showcaseId }) => invalidateShowcase(qc, showcaseId),
     successMessage: "Apportionment updated",
+  });
+}
+
+export function useShowcaseGigs(showcaseId: number) {
+  return useQuery({
+    queryKey: [KEY, showcaseId, "gigs"],
+    queryFn: () => apiFetch<ShowcaseGigSummary[]>("GET", `/showcases/${showcaseId}/gigs`),
+    enabled: !!showcaseId,
   });
 }

@@ -17,6 +17,7 @@
     "migrate:documents": "tsx src/scripts/migrate_expense_documents.ts",
     "create-user": "tsx src/scripts/create_user.ts",
     "migrate:invoice-expenses": "tsx src/scripts/migrate_invoice_expenses.ts",
+    "import:expenses-to-add": "tsx src/scripts/import_expenses_to_add.ts",
     "migrate:scott-drawings": "tsx src/scripts/migrate_scott_drawings.ts",
     "backfill:scott-payments": "tsx src/scripts/backfill_scott_payments.ts",
     "migrate:scott-account": "tsx src/scripts/migrate_scott_account.ts",
