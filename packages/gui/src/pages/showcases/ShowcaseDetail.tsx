@@ -7,6 +7,7 @@ import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
+import MoneyDisplay from "../../components/MoneyDisplay.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import TabBar from "../../components/TabBar.js";
 import ShowcaseRolesTab from "../attributions/ShowcaseRolesTab.js";
@@ -68,6 +69,19 @@ export default function ShowcaseDetail() {
             {showcase.date && <span>{formatDate(showcase.date)}</span>}
             {showcase.location && <span>{showcase.location}</span>}
           </div>
+
+          {/* Profit breakdown */}
+          <div style={{ display: "flex", gap: "2rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+            <FinancialStat label="Income from gigs"  pennies={showcase.incomeFromGigs ?? 0} />
+            <FinancialStat label="Showcase expenses" pennies={showcase.calculatedCost ?? 0} />
+            <FinancialStat label="Performer fees"    pennies={showcase.showcasePerformerFees ?? 0} />
+            <FinancialStat label="Net profit"        pennies={showcase.netProfit ?? 0} />
+          </div>
+          {(showcase.predictedGigCount ?? 0) > 0 && (
+            <div style={{ marginTop: "0.4rem", fontSize: "0.8em", color: "var(--pico-muted-color)" }}>
+              {showcase.predictedGigCount} gig(s) based on predicted figures
+            </div>
+          )}
         </div>
         <button className="secondary outline" style={{ padding: "0.3em 0.7em" }} onClick={openEdit}>Edit</button>
       </div>
@@ -126,5 +140,16 @@ export default function ShowcaseDetail() {
         />
       )}
     </main>
+  );
+}
+
+// ─── Private helpers ──────────────────────────────────────────────────────────
+
+function FinancialStat({ label, pennies }: { label: string; pennies: number }) {
+  return (
+    <div>
+      <div style={{ fontSize: "0.75em", color: "var(--pico-muted-color)", marginBottom: "0.2em" }}>{label}</div>
+      <MoneyDisplay pennies={pennies} />
+    </div>
   );
 }

@@ -3,6 +3,8 @@ import { type ReactNode, useState } from "react";
 export interface Column<T> {
   key: string;
   header: string;
+  /** When present, a ⓘ indicator with a native browser tooltip appears next to the header text. */
+  headerHint?: string;
   render?: (row: T) => ReactNode;
   sortable?: boolean;
 }
@@ -105,6 +107,12 @@ export default function DataTable<T extends object>({
                   }
                 >
                   {col.header}
+                  {col.headerHint && (
+                    <span
+                      title={col.headerHint}
+                      style={{ cursor: "help", color: "var(--pico-muted-color)", fontSize: "0.85em", marginLeft: "0.3em" }}
+                    >ⓘ</span>
+                  )}
                   {col.sortable && sortKey === col.key && (
                     <span aria-hidden> {sortDir === "asc" ? "▲" : "▼"}</span>
                   )}

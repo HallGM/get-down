@@ -8,12 +8,27 @@ import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
+import MoneyDisplay from "../../components/MoneyDisplay.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 
 const COLUMNS: Column<Showcase>[] = [
   { key: "date", header: "Date", sortable: true, render: (s) => formatDate(s.date) },
   { key: "nickname", header: "Nickname", sortable: true, render: (s) => s.nickname ?? "—" },
   { key: "fullName", header: "Full Name", sortable: true, render: (s) => s.fullName ?? "—" },
+  { key: "calculatedCost", header: "Cost", render: (s) => <MoneyDisplay pennies={s.calculatedCost ?? 0} /> },
+  { key: "linkedGigCount", header: "Gigs", render: (s) => String(s.linkedGigCount ?? 0) },
+  {
+    key: "netProfit",
+    header: "Profit",
+    render: (s) => (
+      <div>
+        <MoneyDisplay pennies={s.netProfit ?? 0} />
+        {(s.predictedGigCount ?? 0) > 0 && (
+          <div style={{ fontSize: "0.75em", color: "var(--pico-muted-color)" }}>includes estimates</div>
+        )}
+      </div>
+    ),
+  },
 ];
 
 const EMPTY_FORM: CreateShowcaseRequest = { date: "" };

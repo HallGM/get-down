@@ -16,39 +16,39 @@ type DateBounds = { start: string | null; end: string | null };
 export async function getSummary(params: SummaryParams): Promise<AccountingSummary> {
   const bounds = resolveBounds(params);
 
-  const [gigCounts, earnedPayments, earnedRefunds, expenses, expensesBreakdown, partnerAllocations, predictedSummary] =
+  const [gigCounts, expensesBreakdown, partnerAllocations, predictedSummary] =
     await Promise.all([
       repo.readGigCounts(bounds),
-      repo.readEarnedPayments(bounds),
-      repo.readEarnedRefunds(bounds),
-      repo.readExpensesTotal(bounds),
       repo.readExpensesBreakdown(bounds),
       repo.readPartnerFeeAllocations(bounds),
       repo.readPredictedProfitSummary(bounds),
     ]);
 
-  const earnedIncome        = earnedPayments - earnedRefunds;
-  const profit              = earnedIncome - expenses;
-  const feeAllocationsTotal = partnerAllocations.reduce((sum, a) => sum + a.amount, 0);
-  const sharedProfit        = profit - feeAllocationsTotal;
+  const { settledNetReceived, predictedBillingUnsettled, predictedFeeAllocUnsettled, predictedSharedProfit, excludedCount } = predictedSummary;
+
+  const expenses              = expensesBreakdown.feeAllocation + expensesBreakdown.showcase + expensesBreakdown.other;
+  const businessProfit        = settledNetReceived - expenses;
+  const feeAllocationsTotal   = partnerAllocations.reduce((sum, a) => sum + a.amount, 0);
+  const confirmedSharedProfit = businessProfit - feeAllocationsTotal;
 
   return {
     gigsBooked:    gigCounts.booked,
     gigsPerformed: gigCounts.performed,
-    earnedIncome,
+    settledNetReceived,
+    predictedBillingUnsettled,
     expenses,
     expensesBreakdown,
-    profit,
+    predictedFeeAllocations: predictedFeeAllocUnsettled,
+    businessProfit,
     feeAllocationsTotal,
     feeAllocationsBreakdown: partnerAllocations.map((a) => ({
       personId:   a.person_id,
       personName: buildPersonName(a),
       amount:     a.amount,
     })),
-    sharedProfit,
-    predictedProfitFromPast:      predictedSummary.actualFromPast,
-    predictedProfitFromUpcoming:  predictedSummary.predictedFromUpcoming,
-    predictedProfitExcludedCount: predictedSummary.excludedCount,
+    confirmedSharedProfit,
+    predictedSharedProfit,
+    predictedProfitExcludedCount: excludedCount,
   };
 }
 

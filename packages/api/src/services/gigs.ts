@@ -9,43 +9,44 @@ import { isValidUrl } from "../utils/validation.js";
 import { groupById } from "../utils/groupById.js";
 import * as songsRepo from "../repository/songs.js";
 import { withTransaction } from "../db/init.js";
+import { buildGigMaps } from "../utils/gigMaps.js";
 import { DEFAULT_SECTION_NAME } from "../constants.js";
 import { fireGenerateDeliveryPhotos } from "../jobs/generateDeliveryPhotos.js";
 
 export async function getGigs(): Promise<Gig[]> {
-  const [rows, financials, predictedProfits, serviceMappings] = await Promise.all([
+  const [rows, financials, predictedProfits, settledStatuses, serviceMappings] = await Promise.all([
     gigsRepo.readGigs(),
     gigsRepo.readGigFinancialTotals(),
     gigsRepo.readGigPredictedProfits(),
+    gigsRepo.readGigSettledStatuses(),
     gigsRepo.readGigServiceMappings(),
   ]);
-  const financialMap = new Map(
-    financials.map((f) => [f.gig_id, { netReceived: f.net_received, feesTotal: f.total_fees }])
-  );
-  const predictedProfitMap = new Map(
-    predictedProfits.map((p) => [p.gig_id, p.predicted_profit])
-  );
+  const { financialMap, predictedProfitMap, settledMap } = buildGigMaps(financials, predictedProfits, settledStatuses);
   const serviceIdsMap = groupById(serviceMappings, (m) => m.gig_id, (m) => m.service_id);
   return rows.map((row) => {
-    const fin = financialMap.get(row.id) ?? { netReceived: 0, feesTotal: 0 };
+    const fin = financialMap.get(row.id) ?? { netReceived: 0, feesTotal: 0, billingTotal: 0 };
     return {
       ...mapGig(row),
       netReceived: fin.netReceived,
       feesTotal: fin.feesTotal,
+      billingTotal: fin.billingTotal,
       predictedProfit: predictedProfitMap.get(row.id) ?? null,
+      settled: settledMap.get(row.id) ?? false,
       serviceIds: serviceIdsMap.get(row.id) ?? [],
     };
   });
 }
 
 export async function getGigById(id: number): Promise<Gig> {
-  const [row, lineItems, services, payments, refunds, predictedProfit] = await Promise.all([
+  const [row, lineItems, services, payments, refunds, predictedProfit, settled, financialTotals] = await Promise.all([
     gigsRepo.readGigById(id),
     gigLineItemsRepo.readGigLineItemsByGigId(id),
     gigsRepo.readGigServicesByGigId(id),
     paymentsRepo.readPaymentsByGigId(id),
     refundsRepo.readRefundsByGigId(id),
     gigsRepo.readGigPredictedProfitById(id),
+    gigsRepo.readGigSettledStatusById(id),
+    gigsRepo.readGigFinancialTotalById(id),
   ]);
   if (!row) throw new NotFoundError("Gig not found");
 
@@ -68,7 +69,11 @@ export async function getGigById(id: number): Promise<Gig> {
     formSavedAt: row.form_saved_at ?? undefined,
     depositPaid,
     balanceAmount,
+    netReceived:  financialTotals?.net_received ?? 0,
+    feesTotal:    financialTotals?.total_fees ?? 0,
+    billingTotal: financialTotals?.billing_total ?? 0,
     predictedProfit,
+    settled,
     lineItems: lineItems.map(mapGigLineItem),
     services: services.map(mapGigService),
   };

@@ -116,7 +116,11 @@ export default function GigDetail() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
         <hgroup>
           <h1 style={{ marginBottom: "0.25rem" }}>{gig.firstName} {gig.lastName}</h1>
-          <p><StatusBadge status={gig.status} />{gig.venueName && ` · ${gig.venueName}`}</p>
+          <p>
+            <StatusBadge status={gig.status} />
+            {gig.settled && <> · <span style={{ color: "var(--pico-muted-color)" }}>Settled</span></>}
+            {gig.venueName && <> · <span>{gig.venueName}</span></>}
+          </p>
         </hgroup>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button className="secondary" onClick={handleEdit}>Edit</button>

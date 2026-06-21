@@ -26,7 +26,10 @@ function Row({ label, value, hint, indent }: { label: string; value: React.React
       <td style={{ paddingLeft: indent ? "1.5rem" : undefined, color: "var(--pico-color)" }}>
         {label}
         {hint && (
-          <><br /><small style={{ color: "var(--pico-muted-color)", fontWeight: 400 }}>{hint}</small></>
+          <span
+            title={hint}
+            style={{ cursor: "help", color: "var(--pico-muted-color)", fontSize: "0.85em", marginLeft: "0.3em" }}
+          >ⓘ</span>
         )}
       </td>
       <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{value}</td>
@@ -131,43 +134,70 @@ function SummaryTable({ data }: { data: AccountingSummary }) {
           <Row label="Gigs booked"    value={<strong>{data.gigsBooked}</strong>} />
           <Row label="Gigs performed" value={<strong>{data.gigsPerformed}</strong>} />
 
-          {/* ── Income ── */}
-          <SectionHeader title="Income" />
+          {/* ── Turnover ── */}
+          <SectionHeader title="Turnover" />
           <Row
-            label="Earned income"
-            hint="Payments for completed gigs in period (by gig date), minus refunds"
-            value={<MoneyDisplay pennies={data.earnedIncome} colorNegative bold />}
+            label="Settled gigs"
+            hint="Net received from fully settled gigs in the period"
+            value={<MoneyDisplay pennies={data.settledNetReceived} colorNegative bold />}
+          />
+          <Row
+            label="Unsettled gigs (predicted)"
+            hint="Predicted billing (discounted service price) for non-cancelled unsettled gigs"
+            value={<MoneyDisplay pennies={data.predictedBillingUnsettled} colorNegative bold />}
+          />
+          <Divider />
+          <Row
+            label="Combined total"
+            hint="Settled net received plus predicted billing for unsettled gigs"
+            value={<MoneyDisplay pennies={data.settledNetReceived + data.predictedBillingUnsettled} colorNegative bold />}
           />
 
           {/* ── Expenses ── */}
           <SectionHeader title="Expenses" />
           <Row
-            label="Total expenses"
-            hint="All expenses by invoice date"
-            value={<MoneyDisplay pennies={data.expenses} colorNegative bold />}
-          />
-          <Row
-            label="Fee allocation"
+            label="Fee allocations (settled gigs)"
+            hint="Expense amounts linked to settled-gig fee allocations or showcase fee allocations"
             value={<MoneyDisplay pennies={data.expensesBreakdown.feeAllocation} colorNegative bold />}
             indent
           />
           <Row
-            label="Showcase"
+            label="Showcases"
+            hint="Expenses linked directly to showcases"
             value={<MoneyDisplay pennies={data.expensesBreakdown.showcase} colorNegative bold />}
             indent
           />
           <Row
             label="Other"
+            hint="Expenses with no fee allocation or showcase link"
             value={<MoneyDisplay pennies={data.expensesBreakdown.other} colorNegative bold />}
             indent
           />
-
-          {/* ── Profit ── */}
-          <SectionHeader title="Profit" />
+          <Divider />
           <Row
-            label="Profit"
-            hint="Earned income minus expenses"
-            value={<MoneyDisplay pennies={data.profit} colorNegative bold />}
+            label="Total (settled)"
+            hint="Settled expenses: fee allocations plus showcase plus other"
+            value={<MoneyDisplay pennies={data.expenses} colorNegative bold />}
+          />
+          <Row
+            label="Fee allocations (predicted unsettled)"
+            hint="Role fees from service configuration for non-cancelled unsettled gigs"
+            value={<MoneyDisplay pennies={data.predictedFeeAllocations} colorNegative bold />}
+            indent
+          />
+          <Divider />
+          <Row
+            label="Combined total"
+            hint="Settled expenses plus predicted fee allocations for unsettled gigs"
+            value={<MoneyDisplay pennies={data.expenses + data.predictedFeeAllocations} colorNegative bold />}
+          />
+
+          {/* ── Business profit ── */}
+          <SectionHeader title="Business profit" />
+          <Row
+            label="Business profit"
+            hint="Net received from settled gigs minus settled expenses"
+            value={<MoneyDisplay pennies={data.businessProfit} colorNegative bold />}
           />
 
           {/* ── Partner fee allocations ── */}
@@ -180,44 +210,41 @@ function SummaryTable({ data }: { data: AccountingSummary }) {
                 <Row
                   key={a.personId}
                   label={a.personName}
-                  hint="Fee allocations for work done in period"
+                  hint="Fee allocations for settled gigs only"
                   value={<MoneyDisplay pennies={a.amount} colorNegative bold />}
                   indent
                 />
               ))}
               <Divider />
-              <Row label="Total fee allocations" value={<MoneyDisplay pennies={data.feeAllocationsTotal} colorNegative bold />} />
+              <Row
+                label="Total fee allocations"
+                hint="Total partner fee allocations for settled gigs only"
+                value={<MoneyDisplay pennies={data.feeAllocationsTotal} colorNegative bold />}
+              />
             </>
           )}
 
-          {/* ── Remaining profit ── */}
-          <SectionHeader title="Remaining profit" />
+          {/* ── Shared profit ── */}
+          <SectionHeader title="Shared profit" />
           <Row
-            label="Shared profit"
-            hint="Profit minus total fee allocations, split between partners"
-            value={<MoneyDisplay pennies={data.sharedProfit} colorNegative bold />}
-          />
-
-          {/* ── Predicted profit ── */}
-          <SectionHeader title="Predicted profit" />
-          <Row
-            label="Actual from past gigs"
-            hint="Net received minus fee allocations for non-cancelled gigs before today"
-            value={<MoneyDisplay pennies={data.predictedProfitFromPast} colorNegative bold />}
+            label="Confirmed shared profit"
+            hint="Business profit minus settled partner fee allocations"
+            value={<MoneyDisplay pennies={data.confirmedSharedProfit} colorNegative bold />}
           />
           <Row
-            label="Predicted from upcoming gigs"
+            label="Predicted shared profit"
             hint={
               data.predictedProfitExcludedCount > 0
                 ? `${data.predictedProfitExcludedCount} gig(s) excluded due to missing prices or fees`
-                : undefined
+                : "Predicted profit for non-cancelled unsettled gigs, excluding those with unavailable predictions"
             }
-            value={<MoneyDisplay pennies={data.predictedProfitFromUpcoming} colorNegative bold />}
+            value={<MoneyDisplay pennies={data.predictedSharedProfit} colorNegative bold />}
           />
           <Divider />
           <Row
             label="Combined total"
-            value={<MoneyDisplay pennies={data.predictedProfitFromPast + data.predictedProfitFromUpcoming} colorNegative bold />}
+            hint="Confirmed shared profit plus predicted shared profit"
+            value={<MoneyDisplay pennies={data.confirmedSharedProfit + data.predictedSharedProfit} colorNegative bold />}
           />
 
         </tbody>

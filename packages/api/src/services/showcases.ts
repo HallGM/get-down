@@ -8,22 +8,56 @@ import type {
 import * as showcasesRepo from "../repository/showcases.js";
 import * as attributionsRepo from "../repository/attributions.js";
 import * as expensesRepo from "../repository/expenses.js";
+import * as gigsRepo from "../repository/gigs.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { withTransaction } from "../db/init.js";
 import { parseOrBadRequest } from "../utils/parse.js";
+import { buildGigMaps } from "../utils/gigMaps.js";
 
 export async function getShowcases(): Promise<Showcase[]> {
   const rows = await showcasesRepo.readShowcases();
   const ids = rows.map((r) => r.id);
-  const linksMap = await showcasesRepo.readExpenseLinksByShowcaseIds(ids);
-  return rows.map((row) => mapShowcase(row, linksMap.get(row.id) ?? []));
+
+  const [linksMap, costsMap, gigMappingsMap, performerFeesMap, financials, predictedProfits, settledStatuses] =
+    await Promise.all([
+      showcasesRepo.readExpenseLinksByShowcaseIds(ids),
+      showcasesRepo.readShowcaseCalculatedCosts(ids),
+      showcasesRepo.readShowcaseGigMappings(ids),
+      showcasesRepo.readShowcasePerformerFees(ids),
+      gigsRepo.readGigFinancialTotals(),
+      gigsRepo.readGigPredictedProfits(),
+      gigsRepo.readGigSettledStatuses(),
+    ]);
+
+  const { financialMap, predictedProfitMap, settledMap } = buildGigMaps(financials, predictedProfits, settledStatuses);
+
+  return rows.map((row) => {
+    const gigIds = gigMappingsMap.get(row.id) ?? [];
+    const computed = computeShowcaseFinancials(gigIds, costsMap.get(row.id) ?? 0, performerFeesMap.get(row.id) ?? 0, financialMap, predictedProfitMap, settledMap);
+    return mapShowcase(row, linksMap.get(row.id) ?? [], computed);
+  });
 }
 
 export async function getShowcaseById(id: number): Promise<Showcase> {
   const row = await showcasesRepo.readShowcaseById(id);
   if (!row) throw new NotFoundError("Showcase not found");
-  const links = await showcasesRepo.readExpenseLinksByShowcaseId(id);
-  return mapShowcase(row, links);
+
+  const [links, gigMappings, costs, performerFees, financials, predictedProfits, settledStatuses] =
+    await Promise.all([
+      showcasesRepo.readExpenseLinksByShowcaseId(id),
+      showcasesRepo.readShowcaseGigMappings([id]),
+      showcasesRepo.readShowcaseCalculatedCosts([id]),
+      showcasesRepo.readShowcasePerformerFees([id]),
+      gigsRepo.readGigFinancialTotals(),
+      gigsRepo.readGigPredictedProfits(),
+      gigsRepo.readGigSettledStatuses(),
+    ]);
+
+  const gigIds = gigMappings.get(id) ?? [];
+  const { financialMap, predictedProfitMap, settledMap } = buildGigMaps(financials, predictedProfits, settledStatuses);
+
+  const computed = computeShowcaseFinancials(gigIds, costs.get(id) ?? 0, performerFees.get(id) ?? 0, financialMap, predictedProfitMap, settledMap);
+  return mapShowcase(row, links, computed);
 }
 
 export async function createShowcase(input: CreateShowcaseRequest): Promise<Showcase> {
@@ -47,7 +81,7 @@ export async function createShowcase(input: CreateShowcaseRequest): Promise<Show
       airtableId: input.airtableId,
       costAirtable: input.costAirtable ?? null,
     });
-    return mapShowcase(row, []);
+    return mapShowcase(row, [], computeShowcaseFinancials([], 0, 0, new Map(), new Map(), new Map()));
   });
 }
 
@@ -56,7 +90,15 @@ export async function updateShowcase(id: number, input: UpdateShowcaseRequest): 
   const row = await showcasesRepo.updateShowcase(id, buildMutationInput(input, existing));
   if (!row) throw new NotFoundError("Showcase not found");
   const links = await showcasesRepo.readExpenseLinksByShowcaseId(id);
-  return mapShowcase(row, links);
+  const computed: ShowcaseComputedFinancials = {
+    calculatedCost: existing.calculatedCost ?? 0,
+    linkedGigCount: existing.linkedGigCount ?? 0,
+    incomeFromGigs: existing.incomeFromGigs ?? 0,
+    predictedGigCount: existing.predictedGigCount ?? 0,
+    showcasePerformerFees: existing.showcasePerformerFees ?? 0,
+    netProfit: existing.netProfit ?? 0,
+  };
+  return mapShowcase(row, links, computed);
 }
 
 export async function deleteShowcase(id: number): Promise<void> {
@@ -108,9 +150,55 @@ function toDateString(value: string | Date | null): string | null {
   return value.toISOString().slice(0, 10);
 }
 
+interface ShowcaseComputedFinancials {
+  calculatedCost: number;
+  linkedGigCount: number;
+  incomeFromGigs: number;
+  predictedGigCount: number;
+  showcasePerformerFees: number;
+  netProfit: number;
+}
+
+function computeShowcaseFinancials(
+  gigIds: number[],
+  calculatedCost: number,
+  showcasePerformerFees: number,
+  financialMap: Map<number, { netReceived: number; feesTotal: number }>,
+  predictedProfitMap: Map<number, number | null>,
+  settledMap: Map<number, boolean>
+): ShowcaseComputedFinancials {
+  let incomeFromGigs = 0;
+  let predictedGigCount = 0;
+
+  for (const gigId of gigIds) {
+    const isSettled = settledMap.get(gigId) ?? false;
+    if (isSettled) {
+      const fin = financialMap.get(gigId) ?? { netReceived: 0, feesTotal: 0 };
+      incomeFromGigs += fin.netReceived - fin.feesTotal;
+    } else {
+      const predicted = predictedProfitMap.get(gigId) ?? null;
+      if (predicted != null) {
+        incomeFromGigs += predicted;
+        predictedGigCount += 1;
+      }
+      // Neither settled nor predicted available: excluded (treat as 0)
+    }
+  }
+
+  return {
+    calculatedCost,
+    linkedGigCount: gigIds.length,
+    incomeFromGigs,
+    predictedGigCount,
+    showcasePerformerFees,
+    netProfit: incomeFromGigs - calculatedCost - showcasePerformerFees,
+  };
+}
+
 function mapShowcase(
   row: showcasesRepo.ShowcaseRow,
-  links: showcasesRepo.ShowcaseExpenseLinkRow[]
+  links: showcasesRepo.ShowcaseExpenseLinkRow[],
+  computed?: ShowcaseComputedFinancials
 ): Showcase {
   return {
     id: row.id,
@@ -127,6 +215,7 @@ function mapShowcase(
         apportionedAmount: l.apportioned_amount,
       })
     ),
+    ...(computed !== undefined ? computed : {}),
   };
 }
 
