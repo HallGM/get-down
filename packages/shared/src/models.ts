@@ -1179,11 +1179,11 @@ export interface FeeAllocationBreakdown {
 }
 
 export interface ExpensesBreakdown {
-  /** Expenses linked to a fee allocation, in pence. */
+  /** Expenses linked to a fee allocation on a settled gig, in pence. */
   feeAllocation: number;
-  /** Expenses linked directly to a showcase (but not via a fee allocation), in pence. */
+  /** Expenses linked to a showcase via a showcase fee allocation or directly, in pence. */
   showcase: number;
-  /** Expenses with no fee allocation or showcase link, in pence. */
+  /** Expenses with no fee allocation link and no showcase link, in pence. */
   other: number;
 }
 
@@ -1198,17 +1198,19 @@ export interface AccountingSummary {
   /** Predicted billing (discounted service price) for non-cancelled unsettled gigs in the period. */
   predictedBillingUnsettled: number;
 
-  // Expenses — settled gig fee allocations, showcase expenses, and other expenses by invoice date
+  // Expenses — fee allocations on settled gigs, showcase expenses, and other unlinked expenses
   /**
-   * Settled expenses total: expense amounts linked to settled-gig fee allocations or
-   * showcase fee allocations, plus showcase expenses, plus other expenses.
+   * Settled expenses total: expense amounts linked to settled-gig fee allocations,
+   * plus showcase expenses (via showcase fee allocation or direct link), plus other
+   * unlinked expenses. Expenses linked only to fee allocations on unsettled gigs are
+   * excluded until those gigs settle.
    */
   expenses: number;
   /**
    * Breakdown of expenses:
-   *   feeAllocation — expense amounts linked to settled-gig or showcase fee allocations.
-   *   showcase      — expenses linked directly to showcases (not via fee allocations).
-   *   other         — expenses with no fee allocation or showcase link.
+   *   feeAllocation — expense amounts linked to fee allocations on settled gigs.
+   *   showcase      — expense amounts linked to showcases via a showcase fee allocation or directly.
+   *   other         — expenses with no fee allocation link and no showcase link.
    */
   expensesBreakdown: ExpensesBreakdown;
   /** Role fees from service configuration for non-cancelled unsettled gigs (predicted costs). */
