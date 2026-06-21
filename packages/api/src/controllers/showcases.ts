@@ -13,6 +13,8 @@ router.post("/showcases",    handle(req => showcasesService.createShowcase(req.b
 router.put("/showcases/:id", handle(req => showcasesService.updateShowcase(+req.params.id, req.body)));
 router.delete("/showcases/:id", handle(req => showcasesService.deleteShowcase(+req.params.id), 204));
 
+router.get("/showcases/:id/gigs",            handle(req => showcasesService.getGigsByShowcase(+req.params.id)));
+
 router.get("/showcases/:id/fee-allocations",          handle(req => feeAllocationsService.getFeeAllocationsByShowcase(+req.params.id)));
 router.post("/showcases/:id/fee-allocations/generate", handle(req => feeAllocationsService.generateFeeAllocationsForShowcase(+req.params.id, req.body)));
 

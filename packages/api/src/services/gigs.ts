@@ -4,6 +4,7 @@ import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
 import * as paymentsRepo from "../repository/payments.js";
 import * as refundsRepo from "../repository/refunds.js";
+import * as showcasesRepo from "../repository/showcases.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { isValidUrl } from "../utils/validation.js";
 import { groupById } from "../utils/groupById.js";
@@ -38,7 +39,7 @@ export async function getGigs(): Promise<Gig[]> {
 }
 
 export async function getGigById(id: number): Promise<Gig> {
-  const [row, lineItems, services, payments, refunds, predictedProfit, settled, financialTotals] = await Promise.all([
+  const [row, lineItems, services, payments, refunds, predictedProfit, settled, financialTotals, showcaseSummary] = await Promise.all([
     gigsRepo.readGigById(id),
     gigLineItemsRepo.readGigLineItemsByGigId(id),
     gigsRepo.readGigServicesByGigId(id),
@@ -47,6 +48,7 @@ export async function getGigById(id: number): Promise<Gig> {
     gigsRepo.readGigPredictedProfitById(id),
     gigsRepo.readGigSettledStatusById(id),
     gigsRepo.readGigFinancialTotalById(id),
+    showcasesRepo.readShowcaseSummaryByGigId(id),
   ]);
   if (!row) throw new NotFoundError("Gig not found");
 
@@ -76,6 +78,10 @@ export async function getGigById(id: number): Promise<Gig> {
     settled,
     lineItems: lineItems.map(mapGigLineItem),
     services: services.map(mapGigService),
+    ...(showcaseSummary ? {
+      showcaseId: showcaseSummary.id,
+      showcaseName: showcaseSummary.name,
+    } : {}),
   };
 }
 

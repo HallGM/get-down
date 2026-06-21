@@ -186,7 +186,8 @@ export async function readShowcaseCalculatedCosts(
 }
 
 /**
- * Map of showcaseId → gig_id[] for gigs linked via assigned_roles.
+ * Map of showcaseId → gig_id[] for gigs linked via the shared attribution_id.
+ * A gig is linked to a showcase when both share the same attribution record.
  */
 export async function readShowcaseGigMappings(
   showcaseIds: number[]
@@ -194,9 +195,10 @@ export async function readShowcaseGigMappings(
   if (showcaseIds.length === 0) return new Map();
   const rows = await run_query<{ showcase_id: number; gig_id: number }>({
     text: `
-      SELECT DISTINCT showcase_id, gig_id
-      FROM assigned_roles
-      WHERE showcase_id = ANY($1::int[]) AND gig_id IS NOT NULL;
+      SELECT s.id AS showcase_id, g.id AS gig_id
+      FROM showcases s
+      JOIN gigs g ON g.attribution_id = s.attribution_id
+      WHERE s.id = ANY($1::int[]);
     `,
     values: [showcaseIds],
   });
@@ -232,4 +234,62 @@ export async function readShowcasePerformerFees(
     values: [showcaseIds],
   });
   return new Map(rows.map((r) => [r.showcase_id, parseInt(r.performer_fees, 10)]));
+}
+
+// ─── Gig summaries for the showcase Gigs tab ──────────────────────────────────
+
+export interface ShowcaseGigSummaryRow {
+  id: number;
+  date: string;
+  first_name: string;
+  last_name: string;
+  status: string;
+  total_price: number | null;
+}
+
+/**
+ * Basic gig rows for all gigs attributed to the given showcase,
+ * joined via the shared attribution_id. Used by GET /showcases/:id/gigs.
+ */
+export async function readGigSummariesByShowcaseId(
+  showcaseId: number
+): Promise<ShowcaseGigSummaryRow[]> {
+  return run_query<ShowcaseGigSummaryRow>({
+    text: `
+      SELECT g.id, g.date, g.first_name, g.last_name, g.status, g.total_price
+      FROM showcases s
+      JOIN gigs g ON g.attribution_id = s.attribution_id
+      WHERE s.id = $1
+      ORDER BY g.date DESC;
+    `,
+    values: [showcaseId],
+  });
+}
+
+// ─── Showcase lookup from a gig (for gig detail view) ─────────────────────────
+
+export interface ShowcaseSummaryRow {
+  id: number;
+  name: string;
+}
+
+/**
+ * Returns the showcase (id + display name) linked to the given gig
+ * via the shared attribution_id, or null if no showcase is linked.
+ * The name is resolved in SQL: nickname → full_name → 'Showcase #<id>'.
+ */
+export async function readShowcaseSummaryByGigId(
+  gigId: number
+): Promise<ShowcaseSummaryRow | null> {
+  const rows = await run_query<ShowcaseSummaryRow>({
+    text: `
+      SELECT s.id, COALESCE(s.nickname, s.full_name, 'Showcase #' || s.id::text) AS name
+      FROM gigs g
+      JOIN showcases s ON s.attribution_id = g.attribution_id
+      WHERE g.id = $1
+      LIMIT 1;
+    `,
+    values: [gigId],
+  });
+  return rows[0] ?? null;
 }
