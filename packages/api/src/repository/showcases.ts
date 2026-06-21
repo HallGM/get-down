@@ -161,3 +161,75 @@ export async function updateApportionedAmount(
     values: [amount, showcaseId, expenseId],
   });
 }
+
+// ─── Showcase financial calculations ──────────────────────────────────────────
+
+/**
+ * Sum of COALESCE(apportioned_amount, full expense amount) per showcase.
+ * Returns a map of showcaseId → total cost in pence.
+ */
+export async function readShowcaseCalculatedCosts(
+  showcaseIds: number[]
+): Promise<Map<number, number>> {
+  if (showcaseIds.length === 0) return new Map();
+  const rows = await run_query<{ showcase_id: number; calculated_cost: string }>({
+    text: `
+      SELECT se.showcase_id, COALESCE(SUM(COALESCE(se.apportioned_amount, e.amount)), 0)::bigint AS calculated_cost
+      FROM showcase_expenses se
+      JOIN expenses e ON e.id = se.expense_id
+      WHERE se.showcase_id = ANY($1::int[])
+      GROUP BY se.showcase_id;
+    `,
+    values: [showcaseIds],
+  });
+  return new Map(rows.map((r) => [r.showcase_id, parseInt(r.calculated_cost, 10)]));
+}
+
+/**
+ * Map of showcaseId → gig_id[] for gigs linked via assigned_roles.
+ */
+export async function readShowcaseGigMappings(
+  showcaseIds: number[]
+): Promise<Map<number, number[]>> {
+  if (showcaseIds.length === 0) return new Map();
+  const rows = await run_query<{ showcase_id: number; gig_id: number }>({
+    text: `
+      SELECT DISTINCT showcase_id, gig_id
+      FROM assigned_roles
+      WHERE showcase_id = ANY($1::int[]) AND gig_id IS NOT NULL;
+    `,
+    values: [showcaseIds],
+  });
+  const map = new Map<number, number[]>();
+  for (const row of rows) {
+    const existing = map.get(row.showcase_id) ?? [];
+    existing.push(row.gig_id);
+    map.set(row.showcase_id, existing);
+  }
+  return map;
+}
+
+/**
+ * Sum of fee allocation line item amounts for showcase-only allocations
+ * (fa.gig_id IS NULL) per showcase. Returns a map of showcaseId → total in pence.
+ *
+ * The fa.gig_id IS NULL filter ensures gig performer fees (already captured inside
+ * each gig's own profit figure) are not double-counted here.
+ */
+export async function readShowcasePerformerFees(
+  showcaseIds: number[]
+): Promise<Map<number, number>> {
+  if (showcaseIds.length === 0) return new Map();
+  const rows = await run_query<{ showcase_id: number; performer_fees: string }>({
+    text: `
+      SELECT ar.showcase_id, COALESCE(SUM(fali.amount), 0)::bigint AS performer_fees
+      FROM assigned_roles ar
+      JOIN fee_allocations fa ON fa.id = ar.fee_allocation_id
+      JOIN fee_allocation_line_items fali ON fali.allocation_id = fa.id
+      WHERE ar.showcase_id = ANY($1::int[]) AND fa.gig_id IS NULL
+      GROUP BY ar.showcase_id;
+    `,
+    values: [showcaseIds],
+  });
+  return new Map(rows.map((r) => [r.showcase_id, parseInt(r.performer_fees, 10)]));
+}

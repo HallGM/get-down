@@ -229,10 +229,12 @@ export interface Gig {
   balanceAmount?: number;
   travelCost: number;
   discountPercent: number;
-  /** Net amount received in pennies: total payments minus total refunds. Only present on list responses. */
+  /** Net amount received in pennies: total payments minus total refunds. Present on list and detail responses. */
   netReceived?: number;
-  /** Total fee allocation line items in pennies for this gig. Only present on list responses. */
+  /** Total fee allocation line items in pennies for this gig. Present on list and detail responses. */
   feesTotal?: number;
+  /** Billing total in pennies: line items minus discount plus travel cost, minus credit refunds. Present on list and detail responses. */
+  billingTotal?: number;
   /** IDs of services attached to this gig. Only present on list responses. */
   serviceIds?: number[];
   /**
@@ -240,6 +242,12 @@ export interface Gig {
    * null means unavailable (cancelled gig, no services attached, or a price/fee is missing).
    */
   predictedProfit?: number | null;
+  /**
+   * Whether this gig is fully settled. True only when all six settlement conditions are met:
+   * has line items, billing total equals net received, has roles, all roles have a person,
+   * all roles have a fee allocation, every non-partner's allocation has a linked expense.
+   */
+  settled?: boolean;
   lineItems?: GigLineItem[];
   services?: Service[];
   airtableId?: string;
@@ -490,6 +498,18 @@ export interface Showcase {
   airtableId?: string;
   costAirtable?: number;
   expenseLinks: ShowcaseExpenseLink[];
+  /** Computed: sum of apportioned (or full) expense amounts linked to this showcase, in pennies. */
+  calculatedCost?: number;
+  /** Computed: number of distinct gigs linked to this showcase via assigned_roles. */
+  linkedGigCount?: number;
+  /** Computed: total gig income (actual for settled gigs, predicted for unsettled), in pennies. */
+  incomeFromGigs?: number;
+  /** Computed: count of linked gigs whose income is based on predicted figures (not yet settled). */
+  predictedGigCount?: number;
+  /** Computed: sum of showcase-only fee allocation line items, in pennies. */
+  showcasePerformerFees?: number;
+  /** Computed: incomeFromGigs minus calculatedCost minus showcasePerformerFees, in pennies. */
+  netProfit?: number;
 }
 
 export interface CreateShowcaseRequest {
@@ -1172,30 +1192,42 @@ export interface AccountingSummary {
   gigsBooked: number;
   gigsPerformed: number;
 
-  // Income in pence — accrual basis: payments for non-cancelled past gigs by gig date
-  earnedIncome: number;
+  // Turnover — settled gigs use actual net received; unsettled gigs use predicted billing
+  /** Net received from settled gigs in the period. */
+  settledNetReceived: number;
+  /** Predicted billing (discounted service price) for non-cancelled unsettled gigs in the period. */
+  predictedBillingUnsettled: number;
 
-  // Expenses in pence (all expenses by invoice date, regardless of payment status)
+  // Expenses — settled gig fee allocations, showcase expenses, and other expenses by invoice date
+  /**
+   * Settled expenses total: expense amounts linked to settled-gig fee allocations or
+   * showcase fee allocations, plus showcase expenses, plus other expenses.
+   */
   expenses: number;
-  // Breakdown of expenses into fee allocation, showcase, and other buckets
+  /**
+   * Breakdown of expenses:
+   *   feeAllocation — expense amounts linked to settled-gig or showcase fee allocations.
+   *   showcase      — expenses linked directly to showcases (not via fee allocations).
+   *   other         — expenses with no fee allocation or showcase link.
+   */
   expensesBreakdown: ExpensesBreakdown;
+  /** Role fees from service configuration for non-cancelled unsettled gigs (predicted costs). */
+  predictedFeeAllocations: number;
 
-  // Profit in pence (earned income minus expenses)
-  profit: number;
+  // Business profit — settled turnover minus settled expenses; no predicted figures
+  /** Net received from settled gigs minus settled expenses total. */
+  businessProfit: number;
 
-  // Partner fee allocations in pence (money owed to each partner based on work done)
+  // Partner fee allocations — filtered to settled gigs only (not date-based)
   feeAllocationsTotal: number;
   feeAllocationsBreakdown: FeeAllocationBreakdown[];
 
-  // Remaining profit after fee allocations (to be split equally between partners)
-  sharedProfit: number;
-
-  // Predicted profit combining actual figures from past gigs and forecast from upcoming gigs
-  /** Sum of (net received minus fee allocation total) for all non-cancelled gigs in the period whose date is before today. */
-  predictedProfitFromPast: number;
-  /** Sum of predicted profit for all non-cancelled gigs in the period whose date is today or later, excluding gigs with unavailable predictions. */
-  predictedProfitFromUpcoming: number;
-  /** Count of non-cancelled upcoming gigs in the period whose predicted profit is unavailable (excluded from predictedProfitFromUpcoming). */
+  // Shared profit — confirmed (settled) and predicted (unsettled)
+  /** Business profit minus settled partner fee allocations. */
+  confirmedSharedProfit: number;
+  /** Predicted profit for non-cancelled unsettled gigs, excluding those with unavailable predictions. */
+  predictedSharedProfit: number;
+  /** Count of non-cancelled unsettled gigs whose predicted profit cannot be calculated. */
   predictedProfitExcludedCount: number;
 }
 

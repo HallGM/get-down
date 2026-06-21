@@ -14,6 +14,7 @@ import MoneyDisplay from "../../components/MoneyDisplay.js";
 import RunningTotal from "../../components/RunningTotal.js";
 import UnavailableMoney from "../../components/UnavailableMoney.js";
 import { formatDate } from "../../utils/date.js";
+import { confirmedProfit } from "./gigUtils.js";
 import type { Gig } from "@get-down/shared";
 
 type GigView = "upcoming" | "past" | "all";
@@ -26,15 +27,35 @@ const COLUMNS: Column<Gig>[] = [
   { key: "venueName", header: "Venue", sortable: true, render: (g) => g.venueName ?? "—" },
   { key: "location", header: "Location", sortable: true, render: (g) => g.location ?? "—" },
   { key: "status", header: "Status", render: (g) => <StatusBadge status={g.status} /> },
-  { key: "netReceived", header: "Received", render: (g) => <MoneyDisplay pennies={g.netReceived ?? 0} /> },
-  { key: "profit", header: "Profit", render: (g) => <MoneyDisplay pennies={gigProfit(g)} /> },
+  {
+    key: "billingTotal",
+    header: "Amount charged",
+    headerHint: "Billing total: line items minus discount plus travel cost, minus any credit refunds",
+    render: (g) => <MoneyDisplay pennies={g.billingTotal ?? 0} />,
+  },
+  {
+    key: "netReceived",
+    header: "Amount received",
+    headerHint: "Total payments received from the client minus all refunds",
+    render: (g) => <MoneyDisplay pennies={g.netReceived ?? 0} />,
+  },
   {
     key: "predictedProfit",
     header: "Predicted profit",
+    headerHint: "Estimated profit based on service prices and role fees. Blank when prices or fees are not fully configured.",
     render: (g) => {
       if (g.status === "cancelled") return <span style={{ color: "var(--pico-muted-color)" }}>—</span>;
       if (g.predictedProfit == null) return <UnavailableMoney />;
       return <MoneyDisplay pennies={g.predictedProfit} />;
+    },
+  },
+  {
+    key: "confirmedProfit",
+    header: "Confirmed profit",
+    headerHint: "Billing total minus all fee allocation amounts. Only shown for fully settled gigs.",
+    render: (g) => {
+      if (!g.settled) return "";
+      return <MoneyDisplay pennies={confirmedProfit(g)} />;
     },
   },
 ];
@@ -102,8 +123,8 @@ export default function GigsList() {
     [visibleGigs]
   );
 
-  const totalProfit = useMemo(
-    () => visibleGigs.reduce((sum, g) => sum + gigProfit(g), 0),
+  const totalBillingTotal = useMemo(
+    () => visibleGigs.reduce((sum, g) => sum + (g.billingTotal ?? 0), 0),
     [visibleGigs]
   );
 
@@ -116,6 +137,13 @@ export default function GigsList() {
       .filter((g) => g.status !== "cancelled")
       .reduce((sum, g) => sum + (g.predictedProfit ?? 0), 0);
   }, [visibleGigs]);
+
+  const totalConfirmedProfit = useMemo(
+    () => visibleGigs
+      .filter((g) => g.settled)
+      .reduce((sum, g) => sum + confirmedProfit(g), 0),
+    [visibleGigs]
+  );
 
   function setField(field: keyof CreateGigRequest, value: string | number | undefined) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -200,9 +228,10 @@ export default function GigsList() {
       />
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "2rem", marginTop: "0.5rem" }}>
-        <RunningTotal label="Received" pennies={totalReceived} />
-        <RunningTotal label="Profit" pennies={totalProfit} />
+        <RunningTotal label="Amount charged" pennies={totalBillingTotal} />
+        <RunningTotal label="Amount received" pennies={totalReceived} />
         <RunningTotal label="Predicted profit" pennies={totalPredictedProfit} />
+        <RunningTotal label="Confirmed profit" pennies={totalConfirmedProfit} />
       </div>
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Gig">
@@ -245,7 +274,3 @@ export default function GigsList() {
 }
 
 // ── private helpers ──────────────────────────────────────────────────────────
-
-function gigProfit(g: Gig): number {
-  return (g.netReceived ?? 0) - (g.feesTotal ?? 0);
-}

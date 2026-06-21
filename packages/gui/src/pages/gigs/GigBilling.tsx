@@ -35,6 +35,7 @@ import EditPaymentModal from "../../components/EditPaymentModal.js";
 import EditRefundModal from "../../components/EditRefundModal.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { formatPennies } from "../../utils/money.js";
+import { confirmedProfit } from "./gigUtils.js";
 import useEditTarget from "../../hooks/useEditTarget.js";
 import type { CreateGigLineItemRequest, UpdateGigLineItemRequest, Invoice, Payment, Refund, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
 import { calcBillingTotals, REFUND_SUBTYPE_DEFAULT } from "@get-down/shared";
@@ -388,6 +389,12 @@ export default function GigBilling() {
                   ? <UnavailableMoney />
                   : <MoneyDisplay pennies={gig.predictedProfit} />}
               </dd>
+            </>
+          )}
+          {gig.settled && (
+            <>
+              <dt>Confirmed profit</dt>
+              <dd><MoneyDisplay pennies={confirmedProfit(gig)} /></dd>
             </>
           )}
         </dl>

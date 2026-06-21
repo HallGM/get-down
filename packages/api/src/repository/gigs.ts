@@ -417,7 +417,38 @@ export interface GigFinancialTotalsRow {
   gig_id: number;
   net_received: number;
   total_fees: number;
+  billing_total: number;
 }
+
+/**
+ * The billing total arithmetic, aliasless.
+ * Assumes `li` (gig_line_items) and `g` (gigs) are in scope.
+ * Single source of truth — used by both BILLING_TOTAL_SUBQUERY and SETTLED_CONDITION.
+ */
+const BILLING_TOTAL_EXPR = `
+  (
+    COALESCE(SUM(li.amount), 0)
+    - ROUND(COALESCE(SUM(li.amount), 0) * g.discount_percent::numeric / 100)::int
+    + g.travel_cost
+    - COALESCE((SELECT SUM(r.amount) FROM refunds r WHERE r.gig_id = g.id AND r.subtype = 'credit'), 0)
+  )::int
+`;
+
+const BILLING_TOTAL_SUBQUERY = `
+  (
+    SELECT ${BILLING_TOTAL_EXPR}
+    FROM gig_line_items li WHERE li.gig_id = g.id
+  ) AS billing_total
+`;
+
+const FEE_ALLOCATIONS_TOTALS_JOIN = `
+  LEFT JOIN (
+    SELECT fa.gig_id, SUM(fali.amount) AS total_fees
+    FROM fee_allocations fa
+    JOIN fee_allocation_line_items fali ON fali.allocation_id = fa.id
+    GROUP BY fa.gig_id
+  ) fa_totals ON fa_totals.gig_id = g.id
+`;
 
 export async function readGigFinancialTotals(): Promise<GigFinancialTotalsRow[]> {
   return run_query<GigFinancialTotalsRow>({
@@ -425,16 +456,105 @@ export async function readGigFinancialTotals(): Promise<GigFinancialTotalsRow[]>
       SELECT
         g.id AS gig_id,
         (COALESCE(p.total_paid, 0) - COALESCE(r.total_refunded, 0))::int AS net_received,
-        COALESCE(fa_totals.total_fees, 0)::int AS total_fees
+        COALESCE(fa_totals.total_fees, 0)::int AS total_fees,
+        ${BILLING_TOTAL_SUBQUERY}
       FROM gigs g
       ${SQL_PAYMENT_SUBQUERY}
-      LEFT JOIN (
-        SELECT fa.gig_id, SUM(fali.amount) AS total_fees
-        FROM fee_allocations fa
-        JOIN fee_allocation_line_items fali ON fali.allocation_id = fa.id
-        GROUP BY fa.gig_id
-      ) fa_totals ON fa_totals.gig_id = g.id
+      ${FEE_ALLOCATIONS_TOTALS_JOIN}
       ORDER BY g.id;
     `,
   });
+}
+
+/** Return financial totals for a single gig. Returns null when the gig does not exist. */
+export async function readGigFinancialTotalById(id: number): Promise<GigFinancialTotalsRow | null> {
+  const rows = await run_query<GigFinancialTotalsRow>({
+    text: `
+      SELECT
+        g.id AS gig_id,
+        (COALESCE(p.total_paid, 0) - COALESCE(r.total_refunded, 0))::int AS net_received,
+        COALESCE(fa_totals.total_fees, 0)::int AS total_fees,
+        ${BILLING_TOTAL_SUBQUERY}
+      FROM gigs g
+      ${SQL_PAYMENT_SUBQUERY}
+      ${FEE_ALLOCATIONS_TOTALS_JOIN}
+      WHERE g.id = $1
+      LIMIT 1;
+    `,
+    values: [id],
+  });
+  return rows[0] ?? null;
+}
+
+// ─── Settled status ───────────────────────────────────────────────────────────
+
+/**
+ * Self-contained SQL boolean expression (no alias).
+ * Requires only alias `g` on the gigs table; uses correlated subqueries only
+ * (no lateral joins) so it can be embedded in any query or CTE that already
+ * has a `gigs g` reference — including WHERE clauses.
+ *
+ * A gig is settled when ALL of:
+ *   1. Has at least one line item.
+ *   2. Billing total > 0 and equals net received exactly.
+ *   3. Has at least one assigned role.
+ *   4. Every role has a person linked (person_id IS NOT NULL).
+ *   5. Every role has a fee allocation linked (fee_allocation_id IS NOT NULL).
+ *   6. Every non-partner performer's fee allocation has at least one linked expense.
+ */
+export const SETTLED_CONDITION = `
+  (
+    EXISTS (SELECT 1 FROM gig_line_items WHERE gig_id = g.id)
+    AND EXISTS (
+      SELECT 1
+      FROM (
+        SELECT ${BILLING_TOTAL_EXPR} AS billing_total
+        FROM gig_line_items li
+        WHERE li.gig_id = g.id
+      ) AS bt
+      WHERE bt.billing_total > 0
+        AND bt.billing_total = (
+          COALESCE((SELECT SUM(amount) FROM payments WHERE gig_id = g.id), 0)
+          - COALESCE((SELECT SUM(amount) FROM refunds WHERE gig_id = g.id), 0)
+        )::int
+    )
+    AND EXISTS (SELECT 1 FROM assigned_roles WHERE gig_id = g.id)
+    AND NOT EXISTS (SELECT 1 FROM assigned_roles WHERE gig_id = g.id AND person_id IS NULL)
+    AND NOT EXISTS (SELECT 1 FROM assigned_roles WHERE gig_id = g.id AND fee_allocation_id IS NULL)
+    AND NOT EXISTS (
+      SELECT 1
+      FROM assigned_roles ar
+      JOIN fee_allocations fa ON fa.id = ar.fee_allocation_id
+      JOIN people pe ON pe.id = fa.person_id
+      WHERE ar.gig_id = g.id
+        AND pe.is_partner = false
+        AND NOT EXISTS (
+          SELECT 1 FROM fee_allocations_expenses fae WHERE fae.allocation_id = ar.fee_allocation_id
+        )
+    )
+  )
+`;
+
+/** `SETTLED_CONDITION` aliased as `is_settled` for use in SELECT lists. */
+export const SETTLED_CASE = `${SETTLED_CONDITION} AS is_settled`;
+
+export interface GigSettledStatusRow {
+  gig_id: number;
+  is_settled: boolean;
+}
+
+/** Return the settled status for every gig. */
+export async function readGigSettledStatuses(): Promise<GigSettledStatusRow[]> {
+  return run_query<GigSettledStatusRow>({
+    text: `SELECT g.id AS gig_id, ${SETTLED_CASE} FROM gigs g ORDER BY g.id;`,
+  });
+}
+
+/** Return the settled status for a single gig. */
+export async function readGigSettledStatusById(id: number): Promise<boolean> {
+  const rows = await run_query<{ is_settled: boolean }>({
+    text: `SELECT ${SETTLED_CASE} FROM gigs g WHERE g.id = $1 LIMIT 1;`,
+    values: [id],
+  });
+  return rows[0]?.is_settled ?? false;
 }
