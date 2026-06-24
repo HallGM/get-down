@@ -284,7 +284,9 @@ export async function readAdditionalChargesSumByInvoiceId(invoiceId: number): Pr
     text: `SELECT COALESCE(SUM(amount), 0) AS total FROM invoice_additional_charges WHERE invoice_id = $1;`,
     values: [invoiceId],
   });
-  return rows[0]?.total ?? 0;
+  // SUM() returns bigint; pg v8 returns bigint as string. Convert to number to avoid
+  // string concatenation in JS arithmetic (e.g. "100" + 200 = "100200" instead of 300).
+  return Number(rows[0]?.total ?? 0);
 }
 
 /** Return the sum of additional charge amounts grouped by invoice ID for a set of invoices.
@@ -302,7 +304,9 @@ export async function readAdditionalChargesSumsByInvoiceIds(
     `,
     values: [invoiceIds],
   });
-  return new Map(rows.map(r => [r.invoice_id, r.total ?? 0]));
+  // SUM() returns bigint; pg v8 returns bigint as string. Convert to number to avoid
+  // string concatenation in JS arithmetic.
+  return new Map(rows.map(r => [r.invoice_id, Number(r.total ?? 0)]));
 }
 
 /** Return the sum of all additional charge amounts across all invoices for a gig. Returns 0 when none exist. */
@@ -316,7 +320,9 @@ export async function readAdditionalChargesSumByGigId(gigId: number): Promise<nu
     `,
     values: [gigId],
   });
-  return rows[0]?.total ?? 0;
+  // SUM() returns bigint; pg v8 returns bigint as string. Convert to number to avoid
+  // string concatenation in JS arithmetic (e.g. "100" + 200 = "100200" instead of 300).
+  return Number(rows[0]?.total ?? 0);
 }
 
 // --- Payments made ---
