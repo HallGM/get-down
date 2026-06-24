@@ -324,18 +324,18 @@ export async function recalculateAmountDueForGig(gigId: number): Promise<void> {
       invoices.map(inv => inv.id)
     );
 
-    await Promise.all(
-      invoices.map(async (inv) => {
-        const invoiceCharges = chargeSums.get(inv.id) ?? 0;
-        // Deposit invoices store total_amount as the service-only subtotal (no surcharges).
-        // The expected payment is 20% of that service total plus any surcharges on this invoice.
-        const expected = inv.invoice_type === "deposit"
-          ? Math.round(inv.total_amount * 0.2) + invoiceCharges
-          : inv.total_amount + invoiceCharges;
-        const amountDue = Math.max(0, expected - paid);
-        return invoicesRepo.updateAmountDue(inv.id, amountDue);
-      })
-    );
+    // Iterate sequentially — pg's client cannot handle concurrent queries on the
+    // same transaction connection.
+    for (const inv of invoices) {
+      const invoiceCharges = chargeSums.get(inv.id) ?? 0;
+      // Deposit invoices store total_amount as the service-only subtotal (no surcharges).
+      // The expected payment is 20% of that service total plus any surcharges on this invoice.
+      const expected = inv.invoice_type === "deposit"
+        ? Math.round(inv.total_amount * 0.2) + invoiceCharges
+        : inv.total_amount + invoiceCharges;
+      const amountDue = Math.max(0, expected - paid);
+      await invoicesRepo.updateAmountDue(inv.id, amountDue);
+    }
   });
 }
 
