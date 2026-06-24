@@ -109,6 +109,7 @@ function buildMutationInput(
   if (!gigId) throw new BadRequestError("gigId is required");
   const amount = input.amount ?? existing?.amount;
   if (amount === undefined) throw new BadRequestError("amount is required");
+  if (amount < 0) throw new BadRequestError("amount must not be negative");
 
   // Preserve undefined/null distinction: undefined means "not provided, keep existing".
   // null means "explicitly clear the field".

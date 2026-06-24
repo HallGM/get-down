@@ -320,6 +320,11 @@ export async function recalculateAmountDueForGig(gigId: number): Promise<void> {
     ]);
 
     const paid = payments.reduce((s, p) => s + p.amount, 0);
+    // Defensive: paid should never be negative. A negative value would indicate
+    // a payment with a negative amount in the DB (data corruption), and would
+    // cause amountDue to overflow PostgreSQL's integer column.
+    const safePaid = Math.max(0, paid);
+
     const chargeSums = await invoicesRepo.readAdditionalChargesSumsByInvoiceIds(
       invoices.map(inv => inv.id)
     );
@@ -333,7 +338,7 @@ export async function recalculateAmountDueForGig(gigId: number): Promise<void> {
       const expected = inv.invoice_type === "deposit"
         ? Math.round(inv.total_amount * 0.2) + invoiceCharges
         : inv.total_amount + invoiceCharges;
-      const amountDue = Math.max(0, expected - paid);
+      const amountDue = Math.max(0, expected - safePaid);
       await invoicesRepo.updateAmountDue(inv.id, amountDue);
     }
   });
