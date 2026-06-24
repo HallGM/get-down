@@ -2,6 +2,7 @@ import type { Payment, GigPaymentSummary, CreatePaymentRequest, UpdatePaymentReq
 import * as paymentsRepo from "../repository/payments.js";
 import * as accountsRepo from "../repository/accounts.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
+import { recalculateAmountDueForGig } from "./invoices.js";
 
 export async function getAllPayments(): Promise<Payment[]> {
   const rows = await paymentsRepo.readAllPayments();
@@ -27,6 +28,7 @@ export async function getPaymentById(id: number): Promise<Payment> {
 export async function createPayment(input: CreatePaymentRequest): Promise<Payment> {
   await validateReceivedByAccount(input.receivedByAccountId);
   const row = await paymentsRepo.createPayment(buildMutationInput(input));
+  await recalculateAmountDueForGig(input.gigId);
   return mapPayment(row);
 }
 
@@ -35,12 +37,15 @@ export async function updatePayment(id: number, input: UpdatePaymentRequest): Pr
   await validateReceivedByAccount(input.receivedByAccountId);
   const row = await paymentsRepo.updatePayment(id, buildMutationInput(input, existing));
   if (!row) throw new NotFoundError("Payment not found");
+  await recalculateAmountDueForGig(existing.gigId);
   return mapPayment(row);
 }
 
 export async function deletePayment(id: number): Promise<void> {
+  const payment = await getPaymentById(id);
   const deleted = await paymentsRepo.deletePayment(id);
   if (!deleted) throw new NotFoundError("Payment not found");
+  await recalculateAmountDueForGig(payment.gigId);
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────

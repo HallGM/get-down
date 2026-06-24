@@ -1,5 +1,5 @@
 import { run_query } from "../db/init.js";
-import { SQL_PAYMENT_SUBQUERY } from "./sql-fragments.js";
+import { SQL_ADDITIONAL_CHARGES_EXPR, SQL_PAYMENT_SUBQUERY } from "./sql-fragments.js";
 
 export interface GigRow {
   id: number;
@@ -430,6 +430,7 @@ const BILLING_TOTAL_EXPR = `
     COALESCE(SUM(li.amount), 0)
     - ROUND(COALESCE(SUM(li.amount), 0) * g.discount_percent::numeric / 100)::int
     + g.travel_cost
+    + COALESCE(${SQL_ADDITIONAL_CHARGES_EXPR}, 0)
     - COALESCE((SELECT SUM(r.amount) FROM refunds r WHERE r.gig_id = g.id AND r.subtype = 'credit'), 0)
   )::int
 `;
