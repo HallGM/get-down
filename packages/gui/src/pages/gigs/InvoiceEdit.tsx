@@ -33,13 +33,22 @@ function calcTotals(
   additionalCharges: InvoiceAdditionalCharge[],
   paymentsMade: InvoicePaymentMade[],
   discountPercent: number,
-  travelCost: number
+  travelCost: number,
+  invoiceType?: string
 ) {
   const subtotal = lineItems.reduce((s, li) => s + (li.amount ?? 0), 0);
   const discountAmount = Math.round(subtotal * discountPercent / 100);
-  const total = subtotal - discountAmount + travelCost + additionalCharges.reduce((s, c) => s + (c.amount ?? 0), 0);
+  const chargesTotal = additionalCharges.reduce((s, c) => s + (c.amount ?? 0), 0);
+  const total = subtotal - discountAmount + travelCost + chargesTotal;
   const totalPaid = paymentsMade.reduce((s, p) => s + (p.amount ?? 0), 0);
-  const amountDue = Math.max(0, total - totalPaid);
+
+  // Deposit invoices: amount_due is 20% of the service portion (subtotal - discount + travel)
+  // plus any additional charges on this invoice, minus what's been paid.
+  // Balance invoices: amount_due is the full total minus what's been paid.
+  const amountDue = invoiceType === "deposit"
+    ? Math.max(0, Math.round((subtotal - discountAmount + travelCost) * 0.2) + chargesTotal - totalPaid)
+    : Math.max(0, total - totalPaid);
+
   return { subtotal, discountAmount, total, amountDue };
 }
 
@@ -397,7 +406,7 @@ export default function InvoiceEdit() {
   const paymentsMade = invoice.paymentsMade ?? [];
 
   const { subtotal, discountAmount, total, amountDue } = calcTotals(
-    lineItems, additionalCharges, paymentsMade, header.discountPercent, header.travelCost
+    lineItems, additionalCharges, paymentsMade, header.discountPercent, header.travelCost, invoice.invoiceType
   );
 
   // ── helper: persist updated totals to the invoice header ──────────────
@@ -410,7 +419,7 @@ export default function InvoiceEdit() {
     travelCostPennies: number,
     extraHeaderFields?: Partial<typeof header>
   ) {
-    const t = calcTotals(items, charges, payments, discountPct, travelCostPennies);
+    const t = calcTotals(items, charges, payments, discountPct, travelCostPennies, invoice!.invoiceType);
     const h = { ...header!, ...extraHeaderFields };
     await updateInvoice.mutateAsync({
       id: invId,

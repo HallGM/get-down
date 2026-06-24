@@ -260,6 +260,65 @@ export async function deleteAdditionalCharge(id: number): Promise<boolean> {
   return rows.length > 0;
 }
 
+export interface AdditionalChargeWithInvoiceRow extends InvoiceAdditionalChargeRow {
+  invoice_number: string;
+}
+
+/** Return all additional charges across all invoices for a gig, ordered by charge id. */
+export async function readAdditionalChargesByGigId(gigId: number): Promise<AdditionalChargeWithInvoiceRow[]> {
+  return run_query<AdditionalChargeWithInvoiceRow>({
+    text: `
+      SELECT iac.id, iac.invoice_id, inv.invoice_number, iac.description, iac.amount
+      FROM invoice_additional_charges iac
+      JOIN invoices inv ON inv.id = iac.invoice_id
+      WHERE inv.gig_id = $1
+      ORDER BY iac.id;
+    `,
+    values: [gigId],
+  });
+}
+
+/** Return the sum of all additional charge amounts for a single invoice. Returns 0 when none exist. */
+export async function readAdditionalChargesSumByInvoiceId(invoiceId: number): Promise<number> {
+  const rows = await run_query<{ total: number | null }>({
+    text: `SELECT COALESCE(SUM(amount), 0) AS total FROM invoice_additional_charges WHERE invoice_id = $1;`,
+    values: [invoiceId],
+  });
+  return rows[0]?.total ?? 0;
+}
+
+/** Return the sum of additional charge amounts grouped by invoice ID for a set of invoices.
+ *  Invoices with no charges are omitted from the result — use `chargeSums.get(id) ?? 0` on the returned Map. */
+export async function readAdditionalChargesSumsByInvoiceIds(
+  invoiceIds: number[]
+): Promise<Map<number, number>> {
+  if (invoiceIds.length === 0) return new Map();
+  const rows = await run_query<{ invoice_id: number; total: number | null }>({
+    text: `
+      SELECT invoice_id, COALESCE(SUM(amount), 0) AS total
+      FROM invoice_additional_charges
+      WHERE invoice_id = ANY($1)
+      GROUP BY invoice_id
+    `,
+    values: [invoiceIds],
+  });
+  return new Map(rows.map(r => [r.invoice_id, r.total ?? 0]));
+}
+
+/** Return the sum of all additional charge amounts across all invoices for a gig. Returns 0 when none exist. */
+export async function readAdditionalChargesSumByGigId(gigId: number): Promise<number> {
+  const rows = await run_query<{ total: number | null }>({
+    text: `
+      SELECT COALESCE(SUM(iac.amount), 0) AS total
+      FROM invoices inv
+      JOIN invoice_additional_charges iac ON iac.invoice_id = inv.id
+      WHERE inv.gig_id = $1;
+    `,
+    values: [gigId],
+  });
+  return rows[0]?.total ?? 0;
+}
+
 // --- Payments made ---
 
 export async function readPaymentsMadeByInvoiceId(

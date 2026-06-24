@@ -34,24 +34,33 @@ export async function getInvoiceById(id: number): Promise<Invoice> {
   return withSubresources(mapInvoice(row));
 }
 
+export async function getAdditionalChargesByGig(gigId: number): Promise<InvoiceAdditionalCharge[]> {
+  const rows = await invoicesRepo.readAdditionalChargesByGigId(gigId);
+  return rows.map(mapAdditionalChargeWithInvoice);
+}
+
 export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoice> {
   const { gigId, invoiceType = 'balance' } = input;
   if (!gigId) throw new BadRequestError("gigId is required");
 
-  const [gig, lineItems, payments] = await Promise.all([
+  const [gig, lineItems, payments, existingAdditionalCharges] = await Promise.all([
     gigsRepo.readGigById(gigId),
     gigLineItemsRepo.readGigLineItemsByGigId(gigId),
     paymentsRepo.readPaymentsByGigId(gigId),
+    invoicesRepo.readAdditionalChargesSumByGigId(gigId),
   ]);
 
   if (!gig) throw new NotFoundError("Gig not found");
 
   const subtotal = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
   const discountAmount = Math.round(subtotal * gig.discount_percent / 100);
-  const total = subtotal - discountAmount + gig.travel_cost;
+  const baseTotal = subtotal - discountAmount + gig.travel_cost;
+  const total = invoiceType === 'balance'
+    ? baseTotal + existingAdditionalCharges
+    : baseTotal;
   const paid = payments.reduce((sum, p) => sum + p.amount, 0);
   const amountDue = invoiceType === 'deposit'
-    ? Math.max(0, Math.round(total * 0.20) - paid)
+    ? Math.max(0, Math.round(baseTotal * 0.20) - paid)
     : Math.max(0, total - paid);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -142,6 +151,7 @@ export async function addAdditionalCharge(
     input.description?.trim() ?? null,
     input.amount ?? null
   );
+  await recalculateAmountDueForGig(inv.gig_id);
   return mapAdditionalCharge(row);
 }
 
@@ -150,6 +160,7 @@ export async function removeAdditionalCharge(invoiceId: number, chargeId: number
   if (!inv) throw new NotFoundError("Invoice not found");
   const deleted = await invoicesRepo.deleteAdditionalCharge(chargeId);
   if (!deleted) throw new NotFoundError("AdditionalCharge not found");
+  await recalculateAmountDueForGig(inv.gig_id);
 }
 
 export async function addPaymentMade(
@@ -205,6 +216,7 @@ export async function updateAdditionalCharge(
     input.amount ?? null
   );
   if (!row) throw new NotFoundError("AdditionalCharge not found");
+  await recalculateAmountDueForGig(inv.gig_id);
   return mapAdditionalCharge(row);
 }
 
@@ -234,13 +246,21 @@ export async function buildPreviewPayloadForGig(
   gigId: number,
   invoiceType: 'deposit' | 'balance' = 'balance'
 ): Promise<Record<string, unknown>> {
-  const [gig, lineItems, payments] = await Promise.all([
+  const [gig, lineItems, payments, existingAdditionalCharges] = await Promise.all([
     gigsRepo.readGigById(gigId),
     gigLineItemsRepo.readGigLineItemsByGigId(gigId),
     paymentsRepo.readPaymentsByGigId(gigId),
+    invoicesRepo.readAdditionalChargesSumByGigId(gigId),
   ]);
 
   if (!gig) throw new NotFoundError("Gig not found");
+
+  // For a balance preview, pre-populate additional charges from existing
+  // invoices (e.g. a card surcharge on the deposit invoice) so the total
+  // and amount-due are correct. For deposit previews, start fresh.
+  const additionalCharges = invoiceType === 'balance' && existingAdditionalCharges > 0
+    ? [{ description: "Existing surcharges", amount: existingAdditionalCharges }]
+    : [];
 
   const year = new Date().toISOString().slice(2, 4);
   const seq = await invoicesRepo.peekNextInvoiceSequence(year);
@@ -253,7 +273,7 @@ export async function buildPreviewPayloadForGig(
       eventDate: toDateString(gig.date) ?? undefined,
       venue: gig.venue_name ?? undefined,
       lineItems,
-      additionalCharges: [],
+      additionalCharges,
       discountPercent: gig.discount_percent,
       travelCost: gig.travel_cost,
     }),
@@ -300,13 +320,18 @@ export async function recalculateAmountDueForGig(gigId: number): Promise<void> {
     ]);
 
     const paid = payments.reduce((s, p) => s + p.amount, 0);
+    const chargeSums = await invoicesRepo.readAdditionalChargesSumsByInvoiceIds(
+      invoices.map(inv => inv.id)
+    );
 
     await Promise.all(
-      invoices.map((inv) => {
-        const expected =
-          inv.invoice_type === "deposit"
-            ? Math.round(inv.total_amount * 0.2)
-            : inv.total_amount;
+      invoices.map(async (inv) => {
+        const invoiceCharges = chargeSums.get(inv.id) ?? 0;
+        // Deposit invoices store total_amount as the service-only subtotal (no surcharges).
+        // The expected payment is 20% of that service total plus any surcharges on this invoice.
+        const expected = inv.invoice_type === "deposit"
+          ? Math.round(inv.total_amount * 0.2) + invoiceCharges
+          : inv.total_amount + invoiceCharges;
         const amountDue = Math.max(0, expected - paid);
         return invoicesRepo.updateAmountDue(inv.id, amountDue);
       })
@@ -390,6 +415,13 @@ function mapAdditionalCharge(row: invoicesRepo.InvoiceAdditionalChargeRow): Invo
     invoiceId: row.invoice_id,
     description: row.description ?? undefined,
     amount: row.amount ?? undefined,
+  };
+}
+
+function mapAdditionalChargeWithInvoice(row: invoicesRepo.AdditionalChargeWithInvoiceRow): InvoiceAdditionalCharge {
+  return {
+    ...mapAdditionalCharge(row),
+    invoiceNumber: row.invoice_number,
   };
 }
 

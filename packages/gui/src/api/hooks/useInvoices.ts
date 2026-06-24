@@ -7,6 +7,7 @@ import type {
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
   CreateInvoiceLineItemRequest,
+  CreateInvoiceAdditionalChargeRequest,
   UpdateInvoiceLineItemRequest,
   UpdateInvoiceAdditionalChargeRequest,
   UpdateInvoicePaymentMadeRequest,
@@ -27,6 +28,16 @@ export function useGigInvoices(gigId: number) {
   return useQuery({
     queryKey: [KEY, "gig", gigId],
     queryFn: () => apiFetch<Invoice[]>("GET", `/gigs/${gigId}/invoices`),
+    enabled: !!gigId,
+  });
+}
+
+const ADDITIONAL_CHARGES_KEY = "additional-charges";
+
+export function useGigAdditionalCharges(gigId: number) {
+  return useQuery({
+    queryKey: [ADDITIONAL_CHARGES_KEY, gigId],
+    queryFn: () => apiFetch<InvoiceAdditionalCharge[]>("GET", `/gigs/${gigId}/additional-charges`),
     enabled: !!gigId,
   });
 }
@@ -96,13 +107,17 @@ export function useRemoveLineItem() {
   });
 }
 
+function invalidateInvoiceAndCharges(qc: ReturnType<typeof useQueryClient>, invoiceId: number, gigId?: number) {
+  qc.invalidateQueries({ queryKey: [KEY, invoiceId] });
+  if (gigId) qc.invalidateQueries({ queryKey: [ADDITIONAL_CHARGES_KEY, gigId] });
+}
+
 export function useAddAdditionalCharge() {
   const qc = useQueryClient();
   return useApiMutation({
-    mutationFn: ({ invoiceId, input }: { invoiceId: number; input: CreateInvoiceLineItemRequest }) =>
+    mutationFn: ({ invoiceId, gigId, input }: { invoiceId: number; gigId?: number; input: CreateInvoiceAdditionalChargeRequest }) =>
       apiFetch<InvoiceAdditionalCharge>("POST", `/invoices/${invoiceId}/additional-charges`, input),
-    onSuccess: (_data, { invoiceId }) =>
-      qc.invalidateQueries({ queryKey: [KEY, invoiceId] }),
+    onSuccess: (_data, { invoiceId, gigId }) => invalidateInvoiceAndCharges(qc, invoiceId, gigId),
     successMessage: "Charge added",
   });
 }
@@ -110,10 +125,9 @@ export function useAddAdditionalCharge() {
 export function useRemoveAdditionalCharge() {
   const qc = useQueryClient();
   return useApiMutation({
-    mutationFn: ({ invoiceId, chargeId }: { invoiceId: number; chargeId: number }) =>
+    mutationFn: ({ invoiceId, chargeId, gigId }: { invoiceId: number; chargeId: number; gigId?: number }) =>
       apiFetch<void>("DELETE", `/invoices/${invoiceId}/additional-charges/${chargeId}`),
-    onSuccess: (_data, { invoiceId }) =>
-      qc.invalidateQueries({ queryKey: [KEY, invoiceId] }),
+    onSuccess: (_data, { invoiceId, gigId }) => invalidateInvoiceAndCharges(qc, invoiceId, gigId),
     successMessage: "Charge removed",
   });
 }
@@ -159,10 +173,9 @@ export function useUpdateLineItem() {
 export function useUpdateAdditionalCharge() {
   const qc = useQueryClient();
   return useApiMutation({
-    mutationFn: ({ invoiceId, chargeId, input }: { invoiceId: number; chargeId: number; input: UpdateInvoiceAdditionalChargeRequest }) =>
+    mutationFn: ({ invoiceId, chargeId, gigId, input }: { invoiceId: number; chargeId: number; gigId?: number; input: UpdateInvoiceAdditionalChargeRequest }) =>
       apiFetch<InvoiceAdditionalCharge>("PUT", `/invoices/${invoiceId}/additional-charges/${chargeId}`, input),
-    onSuccess: (_data, { invoiceId }) =>
-      qc.invalidateQueries({ queryKey: [KEY, invoiceId] }),
+    onSuccess: (_data, { invoiceId, gigId }) => invalidateInvoiceAndCharges(qc, invoiceId, gigId),
     successMessage: "Charge updated",
   });
 }

@@ -248,6 +248,8 @@ export interface Gig {
   feesTotal?: number;
   /** Billing total in pennies: line items minus discount plus travel cost, minus credit refunds. Present on list and detail responses. */
   billingTotal?: number;
+  /** Sum of all invoice additional charges for this gig, in pennies. Present on detail response only. */
+  totalAdditionalCharges?: number;
   /** IDs of services attached to this gig. Only present on list responses. */
   serviceIds?: number[];
   /**
@@ -848,6 +850,7 @@ export interface InvoiceLineItem {
 export interface InvoiceAdditionalCharge {
   id: number;
   invoiceId: number;
+  invoiceNumber?: string;
   description?: string;
   amount?: number;
 }
@@ -900,6 +903,8 @@ export interface UpdateInvoiceRequest {
 
 export type CreateInvoiceLineItemRequest = LineItemFields;
 export type UpdateInvoiceLineItemRequest = LineItemFields;
+
+export type CreateInvoiceAdditionalChargeRequest = LineItemFields;
 
 export interface UpdateInvoiceAdditionalChargeRequest {
   description?: string;
