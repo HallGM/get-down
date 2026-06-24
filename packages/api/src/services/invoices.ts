@@ -456,10 +456,21 @@ async function withSubresources(invoice: Invoice): Promise<Invoice> {
     invoicesRepo.readAdditionalChargesByInvoiceId(invoice.id),
     invoicesRepo.readPaymentsMadeByInvoiceId(invoice.id),
   ]);
+  let finalCharges = additionalCharges.map(mapAdditionalCharge);
+  // Balance invoices have the inherited charges baked into totalAmount at creation
+  // time, but the individual charge records live on the deposit invoice.  When the
+  // balance invoice has no charges of its own, pull in the gig-level charges so
+  // the invoice view and PDF show the full breakdown.  Flask computes the total
+  // as sum(custom_items) - discount + travel + sum(additional_charges), so the
+  // charges must be present here to produce the correct total on the PDF.
+  if (finalCharges.length === 0 && invoice.invoiceType === 'balance') {
+    const gigCharges = await invoicesRepo.readAdditionalChargesByGigId(invoice.gigId);
+    finalCharges = gigCharges.map(mapAdditionalChargeWithInvoice);
+  }
   return {
     ...invoice,
     lineItems: lineItems.map(mapLineItem),
-    additionalCharges: additionalCharges.map(mapAdditionalCharge),
+    additionalCharges: finalCharges,
     paymentsMade: paymentsMade.map(mapPaymentMade),
   };
 }
