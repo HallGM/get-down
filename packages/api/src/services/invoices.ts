@@ -58,7 +58,7 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
   const total = invoiceType === 'balance'
     ? baseTotal + existingAdditionalCharges
     : baseTotal;
-  const paid = payments.reduce((sum, p) => sum + p.amount, 0);
+  const paid = Math.max(0, payments.reduce((sum, p) => sum + p.amount, 0));
   const amountDue = invoiceType === 'deposit'
     ? Math.max(0, Math.round(baseTotal * 0.20) - paid)
     : Math.max(0, total - paid);
