@@ -63,6 +63,12 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
     ? Math.max(0, Math.round(baseTotal * 0.20) - paid)
     : Math.max(0, total - paid);
 
+  const PG_INT_MAX = 2_147_483_647;
+  if (total > PG_INT_MAX || amountDue > PG_INT_MAX) {
+    console.error(`[createInvoice] Overflow: total=${total} amountDue=${amountDue} gigId=${gigId} invoiceType=${invoiceType} subtotal=${subtotal} discountAmount=${discountAmount} baseTotal=${baseTotal} travel=${gig.travel_cost} discountPct=${gig.discount_percent} existingCharges=${existingAdditionalCharges} paid=${paid} lineItems=${JSON.stringify(lineItems)}`);
+    throw new BadRequestError(`Invoice total (${total}) exceeds maximum allowed value`);
+  }
+
   const today = new Date().toISOString().slice(0, 10);
   const year = today.slice(2, 4);
 
@@ -338,7 +344,11 @@ export async function recalculateAmountDueForGig(gigId: number): Promise<void> {
       const expected = inv.invoice_type === "deposit"
         ? Math.round(inv.total_amount * 0.2) + invoiceCharges
         : inv.total_amount + invoiceCharges;
-      const amountDue = Math.max(0, expected - safePaid);
+      let amountDue = Math.max(0, expected - safePaid);
+      if (amountDue > 2_147_483_647) {
+        console.error(`[recalculateAmountDueForGig] Overflow: amountDue=${amountDue} invoiceId=${inv.id} invoiceType=${inv.invoice_type} total_amount=${inv.total_amount} charges=${invoiceCharges} expected=${expected} safePaid=${safePaid}`);
+        amountDue = 0;
+      }
       await invoicesRepo.updateAmountDue(inv.id, amountDue);
     }
   });
