@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAttributions, useCreateAttribution, useUpdateAttribution, useDeleteAttribution } from "../../api/hooks/useAttributions.js";
 import type { CreateAttributionRequest, UpdateAttributionRequest, Attribution } from "@get-down/shared";
-import DataTable, { type Column } from "../../components/DataTable.js";
+import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
@@ -16,6 +16,17 @@ const COLUMNS: Column<Attribution>[] = [
 ];
 
 const EMPTY_FORM: CreateAttributionRequest = { name: "", type: "" };
+
+/**
+ * Attributions-specific filter: searches name, type, and notes.
+ */
+function filterAttribution(attribution: Attribution, query: string): boolean {
+  return multiWordFilter(query, [
+    attribution.name,
+    attribution.type,
+    attribution.notes ?? "",
+  ]);
+}
 
 export default function AttributionsList() {
   const { data: attributions, isLoading, error } = useAttributions();
@@ -71,6 +82,7 @@ export default function AttributionsList() {
         data={attributions ?? []}
         emptyMessage="No attributions yet."
         filterPlaceholder="Search attributions…"
+        filterFn={filterAttribution}
         onRowClick={(a) => navigate(`/attributions/${a.id}`)}
       />
 

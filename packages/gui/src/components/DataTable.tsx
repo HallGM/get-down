@@ -15,6 +15,20 @@ export function defaultFilter<T extends object>(row: T, q: string): boolean {
   );
 }
 
+/**
+ * Multi-word filter: every term in the query must match at least one value.
+ * Terms are matched case-insensitively as substrings.
+ * Empty query returns true (no filtering).
+ */
+export function multiWordFilter(query: string, values: (string | null | undefined)[]): boolean {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return true;
+  const normalizedValues = values.map((v) => String(v ?? "").toLowerCase());
+  return terms.every((term) =>
+    normalizedValues.some((val) => val.includes(term.toLowerCase()))
+  );
+}
+
 interface Props<T> {
   columns: Column<T>[];
   data: T[];

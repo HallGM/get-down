@@ -4,7 +4,7 @@ import { useHousePlaylist, useAddToHousePlaylist, useRemoveFromHousePlaylist } f
 import { useGenres, useCreateGenre, useDeleteGenre } from "../../api/hooks/useGenres.js";
 import type { CreateSongRequest, UpdateSongRequest, Song } from "@get-down/shared";
 import { formatDuration } from "../../utils/formatDuration.js";
-import DataTable, { type Column } from "../../components/DataTable.js";
+import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
@@ -27,6 +27,18 @@ const COLUMNS: Column<Song>[] = [
 ];
 
 const EMPTY_FORM: CreateSongRequest = { title: "" };
+
+/**
+ * Songs-specific filter: searches title, artist, genre, and vocal type.
+ */
+function filterSong(song: Song, query: string): boolean {
+  return multiWordFilter(query, [
+    song.title,
+    song.artist ?? "",
+    song.genre ?? "",
+    song.vocalType ?? "",
+  ]);
+}
 
 export default function SongsList() {
   const { data: songs, isLoading, error } = useSongs();
@@ -129,6 +141,7 @@ export default function SongsList() {
         data={songs ?? []}
         emptyMessage="No songs yet."
         filterPlaceholder="Search songs…"
+        filterFn={filterSong}
       />
 
       {/* Create modal */}

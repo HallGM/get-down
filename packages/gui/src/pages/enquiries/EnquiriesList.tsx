@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useEnquiries, useCreateEnquiry, useDeleteEnquiry } from "../../api/hooks/useEnquiries.js";
 import type { CreateEnquiryRequest } from "@get-down/shared";
-import DataTable, { type Column } from "../../components/DataTable.js";
+import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
@@ -25,6 +25,18 @@ const EMPTY_FORM: CreateEnquiryRequest = {
   email: "",
   services: [],
 };
+
+/**
+ * Enquiries-specific filter: searches full name (first + last), email, event date, and venue/location.
+ */
+function filterEnquiry(enquiry: EnquiryResponse, query: string): boolean {
+  return multiWordFilter(query, [
+    `${enquiry.firstName} ${enquiry.lastName}`.trim(),
+    enquiry.email,
+    enquiry.eventDate ?? "",
+    enquiry.venueLocation ?? "",
+  ]);
+}
 
 export default function EnquiriesList() {
   const { data: enquiries, isLoading, error } = useEnquiries();
@@ -64,6 +76,7 @@ export default function EnquiriesList() {
         data={enquiries ?? []}
         emptyMessage="No enquiries yet."
         filterPlaceholder="Search enquiries…"
+        filterFn={filterEnquiry}
       />
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Enquiry">

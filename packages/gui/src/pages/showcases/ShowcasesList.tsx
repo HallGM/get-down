@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useShowcases, useCreateShowcase, useUpdateShowcase, useDeleteShowcase } from "../../api/hooks/useShowcases.js";
 import type { CreateShowcaseRequest, UpdateShowcaseRequest, Showcase } from "@get-down/shared";
-import DataTable, { type Column } from "../../components/DataTable.js";
+import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
@@ -32,6 +32,18 @@ const COLUMNS: Column<Showcase>[] = [
 ];
 
 const EMPTY_FORM: CreateShowcaseRequest = { date: "" };
+
+/**
+ * Showcases-specific filter: searches nickname, full name, date, and location.
+ */
+function filterShowcase(showcase: Showcase, query: string): boolean {
+  return multiWordFilter(query, [
+    showcase.nickname ?? "",
+    showcase.fullName ?? "",
+    showcase.date,
+    showcase.location ?? "",
+  ]);
+}
 
 export default function ShowcasesList() {
   const { data: showcases, isLoading, error } = useShowcases();
@@ -83,6 +95,7 @@ export default function ShowcasesList() {
         data={showcases ?? []}
         emptyMessage="No showcases yet."
         filterPlaceholder="Search showcases…"
+        filterFn={filterShowcase}
         onRowClick={(s) => navigate(`/showcases/${s.id}`)}
       />
 

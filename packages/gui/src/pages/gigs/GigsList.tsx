@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useGigs, useCreateGig, useDeleteGig } from "../../api/hooks/useGigs.js";
 import { useServices } from "../../api/hooks/useServices.js";
 import type { CreateGigRequest } from "@get-down/shared";
-import DataTable, { type Column, defaultFilter } from "../../components/DataTable.js";
+import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
@@ -67,6 +67,19 @@ const EMPTY_FORM: CreateGigRequest = {
   status: "enquiry",
 };
 
+/**
+ * Gigs-specific filter: searches client name (first + last), venue, location, date, and status.
+ */
+function filterGig(gig: Gig, query: string): boolean {
+  return multiWordFilter(query, [
+    `${gig.firstName} ${gig.lastName}`.trim(),
+    gig.venueName ?? "",
+    gig.location ?? "",
+    gig.date,
+    gig.status,
+  ]);
+}
+
 export default function GigsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -112,10 +125,10 @@ export default function GigsList() {
     return all;
   }, [gigs, view, selectedServiceId]);
 
-  // Mirror DataTable's default filter so totals always match the visible rows.
+  // Mirror DataTable's filter so totals always match the visible rows.
   const visibleGigs = useMemo(() => {
     if (!textQuery) return displayedGigs;
-    return displayedGigs.filter((g) => defaultFilter(g, textQuery));
+    return displayedGigs.filter((g) => filterGig(g, textQuery));
   }, [displayedGigs, textQuery]);
 
   const totalReceived = useMemo(
@@ -223,6 +236,7 @@ export default function GigsList() {
         onRowClick={(g) => navigate(`/gigs/${g.id}`)}
         emptyMessage="No gigs found."
         filterPlaceholder="Search gigs…"
+        filterFn={filterGig}
         query={textQuery}
         onQueryChange={setTextQuery}
       />
