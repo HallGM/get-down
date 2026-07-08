@@ -4,7 +4,7 @@ import { useExpenses, useDeleteExpense } from "../../api/hooks/useExpenses.js";
 import { useFeeAllocations } from "../../api/hooks/useFeeAllocations.js";
 import { useAllAttributionFees } from "../../api/hooks/useAttributionFees.js";
 import type { Expense } from "@get-down/shared";
-import DataTable, { type Column } from "../../components/DataTable.js";
+import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import PaymentStatusBadge from "../../components/PaymentStatusBadge.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import LoadingState from "../../components/LoadingState.js";
@@ -38,6 +38,18 @@ const COLUMNS: Column<Expense>[] = [
       ) : null,
   },
 ];
+
+/**
+ * Expenses-specific filter: searches date, description, category, and recipient name.
+ */
+function filterExpense(expense: Expense, query: string): boolean {
+  return multiWordFilter(query, [
+    expense.date,
+    expense.description,
+    expense.category ?? "",
+    expense.recipientName ?? "",
+  ]);
+}
 
 export default function ExpensesList() {
   const { data: expenses, isLoading, error } = useExpenses();
@@ -102,6 +114,7 @@ export default function ExpensesList() {
         data={filteredExpenses}
         emptyMessage="No expenses found."
         filterPlaceholder="Search expenses…"
+        filterFn={filterExpense}
       />
 
       {/* Total */}

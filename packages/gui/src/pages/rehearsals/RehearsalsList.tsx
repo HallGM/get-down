@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRehearsals, useCreateRehearsal, useUpdateRehearsal, useDeleteRehearsal } from "../../api/hooks/useRehearsals.js";
 import type { CreateRehearsalRequest, Rehearsal } from "@get-down/shared";
-import DataTable, { type Column } from "../../components/DataTable.js";
+import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
@@ -20,6 +20,18 @@ const COLUMNS: Column<Rehearsal>[] = [
 ];
 
 const EMPTY_FORM: CreateRehearsalRequest = { name: "", date: "" };
+
+/**
+ * Rehearsals-specific filter: searches date, name, location, and notes.
+ */
+function filterRehearsal(rehearsal: Rehearsal, query: string): boolean {
+  return multiWordFilter(query, [
+    rehearsal.date,
+    rehearsal.name,
+    rehearsal.location ?? "",
+    rehearsal.notes ?? "",
+  ]);
+}
 
 export default function RehearsalsList() {
   const { data: rehearsals, isLoading, error } = useRehearsals();
@@ -70,6 +82,7 @@ export default function RehearsalsList() {
         data={rehearsals ?? []}
         emptyMessage="No rehearsals yet."
         filterPlaceholder="Search rehearsals…"
+        filterFn={filterRehearsal}
       />
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Rehearsal">

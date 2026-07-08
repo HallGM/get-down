@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { usePeople, useCreatePerson, useUpdatePerson, useDeletePerson, useGeneratePerformerToken } from "../../api/hooks/usePeople.js";
 import type { CreatePersonRequest, UpdatePersonRequest, Person } from "@get-down/shared";
-import DataTable, { type Column } from "../../components/DataTable.js";
+import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
@@ -21,6 +21,19 @@ const COLUMNS: Column<Person>[] = [
 ];
 
 const EMPTY_FORM: CreatePersonRequest = { firstName: "", isPartner: false, isActive: true };
+
+/**
+ * People-specific filter: searches first name, last name, display name, email, and phone.
+ */
+function filterPerson(person: Person, query: string): boolean {
+  return multiWordFilter(query, [
+    person.firstName,
+    person.lastName ?? "",
+    person.displayName ?? "",
+    person.email ?? "",
+    person.phone ?? "",
+  ]);
+}
 
 export default function PeopleList() {
   const { data: people, isLoading, error } = usePeople();
@@ -110,6 +123,7 @@ export default function PeopleList() {
         data={people ?? []}
         emptyMessage="No people yet."
         filterPlaceholder="Search people…"
+        filterFn={filterPerson}
       />
 
       {/* Create */}
