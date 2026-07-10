@@ -7,6 +7,7 @@ import type {
   UpdateFeeAllocationRequest,
   UpdateFeeAllocationLineItemRequest,
   CreateFeeAllocationLineItemRequest,
+  CreateExpenseRequest,
 } from "@get-down/shared";
 import * as feeAllocationsRepo from "../repository/fee_allocations.js";
 import * as expensesRepo from "../repository/expenses.js";
@@ -16,10 +17,12 @@ import * as rolesRepo from "../repository/roles.js";
 import * as gigsRepo from "../repository/gigs.js";
 import * as peopleRepo from "../repository/people.js";
 import * as accountsRepo from "../repository/accounts.js";
+import * as expensePaymentsRepo from "../repository/expense_payments.js";
 import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 import { buildPersonName } from "../utils/people.js";
+import { CreatePaymentSchema } from "./expense_payments.js";
 import { z } from "zod";
 
 export async function getAllFeeAllocationSummaries(): Promise<FeeAllocationSummary[]> {
@@ -452,6 +455,59 @@ export async function unlinkTransactionFromAllocation(
   if (!allocation) throw new NotFoundError("FeeAllocation not found");
   await feeAllocationsRepo.unlinkTransactionFromAllocation(allocationId, transactionId);
 }
+
+/**
+ * Atomically create an expense and link it to a fee allocation in a single transaction.
+ * Guarantees that either both succeed or both rollback; no orphaned expenses.
+ */
+export async function settleAllocationWithExpense(
+  allocationId: number,
+  expenseInput: CreateExpenseRequest
+): Promise<Expense> {
+  const allocation = await feeAllocationsRepo.readFeeAllocationById(allocationId);
+  if (!allocation) throw new NotFoundError("FeeAllocation not found");
+
+  // Validate expense input
+  const amount = expenseInput.amount;
+  if (amount === undefined || amount === null) throw new BadRequestError("amount is required");
+  const description = expenseInput.description?.trim();
+  if (!description) throw new BadRequestError("description is required");
+
+  // Validate and parse payment if present
+  let parsedPayment: z.infer<typeof CreatePaymentSchema> | undefined;
+  if (expenseInput.payment) {
+    parsedPayment = parseOrBadRequest(CreatePaymentSchema, expenseInput.payment);
+    if (parsedPayment.amount === 0) throw new BadRequestError("payment amount must not be zero");
+    const account = await accountsRepo.readAccountById(parsedPayment.accountId);
+    if (!account) throw new BadRequestError("payment accountId references an account that does not exist");
+  }
+
+  return withTransaction(async () => {
+    // Step 1: Create the expense
+    const expenseRow = await expensesRepo.createExpense({
+      date: expenseInput.date,
+      amount,
+      description,
+      category: expenseInput.category?.trim(),
+      recipientName: expenseInput.recipientName?.trim(),
+      airtableId: expenseInput.airtableId,
+    });
+
+    // Step 2: Create payment if provided (still within transaction)
+    let paymentAmount = 0;
+    if (parsedPayment) {
+      await expensePaymentsRepo.createExpensePayment(expenseRow.id, parsedPayment);
+      paymentAmount = parsedPayment.amount;
+    }
+
+    // Step 3: Link the expense to the allocation (still within transaction)
+    await feeAllocationsRepo.linkExpenseToAllocation(allocationId, expenseRow.id);
+
+    // Return the assembled expense
+    return mapExpense(expenseRow, [allocationId], [], paymentAmount, undefined);
+  });
+}
+
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
