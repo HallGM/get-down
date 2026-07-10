@@ -409,29 +409,34 @@ export default function GigRoles() {
         </form>
       </Modal>
 
-      {/* Add Expense modal (pre-filled, auto-links to allocation on create) */}
+       {/* Add Expense modal (pre-filled, auto-links to allocation on create) */}
       <ExpenseCreateModal
         open={createAllocationId != null}
         onClose={() => setCreateAllocationId(null)}
         initialValues={buildCreateInitialValues(createAllocation)}
-        onCreated={(expense) => {
-          if (createAllocationId != null) {
-            linkExpense.mutate({ allocationId: createAllocationId, expenseId: expense.id });
-          }
+        allocationId={createAllocationId ?? undefined}
+        onCreated={() => {
           setCreateAllocationId(null);
         }}
       />
 
-      {/* Expense Picker modal */}
+       {/* Expense Picker modal */}
       <ExpensePickerModal
         open={pickerAllocationId != null}
         onClose={() => setPickerAllocationId(null)}
         expenses={allExpenses.filter((e) => !(pickerAllocation?.expenseIds ?? []).includes(e.id))}
         onSelect={(expense) => {
           if (pickerAllocationId != null) {
-            linkExpense.mutate({ allocationId: pickerAllocationId, expenseId: expense.id });
+            linkExpense.mutateAsync({ allocationId: pickerAllocationId, expenseId: expense.id })
+              .then(() => {
+                setPickerAllocationId(null);
+              })
+              .catch(() => {
+                // Error is shown via mutation onError/toast; picker stays open so user can retry
+              });
+          } else {
+            setPickerAllocationId(null);
           }
-          setPickerAllocationId(null);
         }}
       />
 

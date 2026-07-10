@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useCreateExpense } from "../api/hooks/useExpenses.js";
+import { useSettleAllocationWithExpense } from "../api/hooks/useFeeAllocations.js";
 import { useAccounts } from "../api/hooks/useAccounts.js";
 import type { CreateExpenseRequest, Expense } from "@get-down/shared";
 import { MAX_DOCUMENT_SIZE_BYTES } from "@get-down/shared";
@@ -44,6 +45,7 @@ export interface ExpenseCreateModalProps {
   onClose: () => void;
   onCreated?: (expense: Expense) => void;
   initialValues?: { description?: string; amount?: number };
+  allocationId?: number;
 }
 
 export default function ExpenseCreateModal({
@@ -51,8 +53,10 @@ export default function ExpenseCreateModal({
   onClose,
   onCreated,
   initialValues,
+  allocationId,
 }: ExpenseCreateModalProps) {
   const createExpense = useCreateExpense();
+  const settleAllocation = useSettleAllocationWithExpense();
   const { data: accounts = [] } = useAccounts();
 
   const [form, setForm] = useState<CreateExpenseRequest>(() => ({
@@ -141,11 +145,15 @@ export default function ExpenseCreateModal({
       };
     }
 
-    const created = await createExpense.mutateAsync({ input, file: selectedFile });
+    const created = allocationId
+      ? await settleAllocation.mutateAsync({ allocationId, input, file: selectedFile })
+      : await createExpense.mutateAsync({ input, file: selectedFile });
     onCreated?.(created);
   }
 
+  const isLoading = createExpense.isPending || settleAllocation.isPending;
   const paymentMissing = recordPayment && (paymentForm.accountId === "" || paymentForm.amount === 0);
+
 
   return (
     <Modal open={open} onClose={handleClose} title="New Expense">
@@ -217,10 +225,10 @@ export default function ExpenseCreateModal({
           <button type="button" className="secondary" onClick={handleClose}>Cancel</button>
           <button
             type="submit"
-            aria-busy={createExpense.isPending}
-            disabled={createExpense.isPending || !!fileError || paymentMissing}
+            aria-busy={isLoading}
+            disabled={isLoading || !!fileError || paymentMissing}
           >
-            Create
+            {allocationId ? "Settle" : "Create"}
           </button>
         </footer>
       </form>

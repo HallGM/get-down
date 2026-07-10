@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import type { Expense, FeeAllocation, FeeAllocationLineItem, FeeAllocationSummary, UpdateFeeAllocationLineItemRequest, CreateFeeAllocationLineItemRequest } from "@get-down/shared";
-import { apiFetch } from "../client.js";
+import type { Expense, FeeAllocation, FeeAllocationLineItem, FeeAllocationSummary, UpdateFeeAllocationLineItemRequest, CreateFeeAllocationLineItemRequest, CreateExpenseRequest } from "@get-down/shared";
+import { apiFetch, apiFetchFormData } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
 const KEY = "fee-allocations";
@@ -194,8 +194,40 @@ export function useLinkExpenseToAllocation() {
   return useApiMutation({
     mutationFn: ({ allocationId, expenseId }: { allocationId: number; expenseId: number }) =>
       apiFetch<void>("POST", `/fee-allocations/${allocationId}/expenses`, { expenseId }),
-    onSuccess: (_data, { allocationId }) => invalidateAllocationCaches(qc, allocationId, "expenses"),
+    onSuccess: (_data, { allocationId }) => {
+      invalidateAllocationCaches(qc, allocationId, "expenses");
+      // Invalidate dashboard so unpaid allocations widget updates
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
     successMessage: "Expense linked",
+  });
+}
+
+/**
+ * Settle an unpaid allocation by creating a new expense and linking it atomically.
+ * Uses a backend transaction to guarantee atomicity.
+ */
+export function useSettleAllocationWithExpense() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: async ({ allocationId, input, file }: { allocationId: number; input: CreateExpenseRequest; file?: File }) => {
+      const expense = await apiFetch<Expense>("POST", `/fee-allocations/${allocationId}/expenses/settle`, input);
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        await apiFetchFormData<void>("POST", `/expenses/${expense.id}/document`, formData);
+      }
+      return expense;
+    },
+    onSuccess: () => {
+      // Invalidate all related caches
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: [GIG_KEY] });
+      qc.invalidateQueries({ queryKey: [SHOWCASE_KEY] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    successMessage: "Allocation settled",
   });
 }
 

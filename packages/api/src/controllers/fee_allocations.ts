@@ -16,8 +16,9 @@ router.post("/fee-allocations/:id/line-items",               handle(req => feeAl
 router.put("/fee-allocations/:id/line-items/:lineItemId",    handle(req => feeAllocationsService.updateLineItem(+req.params.id, +req.params.lineItemId, req.body)));
 router.delete("/fee-allocations/:id/line-items/:lineItemId", handle(req => feeAllocationsService.removeLineItem(+req.params.id, +req.params.lineItemId), 204));
 
-// Expense links — "generate" must come before "/:expenseId" to avoid mis-routing
+// Expense links — "generate" and "settle" must come before "/:expenseId" to avoid mis-routing
 router.post("/fee-allocations/:id/expenses/generate", handle(req => feeAllocationsService.generateExpenseForAllocation(+req.params.id), 201));
+router.post("/fee-allocations/:id/expenses/settle",   handle(req => feeAllocationsService.settleAllocationWithExpense(+req.params.id, req.body), 201));
 router.post("/fee-allocations/:id/expenses",          handle(req => feeAllocationsService.linkExpenseToAllocation(+req.params.id, req.body), 204));
 router.delete("/fee-allocations/:id/expenses/:expenseId", handle(req => feeAllocationsService.unlinkExpenseFromAllocation(+req.params.id, +req.params.expenseId), 204));
 
