@@ -1290,6 +1290,26 @@ export interface FeeAllocationAlert {
   totalFee: number;
 }
 
+export interface RoleWithoutAllocationAlert {
+  id: number;
+  /** Performer name assigned to the role. */
+  personName: string;
+  /** Role name. */
+  roleName: string;
+  /** Client name for gig roles, or showcase name for showcase roles. */
+  eventName: string;
+  /** ISO date string of the event. */
+  eventDate: string;
+  /** Present when the role belongs to a gig. */
+  gigId?: number;
+  /** Present when the role belongs to a showcase. */
+  showcaseId?: number;
+  /** Venue name for gig roles, or undefined for showcase roles. */
+  venueName?: string;
+  /** Location for gig roles, or undefined for showcase roles. */
+  location?: string;
+}
+
 export interface ExpenseApportionmentMismatchAlert {
   /** Expense id. */
   id: number;
@@ -1329,4 +1349,8 @@ export interface DashboardAlerts {
   allocationsWithoutRoles: FeeAllocationAlert[];
   /** Expenses linked to showcases where explicit apportioned amounts don't sum to the expense total. */
   apportionmentMismatches: ExpenseApportionmentMismatchAlert[];
+  /** Performer roles on past confirmed gigs with no fee allocation linked. */
+  gigRolesWithoutAllocation: RoleWithoutAllocationAlert[];
+  /** Performer roles on past showcases with no fee allocation linked. */
+  showcaseRolesWithoutAllocation: RoleWithoutAllocationAlert[];
 }

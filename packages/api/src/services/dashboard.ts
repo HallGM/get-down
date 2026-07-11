@@ -1,9 +1,9 @@
-import type { DashboardAlerts, GigAlertBase, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigNoLineItemsAlert, GigPaymentMismatchAlert } from "@get-down/shared";
+import type { DashboardAlerts, GigAlertBase, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigNoLineItemsAlert, GigPaymentMismatchAlert, RoleWithoutAllocationAlert } from "@get-down/shared";
 import * as repo from "../repository/dashboard.js";
-import type { GigAlertBaseRow, GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow, GigNoLineItemsAlertRow, GigPaymentMismatchAlertRow } from "../repository/dashboard.js";
+import type { GigAlertBaseRow, GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow, GigNoLineItemsAlertRow, GigPaymentMismatchAlertRow, RoleWithoutAllocationAlertRow } from "../repository/dashboard.js";
 
 export async function getDashboardAlerts(): Promise<DashboardAlerts> {
-  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows, noLineItemsRows, paymentMismatchRows] = await Promise.all([
+  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows, noLineItemsRows, paymentMismatchRows, gigRoleRows, showcaseRoleRows] = await Promise.all([
     repo.readDepositAlerts(),
     repo.readBalanceDueSoonAlerts(),
     repo.readAllocationsWithoutExpenses(),
@@ -11,6 +11,8 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     repo.readApportionmentMismatches(),
     repo.readGigsWithoutLineItems(),
     repo.readPastPaymentMismatches(),
+    repo.readGigRolesWithoutAllocation(),
+    repo.readShowcaseRolesWithoutAllocation(),
   ]);
 
   return {
@@ -21,6 +23,8 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     allocationsWithoutExpenses: allocationRows.map(mapAllocationAlert),
     allocationsWithoutRoles: withoutRoleRows.map(mapAllocationAlert),
     apportionmentMismatches: mismatchRows.map(mapMismatchAlert),
+    gigRolesWithoutAllocation: gigRoleRows.map(mapRoleWithoutAllocationAlert),
+    showcaseRolesWithoutAllocation: showcaseRoleRows.map(mapRoleWithoutAllocationAlert),
   };
 }
 
@@ -64,6 +68,20 @@ function mapPaymentMismatchAlert(row: GigPaymentMismatchAlertRow): GigPaymentMis
     billingTotal: Number(row.billing_total),
     netReceived: Number(row.net_received),
     difference: Number(row.difference),
+  };
+}
+
+function mapRoleWithoutAllocationAlert(row: RoleWithoutAllocationAlertRow): RoleWithoutAllocationAlert {
+  return {
+    id: row.id,
+    personName: row.person_name,
+    roleName: row.role_name,
+    eventName: row.event_name,
+    eventDate: toDateString(row.event_date),
+    gigId: row.gig_id ?? undefined,
+    showcaseId: row.showcase_id ?? undefined,
+    venueName: row.venue_name ?? undefined,
+    location: row.location ?? undefined,
   };
 }
 
