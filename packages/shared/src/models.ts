@@ -773,8 +773,13 @@ export interface Refund {
   amount: number;
   method?: string;
   description?: string;
-  /** Discriminates the refund's purpose: 'credit' reduces the billing total; 'adjustment' returns an overpayment. */
-  subtype: 'credit' | 'adjustment';
+  /**
+   * Discriminates the refund's purpose and its effect on billing totals.
+   * - 'write_off': debt forgiveness with no cash movement. Reduces billing_total only.
+   * - 'credit': goodwill gesture where cash is given back. Reduces both billing_total and net_received.
+   * - 'adjustment': refund for an overpayment (e.g. service removed). Reduces net_received only.
+   */
+  subtype: 'credit' | 'adjustment' | 'write_off';
 }
 
 export interface CreateRefundRequest {
@@ -783,8 +788,8 @@ export interface CreateRefundRequest {
   amount: number;
   method?: string;
   description?: string;
-  /** Defaults to 'adjustment' when omitted. */
-  subtype?: 'credit' | 'adjustment';
+  /** Defaults to 'adjustment' when omitted. See `Refund.subtype` for effect descriptions. */
+  subtype?: 'credit' | 'adjustment' | 'write_off';
 }
 
 export interface UpdateRefundRequest {
@@ -793,7 +798,8 @@ export interface UpdateRefundRequest {
   amount?: number;
   method?: string;
   description?: string;
-  subtype?: 'credit' | 'adjustment';
+  /** See `Refund.subtype` for effect descriptions. */
+  subtype?: 'credit' | 'adjustment' | 'write_off';
 }
 
 export interface GigPaymentSummary {
@@ -814,8 +820,8 @@ export interface GigPaymentSummary {
   receivedBy?: string;
   /** Account ID of the account that received this payment. Undefined when not yet assigned. */
   receivedByAccountId?: number;
-  /** Refund subtype. Only present when type === 'refund'. */
-  subtype?: 'credit' | 'adjustment';
+  /** Refund subtype. Only present when type === 'refund' (see `Refund.subtype` for semantics). */
+  subtype?: 'credit' | 'adjustment' | 'write_off';
 }
 
 export interface CreatePaymentRequest {

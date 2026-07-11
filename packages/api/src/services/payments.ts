@@ -97,7 +97,7 @@ function mapGigPaymentSummary(row: paymentsRepo.GigPaymentSummaryRow): GigPaymen
     gigDate: row.gig_date,
     receivedBy: row.received_by ?? undefined,
     receivedByAccountId: row.received_by_account_id ?? undefined,
-    subtype: (row.subtype ?? undefined) as 'credit' | 'adjustment' | undefined,
+    subtype: (row.subtype ?? undefined) as 'credit' | 'adjustment' | 'write_off' | undefined,
   };
 }
 

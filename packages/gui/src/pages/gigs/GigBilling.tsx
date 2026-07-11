@@ -42,7 +42,7 @@ import { formatPennies } from "../../utils/money.js";
 import { confirmedProfit } from "./gigUtils.js";
 import useEditTarget from "../../hooks/useEditTarget.js";
 import type { CreateGigLineItemRequest, UpdateGigLineItemRequest, Invoice, InvoiceAdditionalCharge, Payment, Refund, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
-import { calcBillingTotals, REFUND_SUBTYPE_DEFAULT } from "@get-down/shared";
+import { calcBillingTotals, REFUND_SUBTYPE_DEFAULT, isCreditSubtype, isRefundSubtype } from "@get-down/shared";
 
 // ---------------------------------------------------------------------------
 // Local hook: manages a single PDF blob modal (load → display → revoke on close)
@@ -254,9 +254,9 @@ export default function GigBilling() {
 
   // Compute financial summary fully client-side from live data
   const subtotal      = (gig.lineItems ?? []).reduce((sum, li) => sum + (li.amount ?? 0), 0);
-  const totalCredits  = (refunds ?? []).filter(r => r.subtype === 'credit').reduce((sum, r) => sum + r.amount, 0);
+  const totalCredits  = (refunds ?? []).filter(r => isCreditSubtype(r.subtype)).reduce((sum, r) => sum + r.amount, 0);
   const totalPaid     = (payments ?? []).reduce((sum, p) => sum + p.amount, 0);
-  const totalRefunded = (refunds ?? []).reduce((sum, r) => sum + r.amount, 0);
+  const totalRefunded = (refunds ?? []).filter(r => isRefundSubtype(r.subtype)).reduce((sum, r) => sum + r.amount, 0);
   const { discountAmount, billingTotal, netReceived, depositRequired, depositPaid, balanceAmount } = calcBillingTotals({
     subtotal,
     discountPercent: gig.discountPercent,
@@ -591,7 +591,9 @@ export default function GigBilling() {
                   <td>{r.method ?? "—"}</td>
                   <td>{r.description ?? "—"}</td>
                   <td>
-                    {r.subtype === 'credit'
+                    {r.subtype === 'write_off'
+                      ? <span>Write-off <small>(debt forgiven)</small></span>
+                      : r.subtype === 'credit'
                       ? <span>Credit <small>(goodwill gesture)</small></span>
                       : <span>Adjustment <small>(overpayment correction)</small></span>}
                   </td>

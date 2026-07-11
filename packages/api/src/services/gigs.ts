@@ -1,5 +1,5 @@
 import type { Gig, GigLineItem, Service, CreateGigRequest, UpdateGigRequest, CreateGigLineItemRequest, UpdateGigLineItemRequest } from "@get-down/shared";
-import { calcBillingTotals } from "@get-down/shared";
+import { calcBillingTotals, isCreditSubtype, isRefundSubtype } from "@get-down/shared";
 import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
 import * as paymentsRepo from "../repository/payments.js";
@@ -55,8 +55,8 @@ export async function getGigById(id: number): Promise<Gig> {
   if (!row) throw new NotFoundError("Gig not found");
 
   const subtotal      = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
-  const totalCredits  = refunds.filter(r => r.subtype === 'credit').reduce((sum, r) => sum + r.amount, 0);
-  const totalRefunded = refunds.reduce((sum, r) => sum + r.amount, 0);
+  const totalCredits  = refunds.filter(r => isCreditSubtype(r.subtype)).reduce((sum, r) => sum + r.amount, 0);
+  const totalRefunded = refunds.filter(r => isRefundSubtype(r.subtype)).reduce((sum, r) => sum + r.amount, 0);
   const totalPaid     = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
   const { depositPaid, balanceAmount } = calcBillingTotals({
     subtotal,

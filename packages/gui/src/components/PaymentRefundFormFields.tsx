@@ -9,7 +9,7 @@ export interface PaymentRefundFormState {
   method: string;
   description: string;
   receivedByAccountId?: number | null;
-  subtype?: 'credit' | 'adjustment';
+  subtype?: 'credit' | 'adjustment' | 'write_off';
 }
 
 interface Props {
@@ -60,13 +60,13 @@ export default function PaymentRefundFormFields({ form, setForm, accounts, showS
             <input
               type="radio"
               name="subtype"
-              value="adjustment"
-              checked={(form.subtype ?? REFUND_SUBTYPE_DEFAULT) === 'adjustment'}
-              onChange={() => setForm((f) => ({ ...f, subtype: REFUND_SUBTYPE_DEFAULT }))}
+              value="write_off"
+              checked={(form.subtype ?? REFUND_SUBTYPE_DEFAULT) === 'write_off'}
+              onChange={() => setForm((f) => ({ ...f, subtype: 'write_off' }))}
             />
-            Adjustment
+            Write-off
           </label>
-          <small>A correction for a client who has overpaid, for example after a service is removed.</small>
+          <small>Forgive part of what's owed. No money changes hands.</small>
           <label>
             <input
               type="radio"
@@ -77,7 +77,18 @@ export default function PaymentRefundFormFields({ form, setForm, accounts, showS
             />
             Credit
           </label>
-          <small>A goodwill gesture that reduces the amount charged.</small>
+          <small>A goodwill gesture where money is given back to the client.</small>
+          <label>
+            <input
+              type="radio"
+              name="subtype"
+              value="adjustment"
+              checked={(form.subtype ?? REFUND_SUBTYPE_DEFAULT) === 'adjustment'}
+              onChange={() => setForm((f) => ({ ...f, subtype: REFUND_SUBTYPE_DEFAULT }))}
+            />
+            Adjustment
+          </label>
+          <small>A correction for a client who has overpaid, for example after a service is removed.</small>
         </fieldset>
       )}
     </>
