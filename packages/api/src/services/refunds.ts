@@ -11,7 +11,7 @@ const CreateRefundSchema = z.object({
   date:        z.string().optional(),
   method:      z.string().optional(),
   description: z.string().optional(),
-  subtype:     z.enum(["credit", "adjustment"]).default("adjustment"),
+  subtype:     z.enum(["credit", "adjustment", "write_off"]).default("adjustment"),
 });
 
 const UpdateRefundSchema = z.object({
@@ -20,7 +20,7 @@ const UpdateRefundSchema = z.object({
   date:        z.string().optional(),
   method:      z.string().optional(),
   description: z.string().optional(),
-  subtype:     z.enum(["credit", "adjustment"]).optional(),
+  subtype:     z.enum(["credit", "adjustment", "write_off"]).optional(),
 });
 
 export async function getRefundsByGig(gigId: number): Promise<Refund[]> {
@@ -92,6 +92,6 @@ function mapRefund(row: refundsRepo.RefundRow): Refund {
     amount:      row.amount,
     method:      row.method ?? undefined,
     description: row.description ?? undefined,
-    subtype:     row.subtype as 'credit' | 'adjustment',
+    subtype:     row.subtype as 'credit' | 'adjustment' | 'write_off',
   };
 }

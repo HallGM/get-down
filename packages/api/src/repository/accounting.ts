@@ -215,7 +215,7 @@ export async function readPredictedProfitSummary(bounds: DateBounds): Promise<Pr
         ) pmt ON pmt.gig_id = g.id
         LEFT JOIN (
           SELECT gig_id, SUM(amount) AS total_refunded
-          FROM refunds GROUP BY gig_id
+          FROM refunds WHERE subtype IN ('credit', 'adjustment') GROUP BY gig_id
         ) rfnd ON rfnd.gig_id = g.id
         ${PREDICTED_PROFIT_LATERALS}
         WHERE g.status != 'cancelled'

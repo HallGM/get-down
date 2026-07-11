@@ -1,0 +1,16 @@
+-- Document the third refund subtype: 'write_off' (debt forgiveness, no cash movement).
+-- The subtype column already supports arbitrary varchar(50) values; this migration
+-- documents the semantic meaning of the three allowed subtypes for future queries:
+--
+-- 'adjustment' — refund for an overpayment (e.g. service removed after payment).
+--                Reduces net_received only; billing_total unchanged.
+-- 'credit'    — goodwill gesture where cash is given back to the client.
+--                Reduces both billing_total and net_received.
+-- 'write_off' — debt forgiveness (client is not chased for the remainder, no cash moves).
+--                Reduces billing_total only; net_received unchanged.
+--
+-- See packages/api/src/repository/sql-fragments.ts (SQL_PAYMENT_SUBQUERY, SQL_BILLING_CTE_COLS)
+-- for the aggregate queries that apply these filters.
+
+-- No schema changes needed; the column type (varchar(50)) already permits all three values.
+-- This comment documents the semantic intent for code reviews and future maintenance.

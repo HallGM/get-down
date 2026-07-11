@@ -431,7 +431,7 @@ const BILLING_TOTAL_EXPR = `
     - ROUND(COALESCE(SUM(li.amount), 0) * g.discount_percent::numeric / 100)::int
     + g.travel_cost
     + COALESCE(${SQL_ADDITIONAL_CHARGES_EXPR}, 0)
-    - COALESCE((SELECT SUM(r.amount) FROM refunds r WHERE r.gig_id = g.id AND r.subtype = 'credit'), 0)
+    - COALESCE((SELECT SUM(r.amount) FROM refunds r WHERE r.gig_id = g.id AND r.subtype IN ('credit', 'write_off')), 0)
   )::int
 `;
 
@@ -516,7 +516,7 @@ export const SETTLED_CONDITION = `
       WHERE bt.billing_total > 0
         AND bt.billing_total = (
           COALESCE((SELECT SUM(amount) FROM payments WHERE gig_id = g.id), 0)
-          - COALESCE((SELECT SUM(amount) FROM refunds WHERE gig_id = g.id), 0)
+          - COALESCE((SELECT SUM(amount) FROM refunds WHERE gig_id = g.id AND subtype IN ('credit', 'adjustment')), 0)
         )::int
     )
     AND EXISTS (SELECT 1 FROM assigned_roles WHERE gig_id = g.id)

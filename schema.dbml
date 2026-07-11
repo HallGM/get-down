@@ -276,7 +276,7 @@ Table refunds {
   amount      int [not null]
   method      varchar(100)
   description varchar(255)
-  subtype     varchar(50) [not null, default: 'adjustment']
+  subtype     varchar(50) [not null, default: 'adjustment', note: "'write_off' = debt forgiveness (reduces billing_total only); 'credit' = cash goodwill gesture (reduces both); 'adjustment' = overpayment refund (reduces net_received only)"]
 }
 
 Table gig_services {

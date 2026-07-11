@@ -75,19 +75,21 @@ export const SQL_PERSON_NAME = `
  * Introduces aliases `p` (total_paid), `r` (total_refunded), and `cr` (total_credits).
  * Requires alias `g` on the `gigs` table.
  *
- * `cr.total_credits` — sum of credit-subtype refunds only; used to reduce billing_total
+ * `cr.total_credits` — sum of 'credit' and 'write_off'-subtype refunds; used to reduce billing_total
  *                      in SQL_BILLING_CTE_COLS.  Queries that do not use SQL_BILLING_CTE_COLS
  *                      can safely ignore the `cr` alias.
+ * `r.total_refunded` — sum of 'credit' and 'adjustment'-subtype refunds (excludes 'write_off');
+ *                      used to reduce net_received.
  */
 export const SQL_PAYMENT_SUBQUERY = `
   LEFT JOIN (
     SELECT gig_id, SUM(amount) AS total_paid FROM payments GROUP BY gig_id
   ) p ON p.gig_id = g.id
   LEFT JOIN (
-    SELECT gig_id, SUM(amount) AS total_refunded FROM refunds GROUP BY gig_id
+    SELECT gig_id, SUM(amount) AS total_refunded FROM refunds WHERE subtype IN ('credit', 'adjustment') GROUP BY gig_id
   ) r ON r.gig_id = g.id
   LEFT JOIN (
-    SELECT gig_id, SUM(amount) AS total_credits FROM refunds WHERE subtype = 'credit' GROUP BY gig_id
+    SELECT gig_id, SUM(amount) AS total_credits FROM refunds WHERE subtype IN ('credit', 'write_off') GROUP BY gig_id
   ) cr ON cr.gig_id = g.id
 `;
 
