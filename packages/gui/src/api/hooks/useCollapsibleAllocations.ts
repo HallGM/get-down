@@ -1,12 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import type { FeeAllocation } from "@get-down/shared";
 
+export interface CollapsibleAllocation {
+  id: number;
+  expenseIds?: number[];
+}
+
 /**
  * Manages collapsible state for fee allocations.
- * Allocations are collapsed by default if they have linked expenses, expanded otherwise.
+ * - For FeeAllocation objects: collapsed by default if they have linked expenses
+ * - For alert/summary objects without expenseIds: collapsed by default
  * The default state is applied once when data first arrives, then user toggles persist for the session.
  */
-export function useCollapsibleAllocations(allocations: FeeAllocation[]) {
+export function useCollapsibleAllocations(allocations: CollapsibleAllocation[]) {
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [defaultsApplied, setDefaultsApplied] = useState(false);
 
@@ -14,8 +20,13 @@ export function useCollapsibleAllocations(allocations: FeeAllocation[]) {
   useEffect(() => {
     if (allocations.length > 0 && !defaultsApplied) {
       setDefaultsApplied(true);
+      // Collapse if has expenseIds property (full allocation) or if no expenseIds property (alert/summary)
       setCollapsed(
-        new Set(allocations.filter((a) => a.expenseIds.length > 0).map((a) => a.id))
+        new Set(
+          allocations
+            .filter((a) => !("expenseIds" in a) || (a.expenseIds && a.expenseIds.length > 0))
+            .map((a) => a.id)
+        )
       );
     }
   }, [allocations, defaultsApplied]);

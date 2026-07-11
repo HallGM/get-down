@@ -6,39 +6,16 @@ import { useGigRoles, useCreateRole, useUpdateRole, useDeleteRole, useImportRole
 import { usePeople } from "../../api/hooks/usePeople.js";
 import {
   useFeeAllocationsByGig,
-  useFeeAllocations,
   useGenerateFeeAllocations,
-  useResetFeeAllocation,
-  useAddFeeLineItem,
-  useUpdateFeeLineItem,
-  useRemoveFeeLineItem,
   useCreateFeeAllocationForGig,
-  useDeleteFeeAllocation,
-  useLinkExpenseToAllocation,
-  useUnlinkExpenseFromAllocation,
-  useLinkTransactionToAllocation,
-  useUnlinkTransactionFromAllocation,
 } from "../../api/hooks/useFeeAllocations.js";
-import { useExpenses, useDeleteExpense } from "../../api/hooks/useExpenses.js";
-import { useAccounts, useAccountTransactions, useDeleteTransaction } from "../../api/hooks/useAccounts.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
-import MoneyDisplay from "../../components/MoneyDisplay.js";
-import MoneyField from "../../components/MoneyField.js";
 import FormField from "../../components/FormField.js";
 import Modal from "../../components/Modal.js";
-import ExpenseModal from "../../components/ExpenseModal.js";
-import ExpensePickerModal from "../../components/ExpensePickerModal.js";
-import ExpenseCreateModal from "../../components/ExpenseCreateModal.js";
-import TransactionPickerModal from "../../components/TransactionPickerModal.js";
-import TransactionCreateModal from "../../components/TransactionCreateModal.js";
-import TransactionModal from "../../components/TransactionModal.js";
 import { useToast } from "../../components/Toast.js";
-import { formatPersonName, formatGigName, resolvePersonName } from "../../utils/people.js";
-import { FeeAllocationPanel } from "../../components/FeeAllocationPanel.js";
-import { FeeAllocationCard } from "../../components/FeeAllocationCard.js";
-import { LinkedExpensesSection } from "../../components/LinkedExpensesSection.js";
-import type { FeeAllocation, FeeAllocationLineItem, Account, AccountTransaction, Expense } from "@get-down/shared";
+import { formatPersonName } from "../../utils/people.js";
+import { GigFeeAllocationCard } from "../../components/GigFeeAllocationCard.js";
 
 export default function GigRoles() {
   const { id } = useParams<{ id: string }>();
@@ -47,26 +24,13 @@ export default function GigRoles() {
   const { data: roles = [] } = useGigRoles(gigId);
   const { data: people = [] } = usePeople();
   const { data: feeAllocations = [] } = useFeeAllocationsByGig(gigId);
-  const { data: allAllocations = [] } = useFeeAllocations();
-  const { data: allExpenses = [] } = useExpenses();
-  const { data: accounts = [] } = useAccounts();
 
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
   const deleteRole = useDeleteRole();
   const importRoles = useImportRolesFromServices(gigId);
   const generateFeeAllocations = useGenerateFeeAllocations(gigId);
-  const resetFeeAllocation = useResetFeeAllocation();
-  const addLineItem = useAddFeeLineItem();
-  const updateLineItem = useUpdateFeeLineItem();
-  const removeLineItem = useRemoveFeeLineItem();
   const createFeeAllocation = useCreateFeeAllocationForGig(gigId);
-  const deleteFeeAllocation = useDeleteFeeAllocation();
-  const linkExpense = useLinkExpenseToAllocation();
-  const unlinkExpense = useUnlinkExpenseFromAllocation();
-  const linkTransaction = useLinkTransactionToAllocation();
-  const unlinkTransaction = useUnlinkTransactionFromAllocation();
-  const deleteExpense = useDeleteExpense();
   const { showToast } = useToast();
 
   const [showAddRole, setShowAddRole] = useState(false);
@@ -75,39 +39,6 @@ export default function GigRoles() {
   const [showAddAllocation, setShowAddAllocation] = useState(false);
   const [addAllocationPersonId, setAddAllocationPersonId] = useState<number | null>(null);
   const { toggle: toggleAllocationCollapse, isCollapsed: isAllocationCollapsed } = useCollapsibleAllocations(feeAllocations);
-
-  // Expense picker state: which allocation's picker is open
-  const [pickerAllocationId, setPickerAllocationId] = useState<number | null>(null);
-  // Expense create modal state: which allocation to link the new expense to
-  const [createAllocationId, setCreateAllocationId] = useState<number | null>(null);
-  // Expense edit modal state: track by ID so the expense object stays fresh from query
-  const [editExpenseId, setEditExpenseId] = useState<number | null>(null);
-  // Delete/unlink confirm state
-  const [unlinkConfirm, setUnlinkConfirm] = useState<{ allocationId: number; expense: Expense } | null>(null);
-
-  const editExpense = editExpenseId != null
-    ? (allExpenses.find((e) => e.id === editExpenseId) ?? null)
-    : null;
-
-  const pickerAllocation = pickerAllocationId != null
-    ? feeAllocations.find((a) => a.id === pickerAllocationId) ?? null
-    : null;
-
-  const createAllocation = createAllocationId != null
-    ? feeAllocations.find((a) => a.id === createAllocationId) ?? null
-    : null;
-
-  function buildCreateInitialValues(allocation: typeof createAllocation) {
-    if (!allocation || !gig) return undefined;
-    let description = `${gig.firstName} ${gig.lastName}`;
-    if (allocation.personId) {
-      const person = people.find((p) => p.id === allocation.personId);
-      if (person) description += ` — ${formatPersonName(person)}`;
-    }
-    if (allocation.notes) description += ` (${allocation.notes})`;
-    const amount = (allocation.lineItems ?? []).reduce((sum, li) => sum + (li.amount ?? 0), 0);
-    return { description, amount };
-  }
 
   if (gigLoading) return <LoadingState />;
   if (gigError || !gig) return <ErrorBanner error={gigError ?? "Gig not found"} />;
@@ -135,25 +66,11 @@ export default function GigRoles() {
     }
   }
 
-  async function handleReset(allocationId: number) {
-    await resetFeeAllocation.mutateAsync(allocationId);
-  }
-
   async function handleAddAllocation(e: React.FormEvent) {
     e.preventDefault();
     await createFeeAllocation.mutateAsync(addAllocationPersonId ? { personId: addAllocationPersonId } : {});
     setShowAddAllocation(false);
     setAddAllocationPersonId(null);
-  }
-
-  function allocationTitle(allocation: FeeAllocation): string {
-    if (allocation.personId) {
-      const person = people.find((p) => p.id === allocation.personId);
-      if (person) return formatPersonName(person);
-    }
-    const role = roles.find((r) => r.feeAllocationId === allocation.id);
-    if (role) return `Unassigned – ${role.roleName}`;
-    return `Allocation #${allocation.id}`;
   }
 
   return (
@@ -242,112 +159,16 @@ export default function GigRoles() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             {feeAllocations.map((allocation) => {
-                const linkedRoles = roles.filter((r) => r.feeAllocationId === allocation.id);
-                const unlinkedRoles = roles.filter((r) => !r.feeAllocationId);
-                const isCollapsed = isAllocationCollapsed(allocation.id);
-                const hasExpenses = allocation.expenseIds.length > 0;
-               return (
-                 <FeeAllocationCard
-                   key={allocation.id}
-                   title={allocationTitle(allocation)}
-                   isCollapsed={isCollapsed}
-                   hasExpenses={hasExpenses}
-                   onToggle={() => toggleAllocationCollapse(allocation.id)}
-                   headerActions={
-                     <div style={{ display: "flex", gap: "0.5rem" }}>
-                       <button
-                         type="button"
-                         className="secondary outline"
-                         style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
-                         aria-busy={resetFeeAllocation.isPending}
-                         disabled={resetFeeAllocation.isPending}
-                         onClick={() => handleReset(allocation.id)}
-                       >
-                         Reset to defaults
-                       </button>
-                       <button
-                         type="button"
-                         className="contrast outline"
-                         style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
-                         aria-busy={deleteFeeAllocation.isPending}
-                         disabled={deleteFeeAllocation.isPending}
-                         onClick={() => deleteFeeAllocation.mutate(allocation.id)}
-                       >
-                         ✕
-                       </button>
-                     </div>
-                   }
-                 >
-                   {/* Linked roles */}
-                   <div style={{ marginBottom: "0.75rem" }}>
-                     <strong style={{ fontSize: "0.85em" }}>Linked roles</strong>
-                     {linkedRoles.length > 0 ? (
-                       <ul style={{ margin: "0.25rem 0", paddingLeft: "1rem" }}>
-                         {linkedRoles.map((r) => (
-                           <li key={r.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                             <span>{r.roleName}{r.personId ? ` (${resolvePersonName(people, r.personId)})` : ""}</span>
-                             <button
-                               type="button"
-                               className="contrast outline"
-                               style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
-                               onClick={() => {
-                                 updateRole.mutate({ id: r.id, gigId, input: { feeAllocationId: null } });
-                               }}
-                             >✕</button>
-                           </li>
-                         ))}
-                       </ul>
-                     ) : (
-                       <p style={{ margin: "0.25rem 0", color: "var(--pico-muted-color)", fontSize: "0.85em" }}>No roles linked.</p>
-                     )}
-                     {unlinkedRoles.length > 0 && (
-                       <select
-                         value=""
-                         onChange={(e) => {
-                           if (!e.target.value) return;
-                           const roleId = Number(e.target.value);
-                           updateRole.mutate({ id: roleId, gigId, input: { feeAllocationId: allocation.id } });
-                         }}
-                         style={{ margin: "0.25rem 0", fontSize: "0.85em" }}
-                       >
-                         <option value="">+ Link role…</option>
-                         {unlinkedRoles.map((r) => (
-                           <option key={r.id} value={r.id}>{r.roleName}</option>
-                         ))}
-                       </select>
-                     )}
-                   </div>
-
-                   <FeeAllocationPanel
-                     allocation={allocation}
-                     onAddLineItem={(desc, amt) => addLineItem.mutate({ allocationId: allocation.id, input: { description: desc, amount: amt } })}
-                     onUpdateLineItem={(li, desc, amt) => updateLineItem.mutate({ allocationId: allocation.id, lineItemId: li.id, input: { description: desc, amount: amt } })}
-                     onRemoveLineItem={(li) => removeLineItem.mutate({ allocationId: allocation.id, lineItemId: li.id })}
-                   />
-
-                   {/* Linked Expenses */}
-                   <LinkedExpensesSection
-                     allocation={allocation}
-                     allExpenses={allExpenses}
-                     onAddExpense={() => setCreateAllocationId(allocation.id)}
-                     onBrowse={() => setPickerAllocationId(allocation.id)}
-                     onEdit={(expense) => setEditExpenseId(expense.id)}
-                     onRemove={(expense) => setUnlinkConfirm({ allocationId: allocation.id, expense })}
-                   />
-
-                   {/* Linked Transactions (only when personId is set) */}
-                   {allocation.personId && (
-                     <LinkedTransactionsSection
-                       allocation={allocation}
-                       accounts={accounts}
-                       gigName={formatGigName(gig)}
-                       personName={resolvePersonName(people, allocation.personId)}
-                       onLink={(transactionId: number) => linkTransaction.mutate({ allocationId: allocation.id, transactionId })}
-                       onUnlink={(transactionId: number) => unlinkTransaction.mutate({ allocationId: allocation.id, transactionId })}
-                     />
-                   )}
-                 </FeeAllocationCard>
-               );
+              const isCollapsed = isAllocationCollapsed(allocation.id);
+              return (
+                <GigFeeAllocationCard
+                  key={allocation.id}
+                  gigId={gigId}
+                  allocationId={allocation.id}
+                  isCollapsed={isCollapsed}
+                  onToggle={() => toggleAllocationCollapse(allocation.id)}
+                />
+              );
             })}
           </div>
         )}
@@ -418,270 +239,6 @@ export default function GigRoles() {
           </footer>
         </form>
       </Modal>
-
-       {/* Add Expense modal (pre-filled, auto-links to allocation on create) */}
-      <ExpenseCreateModal
-        open={createAllocationId != null}
-        onClose={() => setCreateAllocationId(null)}
-        initialValues={buildCreateInitialValues(createAllocation)}
-        allocationId={createAllocationId ?? undefined}
-        onCreated={() => {
-          setCreateAllocationId(null);
-        }}
-      />
-
-       {/* Expense Picker modal */}
-      <ExpensePickerModal
-        open={pickerAllocationId != null}
-        onClose={() => setPickerAllocationId(null)}
-        expenses={allExpenses.filter((e) => !(pickerAllocation?.expenseIds ?? []).includes(e.id))}
-        onSelect={(expense) => {
-          if (pickerAllocationId != null) {
-            linkExpense.mutateAsync({ allocationId: pickerAllocationId, expenseId: expense.id })
-              .then(() => {
-                setPickerAllocationId(null);
-              })
-              .catch(() => {
-                // Error is shown via mutation onError/toast; picker stays open so user can retry
-              });
-          } else {
-            setPickerAllocationId(null);
-          }
-        }}
-      />
-
-      {/* Edit Expense modal */}
-      <ExpenseModal
-        expense={editExpense}
-        onClose={() => setEditExpenseId(null)}
-        allAllocations={allAllocations}
-      />
-
-      {/* Delete / unlink confirm dialog */}
-      <Modal
-        open={!!unlinkConfirm}
-        onClose={() => setUnlinkConfirm(null)}
-        title="Remove linked expense"
-      >
-        <p>
-          Do you want to delete the expense <strong>{unlinkConfirm?.expense.description}</strong> entirely,
-          or just remove the link?
-        </p>
-        <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-          <button type="button" className="secondary" onClick={() => setUnlinkConfirm(null)}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="secondary outline"
-            onClick={() => {
-              if (unlinkConfirm) {
-                unlinkExpense.mutate({ allocationId: unlinkConfirm.allocationId, expenseId: unlinkConfirm.expense.id });
-              }
-              setUnlinkConfirm(null);
-            }}
-          >
-            Remove link only
-          </button>
-          <button
-            type="button"
-            className="contrast"
-            aria-busy={deleteExpense.isPending}
-            disabled={deleteExpense.isPending}
-            onClick={async () => {
-              if (unlinkConfirm) {
-                await deleteExpense.mutateAsync(unlinkConfirm.expense.id);
-              }
-              setUnlinkConfirm(null);
-            }}
-          >
-            Delete expense
-          </button>
-        </footer>
-      </Modal>
     </>
-  );
-}
-
-// ─── Linked Transactions Section ──────────────────────────────────────────────
-
-interface LinkedTransactionsSectionProps {
-  allocation: FeeAllocation;
-  accounts: Account[];
-  gigName: string;
-  personName: string;
-  onLink: (transactionId: number) => void;
-  onUnlink: (transactionId: number) => void;
-}
-
-function LinkedTransactionsSection({
-  allocation,
-  accounts,
-  gigName,
-  personName,
-  onLink,
-  onUnlink,
-}: LinkedTransactionsSectionProps) {
-  const account = accounts.find((a) => a.personId === allocation.personId);
-
-  const { data: allTransactions = [] } = useAccountTransactions(account?.id ?? 0);
-
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<AccountTransaction | null>(null);
-  const [unlinkConfirm, setUnlinkConfirm] = useState<AccountTransaction | null>(null);
-
-  if (!account) {
-    return null;
-  }
-
-  const linkedTransactions = allTransactions.filter((t) => allocation.transactionIds.includes(t.id));
-  const unlinkableTransactions = allTransactions.filter((t) => !allocation.transactionIds.includes(t.id));
-
-  const lineItemsTotal = (allocation.lineItems ?? []).reduce((sum, li) => sum + (li.amount ?? 0), 0);
-  const createInitialValues = {
-    amount: lineItemsTotal,
-    description: `${gigName} — ${personName}`,
-  };
-
-  return (
-    <div style={{ marginTop: "0.75rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <strong style={{ fontSize: "0.85em" }}>Linked transactions</strong>
-        <div style={{ display: "flex", gap: "0.4rem" }}>
-          <button
-            type="button"
-            className="secondary outline"
-            style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
-            onClick={() => setCreateOpen(true)}
-          >
-            Add transaction
-          </button>
-          <button
-            type="button"
-            className="secondary outline"
-            style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
-            onClick={() => setPickerOpen(true)}
-          >
-            Browse…
-          </button>
-        </div>
-      </div>
-      {linkedTransactions.length > 0 ? (
-        <ul style={{ margin: "0.25rem 0", paddingLeft: "1rem" }}>
-          {linkedTransactions.map((t) => (
-            <li key={t.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85em" }}>
-              <button
-                type="button"
-                className="secondary outline"
-                style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
-                onClick={() => setEditTarget(t)}
-              >
-                Edit
-              </button>
-              <span>{t.description ?? `Transaction #${t.id}`} (<MoneyDisplay pennies={t.amount} />)</span>
-              <button
-                type="button"
-                className="contrast outline"
-                style={{ padding: "0.1em 0.4em", fontSize: "0.8em" }}
-                onClick={() => setUnlinkConfirm(t)}
-              >✕</button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p style={{ margin: "0.25rem 0", color: "var(--pico-muted-color)", fontSize: "0.85em" }}>No transactions linked.</p>
-      )}
-
-      {/* Create modal */}
-      <TransactionCreateModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        accountId={account.id}
-        initialValues={createInitialValues}
-        onCreated={(tx) => {
-          onLink(tx.id);
-        }}
-      />
-
-      {/* Picker modal */}
-      <TransactionPickerModal
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        transactions={unlinkableTransactions}
-        onSelect={(tx) => {
-          onLink(tx.id);
-          setPickerOpen(false);
-        }}
-      />
-
-      {/* Edit modal */}
-      <TransactionModal
-        transaction={editTarget}
-        accountId={account.id}
-        onClose={() => setEditTarget(null)}
-      />
-
-      {/* Unlink / delete confirm */}
-      {unlinkConfirm && (
-        <TxUnlinkConfirmModal
-          transaction={unlinkConfirm}
-          accountId={account.id}
-          onUnlink={() => {
-            onUnlink(unlinkConfirm.id);
-            setUnlinkConfirm(null);
-          }}
-          onClose={() => setUnlinkConfirm(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-// ─── Tx Unlink Confirm Modal ───────────────────────────────────────────────────
-
-interface TxUnlinkConfirmModalProps {
-  transaction: AccountTransaction;
-  accountId: number;
-  onUnlink: () => void;
-  onClose: () => void;
-}
-
-function TxUnlinkConfirmModal({ transaction, accountId, onUnlink, onClose }: TxUnlinkConfirmModalProps) {
-  const deleteTransaction = useDeleteTransaction(accountId);
-
-  const label = transaction.description ?? `Transaction #${transaction.id}`;
-
-  return (
-    <Modal open onClose={onClose} title="Remove linked transaction">
-      <p>
-        Do you want to delete the transaction <strong>{label}</strong> entirely,
-        or just remove the link?
-      </p>
-      <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-        <button type="button" className="secondary" onClick={onClose}>
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="secondary outline"
-          onClick={onUnlink}
-        >
-          Remove link only
-        </button>
-        <button
-          type="button"
-          className="contrast"
-          aria-busy={deleteTransaction.isPending}
-          disabled={deleteTransaction.isPending}
-          onClick={async () => {
-            await deleteTransaction.mutateAsync(transaction.id);
-            onClose();
-          }}
-        >
-          Delete transaction
-        </button>
-      </footer>
-    </Modal>
   );
 }

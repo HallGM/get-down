@@ -1,13 +1,15 @@
 import { useState, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { useDashboardAlerts } from "../api/hooks/useDashboard.js";
+import { useCollapsibleAllocations } from "../api/hooks/useCollapsibleAllocations.js";
 import { formatDate } from "../utils/date.js";
 import { formatPennies } from "../utils/money.js";
 import Badge from "../components/Badge.js";
 import AllocationEventCell from "../components/AllocationEventCell.js";
-import SettleAllocationInline from "../components/SettleAllocationInline.js";
 import LoadingState from "../components/LoadingState.js";
 import ErrorBanner from "../components/ErrorBanner.js";
+import { GigFeeAllocationCard } from "../components/GigFeeAllocationCard.js";
+import { ShowcaseFeeAllocationCard } from "../components/ShowcaseFeeAllocationCard.js";
 import { formatGigName } from "../utils/people.js";
 import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert, RoleWithoutAllocationAlert } from "@get-down/shared";
 
@@ -150,7 +152,7 @@ function RoleWithoutAllocationTable({ roles }: { roles: RoleWithoutAllocationAle
 }
 
 function SettleableAllocationTable({ allocations }: { allocations: FeeAllocationAlert[] }) {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const { toggle, isCollapsed } = useCollapsibleAllocations(allocations);
 
   if (allocations.length === 0) {
     return <AllClear />;
@@ -168,37 +170,51 @@ function SettleableAllocationTable({ allocations }: { allocations: FeeAllocation
         </tr>
       </thead>
       <tbody>
-        {allocations.map((a) => (
-          <Fragment key={a.id}>
-            <tr>
-              <td>{a.personName ?? <span style={{ color: "var(--pico-muted-color)" }}>Unassigned</span>}</td>
-              <td><AllocationEventCell eventName={a.eventName} gigId={a.gigId} showcaseId={a.showcaseId} /></td>
-              <td>{a.eventDate ? formatDate(a.eventDate) : "—"}</td>
-              <td>{formatPennies(a.totalFee)}</td>
-              <td>
-                <button
-                  type="button"
-                  className={expandedId === a.id ? "secondary" : "secondary outline"}
-                  style={{ padding: "0.3em 0.7em", fontSize: "0.85em", width: "auto" }}
-                  onClick={() => setExpandedId(expandedId === a.id ? null : a.id)}
-                >
-                  {expandedId === a.id ? "Hide" : "Settle"}
-                </button>
-              </td>
-            </tr>
-            {expandedId === a.id && (
-              <tr style={{ background: "var(--pico-muted-border-color, rgba(0,0,0,0.04))" }}>
-                <td colSpan={5} style={{ padding: "1rem" }}>
-                  <SettleAllocationInline
-                    allocation={a}
-                    onSettled={() => setExpandedId(null)}
-                  />
-                </td>
-              </tr>
-            )}
-          </Fragment>
-        ))}
-      </tbody>
+         {allocations.map((a) => {
+           const isExpanded = !isCollapsed(a.id);
+           return (
+             <Fragment key={a.id}>
+               <tr>
+                 <td>{a.personName ?? <span style={{ color: "var(--pico-muted-color)" }}>Unassigned</span>}</td>
+                 <td><AllocationEventCell eventName={a.eventName} gigId={a.gigId} showcaseId={a.showcaseId} /></td>
+                 <td>{a.eventDate ? formatDate(a.eventDate) : "—"}</td>
+                 <td>{formatPennies(a.totalFee)}</td>
+                 <td>
+                   <button
+                     type="button"
+                     className={isExpanded ? "secondary" : "secondary outline"}
+                     style={{ padding: "0.3em 0.7em", fontSize: "0.85em", width: "auto" }}
+                     onClick={() => toggle(a.id)}
+                   >
+                     {isExpanded ? "Hide" : "Expand"}
+                   </button>
+                 </td>
+               </tr>
+               {isExpanded && (
+                 <tr style={{ background: "var(--pico-muted-border-color, rgba(0,0,0,0.04))" }}>
+                   <td colSpan={5} style={{ padding: "1rem" }}>
+                     {a.gigId ? (
+                       <GigFeeAllocationCard
+                         gigId={a.gigId}
+                         allocationId={a.id}
+                         isCollapsed={false}
+                         onToggle={() => toggle(a.id)}
+                       />
+                     ) : a.showcaseId ? (
+                       <ShowcaseFeeAllocationCard
+                         showcaseId={a.showcaseId}
+                         allocationId={a.id}
+                         isCollapsed={false}
+                         onToggle={() => toggle(a.id)}
+                       />
+                     ) : null}
+                   </td>
+                 </tr>
+               )}
+             </Fragment>
+           );
+         })}
+       </tbody>
     </table>
   );
 }
@@ -328,7 +344,7 @@ export default function Dashboard() {
 
           <DashboardSection
             title="Fee Allocations Missing Expenses"
-            description="Fee allocations with no expense record linked. Settle inline by creating or linking an expense."
+            description="Fee allocations with no expense record linked. Manage inline by editing line items, linking roles, creating or linking expenses, and more."
             count={data.allocationsWithoutExpenses.length}
             badgeColor={PICO_ORANGE}
           >
