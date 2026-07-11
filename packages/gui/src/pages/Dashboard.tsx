@@ -9,7 +9,7 @@ import SettleAllocationInline from "../components/SettleAllocationInline.js";
 import LoadingState from "../components/LoadingState.js";
 import ErrorBanner from "../components/ErrorBanner.js";
 import { formatGigName } from "../utils/people.js";
-import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert } from "@get-down/shared";
+import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert, RoleWithoutAllocationAlert } from "@get-down/shared";
 
 const PICO_RED = "var(--pico-color-red-500, #e53e3e)";
 const PICO_ORANGE = "var(--pico-color-orange-500, #dd6b20)";
@@ -114,6 +114,34 @@ function AllocationAlertTable({ allocations }: { allocations: FeeAllocationAlert
             <td><AllocationEventCell eventName={a.eventName} gigId={a.gigId} showcaseId={a.showcaseId} /></td>
             <td>{a.eventDate ? formatDate(a.eventDate) : "—"}</td>
             <td>{formatPennies(a.totalFee)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function RoleWithoutAllocationTable({ roles }: { roles: RoleWithoutAllocationAlert[] }) {
+  if (roles.length === 0) {
+    return <AllClear />;
+  }
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Person</th>
+          <th>Role</th>
+          <th>Event</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {roles.map((r) => (
+          <tr key={r.id}>
+            <td>{r.personName}</td>
+            <td>{r.roleName}</td>
+            <td><AllocationEventCell eventName={r.eventName} gigId={r.gigId} showcaseId={r.showcaseId} /></td>
+            <td>{formatDate(r.eventDate)}</td>
           </tr>
         ))}
       </tbody>
@@ -323,6 +351,24 @@ export default function Dashboard() {
             badgeColor={PICO_RED}
           >
             <ApportionmentMismatchTable mismatches={data.apportionmentMismatches} />
+          </DashboardSection>
+
+          <DashboardSection
+            title="Gig Roles Missing a Fee Allocation"
+            description="Performer roles on past confirmed gigs that do not have a fee allocation linked."
+            count={data.gigRolesWithoutAllocation.length}
+            badgeColor={PICO_RED}
+          >
+            <RoleWithoutAllocationTable roles={data.gigRolesWithoutAllocation} />
+          </DashboardSection>
+
+          <DashboardSection
+            title="Showcase Roles Missing a Fee Allocation"
+            description="Performer roles on past showcases that do not have a fee allocation linked."
+            count={data.showcaseRolesWithoutAllocation.length}
+            badgeColor={PICO_RED}
+          >
+            <RoleWithoutAllocationTable roles={data.showcaseRolesWithoutAllocation} />
           </DashboardSection>
         </div>
       )}

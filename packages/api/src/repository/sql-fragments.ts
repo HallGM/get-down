@@ -12,6 +12,14 @@
  *   r     → refunds aggregate  (introduced by the subquery)
  */
 
+/** SELECT expression: gig client display name. Alias: event_name. Requires alias `g` on the `gigs` table. */
+export const SQL_GIG_EVENT_NAME =
+  `g.first_name || ' ' || g.last_name AS event_name`;
+
+/** SELECT expression: showcase display name. Alias: event_name. Requires alias `s` on the `showcases` table. */
+export const SQL_SHOWCASE_EVENT_NAME =
+  `COALESCE(s.nickname, s.full_name, 'Showcase #' || s.id::text) AS event_name`;
+
 /** SELECT columns: event name, date, and IDs for gig/showcase context. */
 export const SQL_EVENT_COLS = `
   CASE

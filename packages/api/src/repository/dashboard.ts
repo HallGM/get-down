@@ -1,5 +1,5 @@
 import { run_query } from "../db/init.js";
-import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME, SQL_PAYMENT_SUBQUERY, SQL_BILLING_CTE_COLS } from "./sql-fragments.js";
+import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME, SQL_PAYMENT_SUBQUERY, SQL_BILLING_CTE_COLS, SQL_GIG_EVENT_NAME, SQL_SHOWCASE_EVENT_NAME } from "./sql-fragments.js";
 
 export interface GigAlertBaseRow {
   id: number;
@@ -39,6 +39,18 @@ export interface GigPaymentMismatchAlertRow extends GigAlertBaseRow {
   billing_total: number;
   net_received: number;
   difference: number;
+}
+
+export interface RoleWithoutAllocationAlertRow {
+  id: number;
+  person_name: string;
+  role_name: string;
+  event_name: string;
+  event_date: string;
+  gig_id: number | null;
+  showcase_id: number | null;
+  venue_name: string | null;
+  location: string | null;
 }
 
 const SELECT_ALERT_COLS = `
@@ -205,6 +217,63 @@ export async function readPastPaymentMismatches(): Promise<GigPaymentMismatchAle
       FROM gig_totals
       WHERE billing_total <> net_received
       ORDER BY date DESC;
+    `,
+  });
+}
+
+/**
+ * Confirmed past gigs (date < today) where a performer role has no fee allocation linked.
+ * Only includes roles with a person assigned.
+ */
+export async function readGigRolesWithoutAllocation(): Promise<RoleWithoutAllocationAlertRow[]> {
+  return run_query<RoleWithoutAllocationAlertRow>({
+    text: `
+      SELECT
+        ar.id,
+        ${SQL_PERSON_NAME},
+        ar.role_name,
+        ${SQL_GIG_EVENT_NAME},
+        g.date AS event_date,
+        g.id AS gig_id,
+        NULL::int AS showcase_id,
+        g.venue_name,
+        g.location
+      FROM assigned_roles ar
+      JOIN gigs g ON g.id = ar.gig_id
+      JOIN people p ON p.id = ar.person_id
+      WHERE ar.gig_id IS NOT NULL
+        AND ar.fee_allocation_id IS NULL
+        AND g.status = 'confirmed'
+        AND g.date < CURRENT_DATE
+      ORDER BY g.date ASC;
+    `,
+  });
+}
+
+/**
+ * Past showcases (date < today) where a performer role has no fee allocation linked.
+ * Only includes roles with a person assigned.
+ */
+export async function readShowcaseRolesWithoutAllocation(): Promise<RoleWithoutAllocationAlertRow[]> {
+  return run_query<RoleWithoutAllocationAlertRow>({
+    text: `
+      SELECT
+        ar.id,
+        ${SQL_PERSON_NAME},
+        ar.role_name,
+        ${SQL_SHOWCASE_EVENT_NAME},
+        s.date AS event_date,
+        NULL::int AS gig_id,
+        s.id AS showcase_id,
+        NULL::varchar AS venue_name,
+        s.location
+      FROM assigned_roles ar
+      JOIN showcases s ON s.id = ar.showcase_id
+      JOIN people p ON p.id = ar.person_id
+      WHERE ar.showcase_id IS NOT NULL
+        AND ar.fee_allocation_id IS NULL
+        AND s.date < CURRENT_DATE
+      ORDER BY s.date ASC;
     `,
   });
 }
