@@ -24,6 +24,12 @@ import {
   useRemoveAdditionalCharge,
   useUpdateAdditionalCharge,
 } from "../../api/hooks/useInvoices.js";
+import {
+  useGigLegacyInvoices,
+  useCreateLegacyInvoice,
+  useUpdateLegacyInvoice,
+  useDeleteLegacyInvoice,
+} from "../../api/hooks/useLegacyInvoices.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
@@ -34,6 +40,7 @@ import Modal from "../../components/Modal.js";
 import ModalFooter from "../../components/ModalFooter.js";
 import PaymentRefundFormFields, { type PaymentRefundFormState } from "../../components/PaymentRefundFormFields.js";
 import UnavailableMoney from "../../components/UnavailableMoney.js";
+import LegacyInvoiceModal from "../../components/LegacyInvoiceModal.js";
 import { useAccounts, useReceivedByAccounts } from "../../api/hooks/useAccounts.js";
 import EditPaymentModal from "../../components/EditPaymentModal.js";
 import EditRefundModal from "../../components/EditRefundModal.js";
@@ -41,7 +48,8 @@ import { formatDate, toInputDate } from "../../utils/date.js";
 import { formatPennies } from "../../utils/money.js";
 import { confirmedProfit } from "./gigUtils.js";
 import useEditTarget from "../../hooks/useEditTarget.js";
-import type { CreateGigLineItemRequest, UpdateGigLineItemRequest, Invoice, InvoiceAdditionalCharge, Payment, Refund, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
+import { useFileUpload } from "../../hooks/useFileUpload.js";
+import type { CreateGigLineItemRequest, UpdateGigLineItemRequest, Invoice, InvoiceAdditionalCharge, LegacyInvoice, Payment, Refund, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
 import { calcBillingTotals, REFUND_SUBTYPE_DEFAULT, isCreditSubtype, isRefundSubtype } from "@get-down/shared";
 
 // ---------------------------------------------------------------------------
@@ -184,6 +192,12 @@ export default function GigBilling() {
   const updateAdditionalCharge = useUpdateAdditionalCharge();
   const { data: additionalCharges } = useGigAdditionalCharges(gigId);
 
+  // Legacy invoices
+  const { data: legacyInvoices } = useGigLegacyInvoices(gigId);
+  const createLegacyInvoice = useCreateLegacyInvoice();
+  const updateLegacyInvoice = useUpdateLegacyInvoice();
+  const deleteLegacyInvoice = useDeleteLegacyInvoice();
+
   // PDF modals
   const creditNoteModal = usePdfModal(useCallback((id) => generateCreditNoteMutation.mutateAsync(id), [generateCreditNoteMutation]));
   const invoicePdfModal = usePdfModal(useCallback((id) => savedPdfMutation.mutateAsync(id), [savedPdfMutation]));
@@ -238,6 +252,15 @@ export default function GigBilling() {
 
   // Delete invoice confirm
   const [deleteInvoiceTarget, setDeleteInvoiceTarget] = useState<{ id: number } | null>(null);
+
+  // Legacy invoices
+  const [editLegacyInvoiceTarget, setEditLegacyInvoiceTarget] = useState<LegacyInvoice | null>(null);
+  const [deleteLegacyInvoiceTarget, setDeleteLegacyInvoiceTarget] = useState<{ id: number } | null>(null);
+  const [showAddLegacyInvoice, setShowAddLegacyInvoice] = useState(false);
+  const legacyInvoiceFileUpload = useFileUpload();
+  const [legacyInvoiceFormInvoiceNumber, setLegacyInvoiceFormInvoiceNumber] = useState("");
+  const [legacyInvoiceFormDate, setLegacyInvoiceFormDate] = useState("");
+  const [legacyInvoiceFormDescription, setLegacyInvoiceFormDescription] = useState("");
 
   // Revoke blob URLs on unmount to avoid memory leaks
   useEffect(() => {
@@ -408,6 +431,33 @@ export default function GigBilling() {
       input: { description: editChargeForm.description, amount: editChargeForm.amount },
     });
     closeEditCharge();
+  }
+
+  // Legacy invoices
+  async function handleAddLegacyInvoice(e: React.FormEvent) {
+    e.preventDefault();
+    if (!legacyInvoiceFileUpload.file) return;
+    await createLegacyInvoice.mutateAsync({
+      gigId,
+      invoiceNumber: legacyInvoiceFormInvoiceNumber || undefined,
+      date: legacyInvoiceFormDate || undefined,
+      description: legacyInvoiceFormDescription || undefined,
+      file: legacyInvoiceFileUpload.file,
+    });
+    setShowAddLegacyInvoice(false);
+    legacyInvoiceFileUpload.reset();
+    setLegacyInvoiceFormInvoiceNumber("");
+    setLegacyInvoiceFormDate("");
+    setLegacyInvoiceFormDescription("");
+  }
+
+  async function handleDeleteLegacyInvoice() {
+    if (!deleteLegacyInvoiceTarget) return;
+    await deleteLegacyInvoice.mutateAsync({
+      id: deleteLegacyInvoiceTarget.id,
+      gigId,
+    });
+    setDeleteLegacyInvoiceTarget(null);
   }
 
   // Payments not yet linked to any invoice
@@ -793,6 +843,84 @@ export default function GigBilling() {
         ) : <p style={{ color: "var(--pico-muted-color)" }}>No invoices yet. Use the buttons above to generate one.</p>}
       </section>
 
+      {/* Legacy Invoices */}
+      <section>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2>Legacy Invoices</h2>
+          <button
+            className="secondary"
+            onClick={() => setShowAddLegacyInvoice(true)}
+          >
+            + Add
+          </button>
+        </div>
+        {legacyInvoices && legacyInvoices.length > 0 ? (
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Date</th>
+                <th>Description</th>
+                <th aria-label="Actions"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {legacyInvoices.map((inv) => (
+                <tr key={inv.id}>
+                  <td>{inv.invoiceNumber ?? "None"}</td>
+                  <td>{inv.date ? formatDate(inv.date) : "None"}</td>
+                  <td>{inv.description ?? "None"}</td>
+                  <td>
+                    <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
+                      {inv.documentUrl && (
+                        <a
+                          href={inv.documentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="secondary outline"
+                          style={{
+                            padding: "0.5em 0.75em",
+                            minWidth: "2.75rem",
+                            minHeight: "2.75rem",
+                            textDecoration: "none",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          aria-label="View invoice file"
+                          title="View"
+                        >
+                          👁
+                        </a>
+                      )}
+                      <button
+                        className="secondary outline"
+                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                        onClick={() => setEditLegacyInvoiceTarget(inv)}
+                        aria-label="Edit legacy invoice"
+                        title="Edit"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="contrast outline"
+                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                        aria-label="Delete legacy invoice"
+                        onClick={() => setDeleteLegacyInvoiceTarget({ id: inv.id })}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p style={{ color: "var(--pico-muted-color)" }}>No legacy invoices yet. Use the button above to add one.</p>
+        )}
+      </section>
+
       {/* Modals */}
       <LineItemFormModal
         open={showAddLineItem}
@@ -1013,6 +1141,70 @@ export default function GigBilling() {
         onSave={editRefund.handleSave}
         onClose={() => editRefund.setTarget(null)}
         isPending={updateRefund.isPending}
+      />
+
+      {/* Add Legacy Invoice Modal */}
+      <Modal open={showAddLegacyInvoice} onClose={() => { setShowAddLegacyInvoice(false); legacyInvoiceFileUpload.reset(); setLegacyInvoiceFormInvoiceNumber(""); setLegacyInvoiceFormDate(""); setLegacyInvoiceFormDescription(""); }} title="Add Legacy Invoice">
+        <form onSubmit={handleAddLegacyInvoice}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+            <input
+              type="text"
+              placeholder="Invoice Number (optional)"
+              value={legacyInvoiceFormInvoiceNumber}
+              onChange={(e) => setLegacyInvoiceFormInvoiceNumber(e.target.value)}
+            />
+            <input
+              type="date"
+              placeholder="Date (optional)"
+              value={legacyInvoiceFormDate}
+              onChange={(e) => setLegacyInvoiceFormDate(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Description (optional)"
+              value={legacyInvoiceFormDescription}
+              onChange={(e) => setLegacyInvoiceFormDescription(e.target.value)}
+              style={{ gridColumn: "1 / -1" }}
+            />
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label>
+                <small>Upload invoice file (required, max 20 MB)</small>
+                <input
+                  type="file"
+                  onChange={legacyInvoiceFileUpload.handleFileChange}
+                  style={{ marginTop: "0.25rem" }}
+                  required
+                />
+              </label>
+              {legacyInvoiceFileUpload.error && <small style={{ color: "var(--pico-color-red-500)" }}>{legacyInvoiceFileUpload.error}</small>}
+            </div>
+          </div>
+          {createLegacyInvoice.error && <ErrorBanner error={createLegacyInvoice.error instanceof Error ? createLegacyInvoice.error.message : "Failed to create legacy invoice"} />}
+          <ModalFooter>
+            <button type="button" className="secondary" onClick={() => { setShowAddLegacyInvoice(false); legacyInvoiceFileUpload.reset(); setLegacyInvoiceFormInvoiceNumber(""); setLegacyInvoiceFormDate(""); setLegacyInvoiceFormDescription(""); }}>Cancel</button>
+            <button type="submit" aria-busy={createLegacyInvoice.isPending} disabled={createLegacyInvoice.isPending || !legacyInvoiceFileUpload.file || !!legacyInvoiceFileUpload.error}>Add</button>
+          </ModalFooter>
+        </form>
+      </Modal>
+
+      {/* Edit Legacy Invoice Modal */}
+      <LegacyInvoiceModal
+        legacyInvoice={editLegacyInvoiceTarget}
+        onClose={() => setEditLegacyInvoiceTarget(null)}
+        gigId={gigId}
+        onDelete={() => {
+          setEditLegacyInvoiceTarget(null);
+          setDeleteLegacyInvoiceTarget({ id: editLegacyInvoiceTarget!.id });
+        }}
+      />
+
+      {/* Delete Legacy Invoice Confirmation */}
+      <ConfirmDelete
+        open={!!deleteLegacyInvoiceTarget}
+        itemName="this legacy invoice"
+        onConfirm={handleDeleteLegacyInvoice}
+        onCancel={() => setDeleteLegacyInvoiceTarget(null)}
+        loading={deleteLegacyInvoice.isPending}
       />
     </>
   );

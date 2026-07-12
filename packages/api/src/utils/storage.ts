@@ -144,7 +144,7 @@ export async function deletePrefix(prefix: string): Promise<void> {
 
 export async function getPresignedUrl(key: string, ttlSeconds = 3600): Promise<string> {
   if (
-    !/^(?:expenses\/\d+\/[0-9a-f-]{36}(?:\.[a-zA-Z0-9]+)?|(?:thumbnails|display)\/\d+\/[^/]+)$/.test(
+    !/^(?:expenses\/\d+\/[0-9a-f-]{36}(?:\.[a-zA-Z0-9]+)?|legacy-invoices\/\d+\/[0-9a-f-]{36}(?:\.[a-zA-Z0-9]+)?|(?:thumbnails|display)\/\d+\/[^/]+)$/.test(
       key
     )
   ) {
@@ -159,4 +159,30 @@ export async function getPresignedUrl(key: string, ttlSeconds = 3600): Promise<s
     }),
     { expiresIn: ttlSeconds }
   );
+}
+
+/**
+ * Best-effort delete: attempts to delete a file but logs and swallows errors.
+ * Used when file deletion is not critical to operation success.
+ */
+export async function tryDeleteFile(key: string): Promise<void> {
+  try {
+    await deleteFile(key);
+  } catch (err) {
+    console.error(`[storage] Failed to delete R2 object "${key}":`, err);
+  }
+}
+
+/**
+ * Best-effort presigned URL: generates a presigned URL but returns undefined on failure.
+ * Used when the URL is not critical (e.g., display purposes with fallback UI).
+ */
+export async function tryGetPresignedUrl(key: string | null, ttlSeconds = 3600): Promise<string | undefined> {
+  if (!key) return undefined;
+  try {
+    return await getPresignedUrl(key, ttlSeconds);
+  } catch (err) {
+    console.error(`[storage] Failed to generate presigned URL for "${key}":`, err);
+    return undefined;
+  }
 }

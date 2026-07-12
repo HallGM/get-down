@@ -257,6 +257,15 @@ Table invoice_sequences {
   next_seq int        [not null, default: 1]
 }
 
+Table legacy_invoices {
+  id            serial [pk, increment]
+  gig_id        int [ref: > gigs.id, not null]
+  invoice_number varchar(255)
+  date          date
+  description   varchar(255)
+  document_key  varchar(500)
+}
+
 Table payments {
   id                    serial [pk, increment]
   date                  date
