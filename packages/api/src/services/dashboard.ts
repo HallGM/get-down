@@ -1,9 +1,9 @@
-import type { DashboardAlerts, GigAlertBase, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigNoLineItemsAlert, GigPaymentMismatchAlert, RoleWithoutAllocationAlert } from "@get-down/shared";
+import type { DashboardAlerts, GigAlertBase, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigNoLineItemsAlert, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert } from "@get-down/shared";
 import * as repo from "../repository/dashboard.js";
-import type { GigAlertBaseRow, GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow, GigNoLineItemsAlertRow, GigPaymentMismatchAlertRow, RoleWithoutAllocationAlertRow } from "../repository/dashboard.js";
+import type { GigAlertBaseRow, GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow, GigNoLineItemsAlertRow, GigPaymentMismatchAlertRow, RoleWithoutAllocationAlertRow, EmptyRoleAlertRow } from "../repository/dashboard.js";
 
 export async function getDashboardAlerts(): Promise<DashboardAlerts> {
-  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows, noLineItemsRows, paymentMismatchRows, gigRoleRows, showcaseRoleRows] = await Promise.all([
+  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows, noLineItemsRows, paymentMismatchRows, gigRoleRows, showcaseRoleRows, emptyGigRoleRows, emptyShowcaseRoleRows] = await Promise.all([
     repo.readDepositAlerts(),
     repo.readBalanceDueSoonAlerts(),
     repo.readAllocationsWithoutExpenses(),
@@ -13,6 +13,8 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     repo.readPastPaymentMismatches(),
     repo.readGigRolesWithoutAllocation(),
     repo.readShowcaseRolesWithoutAllocation(),
+    repo.readEmptyGigRoles(),
+    repo.readEmptyShowcaseRoles(),
   ]);
 
   return {
@@ -25,6 +27,8 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     apportionmentMismatches: mismatchRows.map(mapMismatchAlert),
     gigRolesWithoutAllocation: gigRoleRows.map(mapRoleWithoutAllocationAlert),
     showcaseRolesWithoutAllocation: showcaseRoleRows.map(mapRoleWithoutAllocationAlert),
+    emptyGigRoles: emptyGigRoleRows.map(mapEmptyRoleAlert),
+    emptyShowcaseRoles: emptyShowcaseRoleRows.map(mapEmptyRoleAlert),
   };
 }
 
@@ -73,8 +77,29 @@ function mapPaymentMismatchAlert(row: GigPaymentMismatchAlertRow): GigPaymentMis
 
 function mapRoleWithoutAllocationAlert(row: RoleWithoutAllocationAlertRow): RoleWithoutAllocationAlert {
   return {
-    id: row.id,
+    ...mapRoleCommon(row),
     personName: row.person_name,
+  };
+}
+
+function mapEmptyRoleAlert(row: EmptyRoleAlertRow): EmptyRoleAlert {
+  return mapRoleCommon(row);
+}
+
+// ── private helpers ──────────────────────────────────────────────────────────
+
+function mapRoleCommon(row: {
+  id: number;
+  role_name: string;
+  event_name: string;
+  event_date: string;
+  gig_id: number | null;
+  showcase_id: number | null;
+  venue_name: string | null;
+  location: string | null;
+}) {
+  return {
+    id: row.id,
     roleName: row.role_name,
     eventName: row.event_name,
     eventDate: toDateString(row.event_date),
@@ -84,8 +109,6 @@ function mapRoleWithoutAllocationAlert(row: RoleWithoutAllocationAlertRow): Role
     location: row.location ?? undefined,
   };
 }
-
-// ── private helpers ──────────────────────────────────────────────────────────
 
 function mapGigAlertBase(row: GigAlertBaseRow): GigAlertBase {
   return {
