@@ -923,6 +923,21 @@ export interface UpdateInvoicePaymentMadeRequest {
   amount?: number;
 }
 
+export interface LegacyInvoice {
+  id: number;
+  gigId: number;
+  invoiceNumber?: string;
+  date?: string;
+  description?: string;
+  documentUrl?: string;
+}
+
+export interface UpdateLegacyInvoiceRequest {
+  invoiceNumber?: string;
+  date?: string;
+  description?: string;
+}
+
 export interface Account {
   id: number;
   /** Undefined for the business account. */
