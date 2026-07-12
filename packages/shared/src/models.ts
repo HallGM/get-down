@@ -1316,6 +1316,9 @@ export interface RoleWithoutAllocationAlert {
   location?: string;
 }
 
+/** Performer roles on past confirmed gigs/showcases where no person has been assigned. */
+export type EmptyRoleAlert = Omit<RoleWithoutAllocationAlert, 'personName'>;
+
 export interface ExpenseApportionmentMismatchAlert {
   /** Expense id. */
   id: number;
@@ -1359,4 +1362,8 @@ export interface DashboardAlerts {
   gigRolesWithoutAllocation: RoleWithoutAllocationAlert[];
   /** Performer roles on past showcases with no fee allocation linked. */
   showcaseRolesWithoutAllocation: RoleWithoutAllocationAlert[];
+  /** Performer roles on past confirmed gigs where no person has been assigned. */
+  emptyGigRoles: EmptyRoleAlert[];
+  /** Performer roles on past confirmed showcases where no person has been assigned. */
+  emptyShowcaseRoles: EmptyRoleAlert[];
 }

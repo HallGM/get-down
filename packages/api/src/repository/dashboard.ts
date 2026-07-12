@@ -53,6 +53,8 @@ export interface RoleWithoutAllocationAlertRow {
   location: string | null;
 }
 
+export type EmptyRoleAlertRow = Omit<RoleWithoutAllocationAlertRow, 'person_name'>;
+
 const SELECT_ALERT_COLS = `
   g.id,
   g.first_name,
@@ -298,4 +300,55 @@ function buildAllocationAlertQuery(notExistsBody: string, extraWhere?: string): 
       ${SQL_EVENT_GROUP_BY_COLS}
     ORDER BY COALESCE(g.date, s.date) ASC NULLS LAST;
   `;
+}
+
+/**
+ * Confirmed past gigs (date < today) where a performer role has no person assigned.
+ */
+export async function readEmptyGigRoles(): Promise<EmptyRoleAlertRow[]> {
+  return run_query<EmptyRoleAlertRow>({
+    text: `
+      SELECT
+        ar.id,
+        ar.role_name,
+        ${SQL_GIG_EVENT_NAME},
+        g.date AS event_date,
+        g.id AS gig_id,
+        NULL::int AS showcase_id,
+        g.venue_name,
+        g.location
+      FROM assigned_roles ar
+      JOIN gigs g ON g.id = ar.gig_id
+      WHERE ar.gig_id IS NOT NULL
+        AND ar.person_id IS NULL
+        AND g.status = 'confirmed'
+        AND g.date < CURRENT_DATE
+      ORDER BY g.date ASC;
+    `,
+  });
+}
+
+/**
+ * Past showcases (date < today) where a performer role has no person assigned.
+ */
+export async function readEmptyShowcaseRoles(): Promise<EmptyRoleAlertRow[]> {
+  return run_query<EmptyRoleAlertRow>({
+    text: `
+      SELECT
+        ar.id,
+        ar.role_name,
+        ${SQL_SHOWCASE_EVENT_NAME},
+        s.date AS event_date,
+        NULL::int AS gig_id,
+        s.id AS showcase_id,
+        NULL::varchar AS venue_name,
+        s.location
+      FROM assigned_roles ar
+      JOIN showcases s ON s.id = ar.showcase_id
+      WHERE ar.showcase_id IS NOT NULL
+        AND ar.person_id IS NULL
+        AND s.date < CURRENT_DATE
+      ORDER BY s.date ASC;
+    `,
+  });
 }

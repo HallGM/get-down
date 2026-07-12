@@ -11,7 +11,7 @@ import ErrorBanner from "../components/ErrorBanner.js";
 import { GigFeeAllocationCard } from "../components/GigFeeAllocationCard.js";
 import { ShowcaseFeeAllocationCard } from "../components/ShowcaseFeeAllocationCard.js";
 import { formatGigName } from "../utils/people.js";
-import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert, RoleWithoutAllocationAlert } from "@get-down/shared";
+import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert } from "@get-down/shared";
 
 const PICO_RED = "var(--pico-color-red-500, #e53e3e)";
 const PICO_ORANGE = "var(--pico-color-orange-500, #dd6b20)";
@@ -144,6 +144,34 @@ function RoleWithoutAllocationTable({ roles }: { roles: RoleWithoutAllocationAle
             <td>{r.roleName}</td>
             <td><AllocationEventCell eventName={r.eventName} gigId={r.gigId} showcaseId={r.showcaseId} /></td>
             <td>{formatDate(r.eventDate)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function EmptyRoleTable({ roles }: { roles: EmptyRoleAlert[] }) {
+  if (roles.length === 0) {
+    return <AllClear />;
+  }
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Role</th>
+          <th>Event</th>
+          <th>Date</th>
+          <th>Venue</th>
+        </tr>
+      </thead>
+      <tbody>
+        {roles.map((r) => (
+          <tr key={r.id}>
+            <td>{r.roleName}</td>
+            <td><AllocationEventCell eventName={r.eventName} gigId={r.gigId} showcaseId={r.showcaseId} /></td>
+            <td>{formatDate(r.eventDate)}</td>
+            <td>{r.venueName ?? r.location ?? "—"}</td>
           </tr>
         ))}
       </tbody>
@@ -379,12 +407,30 @@ export default function Dashboard() {
           </DashboardSection>
 
           <DashboardSection
+            title="Empty Gig Role Slots"
+            description="Performer roles on past confirmed gigs where no person has been assigned."
+            count={data.emptyGigRoles.length}
+            badgeColor={PICO_RED}
+          >
+            <EmptyRoleTable roles={data.emptyGigRoles} />
+          </DashboardSection>
+
+          <DashboardSection
             title="Showcase Roles Missing a Fee Allocation"
             description="Performer roles on past showcases that do not have a fee allocation linked."
             count={data.showcaseRolesWithoutAllocation.length}
             badgeColor={PICO_RED}
           >
             <RoleWithoutAllocationTable roles={data.showcaseRolesWithoutAllocation} />
+          </DashboardSection>
+
+          <DashboardSection
+            title="Empty Showcase Role Slots"
+            description="Performer roles on past showcases where no person has been assigned."
+            count={data.emptyShowcaseRoles.length}
+            badgeColor={PICO_RED}
+          >
+            <EmptyRoleTable roles={data.emptyShowcaseRoles} />
           </DashboardSection>
         </div>
       )}
