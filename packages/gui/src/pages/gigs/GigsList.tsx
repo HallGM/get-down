@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useGigs, useCreateGig, useDeleteGig } from "../../api/hooks/useGigs.js";
 import { useServices } from "../../api/hooks/useServices.js";
-import type { CreateGigRequest } from "@get-down/shared";
+import type { CreateGigRequest, Service } from "@get-down/shared";
 import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
@@ -21,45 +21,6 @@ type GigView = "upcoming" | "past" | "all";
 
 const STATUS_OPTIONS = ["enquiry", "confirmed", "completed", "cancelled", "postponed"];
 
-const COLUMNS: Column<Gig>[] = [
-  { key: "date", header: "Date", sortable: true, render: (g) => formatDate(g.date) },
-  { key: "firstName", header: "Name", sortable: true, render: (g) => `${g.firstName} ${g.lastName ?? ""}`.trim() },
-  { key: "venueName", header: "Venue", sortable: true, render: (g) => g.venueName ?? "—" },
-  { key: "location", header: "Location", sortable: true, render: (g) => g.location ?? "—" },
-  { key: "status", header: "Status", render: (g) => <StatusBadge status={g.status} /> },
-  {
-    key: "billingTotal",
-    header: "Amount charged",
-    headerHint: "Billing total: line items minus discount plus travel cost, minus any credit refunds",
-    render: (g) => <MoneyDisplay pennies={g.billingTotal ?? 0} />,
-  },
-  {
-    key: "netReceived",
-    header: "Amount received",
-    headerHint: "Total payments received from the client minus all refunds",
-    render: (g) => <MoneyDisplay pennies={g.netReceived ?? 0} />,
-  },
-  {
-    key: "predictedProfit",
-    header: "Predicted profit",
-    headerHint: "Estimated profit based on service prices and role fees. Blank when prices or fees are not fully configured.",
-    render: (g) => {
-      if (g.status === "cancelled") return <span style={{ color: "var(--pico-muted-color)" }}>—</span>;
-      if (g.predictedProfit == null) return <UnavailableMoney />;
-      return <MoneyDisplay pennies={g.predictedProfit} />;
-    },
-  },
-  {
-    key: "confirmedProfit",
-    header: "Confirmed profit",
-    headerHint: "Billing total minus all fee allocation amounts. Only shown for fully settled gigs.",
-    render: (g) => {
-      if (!g.settled) return "";
-      return <MoneyDisplay pennies={confirmedProfit(g)} />;
-    },
-  },
-];
-
 const EMPTY_FORM: CreateGigRequest = {
   firstName: "",
   lastName: "",
@@ -68,16 +29,19 @@ const EMPTY_FORM: CreateGigRequest = {
 };
 
 /**
- * Gigs-specific filter: searches client name (first + last), venue, location, date, and status.
+ * Gigs-specific filter: searches client name (first + last), venue, services, date, and status.
  */
-function filterGig(gig: Gig, query: string): boolean {
-  return multiWordFilter(query, [
-    `${gig.firstName} ${gig.lastName}`.trim(),
-    gig.venueName ?? "",
-    gig.location ?? "",
-    gig.date,
-    gig.status,
-  ]);
+function buildFilterGig(services: Service[]) {
+  return (gig: Gig, query: string): boolean => {
+    const serviceNames = resolveServiceNames(gig, services).join(" ");
+    return multiWordFilter(query, [
+      `${gig.firstName} ${gig.lastName}`.trim(),
+      gig.venueName ?? "",
+      serviceNames,
+      gig.date,
+      gig.status,
+    ]);
+  };
 }
 
 export default function GigsList() {
@@ -106,6 +70,51 @@ export default function GigsList() {
     }
   }
 
+  // Build columns dynamically with service lookup
+  const columns = useMemo(() => {
+    return [
+      { key: "date", header: "Date", sortable: true, render: (g: Gig) => formatDate(g.date) },
+      { key: "firstName", header: "Name", sortable: true, render: (g: Gig) => `${g.firstName} ${g.lastName ?? ""}`.trim() },
+      { key: "venueName", header: "Venue", sortable: true, render: (g: Gig) => g.venueName ?? "—" },
+      { key: "services", header: "Services", render: (g: Gig) => resolveServiceNames(g, services).join(", ") || "—" },
+      { key: "status", header: "Status", render: (g: Gig) => <StatusBadge status={g.status} /> },
+      {
+        key: "billingTotal",
+        header: "Amount charged",
+        headerHint: "Billing total: line items minus discount plus travel cost, minus any credit refunds",
+        render: (g: Gig) => <MoneyDisplay pennies={g.billingTotal ?? 0} />,
+      },
+      {
+        key: "netReceived",
+        header: "Amount received",
+        headerHint: "Total payments received from the client minus all refunds",
+        render: (g: Gig) => <MoneyDisplay pennies={g.netReceived ?? 0} />,
+      },
+      {
+        key: "predictedProfit",
+        header: "Predicted profit",
+        headerHint: "Estimated profit based on service prices and role fees. Blank when prices or fees are not fully configured.",
+        render: (g: Gig) => {
+          if (g.status === "cancelled") return <span style={{ color: "var(--pico-muted-color)" }}>—</span>;
+          if (g.predictedProfit == null) return <UnavailableMoney />;
+          return <MoneyDisplay pennies={g.predictedProfit} />;
+        },
+      },
+      {
+        key: "confirmedProfit",
+        header: "Confirmed profit",
+        headerHint: "Billing total minus all fee allocation amounts. Only shown for fully settled gigs.",
+        render: (g: Gig) => {
+          if (!g.settled) return "";
+          return <MoneyDisplay pennies={confirmedProfit(g)} />;
+        },
+      },
+    ] as Column<Gig>[];
+  }, [services]);
+
+  // Build the filter function with service lookup
+  const filterGig = useMemo(() => buildFilterGig(services), [services]);
+
   const displayedGigs = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     let all = gigs ?? [];
@@ -129,7 +138,7 @@ export default function GigsList() {
   const visibleGigs = useMemo(() => {
     if (!textQuery) return displayedGigs;
     return displayedGigs.filter((g) => filterGig(g, textQuery));
-  }, [displayedGigs, textQuery]);
+  }, [displayedGigs, textQuery, filterGig]);
 
   const totalReceived = useMemo(
     () => visibleGigs.reduce((sum, g) => sum + (g.netReceived ?? 0), 0),
@@ -231,7 +240,7 @@ export default function GigsList() {
       </div>
 
       <DataTable<Gig>
-        columns={COLUMNS}
+        columns={columns}
         data={displayedGigs}
         onRowClick={(g) => navigate(`/gigs/${g.id}`)}
         emptyMessage="No gigs found."
@@ -288,3 +297,15 @@ export default function GigsList() {
 }
 
 // ── private helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Resolve service names for a gig by matching serviceIds against the services catalog.
+ */
+function resolveServiceNames(gig: Gig, services: Service[]): string[] {
+  if (!gig.serviceIds || gig.serviceIds.length === 0) return [];
+  
+  const serviceMap = new Map(services.map((s) => [s.id, s.name]));
+  return gig.serviceIds
+    .map((id) => serviceMap.get(id))
+    .filter((name): name is string => name !== undefined);
+}
