@@ -241,6 +241,29 @@ export function useUnlinkExpenseFromAllocation() {
   });
 }
 
+export function useUpdateFeeAllocationExpenseLink() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({
+      allocationId,
+      expenseId,
+      apportionedAmount,
+    }: {
+      allocationId: number;
+      expenseId: number;
+      apportionedAmount: number | null;
+    }) =>
+      apiFetch<void>("PATCH", `/fee-allocations/${allocationId}/expenses/${expenseId}`, {
+        apportionedAmount,
+      }),
+    onSuccess: (_data, { allocationId }) => {
+      invalidateAllocationCaches(qc, allocationId, "expenses");
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    successMessage: "Apportionment updated",
+  });
+}
+
 export function useLinkTransactionToAllocation() {
   const qc = useQueryClient();
   return useApiMutation({

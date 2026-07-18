@@ -23,6 +23,7 @@ import { BadRequestError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 import { buildPersonName } from "../utils/people.js";
 import { CreatePaymentSchema } from "./expense_payments.js";
+import { ExpenseLinkApportionmentSchema } from "./schemas.js";
 import { z } from "zod";
 
 export async function getAllFeeAllocationSummaries(): Promise<FeeAllocationSummary[]> {
@@ -44,22 +45,22 @@ export async function getAllFeeAllocationSummaries(): Promise<FeeAllocationSumma
 export async function getAllFeeAllocations(): Promise<FeeAllocation[]> {
   const rows = await feeAllocationsRepo.readAllFeeAllocations();
   const ids = rows.map((r) => r.id);
-  const [expenseMap, txMap] = await Promise.all([
-    feeAllocationsRepo.readExpenseIdsByAllocationIds(ids),
+  const [expenseLinkMap, txMap] = await Promise.all([
+    feeAllocationsRepo.readExpenseLinksByAllocationIds(ids),
     feeAllocationsRepo.readTransactionIdsByAllocationIds(ids),
   ]);
-  return rows.map((row) => mapAllocation(row, expenseMap.get(row.id) ?? [], txMap.get(row.id) ?? []));
+  return rows.map((row) => mapAllocation(row, txMap.get(row.id) ?? [], expenseLinkMap.get(row.id)));
 }
 
 export async function getFeeAllocationById(id: number): Promise<FeeAllocation> {
   const row = await feeAllocationsRepo.readFeeAllocationById(id);
   if (!row) throw new NotFoundError("FeeAllocation not found");
-  const [lineItemRows, expenseIds, transactionIds] = await Promise.all([
+  const [lineItemRows, expenseLinks, transactionIds] = await Promise.all([
     feeAllocationsRepo.readLineItemsByAllocationId(id),
-    feeAllocationsRepo.readExpenseIdsByAllocationId(id),
+    feeAllocationsRepo.readExpenseLinksByAllocationId(id),
     feeAllocationsRepo.readTransactionIdsByAllocationId(id),
   ]);
-  const allocation = mapAllocation(row, expenseIds, transactionIds);
+  const allocation = mapAllocation(row, transactionIds, expenseLinks);
   allocation.lineItems = lineItemRows.map(mapLineItem);
   return allocation;
 }
@@ -79,7 +80,7 @@ export async function createFeeAllocation(
     isInvoiced: input.isInvoiced ?? false,
     invoiceRef: input.invoiceRef?.trim(),
   });
-  const allocation = mapAllocation(row, [], []);
+  const allocation = mapAllocation(row, []);
   allocation.lineItems = [];
   return allocation;
 }
@@ -97,12 +98,12 @@ export async function updateFeeAllocation(
     invoiceRef: input.invoiceRef?.trim() ?? existing.invoiceRef,
   });
   if (!row) throw new NotFoundError("FeeAllocation not found");
-  const [lineItemRows, expenseIds, transactionIds] = await Promise.all([
+  const [lineItemRows, expenseLinks, transactionIds] = await Promise.all([
     feeAllocationsRepo.readLineItemsByAllocationId(id),
-    feeAllocationsRepo.readExpenseIdsByAllocationId(id),
+    feeAllocationsRepo.readExpenseLinksByAllocationId(id),
     feeAllocationsRepo.readTransactionIdsByAllocationId(id),
   ]);
-  const allocation = mapAllocation(row, expenseIds, transactionIds);
+  const allocation = mapAllocation(row, transactionIds, expenseLinks);
   allocation.lineItems = lineItemRows.map(mapLineItem);
   return allocation;
 }
@@ -205,7 +206,7 @@ export async function generateFeeAllocationsForGig(
         await setAllocationOnRole(ar, allocationRow.id);
       }
 
-      const allocation = mapAllocation(allocationRow, [], []);
+      const allocation = mapAllocation(allocationRow, []);
       allocation.lineItems = lineItems;
       results.push(allocation);
     }
@@ -221,7 +222,7 @@ export async function generateFeeAllocationsForGig(
 
       await setAllocationOnRole(ar, allocationRow.id);
 
-      const allocation = mapAllocation(allocationRow, [], []);
+      const allocation = mapAllocation(allocationRow, []);
       allocation.lineItems = lineItems;
       results.push(allocation);
     }
@@ -281,7 +282,7 @@ export async function generateFeeAllocationsForShowcase(
       for (const ar of roles) {
         await setAllocationOnRole(ar, allocationRow.id);
       }
-      const allocation = mapAllocation(allocationRow, [], []);
+      const allocation = mapAllocation(allocationRow, []);
       allocation.lineItems = [];
       results.push(allocation);
     }
@@ -291,7 +292,7 @@ export async function generateFeeAllocationsForShowcase(
         isInvoiced: false,
       });
       await setAllocationOnRole(ar, allocationRow.id);
-      const allocation = mapAllocation(allocationRow, [], []);
+      const allocation = mapAllocation(allocationRow, []);
       allocation.lineItems = [];
       results.push(allocation);
     }
@@ -321,11 +322,12 @@ export async function resetFeeAllocation(id: number): Promise<FeeAllocation> {
       lineItems = await populateAllocationLineItems(id, linked);
     }
 
-    const [expenseIds, transactionIds] = await Promise.all([
-      feeAllocationsRepo.readExpenseIdsByAllocationId(id),
+    const [expenseLinks, transactionIds] = await Promise.all([
+      feeAllocationsRepo.readExpenseLinksByAllocationId(id),
       feeAllocationsRepo.readTransactionIdsByAllocationId(id),
     ]);
-    const allocation = mapAllocation(allocationRow, expenseIds, transactionIds);
+    const expenseIds = expenseLinks.map((l) => l.expense_id);
+    const allocation = mapAllocation(allocationRow, transactionIds, expenseLinks);
     allocation.lineItems = lineItems;
     return allocation;
   });
@@ -344,8 +346,8 @@ export async function getAllocationsByExpense(expenseId: number): Promise<FeeAll
   );
   const validRows = rows.filter((r): r is NonNullable<typeof r> => r !== null);
 
-  const [expenseMap, txMap, lineItemRows] = await Promise.all([
-    feeAllocationsRepo.readExpenseIdsByAllocationIds(allocationIds),
+  const [expenseLinksMap, txMap, lineItemRows] = await Promise.all([
+    feeAllocationsRepo.readExpenseLinksByAllocationIds(allocationIds),
     feeAllocationsRepo.readTransactionIdsByAllocationIds(allocationIds),
     feeAllocationsRepo.readLineItemsByAllocationIds(allocationIds),
   ]);
@@ -358,7 +360,8 @@ export async function getAllocationsByExpense(expenseId: number): Promise<FeeAll
   }
 
   return validRows.map((r) => {
-    const allocation = mapAllocation(r, expenseMap.get(r.id) ?? [], txMap.get(r.id) ?? []);
+    const expenseLinks = expenseLinksMap.get(r.id) ?? [];
+    const allocation = mapAllocation(r, txMap.get(r.id) ?? [], expenseLinks);
     allocation.lineItems = (liByAllocation.get(r.id) ?? []).map(mapLineItem);
     return allocation;
   });
@@ -429,6 +432,21 @@ export async function unlinkExpenseFromAllocation(
   const allocation = await feeAllocationsRepo.readFeeAllocationById(allocationId);
   if (!allocation) throw new NotFoundError("FeeAllocation not found");
   await feeAllocationsRepo.unlinkExpenseFromAllocation(allocationId, expenseId);
+}
+
+export async function updateExpenseLink(
+  allocationId: number,
+  expenseId: number,
+  body: unknown
+): Promise<void> {
+  const { apportionedAmount } = parseOrBadRequest(ExpenseLinkApportionmentSchema, body);
+  const [allocation, expense] = await Promise.all([
+    feeAllocationsRepo.readFeeAllocationById(allocationId),
+    expensesRepo.readExpenseById(expenseId),
+  ]);
+  if (!allocation) throw new NotFoundError("FeeAllocation not found");
+  if (!expense) throw new NotFoundError("Expense not found");
+  await feeAllocationsRepo.updateApportionedAmount(allocationId, expenseId, apportionedAmount);
 }
 
 // ─── Transaction link management ─────────────────────────────────────────────
@@ -517,9 +535,9 @@ async function assembleFeeAllocations(
   rows: feeAllocationsRepo.FeeAllocationRow[]
 ): Promise<FeeAllocation[]> {
   const ids = rows.map((r) => r.id);
-  const [allLineItems, expenseMap, txMap] = await Promise.all([
+  const [allLineItems, expenseLinksMap, txMap] = await Promise.all([
     feeAllocationsRepo.readLineItemsByAllocationIds(ids),
-    feeAllocationsRepo.readExpenseIdsByAllocationIds(ids),
+    feeAllocationsRepo.readExpenseLinksByAllocationIds(ids),
     feeAllocationsRepo.readTransactionIdsByAllocationIds(ids),
   ]);
   const byAllocation = new Map<number, typeof allLineItems>();
@@ -529,7 +547,8 @@ async function assembleFeeAllocations(
     byAllocation.set(li.allocation_id, arr);
   }
   return rows.map((row) => {
-    const allocation = mapAllocation(row, expenseMap.get(row.id) ?? [], txMap.get(row.id) ?? []);
+    const expenseLinks = expenseLinksMap.get(row.id) ?? [];
+    const allocation = mapAllocation(row, txMap.get(row.id) ?? [], expenseLinks);
     allocation.lineItems = (byAllocation.get(row.id) ?? []).map(mapLineItem);
     return allocation;
   });
@@ -564,9 +583,15 @@ async function setAllocationOnRole(ar: AssignedRoleRow, feeAllocationId: number 
 
 function mapAllocation(
   row: feeAllocationsRepo.FeeAllocationRow,
-  expenseIds: number[],
-  transactionIds: number[]
+  transactionIds: number[],
+  expenseLinks?: feeAllocationsRepo.FeeAllocationExpenseLinkRow[]
 ): FeeAllocation {
+  const links = expenseLinks ?? [];
+  const derivedExpenseLinks = links.map((l) => ({
+    expenseId: l.expense_id,
+    apportionedAmount: l.apportioned_amount,
+  }));
+
   return {
     id: row.id,
     personId: row.person_id ?? undefined,
@@ -574,8 +599,9 @@ function mapAllocation(
     notes: row.notes ?? undefined,
     isInvoiced: row.is_invoiced,
     invoiceRef: row.invoice_ref ?? undefined,
-    expenseIds,
+    expenseIds: links.map((l) => l.expense_id),
     transactionIds,
+    ...(derivedExpenseLinks.length > 0 ? { expenseLinks: derivedExpenseLinks } : {}),
   };
 }
 

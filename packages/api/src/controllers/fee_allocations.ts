@@ -20,6 +20,7 @@ router.delete("/fee-allocations/:id/line-items/:lineItemId", handle(req => feeAl
 router.post("/fee-allocations/:id/expenses/generate", handle(req => feeAllocationsService.generateExpenseForAllocation(+req.params.id), 201));
 router.post("/fee-allocations/:id/expenses/settle",   handle(req => feeAllocationsService.settleAllocationWithExpense(+req.params.id, req.body), 201));
 router.post("/fee-allocations/:id/expenses",          handle(req => feeAllocationsService.linkExpenseToAllocation(+req.params.id, req.body), 204));
+router.patch("/fee-allocations/:id/expenses/:expenseId", handle(req => feeAllocationsService.updateExpenseLink(+req.params.id, +req.params.expenseId, req.body), 204));
 router.delete("/fee-allocations/:id/expenses/:expenseId", handle(req => feeAllocationsService.unlinkExpenseFromAllocation(+req.params.id, +req.params.expenseId), 204));
 
 // Transaction links

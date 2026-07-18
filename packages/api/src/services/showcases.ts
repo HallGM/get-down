@@ -1,4 +1,3 @@
-import { z } from "zod";
 import type {
   Showcase,
   ShowcaseExpenseLink,
@@ -14,6 +13,8 @@ import { BadRequestError, NotFoundError } from "../errors.js";
 import { withTransaction } from "../db/init.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 import { buildGigMaps } from "../utils/gigMaps.js";
+import { ExpenseLinkApportionmentSchema } from "./schemas.js";
+import { z } from "zod";
 
 export async function getShowcases(): Promise<Showcase[]> {
   const rows = await showcasesRepo.readShowcases();
@@ -142,16 +143,12 @@ export async function unlinkExpenseFromShowcase(showcaseId: number, expenseId: n
   await showcasesRepo.unlinkExpenseFromShowcase(showcaseId, expenseId);
 }
 
-const UpdateExpenseLinkSchema = z.object({
-  apportionedAmount: z.number().int().positive().nullable(),
-});
-
 export async function updateExpenseLink(
   showcaseId: number,
   expenseId: number,
   body: unknown
 ): Promise<void> {
-  const { apportionedAmount } = parseOrBadRequest(UpdateExpenseLinkSchema, body);
+  const { apportionedAmount } = parseOrBadRequest(ExpenseLinkApportionmentSchema, body);
   const showcase = await showcasesRepo.readShowcaseById(showcaseId);
   if (!showcase) throw new NotFoundError("Showcase not found");
   await showcasesRepo.updateApportionedAmount(showcaseId, expenseId, apportionedAmount);

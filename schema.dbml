@@ -212,6 +212,7 @@ Table expenses {
 Table fee_allocations_expenses {
   allocation_id int [ref: > fee_allocations.id, not null]
   expense_id int [ref: > expenses.id, not null]
+  apportioned_amount int
 }
 
 Table invoices {

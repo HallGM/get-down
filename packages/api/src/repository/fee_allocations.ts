@@ -18,6 +18,12 @@ export interface LineItemRow {
   amount: number | null;
 }
 
+export interface FeeAllocationExpenseLinkRow {
+  allocation_id: number;
+  expense_id: number;
+  apportioned_amount: number | null;
+}
+
 export interface FeeAllocationMutationInput {
   personId?: number;
   gigId?: number;
@@ -221,6 +227,34 @@ export async function readExpenseIdsByAllocationIds(
   return groupById(rows, (r) => r.allocation_id, (r) => r.expense_id);
 }
 
+export async function readExpenseLinksByAllocationId(allocationId: number): Promise<FeeAllocationExpenseLinkRow[]> {
+  return run_query<FeeAllocationExpenseLinkRow>({
+    text: `
+      SELECT allocation_id, expense_id, apportioned_amount
+      FROM fee_allocations_expenses
+      WHERE allocation_id = $1
+      ORDER BY expense_id;
+    `,
+    values: [allocationId],
+  });
+}
+
+export async function readExpenseLinksByAllocationIds(
+  allocationIds: number[]
+): Promise<Map<number, FeeAllocationExpenseLinkRow[]>> {
+  if (allocationIds.length === 0) return new Map();
+  const rows = await run_query<FeeAllocationExpenseLinkRow>({
+    text: `
+      SELECT allocation_id, expense_id, apportioned_amount
+      FROM fee_allocations_expenses
+      WHERE allocation_id = ANY($1::int[])
+      ORDER BY allocation_id, expense_id;
+    `,
+    values: [allocationIds],
+  });
+  return groupById(rows, (r) => r.allocation_id, (r) => r);
+}
+
 export async function linkExpenseToAllocation(
   allocationId: number,
   expenseId: number
@@ -242,6 +276,17 @@ export async function unlinkExpenseFromAllocation(
   await run_query({
     text: `DELETE FROM fee_allocations_expenses WHERE allocation_id = $1 AND expense_id = $2;`,
     values: [allocationId, expenseId],
+  });
+}
+
+export async function updateApportionedAmount(
+  allocationId: number,
+  expenseId: number,
+  apportionedAmount: number | null
+): Promise<void> {
+  await run_query({
+    text: `UPDATE fee_allocations_expenses SET apportioned_amount = $1 WHERE allocation_id = $2 AND expense_id = $3;`,
+    values: [apportionedAmount, allocationId, expenseId],
   });
 }
 

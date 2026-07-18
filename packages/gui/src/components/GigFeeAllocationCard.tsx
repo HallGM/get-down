@@ -13,6 +13,7 @@ import {
   useDeleteFeeAllocation,
   useLinkExpenseToAllocation,
   useUnlinkExpenseFromAllocation,
+  useUpdateFeeAllocationExpenseLink,
   useLinkTransactionToAllocation,
   useUnlinkTransactionFromAllocation,
 } from "../api/hooks/useFeeAllocations.js";
@@ -32,6 +33,7 @@ import { LinkedExpensesSection } from "./LinkedExpensesSection.js";
 import { LinkedRolesSection } from "./LinkedRolesSection.js";
 import { LinkedTransactionsSection } from "./LinkedTransactionsSection.js";
 import { UnlinkOrDeleteModal } from "./UnlinkOrDeleteModal.js";
+import { ApportionModal } from "./ApportionModal.js";
 import { formatPersonName, formatGigName, resolvePersonName } from "../utils/people.js";
 import { getAllocationTitle } from "../utils/allocations.js";
 
@@ -62,12 +64,16 @@ export function GigFeeAllocationCard({
   const deleteFeeAllocation = useDeleteFeeAllocation();
   const linkExpense = useLinkExpenseToAllocation();
   const unlinkExpense = useUnlinkExpenseFromAllocation();
+  const updateExpenseLink = useUpdateFeeAllocationExpenseLink();
   const linkTransaction = useLinkTransactionToAllocation();
   const unlinkTransaction = useUnlinkTransactionFromAllocation();
   const deleteExpense = useDeleteExpense();
   const updateRole = useUpdateRole();
 
-  const modals = useExpenseLinkModals();
+   const modals = useExpenseLinkModals();
+   const [apportionExpense, setApportionExpense] = useState<{
+     expense: Expense;
+   } | null>(null);
 
   // Find the allocation by ID
   const allocation = feeAllocations.find((a) => a.id === allocationId);
@@ -75,7 +81,7 @@ export function GigFeeAllocationCard({
 
   const linkedRoles = roles.filter((r) => r.feeAllocationId === allocationId);
   const unlinkedRoles = roles.filter((r) => !r.feeAllocationId);
-  const hasExpenses = allocation.expenseIds.length > 0;
+  const hasExpenses = (allocation.expenseLinks?.length ?? 0) > 0;
   const editExpense = modals.editExpenseId != null ? (allExpenses.find((e) => e.id === modals.editExpenseId) ?? null) : null;
 
   async function handleReset() {
@@ -132,15 +138,16 @@ export function GigFeeAllocationCard({
           onRemoveLineItem={(li) => removeLineItem.mutate({ allocationId, lineItemId: li.id })}
         />
 
-        {/* Linked Expenses */}
-         <LinkedExpensesSection
-           allocation={allocation}
-           allExpenses={allExpenses}
-           onAddExpense={() => modals.openCreate(allocationId)}
-           onBrowse={() => modals.openPicker(allocationId)}
-           onEdit={(expense) => modals.openEdit(expense.id)}
-           onRemove={(expense) => modals.openUnlinkConfirm(allocationId, expense)}
-         />
+         {/* Linked Expenses */}
+          <LinkedExpensesSection
+            allocation={allocation}
+            allExpenses={allExpenses}
+            onAddExpense={() => modals.openCreate(allocationId)}
+            onBrowse={() => modals.openPicker(allocationId)}
+            onEdit={(expense) => modals.openEdit(expense.id)}
+            onApportion={(expense, link) => setApportionExpense({ expense, link })}
+            onRemove={(expense) => modals.openUnlinkConfirm(allocationId, expense)}
+          />
 
         {/* Linked Transactions (only when personId is set) */}
         {allocation.personId && gig && (
@@ -171,21 +178,21 @@ export function GigFeeAllocationCard({
         onCreated={modals.closeCreate}
        />
 
-       <ExpensePickerModal
-         open={modals.pickerAllocationId === allocationId}
-         onClose={modals.closePicker}
-         expenses={allExpenses.filter((e) => !allocation.expenseIds.includes(e.id))}
-         onSelect={(expense) => {
-            linkExpense.mutateAsync({ allocationId, expenseId: expense.id })
-              .then(() => {
-                modals.closePicker();
-              })
-              .catch((err) => {
-                console.error("Failed to link expense:", err);
-                // Error is shown via mutation; picker stays open so user can retry
-              });
-         }}
-       />
+        <ExpensePickerModal
+          open={modals.pickerAllocationId === allocationId}
+          onClose={modals.closePicker}
+          expenses={allExpenses.filter((e) => !allocation.expenseLinks?.some((link) => link.expenseId === e.id))}
+          onSelect={(expense) => {
+             linkExpense.mutateAsync({ allocationId, expenseId: expense.id })
+               .then(() => {
+                 modals.closePicker();
+               })
+               .catch((err) => {
+                 console.error("Failed to link expense:", err);
+                 // Error is shown via mutation; picker stays open so user can retry
+               });
+          }}
+        />
 
        <ExpenseModal
          expense={editExpense}
@@ -193,25 +200,40 @@ export function GigFeeAllocationCard({
          allAllocations={feeAllocations}
        />
 
-       <UnlinkOrDeleteModal
-         open={!!modals.unlinkConfirm && modals.unlinkConfirm.allocationId === allocationId}
-         onClose={modals.closeUnlinkConfirm}
-         itemLabel={modals.unlinkConfirm?.expense.description ?? ""}
-         onRemoveLink={() => {
-           if (modals.unlinkConfirm) {
-             unlinkExpense.mutate({ allocationId: modals.unlinkConfirm.allocationId, expenseId: modals.unlinkConfirm.expense.id });
-           }
-           modals.closeUnlinkConfirm();
-         }}
-         onDelete={async () => {
-           if (modals.unlinkConfirm) {
-             await deleteExpense.mutateAsync(modals.unlinkConfirm.expense.id);
-           }
-           modals.closeUnlinkConfirm();
-         }}
-         unlinkPending={unlinkExpense.isPending}
-         deletePending={deleteExpense.isPending}
-       />
-     </>
-   );
-}
+        <UnlinkOrDeleteModal
+          open={!!modals.unlinkConfirm && modals.unlinkConfirm.allocationId === allocationId}
+          onClose={modals.closeUnlinkConfirm}
+          itemLabel={modals.unlinkConfirm?.expense.description ?? ""}
+          onRemoveLink={() => {
+            if (modals.unlinkConfirm) {
+              unlinkExpense.mutate({ allocationId: modals.unlinkConfirm.allocationId, expenseId: modals.unlinkConfirm.expense.id });
+            }
+            modals.closeUnlinkConfirm();
+          }}
+          onDelete={async () => {
+            if (modals.unlinkConfirm) {
+              await deleteExpense.mutateAsync(modals.unlinkConfirm.expense.id);
+            }
+            modals.closeUnlinkConfirm();
+          }}
+          unlinkPending={unlinkExpense.isPending}
+          deletePending={deleteExpense.isPending}
+        />
+
+        {apportionExpense && (
+           <ApportionModal
+             expense={apportionExpense.expense}
+             currentAmount={apportionExpense.expense.amount}
+             onClose={() => setApportionExpense(null)}
+             onSave={(amount) => {
+               updateExpenseLink.mutate(
+                 { allocationId, expenseId: apportionExpense.expense.id, apportionedAmount: amount },
+                 { onSuccess: () => setApportionExpense(null) }
+               );
+             }}
+             isPending={updateExpenseLink.isPending}
+           />
+         )}
+       </>
+     );
+   }

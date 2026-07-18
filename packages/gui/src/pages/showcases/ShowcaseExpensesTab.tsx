@@ -8,13 +8,13 @@ import {
   useUnlinkExpenseFromShowcase,
   useUpdateShowcaseExpenseLink,
 } from "../../api/hooks/useShowcases.js";
+import { ApportionModal } from "../../components/ApportionModal.js";
 import ExpenseModal from "../../components/ExpenseModal.js";
 import ExpenseCreateModal from "../../components/ExpenseCreateModal.js";
 import ExpensePickerModal from "../../components/ExpensePickerModal.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import Modal from "../../components/Modal.js";
 import { formatDate } from "../../utils/date.js";
-import { penniesToPounds, poundsToPennies } from "../../utils/money.js";
 
 interface Props {
   showcase: Showcase;
@@ -230,6 +230,7 @@ function ExpenseRow({
   onUnlink,
 }: ExpenseRowProps) {
   const [showApportion, setShowApportion] = useState(false);
+  const updateLink = useUpdateShowcaseExpenseLink();
 
   const isPartial = link.apportionedAmount !== null;
 
@@ -344,97 +345,19 @@ function ExpenseRow({
 
       {showApportion && (
         <ApportionModal
-          showcase={showcase}
           expense={expense}
           currentAmount={link.apportionedAmount}
           onClose={() => setShowApportion(false)}
+          onSave={(apportionedAmount) => {
+            updateLink.mutate(
+              { showcaseId: showcase.id, expenseId: expense.id, apportionedAmount },
+              { onSuccess: () => setShowApportion(false) }
+            );
+          }}
+          isPending={updateLink.isPending}
         />
       )}
     </>
   );
 }
 
-// ─── Apportionment modal ───────────────────────────────────────────────────────
-
-interface ApportionModalProps {
-  showcase: Showcase;
-  expense: Expense;
-  currentAmount: number | null;
-  onClose: () => void;
-}
-
-function ApportionModal({ showcase, expense, currentAmount, onClose }: ApportionModalProps) {
-  const updateLink = useUpdateShowcaseExpenseLink();
-  const [draft, setDraft] = useState<string>(
-    currentAmount != null ? String(penniesToPounds(currentAmount)) : "",
-  );
-  const [validationError, setValidationError] = useState<string | null>(null);
-
-  function handleSave() {
-    const trimmed = draft.trim();
-    const newAmount = trimmed === "" ? null : poundsToPennies(parseFloat(trimmed));
-    if (newAmount !== null && (isNaN(newAmount) || newAmount <= 0)) {
-      setValidationError("Amount must be greater than £0.00.");
-      return;
-    }
-    setValidationError(null);
-    updateLink.mutate(
-      { showcaseId: showcase.id, expenseId: expense.id, apportionedAmount: newAmount },
-      { onSuccess: onClose },
-    );
-  }
-
-  function handleClear() {
-    updateLink.mutate(
-      { showcaseId: showcase.id, expenseId: expense.id, apportionedAmount: null },
-      { onSuccess: onClose },
-    );
-  }
-
-  return (
-    <Modal open onClose={onClose} title="Apportion expense">
-      <p style={{ marginBottom: "0.5rem", fontSize: "0.9em", color: "var(--pico-muted-color)" }}>
-        Expense total: <MoneyDisplay pennies={expense.amount} />
-      </p>
-      <label>
-        Apportioned amount (£)
-        <input
-          type="number"
-          min="0.01"
-          step="0.01"
-          placeholder="e.g. 50.00"
-          value={draft}
-          onChange={(e) => { setDraft(e.target.value); setValidationError(null); }}
-          autoFocus
-        />
-        {validationError && (
-          <small style={{ color: "var(--pico-del-color, #c62828)" }}>{validationError}</small>
-        )}
-      </label>
-      <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-        {currentAmount !== null && (
-          <button
-            type="button"
-            className="secondary outline"
-            aria-busy={updateLink.isPending}
-            disabled={updateLink.isPending}
-            onClick={handleClear}
-          >
-            Clear
-          </button>
-        )}
-        <button type="button" className="secondary" onClick={onClose}>
-          Cancel
-        </button>
-        <button
-          type="button"
-          aria-busy={updateLink.isPending}
-          disabled={updateLink.isPending || draft.trim() === ""}
-          onClick={handleSave}
-        >
-          Save
-        </button>
-      </footer>
-    </Modal>
-  );
-}

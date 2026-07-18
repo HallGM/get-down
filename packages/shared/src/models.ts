@@ -497,11 +497,14 @@ export type SaveClientFormRequest = Pick<
   | "ceilidhStyle"
 > & { preferences: GigSongPreferences };
 
-export interface ShowcaseExpenseLink {
+export interface ExpenseLink {
   expenseId: number;
-  /** null means the full expense amount applies to this showcase. */
+  /** null means the full expense amount applies. */
   apportionedAmount: number | null;
 }
+
+export type ShowcaseExpenseLink = ExpenseLink;
+export type FeeAllocationExpenseLink = ExpenseLink;
 
 export interface Showcase {
   id: number;
@@ -560,6 +563,8 @@ export interface FeeAllocation {
   expenseIds: number[];
   /** IDs of account transactions linked to this allocation via account_transactions_fee_allocations. Always present, never undefined. */
   transactionIds: number[];
+  /** Expense links with apportionment info for gig allocations. Omitted for allocations with no expense links. */
+  expenseLinks?: FeeAllocationExpenseLink[];
 }
 
 export interface FeeAllocationLineItem {
@@ -1347,6 +1352,55 @@ export interface ExpenseApportionmentMismatchAlert {
   difference: number;
 }
 
+export interface FeeAllocationExpenseMismatchAlert {
+  /** Fee allocation id. */
+  allocationId: number;
+  /** Expense id. */
+  expenseId: number;
+  /** Performer name, or undefined if the allocation is unassigned. */
+  personName?: string;
+  /** Client name for gig allocations. */
+  eventName: string;
+  /** ISO date string of the event, or undefined if no event is linked. */
+  eventDate?: string;
+  /** Gig id (gig allocations only). */
+  gigId?: number;
+  /** Sum of allocation's line item amounts in pennies. */
+  allocationTotal: number;
+  /** Apportioned amount for this expense link (or full expense amount if null) in pennies. */
+  apportionedAmount: number;
+  /** Difference (allocationTotal - apportionedAmount) in pennies. */
+  difference: number;
+}
+
+export interface ExpenseOverApportionmentAllocationRef {
+  /** Fee allocation id. */
+  allocationId: number;
+  /** Gig id this allocation belongs to. */
+  gigId: number;
+  /** Performer name, or undefined if the allocation is unassigned. */
+  personName?: string;
+  /** Client name for the gig. */
+  eventName: string;
+  /** ISO date string of the gig. */
+  eventDate: string;
+}
+
+export interface ExpenseOverApportionmentAlert {
+  /** Expense id. */
+  id: number;
+  /** Expense description. */
+  description: string;
+  /** Expense total in pennies. */
+  amount: number;
+  /** Sum of all apportioned amounts across gig allocation links (null links count as full expense amount) in pennies. */
+  apportionedTotal: number;
+  /** Difference by how much the total is over (apportionedTotal - amount) in pennies. */
+  difference: number;
+  /** Gig fee allocations this expense is linked to, so each can be opened inline to adjust its apportioned amount. */
+  allocations: ExpenseOverApportionmentAllocationRef[];
+}
+
 export type GigNoLineItemsAlert = GigAlertBase;
 
 export interface GigPaymentMismatchAlert extends GigAlertBase {
@@ -1373,6 +1427,10 @@ export interface DashboardAlerts {
   allocationsWithoutRoles: FeeAllocationAlert[];
   /** Expenses linked to showcases where explicit apportioned amounts don't sum to the expense total. */
   apportionmentMismatches: ExpenseApportionmentMismatchAlert[];
+  /** Fee allocations whose linked expense share does not exactly match the allocation's total. */
+  feeAllocationExpenseMismatches: FeeAllocationExpenseMismatchAlert[];
+  /** Expenses where the shares apportioned across all linked gigs add up to more than the expense total. */
+  expenseOverApportioned: ExpenseOverApportionmentAlert[];
   /** Performer roles on past confirmed gigs with no fee allocation linked. */
   gigRolesWithoutAllocation: RoleWithoutAllocationAlert[];
   /** Performer roles on past showcases with no fee allocation linked. */
