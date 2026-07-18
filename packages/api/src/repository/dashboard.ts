@@ -33,6 +33,35 @@ export interface ApportionmentMismatchRow {
   difference: number;
 }
 
+export interface FeeAllocationExpenseMismatchRow {
+  allocation_id: number;
+  expense_id: number;
+  person_name: string | null;
+  event_name: string | null;
+  event_date: string | null;
+  gig_id: number | null;
+  allocation_total: number;
+  apportioned_amount: number;
+  difference: number;
+}
+
+export interface ExpenseOverApportionmentRow {
+  id: number;
+  description: string;
+  amount: number;
+  apportioned_total: number;
+  difference: number;
+}
+
+export interface ExpenseOverApportionmentAllocationRow {
+  expense_id: number;
+  allocation_id: number;
+  gig_id: number;
+  person_name: string | null;
+  event_name: string;
+  event_date: string;
+}
+
 export type GigNoLineItemsAlertRow = GigAlertBaseRow;
 
 export interface GigPaymentMismatchAlertRow extends GigAlertBaseRow {
@@ -350,5 +379,89 @@ export async function readEmptyShowcaseRoles(): Promise<EmptyRoleAlertRow[]> {
         AND s.date < CURRENT_DATE
       ORDER BY s.date ASC;
     `,
+  });
+}
+
+/**
+ * Fee allocations linked to gigs where the apportioned amount (or full expense if null)
+ * does not exactly match the allocation's line-item total.
+ */
+export async function readFeeAllocationExpenseMismatches(): Promise<FeeAllocationExpenseMismatchRow[]> {
+  return run_query<FeeAllocationExpenseMismatchRow>({
+    text: `
+      SELECT
+        fa.id AS allocation_id,
+        fae.expense_id,
+        ${SQL_PERSON_NAME},
+        ${SQL_GIG_EVENT_NAME},
+        g.date AS event_date,
+        g.id AS gig_id,
+        COALESCE(SUM(li.amount), 0)::int AS allocation_total,
+        COALESCE(fae.apportioned_amount, e.amount)::int AS apportioned_amount,
+        (COALESCE(SUM(li.amount), 0) - COALESCE(fae.apportioned_amount, e.amount))::int AS difference
+      FROM fee_allocations fa
+      JOIN fee_allocations_expenses fae ON fae.allocation_id = fa.id
+      JOIN expenses e ON e.id = fae.expense_id
+      JOIN gigs g ON g.id = fa.gig_id
+      LEFT JOIN people p ON p.id = fa.person_id
+      LEFT JOIN fee_allocation_line_items li ON li.allocation_id = fa.id
+      WHERE fa.gig_id IS NOT NULL
+      GROUP BY fa.id, fae.expense_id, fa.person_id, p.display_name, p.first_name, p.last_name, g.id, g.first_name, g.last_name, g.date, fae.apportioned_amount, e.amount
+      HAVING COALESCE(SUM(li.amount), 0) <> COALESCE(fae.apportioned_amount, e.amount)
+      ORDER BY g.date ASC;
+    `,
+  });
+}
+
+/**
+ * Expenses linked to gigs where the sum of apportioned amounts across all gig allocation links
+ * exceeds the expense total. Null apportioned amounts are treated as the full expense amount.
+ */
+export async function readExpenseOverApportioned(): Promise<ExpenseOverApportionmentRow[]> {
+  return run_query<ExpenseOverApportionmentRow>({
+    text: `
+      SELECT
+        e.id,
+        e.description,
+        e.amount::int,
+        SUM(COALESCE(fae.apportioned_amount, e.amount))::int AS apportioned_total,
+        (SUM(COALESCE(fae.apportioned_amount, e.amount)) - e.amount)::int AS difference
+      FROM expenses e
+      JOIN fee_allocations_expenses fae ON fae.expense_id = e.id
+      JOIN fee_allocations fa ON fa.id = fae.allocation_id
+      WHERE fa.gig_id IS NOT NULL
+      GROUP BY e.id, e.description, e.amount
+      HAVING SUM(COALESCE(fae.apportioned_amount, e.amount)) > e.amount
+      ORDER BY e.id;
+    `,
+  });
+}
+
+/**
+ * Gig fee allocations linked to the given (over-apportioned) expenses, so the dashboard
+ * can show each affected allocation inline for correction.
+ */
+export async function readAllocationsForOverApportionedExpenses(
+  expenseIds: number[]
+): Promise<ExpenseOverApportionmentAllocationRow[]> {
+  if (expenseIds.length === 0) return [];
+  return run_query<ExpenseOverApportionmentAllocationRow>({
+    text: `
+      SELECT
+        fae.expense_id,
+        fa.id AS allocation_id,
+        fa.gig_id,
+        ${SQL_PERSON_NAME},
+        ${SQL_GIG_EVENT_NAME},
+        g.date AS event_date
+      FROM fee_allocations_expenses fae
+      JOIN fee_allocations fa ON fa.id = fae.allocation_id
+      JOIN gigs g ON g.id = fa.gig_id
+      LEFT JOIN people p ON p.id = fa.person_id
+      WHERE fae.expense_id = ANY($1::int[])
+        AND fa.gig_id IS NOT NULL
+      ORDER BY g.date ASC;
+    `,
+    values: [expenseIds],
   });
 }

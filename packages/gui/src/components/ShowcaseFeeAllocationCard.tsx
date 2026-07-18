@@ -14,6 +14,7 @@ import {
 } from "../api/hooks/useFeeAllocations.js";
 import { useExpenses, useDeleteExpense } from "../api/hooks/useExpenses.js";
 import { useUpdateRole } from "../api/hooks/useAssignedRoles.js";
+import { useUpdateShowcaseExpenseLink } from "../api/hooks/useShowcases.js";
 import ExpensePickerModal from "./ExpensePickerModal.js";
 import ExpenseCreateModal from "./ExpenseCreateModal.js";
 import ExpenseModal from "./ExpenseModal.js";
@@ -22,6 +23,7 @@ import { FeeAllocationCard } from "./FeeAllocationCard.js";
 import { LinkedExpensesSection } from "./LinkedExpensesSection.js";
 import { LinkedRolesSection } from "./LinkedRolesSection.js";
 import { UnlinkOrDeleteModal } from "./UnlinkOrDeleteModal.js";
+import { ApportionModal } from "./ApportionModal.js";
 import { formatPersonName, resolvePersonName } from "../utils/people.js";
 import { getAllocationTitle } from "../utils/allocations.js";
 
@@ -38,21 +40,25 @@ export function ShowcaseFeeAllocationCard({
   isCollapsed,
   onToggle,
 }: ShowcaseFeeAllocationCardProps) {
-  const { data: roles = [] } = useShowcaseRoles(showcaseId);
-  const { data: people = [] } = usePeople();
-  const { data: feeAllocations = [] } = useFeeAllocationsByShowcase(showcaseId);
-  const { data: allExpenses = [] } = useExpenses();
+   const { data: roles = [] } = useShowcaseRoles(showcaseId);
+   const { data: people = [] } = usePeople();
+   const { data: feeAllocations = [] } = useFeeAllocationsByShowcase(showcaseId);
+   const { data: allExpenses = [] } = useExpenses();
 
-  const addLineItem = useAddFeeLineItem();
-  const updateLineItem = useUpdateFeeLineItem();
-  const removeLineItem = useRemoveFeeLineItem();
-  const deleteFeeAllocation = useDeleteFeeAllocation();
-  const linkExpense = useLinkExpenseToAllocation();
-  const unlinkExpense = useUnlinkExpenseFromAllocation();
-  const deleteExpense = useDeleteExpense();
-  const updateRole = useUpdateRole();
+   const addLineItem = useAddFeeLineItem();
+   const updateLineItem = useUpdateFeeLineItem();
+   const removeLineItem = useRemoveFeeLineItem();
+   const deleteFeeAllocation = useDeleteFeeAllocation();
+   const linkExpense = useLinkExpenseToAllocation();
+   const unlinkExpense = useUnlinkExpenseFromAllocation();
+   const deleteExpense = useDeleteExpense();
+   const updateRole = useUpdateRole();
+   const updateExpenseLink = useUpdateShowcaseExpenseLink(showcaseId);
 
-  const modals = useExpenseLinkModals();
+   const modals = useExpenseLinkModals();
+   const [apportionExpense, setApportionExpense] = useState<{
+     expense: Expense;
+   } | null>(null);
 
   // Find the allocation by ID
   const allocation = feeAllocations.find((a) => a.id === allocationId);
@@ -101,14 +107,15 @@ export function ShowcaseFeeAllocationCard({
           onRemoveLineItem={(li) => removeLineItem.mutate({ allocationId, lineItemId: li.id })}
         />
 
-         <LinkedExpensesSection
-           allocation={allocation}
-           allExpenses={allExpenses}
-           onAddExpense={() => modals.openCreate(allocationId)}
-           onBrowse={() => modals.openPicker(allocationId)}
-           onEdit={(expense) => modals.openEdit(expense.id)}
-           onRemove={(expense) => modals.openUnlinkConfirm(allocationId, expense)}
-         />
+          <LinkedExpensesSection
+            allocation={allocation}
+            allExpenses={allExpenses}
+            onAddExpense={() => modals.openCreate(allocationId)}
+            onBrowse={() => modals.openPicker(allocationId)}
+            onEdit={(expense) => modals.openEdit(expense.id)}
+            onApportion={(expense) => setApportionExpense({ expense })}
+            onRemove={(expense) => modals.openUnlinkConfirm(allocationId, expense)}
+          />
       </FeeAllocationCard>
 
       {/* Modals */}
@@ -157,9 +164,24 @@ export function ShowcaseFeeAllocationCard({
            }
            modals.closeUnlinkConfirm();
          }}
-         unlinkPending={unlinkExpense.isPending}
-         deletePending={deleteExpense.isPending}
-       />
-    </>
-  );
+          unlinkPending={unlinkExpense.isPending}
+          deletePending={deleteExpense.isPending}
+        />
+
+        {apportionExpense && (
+          <ApportionModal
+            expense={apportionExpense.expense}
+            currentAmount={apportionExpense.expense.amount}
+            onClose={() => setApportionExpense(null)}
+            onSave={(amount) => {
+              updateExpenseLink.mutate(
+                { expenseId: apportionExpense.expense.id, apportionedAmount: amount },
+                { onSuccess: () => setApportionExpense(null) }
+              );
+            }}
+            isPending={updateExpenseLink.isPending}
+          />
+        )}
+     </>
+   );
 }

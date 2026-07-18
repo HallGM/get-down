@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Gig, DeliveryVideo } from "@get-down/shared";
 import {
   useGigDeliveryVideos,
@@ -6,8 +6,11 @@ import {
   useUpdateDeliveryVideo,
   useDeleteDeliveryVideo,
   useReorderDeliveryVideos,
+  useRefreshDeliveryPhotos,
 } from "../../api/hooks/useDelivery.js";
+import { useUpdateGig } from "../../api/hooks/useGigs.js";
 import CopyLinkBanner from "../../components/CopyLinkBanner.js";
+import FormField from "../../components/FormField.js";
 
 interface Props {
   gigId: number;
@@ -22,11 +25,21 @@ export default function GigDeliveryTab({ gigId, gig }: Props) {
   const updateDeliveryVideo = useUpdateDeliveryVideo(gigId);
   const deleteDeliveryVideo = useDeleteDeliveryVideo(gigId);
   const reorderDeliveryVideos = useReorderDeliveryVideos(gigId);
+  const updateGig = useUpdateGig();
+  const refreshDeliveryPhotos = useRefreshDeliveryPhotos(gigId);
 
   const [newVideoForm, setNewVideoForm] = useState(EMPTY_VIDEO);
   const [showAddVideo, setShowAddVideo] = useState(false);
   const [editVideoId, setEditVideoId] = useState<number | null>(null);
   const [editVideoForm, setEditVideoForm] = useState(EMPTY_VIDEO);
+  
+  const [deliveryTitle, setDeliveryTitle] = useState(gig.deliveryTitle ?? "");
+  const [dropboxUrl, setDropboxUrl] = useState(gig.dropboxUrl ?? "");
+
+  useEffect(() => {
+    setDeliveryTitle(gig.deliveryTitle ?? "");
+    setDropboxUrl(gig.dropboxUrl ?? "");
+  }, [gig.deliveryTitle, gig.dropboxUrl]);
 
   return (
     <>
@@ -40,6 +53,39 @@ export default function GigDeliveryTab({ gigId, gig }: Props) {
           successMessage="Delivery page link copied!"
         />
       )}
+
+      {/* Photos */}
+      <section>
+        <h2>Photos</h2>
+        <FormField label="Delivery page title" value={deliveryTitle} onChange={(e) => setDeliveryTitle(e.target.value)} placeholder="e.g. Sarah & Sean · Wedding Film" />
+        <FormField label="Dropbox folder link" value={dropboxUrl} onChange={(e) => setDropboxUrl(e.target.value)} />
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", alignItems: "flex-start" }}>
+          <button
+            aria-busy={updateGig.isPending}
+            disabled={updateGig.isPending}
+            onClick={async () => {
+              await updateGig.mutateAsync({
+                id: gigId,
+                input: { deliveryTitle, dropboxUrl },
+              });
+            }}
+          >
+            Save
+          </button>
+          {gig.dropboxUrl && (
+            <button
+              type="button"
+              className="secondary outline"
+              style={{ fontSize: "0.85rem", padding: "0.3em 0.8em" }}
+              aria-busy={refreshDeliveryPhotos.isPending}
+              disabled={refreshDeliveryPhotos.isPending}
+              onClick={() => refreshDeliveryPhotos.mutate()}
+            >
+              Refresh photos
+            </button>
+          )}
+        </div>
+      </section>
 
       {/* Delivery videos */}
       <section>

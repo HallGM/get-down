@@ -1,9 +1,9 @@
-import type { DashboardAlerts, GigAlertBase, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigNoLineItemsAlert, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert } from "@get-down/shared";
+import type { DashboardAlerts, GigAlertBase, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigNoLineItemsAlert, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert, FeeAllocationExpenseMismatchAlert, ExpenseOverApportionmentAlert, ExpenseOverApportionmentAllocationRef } from "@get-down/shared";
 import * as repo from "../repository/dashboard.js";
-import type { GigAlertBaseRow, GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow, GigNoLineItemsAlertRow, GigPaymentMismatchAlertRow, RoleWithoutAllocationAlertRow, EmptyRoleAlertRow } from "../repository/dashboard.js";
+import type { GigAlertBaseRow, GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow, GigNoLineItemsAlertRow, GigPaymentMismatchAlertRow, RoleWithoutAllocationAlertRow, EmptyRoleAlertRow, FeeAllocationExpenseMismatchRow, ExpenseOverApportionmentRow, ExpenseOverApportionmentAllocationRow } from "../repository/dashboard.js";
 
 export async function getDashboardAlerts(): Promise<DashboardAlerts> {
-  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows, noLineItemsRows, paymentMismatchRows, gigRoleRows, showcaseRoleRows, emptyGigRoleRows, emptyShowcaseRoleRows] = await Promise.all([
+  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows, noLineItemsRows, paymentMismatchRows, gigRoleRows, showcaseRoleRows, emptyGigRoleRows, emptyShowcaseRoleRows, expenseMismatchRows, overApportionedRows] = await Promise.all([
     repo.readDepositAlerts(),
     repo.readBalanceDueSoonAlerts(),
     repo.readAllocationsWithoutExpenses(),
@@ -15,7 +15,14 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     repo.readShowcaseRolesWithoutAllocation(),
     repo.readEmptyGigRoles(),
     repo.readEmptyShowcaseRoles(),
+    repo.readFeeAllocationExpenseMismatches(),
+    repo.readExpenseOverApportioned(),
   ]);
+
+  const overApportionedAllocationRows = await repo.readAllocationsForOverApportionedExpenses(
+    overApportionedRows.map((r) => r.id)
+  );
+  const allocationsByExpenseId = groupAllocationsByExpenseId(overApportionedAllocationRows);
 
   return {
     noDeposit: noDepositRows.map(mapAlert),
@@ -25,6 +32,10 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     allocationsWithoutExpenses: allocationRows.map(mapAllocationAlert),
     allocationsWithoutRoles: withoutRoleRows.map(mapAllocationAlert),
     apportionmentMismatches: mismatchRows.map(mapMismatchAlert),
+    feeAllocationExpenseMismatches: expenseMismatchRows.map(mapFeeAllocationExpenseMismatch),
+    expenseOverApportioned: overApportionedRows.map((row) =>
+      mapExpenseOverApportioned(row, allocationsByExpenseId.get(row.id) ?? [])
+    ),
     gigRolesWithoutAllocation: gigRoleRows.map(mapRoleWithoutAllocationAlert),
     showcaseRolesWithoutAllocation: showcaseRoleRows.map(mapRoleWithoutAllocationAlert),
     emptyGigRoles: emptyGigRoleRows.map(mapEmptyRoleAlert),
@@ -53,13 +64,7 @@ function mapAllocationAlert(row: AllocationAlertRow): FeeAllocationAlert {
 }
 
 function mapMismatchAlert(row: ApportionmentMismatchRow): ExpenseApportionmentMismatchAlert {
-  return {
-    id: row.id,
-    description: row.description,
-    amount: Number(row.amount),
-    apportionedTotal: Number(row.apportioned_total),
-    difference: Number(row.difference),
-  };
+  return mapApportionmentAlert(row);
 }
 
 function mapNoLineItemsAlert(row: GigNoLineItemsAlertRow): GigNoLineItemsAlert {
@@ -84,6 +89,30 @@ function mapRoleWithoutAllocationAlert(row: RoleWithoutAllocationAlertRow): Role
 
 function mapEmptyRoleAlert(row: EmptyRoleAlertRow): EmptyRoleAlert {
   return mapRoleCommon(row);
+}
+
+function mapFeeAllocationExpenseMismatch(row: FeeAllocationExpenseMismatchRow): FeeAllocationExpenseMismatchAlert {
+  return {
+    allocationId: row.allocation_id,
+    expenseId: row.expense_id,
+    personName: row.person_name ?? undefined,
+    eventName: row.event_name ?? `Allocation #${row.allocation_id}`,
+    eventDate: row.event_date ?? undefined,
+    gigId: row.gig_id ?? undefined,
+    allocationTotal: Number(row.allocation_total),
+    apportionedAmount: Number(row.apportioned_amount),
+    difference: Number(row.difference),
+  };
+}
+
+function mapExpenseOverApportioned(
+  row: ExpenseOverApportionmentRow,
+  allocations: ExpenseOverApportionmentAllocationRef[]
+): ExpenseOverApportionmentAlert {
+  return {
+    ...mapApportionmentAlert(row),
+    allocations,
+  };
 }
 
 // ── private helpers ──────────────────────────────────────────────────────────
@@ -121,6 +150,47 @@ function mapGigAlertBase(row: GigAlertBaseRow): GigAlertBase {
   };
 }
 
+function mapApportionmentAlert(row: {
+  id: number;
+  description: string;
+  amount: string | number;
+  apportioned_total: string | number;
+  difference: string | number;
+}): {
+  id: number;
+  description: string;
+  amount: number;
+  apportionedTotal: number;
+  difference: number;
+} {
+  return {
+    id: row.id,
+    description: row.description,
+    amount: Number(row.amount),
+    apportionedTotal: Number(row.apportioned_total),
+    difference: Number(row.difference),
+  };
+}
+
 function toDateString(value: string | Date): string {
   return typeof value === "string" ? value : value.toISOString().slice(0, 10);
+}
+
+function groupAllocationsByExpenseId(
+  rows: ExpenseOverApportionmentAllocationRow[]
+): Map<number, ExpenseOverApportionmentAllocationRef[]> {
+  const map = new Map<number, ExpenseOverApportionmentAllocationRef[]>();
+  for (const row of rows) {
+    const ref: ExpenseOverApportionmentAllocationRef = {
+      allocationId: row.allocation_id,
+      gigId: row.gig_id,
+      personName: row.person_name ?? undefined,
+      eventName: row.event_name,
+      eventDate: toDateString(row.event_date),
+    };
+    const existing = map.get(row.expense_id) ?? [];
+    existing.push(ref);
+    map.set(row.expense_id, existing);
+  }
+  return map;
 }

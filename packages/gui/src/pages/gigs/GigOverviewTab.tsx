@@ -2,7 +2,6 @@ import type { Gig, UpdateGigRequest } from "@get-down/shared";
 import { Link } from "react-router-dom";
 import { useServices } from "../../api/hooks/useServices.js";
 import { useSetGigServices } from "../../api/hooks/useGigs.js";
-import { useRefreshDeliveryPhotos } from "../../api/hooks/useDelivery.js";
 import CopyLinkBanner from "../../components/CopyLinkBanner.js";
 import FormField from "../../components/FormField.js";
 import MoneyField from "../../components/MoneyField.js";
@@ -26,7 +25,6 @@ interface Props {
 export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditForm, saveEdit, cancelEdit, isPending }: Props) {
   const { data: allServices = [] } = useServices();
   const setGigServices = useSetGigServices();
-  const refreshDeliveryPhotos = useRefreshDeliveryPhotos(gigId);
 
   const attachedIds = new Set((gig.services ?? []).map(s => s.id));
   const available = allServices.filter(s => !attachedIds.has(s.id));
@@ -93,24 +91,6 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
             <FormField as="textarea" label="Client notes" value={editForm.clientNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, clientNotes: e.target.value }))} rows={3} />
             <FormField as="textarea" label="Performer notes" value={editForm.performerNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, performerNotes: e.target.value }))} rows={3} />
             <FormField as="textarea" label="DJ playlist" rows={4} value={editForm.playlistUrl ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, playlistUrl: e.target.value }))} />
-
-            <h3 style={{ marginTop: "1.5rem" }}>Media delivery</h3>
-            <FormField label="Delivery page title" value={editForm.deliveryTitle ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, deliveryTitle: e.target.value }))} placeholder="e.g. Sarah & Sean · Wedding Film" />
-            <FormField label="Dropbox folder link" value={editForm.dropboxUrl ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, dropboxUrl: e.target.value }))} />
-            {gig.dropboxUrl && (
-              <div style={{ marginTop: "0.5rem" }}>
-                <button
-                  type="button"
-                  className="secondary outline"
-                  style={{ fontSize: "0.85rem", padding: "0.3em 0.8em" }}
-                  aria-busy={refreshDeliveryPhotos.isPending}
-                  disabled={refreshDeliveryPhotos.isPending}
-                  onClick={() => refreshDeliveryPhotos.mutate()}
-                >
-                  Refresh photos
-                </button>
-              </div>
-            )}
 
             <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
               <button type="submit" aria-busy={isPending} disabled={isPending}>Save</button>

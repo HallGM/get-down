@@ -11,7 +11,7 @@ import ErrorBanner from "../components/ErrorBanner.js";
 import { GigFeeAllocationCard } from "../components/GigFeeAllocationCard.js";
 import { ShowcaseFeeAllocationCard } from "../components/ShowcaseFeeAllocationCard.js";
 import { formatGigName } from "../utils/people.js";
-import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert } from "@get-down/shared";
+import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert, FeeAllocationExpenseMismatchAlert, ExpenseOverApportionmentAlert } from "@get-down/shared";
 
 const PICO_RED = "var(--pico-color-red-500, #e53e3e)";
 const PICO_ORANGE = "var(--pico-color-orange-500, #dd6b20)";
@@ -319,6 +319,137 @@ function PaymentMismatchTable({ mismatches }: { mismatches: GigPaymentMismatchAl
   );
 }
 
+function FeeAllocationExpenseMismatchTable({ mismatches }: { mismatches: FeeAllocationExpenseMismatchAlert[] }) {
+  const { toggle, isCollapsed } = useCollapsibleAllocations(
+    mismatches.map((m) => ({ id: m.allocationId }))
+  );
+
+  if (mismatches.length === 0) {
+    return <AllClear />;
+  }
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Person</th>
+          <th>Event</th>
+          <th>Date</th>
+          <th>Fee Allocation Total</th>
+          <th>Apportioned Expense</th>
+          <th>Difference</th>
+          <th style={{ width: "1%" }}></th>
+        </tr>
+      </thead>
+      <tbody>
+        {mismatches.map((m) => {
+          const isExpanded = !isCollapsed(m.allocationId);
+          return (
+            <Fragment key={`${m.allocationId}-${m.expenseId}`}>
+              <tr>
+                <td>{m.personName ?? <span style={{ color: "var(--pico-muted-color)" }}>Unassigned</span>}</td>
+                <td><AllocationEventCell eventName={m.eventName} gigId={m.gigId} showcaseId={undefined} /></td>
+                <td>{m.eventDate ? formatDate(m.eventDate) : "—"}</td>
+                <td>{formatPennies(m.allocationTotal)}</td>
+                <td>{formatPennies(m.apportionedAmount)}</td>
+                <td style={alertCellStyle}>
+                  {formatPennies(Math.abs(m.difference))}{m.difference < 0 ? " over" : " under"}
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className={isExpanded ? "secondary" : "secondary outline"}
+                    style={{ padding: "0.3em 0.7em", fontSize: "0.85em", width: "auto" }}
+                    onClick={() => toggle(m.allocationId)}
+                  >
+                    {isExpanded ? "Hide" : "Apportion"}
+                  </button>
+                </td>
+              </tr>
+              {isExpanded && m.gigId && (
+                <tr style={{ background: "var(--pico-muted-border-color, rgba(0,0,0,0.04))" }}>
+                  <td colSpan={7} style={{ padding: "1rem" }}>
+                    <GigFeeAllocationCard
+                      gigId={m.gigId}
+                      allocationId={m.allocationId}
+                      isCollapsed={false}
+                      onToggle={() => toggle(m.allocationId)}
+                    />
+                  </td>
+                </tr>
+              )}
+            </Fragment>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function ExpenseOverApportionmentTable({ mismatches }: { mismatches: ExpenseOverApportionmentAlert[] }) {
+  const { toggle, isCollapsed } = useCollapsibleAllocations(mismatches.map((m) => ({ id: m.id })));
+
+  if (mismatches.length === 0) {
+    return <AllClear />;
+  }
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Expense</th>
+          <th>Total</th>
+          <th>Apportioned to Gigs</th>
+          <th>Difference</th>
+          <th style={{ width: "1%" }}></th>
+        </tr>
+      </thead>
+      <tbody>
+        {mismatches.map((m) => {
+          const isExpanded = !isCollapsed(m.id);
+          return (
+            <Fragment key={m.id}>
+              <tr>
+                <td>{m.description}</td>
+                <td>{formatPennies(m.amount)}</td>
+                <td>{formatPennies(m.apportionedTotal)}</td>
+                <td style={alertCellStyle}>
+                  {formatPennies(Math.abs(m.difference))} over
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className={isExpanded ? "secondary" : "secondary outline"}
+                    style={{ padding: "0.3em 0.7em", fontSize: "0.85em", width: "auto" }}
+                    onClick={() => toggle(m.id)}
+                  >
+                    {isExpanded ? "Hide" : "Apportion"}
+                  </button>
+                </td>
+              </tr>
+              {isExpanded && (
+                <tr style={{ background: "var(--pico-muted-border-color, rgba(0,0,0,0.04))" }}>
+                  <td colSpan={5} style={{ padding: "1rem" }}>
+                    <div style={{ display: "grid", gap: "0.75rem" }}>
+                      {m.allocations.map((a) => (
+                        <GigFeeAllocationCard
+                          key={a.allocationId}
+                          gigId={a.gigId}
+                          allocationId={a.allocationId}
+                          isCollapsed={false}
+                          onToggle={() => toggle(m.id)}
+                        />
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </Fragment>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
 export default function Dashboard() {
   const { data, isLoading, error } = useDashboardAlerts();
 
@@ -388,13 +519,31 @@ export default function Dashboard() {
             <AllocationAlertTable allocations={data.allocationsWithoutRoles} />
           </DashboardSection>
 
-          <DashboardSection
+           <DashboardSection
             title="Showcase Apportionment Mismatches"
             description="Expenses linked to showcases where the apportioned amounts don't add up to the expense total."
             count={data.apportionmentMismatches.length}
             badgeColor={PICO_RED}
           >
             <ApportionmentMismatchTable mismatches={data.apportionmentMismatches} />
+          </DashboardSection>
+
+          <DashboardSection
+            title="Fee Allocations With Mismatched Expense Shares"
+            description="Gig fee allocations where the total line items don't match the apportioned expense amount."
+            count={data.feeAllocationExpenseMismatches.length}
+            badgeColor={PICO_RED}
+          >
+            <FeeAllocationExpenseMismatchTable mismatches={data.feeAllocationExpenseMismatches} />
+          </DashboardSection>
+
+          <DashboardSection
+            title="Expenses Over-Apportioned Across Gigs"
+            description="Expenses where the total apportioned amounts across gig fee allocations exceed the expense total."
+            count={data.expenseOverApportioned.length}
+            badgeColor={PICO_RED}
+          >
+            <ExpenseOverApportionmentTable mismatches={data.expenseOverApportioned} />
           </DashboardSection>
 
           <DashboardSection
