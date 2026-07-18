@@ -48,22 +48,14 @@ export default function ShowcaseRolesTab({ showcaseId }: Props) {
 
   return (
     <div>
-      {/* Assigned Roles */}
-      <section>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2>Assigned Roles</h2>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button
-              className="secondary outline"
-              aria-busy={generateFeeAllocations.isPending}
-              disabled={generateFeeAllocations.isPending}
-              onClick={() => handleGenerate(false)}
-            >
-              Generate fee allocations
-            </button>
-            <button className="secondary" onClick={() => setShowAddRole(true)}>+ Add</button>
-          </div>
-        </div>
+       {/* Assigned Roles */}
+       <section>
+         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+           <h2>Assigned Roles</h2>
+           <div style={{ display: "flex", gap: "0.5rem" }}>
+             <button className="secondary" onClick={() => setShowAddRole(true)}>+ Add</button>
+           </div>
+         </div>
 
         {roles.length > 0 ? (
           <table>
@@ -109,11 +101,19 @@ export default function ShowcaseRolesTab({ showcaseId }: Props) {
         )}
       </section>
 
-      {/* Fee Allocations */}
-      <section>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2>Fee Allocations</h2>
-        </div>
+       {/* Fee Allocations */}
+       <section>
+         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+           <h2>Fee Allocations</h2>
+           <button
+             className="secondary outline"
+             aria-busy={generateFeeAllocations.isPending}
+             disabled={generateFeeAllocations.isPending}
+             onClick={() => handleGenerate(false)}
+           >
+             Generate fee allocations
+           </button>
+         </div>
 
         {feeAllocations.length === 0 ? (
           <p style={{ color: "var(--pico-muted-color)" }}>

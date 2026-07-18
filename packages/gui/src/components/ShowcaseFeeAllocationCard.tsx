@@ -3,29 +3,30 @@ import type { FeeAllocation, Expense } from "@get-down/shared";
 import { useExpenseLinkModals } from "../hooks/useExpenseLinkModals.js";
 import { useShowcaseRoles } from "../api/hooks/useAssignedRoles.js";
 import { usePeople } from "../api/hooks/usePeople.js";
+import { useShowcase } from "../api/hooks/useShowcases.js";
 import {
-  useFeeAllocationsByShowcase,
-  useAddFeeLineItem,
-  useUpdateFeeLineItem,
-  useRemoveFeeLineItem,
-  useDeleteFeeAllocation,
-  useLinkExpenseToAllocation,
-  useUnlinkExpenseFromAllocation,
-} from "../api/hooks/useFeeAllocations.js";
-import { useExpenses, useDeleteExpense } from "../api/hooks/useExpenses.js";
-import { useUpdateRole } from "../api/hooks/useAssignedRoles.js";
-import { useUpdateShowcaseExpenseLink } from "../api/hooks/useShowcases.js";
-import ExpensePickerModal from "./ExpensePickerModal.js";
-import ExpenseCreateModal from "./ExpenseCreateModal.js";
-import ExpenseModal from "./ExpenseModal.js";
-import { FeeAllocationPanel } from "./FeeAllocationPanel.js";
-import { FeeAllocationCard } from "./FeeAllocationCard.js";
-import { LinkedExpensesSection } from "./LinkedExpensesSection.js";
-import { LinkedRolesSection } from "./LinkedRolesSection.js";
-import { UnlinkOrDeleteModal } from "./UnlinkOrDeleteModal.js";
-import { ApportionModal } from "./ApportionModal.js";
-import { formatPersonName, resolvePersonName } from "../utils/people.js";
-import { getAllocationTitle } from "../utils/allocations.js";
+   useFeeAllocationsByShowcase,
+   useAddFeeLineItem,
+   useUpdateFeeLineItem,
+   useRemoveFeeLineItem,
+   useDeleteFeeAllocation,
+   useLinkExpenseToAllocation,
+   useUnlinkExpenseFromAllocation,
+ } from "../api/hooks/useFeeAllocations.js";
+ import { useExpenses, useDeleteExpense } from "../api/hooks/useExpenses.js";
+ import { useUpdateRole } from "../api/hooks/useAssignedRoles.js";
+ import { useUpdateShowcaseExpenseLink } from "../api/hooks/useShowcases.js";
+ import ExpensePickerModal from "./ExpensePickerModal.js";
+ import ExpenseCreateModal from "./ExpenseCreateModal.js";
+ import ExpenseModal from "./ExpenseModal.js";
+ import { FeeAllocationPanel } from "./FeeAllocationPanel.js";
+ import { FeeAllocationCard } from "./FeeAllocationCard.js";
+ import { LinkedExpensesSection } from "./LinkedExpensesSection.js";
+ import { LinkedRolesSection } from "./LinkedRolesSection.js";
+ import { UnlinkOrDeleteModal } from "./UnlinkOrDeleteModal.js";
+ import { ApportionModal } from "./ApportionModal.js";
+ import { formatPersonName, resolvePersonName, formatShowcaseName } from "../utils/people.js";
+ import { getAllocationTitle, buildExpenseInitialValues } from "../utils/allocations.js";
 
 interface ShowcaseFeeAllocationCardProps {
   showcaseId: number;
@@ -35,39 +36,40 @@ interface ShowcaseFeeAllocationCardProps {
 }
 
 export function ShowcaseFeeAllocationCard({
-  showcaseId,
-  allocationId,
-  isCollapsed,
-  onToggle,
-}: ShowcaseFeeAllocationCardProps) {
-   const { data: roles = [] } = useShowcaseRoles(showcaseId);
-   const { data: people = [] } = usePeople();
-   const { data: feeAllocations = [] } = useFeeAllocationsByShowcase(showcaseId);
-   const { data: allExpenses = [] } = useExpenses();
+   showcaseId,
+   allocationId,
+   isCollapsed,
+   onToggle,
+ }: ShowcaseFeeAllocationCardProps) {
+    const { data: roles = [] } = useShowcaseRoles(showcaseId);
+    const { data: people = [] } = usePeople();
+    const { data: showcase } = useShowcase(showcaseId);
+    const { data: feeAllocations = [] } = useFeeAllocationsByShowcase(showcaseId);
+    const { data: allExpenses = [] } = useExpenses();
 
-   const addLineItem = useAddFeeLineItem();
-   const updateLineItem = useUpdateFeeLineItem();
-   const removeLineItem = useRemoveFeeLineItem();
-   const deleteFeeAllocation = useDeleteFeeAllocation();
-   const linkExpense = useLinkExpenseToAllocation();
-   const unlinkExpense = useUnlinkExpenseFromAllocation();
-   const deleteExpense = useDeleteExpense();
-   const updateRole = useUpdateRole();
-   const updateExpenseLink = useUpdateShowcaseExpenseLink(showcaseId);
+    const addLineItem = useAddFeeLineItem();
+    const updateLineItem = useUpdateFeeLineItem();
+    const removeLineItem = useRemoveFeeLineItem();
+    const deleteFeeAllocation = useDeleteFeeAllocation();
+    const linkExpense = useLinkExpenseToAllocation();
+    const unlinkExpense = useUnlinkExpenseFromAllocation();
+    const deleteExpense = useDeleteExpense();
+    const updateRole = useUpdateRole();
+    const updateExpenseLink = useUpdateShowcaseExpenseLink(showcaseId);
 
-   const modals = useExpenseLinkModals();
-   const [apportionExpense, setApportionExpense] = useState<{
-     expense: Expense;
-   } | null>(null);
+    const modals = useExpenseLinkModals();
+    const [apportionExpense, setApportionExpense] = useState<{
+      expense: Expense;
+    } | null>(null);
 
-  // Find the allocation by ID
-  const allocation = feeAllocations.find((a) => a.id === allocationId);
-  if (!allocation) return null;
+   // Find the allocation by ID
+   const allocation = feeAllocations.find((a) => a.id === allocationId);
+   if (!allocation) return null;
 
-  const linkedRoles = roles.filter((r) => r.feeAllocationId === allocationId);
-  const unlinkedRoles = roles.filter((r) => !r.feeAllocationId);
-  const hasExpenses = allocation.expenseIds.length > 0;
-  const editExpense = modals.editExpenseId != null ? (allExpenses.find((e) => e.id === modals.editExpenseId) ?? null) : null;
+   const linkedRoles = roles.filter((r) => r.feeAllocationId === allocationId);
+   const unlinkedRoles = roles.filter((r) => !r.feeAllocationId);
+   const hasExpenses = allocation.expenseIds.length > 0;
+   const editExpense = modals.editExpenseId != null ? (allExpenses.find((e) => e.id === modals.editExpenseId) ?? null) : null;
 
   return (
     <>
@@ -118,13 +120,21 @@ export function ShowcaseFeeAllocationCard({
           />
       </FeeAllocationCard>
 
-      {/* Modals */}
-       <ExpenseCreateModal
-         open={modals.createAllocationId === allocationId}
-         onClose={modals.closeCreate}
-         allocationId={allocationId}
-         onCreated={modals.closeCreate}
-       />
+       {/* Modals */}
+        <ExpenseCreateModal
+          open={modals.createAllocationId === allocationId}
+          onClose={modals.closeCreate}
+          initialValues={buildExpenseInitialValues(
+            showcase,
+            linkedRoles,
+            allocation,
+            people,
+            (sc) => formatShowcaseName(sc as any, showcaseId)
+          )}
+          allocationId={allocationId}
+          paymentDateIsToday={true}
+          onCreated={modals.closeCreate}
+        />
 
        <ExpensePickerModal
          open={modals.pickerAllocationId === allocationId}

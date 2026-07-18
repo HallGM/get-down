@@ -9,6 +9,7 @@ import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
+import { formatShowcaseName } from "../../utils/people.js";
 import TabBar from "../../components/TabBar.js";
 import ShowcaseRolesTab from "../attributions/ShowcaseRolesTab.js";
 import ShowcaseExpensesTab from "./ShowcaseExpensesTab.js";
@@ -52,7 +53,7 @@ export default function ShowcaseDetail() {
   if (error) return <main className="container"><ErrorBanner error={error} /></main>;
   if (!showcase) return <main className="container"><ErrorBanner error={new Error("Showcase not found")} /></main>;
 
-  const displayName = showcase.nickname ?? showcase.fullName ?? `Showcase #${showcaseId}`;
+  const displayName = formatShowcaseName(showcase, showcaseId);
 
   return (
     <main className="container">
