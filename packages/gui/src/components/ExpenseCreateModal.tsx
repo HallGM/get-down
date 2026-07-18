@@ -1,32 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCreateExpense } from "../api/hooks/useExpenses.js";
 import { useSettleAllocationWithExpense } from "../api/hooks/useFeeAllocations.js";
 import { useAccounts } from "../api/hooks/useAccounts.js";
+import { useFileUpload } from "../hooks/useFileUpload.js";
 import type { CreateExpenseRequest, Expense } from "@get-down/shared";
-import { MAX_DOCUMENT_SIZE_BYTES } from "@get-down/shared";
 import Modal from "./Modal.js";
 import FormField from "./FormField.js";
 import MoneyField from "./MoneyField.js";
 import { PaymentFormFields, EMPTY_PAYMENT_FORM, type PaymentFormState } from "./ExpensePaymentFormFields.js";
 import { toInputDate } from "../utils/date.js";
-
-function makeFileChangeHandler(
-  setFile: (f: File | undefined) => void,
-  setError: (e: string | undefined) => void,
-) {
-  return (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) { setFile(undefined); setError(undefined); return; }
-    if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
-      setFile(undefined);
-      setError("File must be 20 MB or smaller.");
-      e.target.value = "";
-      return;
-    }
-    setError(undefined);
-    setFile(file);
-  };
-}
 
 // Extends the shared form state with dirty-tracking for auto-sync behaviour
 interface LocalPaymentState extends PaymentFormState {
@@ -44,8 +26,10 @@ export interface ExpenseCreateModalProps {
   open: boolean;
   onClose: () => void;
   onCreated?: (expense: Expense) => void;
-  initialValues?: { description?: string; amount?: number };
+  initialValues?: { description?: string; amount?: number; recipientName?: string };
   allocationId?: number;
+  /** If true, payment date defaults to today. If false, defaults to the expense date. */
+  paymentDateIsToday?: boolean;
 }
 
 export default function ExpenseCreateModal({
@@ -54,21 +38,22 @@ export default function ExpenseCreateModal({
   onCreated,
   initialValues,
   allocationId,
+  paymentDateIsToday = false,
 }: ExpenseCreateModalProps) {
   const createExpense = useCreateExpense();
   const settleAllocation = useSettleAllocationWithExpense();
   const { data: accounts = [] } = useAccounts();
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileUpload = useFileUpload();
+
   const [form, setForm] = useState<CreateExpenseRequest>(() => ({
     description: initialValues?.description ?? "",
     amount: initialValues?.amount ?? 0,
+    recipientName: initialValues?.recipientName ?? "",
   }));
-  const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
-  const [fileError, setFileError] = useState<string | undefined>(undefined);
   const [recordPayment, setRecordPayment] = useState(false);
   const [paymentForm, setPaymentForm] = useState<LocalPaymentState>(EMPTY_LOCAL_PAYMENT);
-
-  const handleFileChange = makeFileChangeHandler(setSelectedFile, setFileError);
 
   // Reset everything whenever the modal opens
   useEffect(() => {
@@ -76,11 +61,15 @@ export default function ExpenseCreateModal({
       setForm({
         description: initialValues?.description ?? "",
         amount: initialValues?.amount ?? 0,
+        recipientName: initialValues?.recipientName ?? "",
       });
-      setSelectedFile(undefined);
-      setFileError(undefined);
+      fileUpload.reset();
       setRecordPayment(false);
       setPaymentForm(EMPTY_LOCAL_PAYMENT);
+      // Clear the file input's DOM value to remove any stale filename display
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -104,11 +93,11 @@ export default function ExpenseCreateModal({
       setPaymentForm({
         accountId: businessAccount?.id ?? "",
         amount: form.amount,
-        date: form.date ?? "",
-        paymentMethod: "",
+        date: paymentDateIsToday ? toInputDate(new Date()) : (form.date || toInputDate(new Date())),
+        paymentMethod: "Transfer",
         description: "",
         amountDirty: false,
-        dateDirty: false,
+        dateDirty: true,
       });
     }
   }
@@ -132,7 +121,7 @@ export default function ExpenseCreateModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (fileError) return;
+    if (fileUpload.error) return;
 
     const input: CreateExpenseRequest = { ...form };
     if (recordPayment && typeof paymentForm.accountId === "number") {
@@ -146,8 +135,8 @@ export default function ExpenseCreateModal({
     }
 
     const created = allocationId
-      ? await settleAllocation.mutateAsync({ allocationId, input, file: selectedFile })
-      : await createExpense.mutateAsync({ input, file: selectedFile });
+      ? await settleAllocation.mutateAsync({ allocationId, input, file: fileUpload.file })
+      : await createExpense.mutateAsync({ input, file: fileUpload.file });
     onCreated?.(created);
   }
 
@@ -178,23 +167,28 @@ export default function ExpenseCreateModal({
             value={toInputDate(form.date)}
             onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
           />
-          <FormField
-            label="Category"
-            value={form.category ?? ""}
-            onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-          />
-          <FormField
-            label="Recipient"
-            value={form.recipientName ?? ""}
-            onChange={(e) => setForm((f) => ({ ...f, recipientName: e.target.value }))}
-          />
-          <div style={{ gridColumn: "1 / -1" }}>
-            <label>
-              <small>Invoice document (optional, max 20 MB)</small>
-              <input type="file" onChange={handleFileChange} style={{ marginTop: "0.25rem" }} />
-            </label>
-            {fileError && <small style={{ color: "var(--pico-color-red-500)" }}>{fileError}</small>}
-          </div>
+           <FormField
+             label="Category"
+             value={form.category ?? ""}
+             onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+           />
+           <FormField
+             label="Recipient"
+             value={form.recipientName ?? ""}
+             onChange={(e) => setForm((f) => ({ ...f, recipientName: e.target.value }))}
+           />
+           <div style={{ gridColumn: "1 / -1" }}>
+             <label>
+               <small>Invoice document (optional, max 20 MB)</small>
+               <input
+                 ref={fileInputRef}
+                 type="file"
+                 onChange={fileUpload.handleFileChange}
+                 style={{ marginTop: "0.25rem" }}
+               />
+             </label>
+             {fileUpload.error && <small style={{ color: "var(--pico-color-red-500)" }}>{fileUpload.error}</small>}
+           </div>
 
           {/* Record payment toggle */}
           <div style={{ gridColumn: "1 / -1", marginTop: "0.25rem" }}>
@@ -226,7 +220,7 @@ export default function ExpenseCreateModal({
           <button
             type="submit"
             aria-busy={isLoading}
-            disabled={isLoading || !!fileError || paymentMissing}
+            disabled={isLoading || !!fileUpload.error || paymentMissing}
           >
             {allocationId ? "Settle" : "Create"}
           </button>

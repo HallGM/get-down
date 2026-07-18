@@ -35,7 +35,7 @@ import { LinkedTransactionsSection } from "./LinkedTransactionsSection.js";
 import { UnlinkOrDeleteModal } from "./UnlinkOrDeleteModal.js";
 import { ApportionModal } from "./ApportionModal.js";
 import { formatPersonName, formatGigName, resolvePersonName } from "../utils/people.js";
-import { getAllocationTitle } from "../utils/allocations.js";
+import { getAllocationTitle, buildExpenseInitialValues } from "../utils/allocations.js";
 
 interface GigFeeAllocationCardProps {
   gigId: number;
@@ -72,21 +72,21 @@ export function GigFeeAllocationCard({
 
    const modals = useExpenseLinkModals();
    const [apportionExpense, setApportionExpense] = useState<{
-     expense: Expense;
-   } | null>(null);
+      expense: Expense;
+    } | null>(null);
 
-  // Find the allocation by ID
-  const allocation = feeAllocations.find((a) => a.id === allocationId);
-  if (!allocation) return null;
+   // Find the allocation by ID
+   const allocation = feeAllocations.find((a) => a.id === allocationId);
+   if (!allocation) return null;
 
-  const linkedRoles = roles.filter((r) => r.feeAllocationId === allocationId);
-  const unlinkedRoles = roles.filter((r) => !r.feeAllocationId);
-  const hasExpenses = (allocation.expenseLinks?.length ?? 0) > 0;
-  const editExpense = modals.editExpenseId != null ? (allExpenses.find((e) => e.id === modals.editExpenseId) ?? null) : null;
+   const linkedRoles = roles.filter((r) => r.feeAllocationId === allocationId);
+   const unlinkedRoles = roles.filter((r) => !r.feeAllocationId);
+   const hasExpenses = (allocation.expenseLinks?.length ?? 0) > 0;
+   const editExpense = modals.editExpenseId != null ? (allExpenses.find((e) => e.id === modals.editExpenseId) ?? null) : null;
 
-  async function handleReset() {
-    await resetFeeAllocation.mutateAsync(allocationId);
-  }
+   async function handleReset() {
+     await resetFeeAllocation.mutateAsync(allocationId);
+   }
 
   return (
     <>
@@ -162,21 +162,15 @@ export function GigFeeAllocationCard({
         )}
       </FeeAllocationCard>
 
-      {/* Modals */}
-       <ExpenseCreateModal
-         open={modals.createAllocationId === allocationId}
-         onClose={modals.closeCreate}
-         initialValues={
-           gig && allocation.personId
-             ? {
-                 description: `${gig.firstName} ${gig.lastName} - ${resolvePersonName(people, allocation.personId)}${allocation.notes ? ` (${allocation.notes})` : ""}`,
-                 amount: (allocation.lineItems ?? []).reduce((sum, li) => sum + (li.amount ?? 0), 0),
-               }
-             : undefined
-         }
-         allocationId={allocationId}
-        onCreated={modals.closeCreate}
-       />
+       {/* Modals */}
+        <ExpenseCreateModal
+          open={modals.createAllocationId === allocationId}
+          onClose={modals.closeCreate}
+          initialValues={buildExpenseInitialValues(gig, linkedRoles, allocation, people, formatGigName)}
+          allocationId={allocationId}
+          paymentDateIsToday={true}
+          onCreated={modals.closeCreate}
+        />
 
         <ExpensePickerModal
           open={modals.pickerAllocationId === allocationId}

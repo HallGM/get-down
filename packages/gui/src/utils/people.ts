@@ -14,3 +14,8 @@ export function resolvePersonName(people: Person[], personId: number | undefined
   const person = people.find((p) => p.id === personId);
   return person ? formatPersonName(person) : "";
 }
+
+/** Format a showcase's display name using its nickname, fullName, or ID fallback. */
+export function formatShowcaseName(showcase: { nickname?: string | null; fullName?: string | null }, showcaseId: number): string {
+  return showcase.nickname ?? showcase.fullName ?? `Showcase #${showcaseId}`;
+}
