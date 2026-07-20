@@ -19,3 +19,8 @@ export function resolvePersonName(people: Person[], personId: number | undefined
 export function formatShowcaseName(showcase: { nickname?: string | null; fullName?: string | null }, showcaseId: number): string {
   return showcase.nickname ?? showcase.fullName ?? `Showcase #${showcaseId}`;
 }
+
+/** Format a location for display: prefer venue name, fall back to location text, then placeholder. */
+export function formatLocation(venueName?: string | null, location?: string | null): string {
+  return venueName ?? location ?? "—";
+}
