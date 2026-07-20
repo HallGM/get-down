@@ -10,7 +10,7 @@ import LoadingState from "../components/LoadingState.js";
 import ErrorBanner from "../components/ErrorBanner.js";
 import { GigFeeAllocationCard } from "../components/GigFeeAllocationCard.js";
 import { ShowcaseFeeAllocationCard } from "../components/ShowcaseFeeAllocationCard.js";
-import { formatGigName } from "../utils/people.js";
+import { formatGigName, formatLocation } from "../utils/people.js";
 import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert, FeeAllocationExpenseMismatchAlert, ExpenseOverApportionmentAlert } from "@get-down/shared";
 
 const PICO_RED = "var(--pico-color-red-500, #e53e3e)";
@@ -86,7 +86,7 @@ function AlertTable({ alerts, showBalance }: { alerts: GigAlertBase[]; showBalan
             <td>
               <Link to={`/gigs/${g.id}`}>{formatGigName(g)}</Link>
             </td>
-            <td>{g.venueName ?? g.location ?? "—"}</td>
+            <td>{formatLocation(g.venueName, g.location)}</td>
             {showBalance && <BalanceCells alert={g as GigPaymentMismatchAlert} />}
           </tr>
         ))}
@@ -106,6 +106,7 @@ function AllocationAlertTable({ allocations }: { allocations: FeeAllocationAlert
           <th>Person</th>
           <th>Event</th>
           <th>Date</th>
+          <th>Location</th>
           <th>Fee</th>
         </tr>
       </thead>
@@ -115,6 +116,7 @@ function AllocationAlertTable({ allocations }: { allocations: FeeAllocationAlert
             <td>{a.personName ?? <span style={{ color: "var(--pico-muted-color)" }}>Unassigned</span>}</td>
             <td><AllocationEventCell eventName={a.eventName} gigId={a.gigId} showcaseId={a.showcaseId} /></td>
             <td>{a.eventDate ? formatDate(a.eventDate) : "—"}</td>
+            <td>{formatLocation(a.venueName, a.location)}</td>
             <td>{formatPennies(a.totalFee)}</td>
           </tr>
         ))}
@@ -171,7 +173,7 @@ function EmptyRoleTable({ roles }: { roles: EmptyRoleAlert[] }) {
             <td>{r.roleName}</td>
             <td><AllocationEventCell eventName={r.eventName} gigId={r.gigId} showcaseId={r.showcaseId} /></td>
             <td>{formatDate(r.eventDate)}</td>
-            <td>{r.venueName ?? r.location ?? "—"}</td>
+            <td>{formatLocation(r.venueName, r.location)}</td>
           </tr>
         ))}
       </tbody>
@@ -193,6 +195,7 @@ function SettleableAllocationTable({ allocations }: { allocations: FeeAllocation
           <th>Person</th>
           <th>Event</th>
           <th>Date</th>
+          <th>Location</th>
           <th>Fee</th>
           <th style={{ width: "1%" }}></th>
         </tr>
@@ -202,12 +205,13 @@ function SettleableAllocationTable({ allocations }: { allocations: FeeAllocation
            const isExpanded = !isCollapsed(a.id);
            return (
              <Fragment key={a.id}>
-               <tr>
-                 <td>{a.personName ?? <span style={{ color: "var(--pico-muted-color)" }}>Unassigned</span>}</td>
-                 <td><AllocationEventCell eventName={a.eventName} gigId={a.gigId} showcaseId={a.showcaseId} /></td>
-                 <td>{a.eventDate ? formatDate(a.eventDate) : "—"}</td>
-                 <td>{formatPennies(a.totalFee)}</td>
-                 <td>
+                <tr>
+                  <td>{a.personName ?? <span style={{ color: "var(--pico-muted-color)" }}>Unassigned</span>}</td>
+                  <td><AllocationEventCell eventName={a.eventName} gigId={a.gigId} showcaseId={a.showcaseId} /></td>
+                  <td>{a.eventDate ? formatDate(a.eventDate) : "—"}</td>
+                  <td>{formatLocation(a.venueName, a.location)}</td>
+                  <td>{formatPennies(a.totalFee)}</td>
+                  <td>
                    <button
                      type="button"
                      className={isExpanded ? "secondary" : "secondary outline"}
@@ -220,7 +224,7 @@ function SettleableAllocationTable({ allocations }: { allocations: FeeAllocation
                </tr>
                {isExpanded && (
                  <tr style={{ background: "var(--pico-muted-border-color, rgba(0,0,0,0.04))" }}>
-                   <td colSpan={5} style={{ padding: "1rem" }}>
+                   <td colSpan={6} style={{ padding: "1rem" }}>
                      {a.gigId ? (
                        <GigFeeAllocationCard
                          gigId={a.gigId}
@@ -242,9 +246,9 @@ function SettleableAllocationTable({ allocations }: { allocations: FeeAllocation
              </Fragment>
            );
          })}
-       </tbody>
-    </table>
-  );
+        </tbody>
+     </table>
+   );
 }
 
 function ApportionmentMismatchTable({ mismatches }: { mismatches: ExpenseApportionmentMismatchAlert[] }) {
@@ -305,7 +309,7 @@ function PaymentMismatchTable({ mismatches }: { mismatches: GigPaymentMismatchAl
               <td>
                 <Link to={`/gigs/${m.id}`}>{formatGigName(m)}</Link>
               </td>
-              <td>{m.venueName ?? m.location ?? "—"}</td>
+              <td>{formatLocation(m.venueName, m.location)}</td>
               <td>{formatPennies(m.billingTotal)}</td>
               <td>{formatPennies(m.netReceived)}</td>
               <td style={diffStyle}>
@@ -502,31 +506,49 @@ export default function Dashboard() {
           </DashboardSection>
 
           <DashboardSection
-            title="Fee Allocations Missing Expenses"
-            description="Fee allocations with no expense record linked. Manage inline by editing line items, linking roles, creating or linking expenses, and more."
-            count={data.allocationsWithoutExpenses.length}
+            title="Fee Allocations Missing Expenses (Gigs)"
+            description="Gig fee allocations with no expense record linked. Manage inline by editing line items, linking roles, creating or linking expenses, and more."
+            count={data.allocationsWithoutExpensesGigs.length}
             badgeColor={PICO_ORANGE}
           >
-            <SettleableAllocationTable allocations={data.allocationsWithoutExpenses} />
+            <SettleableAllocationTable allocations={data.allocationsWithoutExpensesGigs} />
           </DashboardSection>
 
           <DashboardSection
-            title="Fee Allocations Not Assigned to a Role"
-            description="Fee allocations that exist without being assigned to a performer role."
-            count={data.allocationsWithoutRoles.length}
+            title="Fee Allocations Missing Expenses (Showcases)"
+            description="Showcase fee allocations with no expense record linked. Manage inline by editing line items, linking roles, creating or linking expenses, and more."
+            count={data.allocationsWithoutExpensesShowcases.length}
             badgeColor={PICO_ORANGE}
           >
-            <AllocationAlertTable allocations={data.allocationsWithoutRoles} />
+            <SettleableAllocationTable allocations={data.allocationsWithoutExpensesShowcases} />
+          </DashboardSection>
+
+          <DashboardSection
+            title="Fee Allocations Not Assigned to a Role (Gigs)"
+            description="Gig fee allocations that exist without being assigned to a performer role."
+            count={data.allocationsWithoutRolesGigs.length}
+            badgeColor={PICO_ORANGE}
+          >
+            <AllocationAlertTable allocations={data.allocationsWithoutRolesGigs} />
+          </DashboardSection>
+
+          <DashboardSection
+            title="Fee Allocations Not Assigned to a Role (Showcases)"
+            description="Showcase fee allocations that exist without being assigned to a performer role."
+            count={data.allocationsWithoutRolesShowcases.length}
+            badgeColor={PICO_ORANGE}
+          >
+            <AllocationAlertTable allocations={data.allocationsWithoutRolesShowcases} />
           </DashboardSection>
 
            <DashboardSection
-            title="Showcase Apportionment Mismatches"
-            description="Expenses linked to showcases where the apportioned amounts don't add up to the expense total."
-            count={data.apportionmentMismatches.length}
-            badgeColor={PICO_RED}
-          >
-            <ApportionmentMismatchTable mismatches={data.apportionmentMismatches} />
-          </DashboardSection>
+             title="Showcase Apportionment Mismatches"
+             description="Expenses linked to showcases where the apportioned amounts don't add up to the expense total."
+             count={data.apportionmentMismatches.length}
+             badgeColor={PICO_RED}
+           >
+             <ApportionmentMismatchTable mismatches={data.apportionmentMismatches} />
+           </DashboardSection>
 
           <DashboardSection
             title="Fee Allocations With Mismatched Expense Shares"

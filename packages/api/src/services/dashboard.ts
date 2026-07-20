@@ -24,13 +24,20 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
   );
   const allocationsByExpenseId = groupAllocationsByExpenseId(overApportionedAllocationRows);
 
+  const { gigs: allocationsWithoutExpensesGigs, showcases: allocationsWithoutExpensesShowcases } =
+    partitionByEventType(allocationRows);
+  const { gigs: allocationsWithoutRolesGigs, showcases: allocationsWithoutRolesShowcases } =
+    partitionByEventType(withoutRoleRows);
+
   return {
     noDeposit: noDepositRows.map(mapAlert),
     gigsWithoutLineItems: noLineItemsRows.map(mapNoLineItemsAlert),
     balanceDueSoon: balanceDueSoonRows.map(mapPaymentMismatchAlert),
     pastPaymentMismatches: paymentMismatchRows.map(mapPaymentMismatchAlert),
-    allocationsWithoutExpenses: allocationRows.map(mapAllocationAlert),
-    allocationsWithoutRoles: withoutRoleRows.map(mapAllocationAlert),
+    allocationsWithoutExpensesGigs,
+    allocationsWithoutExpensesShowcases,
+    allocationsWithoutRolesGigs,
+    allocationsWithoutRolesShowcases,
     apportionmentMismatches: mismatchRows.map(mapMismatchAlert),
     feeAllocationExpenseMismatches: expenseMismatchRows.map(mapFeeAllocationExpenseMismatch),
     expenseOverApportioned: overApportionedRows.map((row) =>
@@ -60,6 +67,8 @@ function mapAllocationAlert(row: AllocationAlertRow): FeeAllocationAlert {
     gigId: row.gig_id ?? undefined,
     showcaseId: row.showcase_id ?? undefined,
     totalFee: Number(row.total_fee),
+    venueName: row.venue_name ?? undefined,
+    location: row.location ?? undefined,
   };
 }
 
@@ -193,4 +202,15 @@ function groupAllocationsByExpenseId(
     map.set(row.expense_id, existing);
   }
   return map;
+}
+
+function partitionByEventType(rows: AllocationAlertRow[]): {
+  gigs: FeeAllocationAlert[];
+  showcases: FeeAllocationAlert[];
+} {
+  const mapped = rows.map(mapAllocationAlert);
+  return {
+    gigs: mapped.filter((a) => a.gigId !== undefined),
+    showcases: mapped.filter((a) => a.showcaseId !== undefined),
+  };
 }

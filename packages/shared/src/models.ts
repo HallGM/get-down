@@ -1314,6 +1314,10 @@ export interface FeeAllocationAlert {
   showcaseId?: number;
   /** Sum of line item amounts in pennies. Zero if there are no line items. */
   totalFee: number;
+  /** Venue name for gigs, or undefined if not set. */
+  venueName?: string;
+  /** Location text (gig location or showcase location), or undefined if not set. */
+  location?: string;
 }
 
 export interface RoleWithoutAllocationAlert {
@@ -1421,10 +1425,14 @@ export interface DashboardAlerts {
   balanceDueSoon: GigPaymentMismatchAlert[];
   /** Confirmed past gigs with at least one line item where net received does not equal the billing total. */
   pastPaymentMismatches: GigPaymentMismatchAlert[];
-  /** Fee allocations (gig or showcase) with no expense record linked. */
-  allocationsWithoutExpenses: FeeAllocationAlert[];
-  /** Fee allocations with no assigned_roles row pointing at them. */
-  allocationsWithoutRoles: FeeAllocationAlert[];
+  /** Gig fee allocations with no expense record linked. */
+  allocationsWithoutExpensesGigs: FeeAllocationAlert[];
+  /** Showcase fee allocations with no expense record linked. */
+  allocationsWithoutExpensesShowcases: FeeAllocationAlert[];
+  /** Gig fee allocations with no assigned_roles row pointing at them. */
+  allocationsWithoutRolesGigs: FeeAllocationAlert[];
+  /** Showcase fee allocations with no assigned_roles row pointing at them. */
+  allocationsWithoutRolesShowcases: FeeAllocationAlert[];
   /** Expenses linked to showcases where explicit apportioned amounts don't sum to the expense total. */
   apportionmentMismatches: ExpenseApportionmentMismatchAlert[];
   /** Fee allocations whose linked expense share does not exactly match the allocation's total. */

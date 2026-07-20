@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { usePerformer } from "../../api/hooks/usePerformer.js";
 import { formatDate } from "../../utils/date.js";
+import { formatLocation } from "../../utils/people.js";
 
 export default function PerformerGigList() {
   const { token = "" } = useParams<{ token: string }>();
@@ -72,7 +73,7 @@ export default function PerformerGigList() {
                 </td>
                 <td>
                   <Link to={`/p/${token}/gigs/${gig.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-                    {gig.venueName ?? gig.location ?? "—"}
+                    {formatLocation(gig.venueName, gig.location)}
                   </Link>
                 </td>
               </tr>

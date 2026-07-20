@@ -23,6 +23,8 @@ export interface AllocationAlertRow {
   gig_id: number | null;
   showcase_id: number | null;
   total_fee: number;
+  venue_name: string | null;
+  location: string | null;
 }
 
 export interface ApportionmentMismatchRow {
@@ -315,7 +317,9 @@ function buildAllocationAlertQuery(notExistsBody: string, extraWhere?: string): 
       fa.id,
       ${SQL_PERSON_NAME},
       ${SQL_EVENT_COLS},
-      COALESCE(SUM(li.amount), 0) AS total_fee
+      COALESCE(SUM(li.amount), 0) AS total_fee,
+      g.venue_name,
+      COALESCE(g.location, s.location) AS location
     FROM fee_allocations fa
     LEFT JOIN people p ON p.id = fa.person_id
     LEFT JOIN gigs g ON g.id = fa.gig_id
@@ -326,7 +330,9 @@ function buildAllocationAlertQuery(notExistsBody: string, extraWhere?: string): 
     GROUP BY
       fa.id,
       p.display_name, p.first_name, p.last_name,
-      ${SQL_EVENT_GROUP_BY_COLS}
+      ${SQL_EVENT_GROUP_BY_COLS},
+      g.venue_name,
+      g.location, s.location
     ORDER BY COALESCE(g.date, s.date) ASC NULLS LAST;
   `;
 }
