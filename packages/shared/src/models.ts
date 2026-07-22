@@ -252,6 +252,8 @@ export interface Gig {
   totalAdditionalCharges?: number;
   /** IDs of services attached to this gig. Only present on list responses. */
   serviceIds?: number[];
+  /** IDs of people assigned to any role on this gig. Only present on list responses. */
+  personIds?: number[];
   /**
    * Predicted profit in pennies: discounted sum of service client prices minus total role fees.
    * null means unavailable (cancelled gig, no services attached, or a price/fee is missing).

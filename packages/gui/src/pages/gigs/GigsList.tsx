@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useGigs, useCreateGig, useDeleteGig } from "../../api/hooks/useGigs.js";
 import { useServices } from "../../api/hooks/useServices.js";
+import { usePeople } from "../../api/hooks/usePeople.js";
 import type { CreateGigRequest, Service } from "@get-down/shared";
 import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
@@ -14,6 +15,7 @@ import MoneyDisplay from "../../components/MoneyDisplay.js";
 import RunningTotal from "../../components/RunningTotal.js";
 import UnavailableMoney from "../../components/UnavailableMoney.js";
 import { formatDate } from "../../utils/date.js";
+import { formatPersonName } from "../../utils/people.js";
 import { confirmedProfit } from "./gigUtils.js";
 import type { Gig } from "@get-down/shared";
 
@@ -49,6 +51,7 @@ export default function GigsList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: gigs, isLoading, error } = useGigs();
   const { data: services = [] } = useServices();
+  const { data: people = [] } = usePeople();
   const createGig = useCreateGig();
   const deleteGig = useDeleteGig();
 
@@ -61,10 +64,22 @@ export default function GigsList() {
   const serviceParam = searchParams.get("service");
   const selectedServiceId = serviceParam ? Number(serviceParam) : null;
 
+  const personParam = searchParams.get("person");
+  const selectedPersonId = personParam ? Number(personParam) : null;
+
   function handleServiceChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const val = e.target.value;
     if (val) {
       setSearchParams({ service: val }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  }
+
+  function handlePersonChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const val = e.target.value;
+    if (val) {
+      setSearchParams({ person: val }, { replace: true });
     } else {
       setSearchParams({}, { replace: true });
     }
@@ -131,8 +146,12 @@ export default function GigsList() {
       all = all.filter((g) => g.serviceIds?.includes(selectedServiceId));
     }
 
+    if (selectedPersonId !== null) {
+      all = all.filter((g) => g.personIds?.includes(selectedPersonId));
+    }
+
     return all;
-  }, [gigs, view, selectedServiceId]);
+  }, [gigs, view, selectedServiceId, selectedPersonId]);
 
   // Mirror DataTable's filter so totals always match the visible rows.
   const visibleGigs = useMemo(() => {
@@ -160,30 +179,50 @@ export default function GigsList() {
       .reduce((sum, g) => sum + (g.predictedProfit ?? 0), 0);
   }, [visibleGigs]);
 
-  const totalConfirmedProfit = useMemo(
-    () => visibleGigs
-      .filter((g) => g.settled)
-      .reduce((sum, g) => sum + confirmedProfit(g), 0),
-    [visibleGigs]
-  );
+   const totalConfirmedProfit = useMemo(
+     () => visibleGigs
+       .filter((g) => g.settled)
+       .reduce((sum, g) => sum + confirmedProfit(g), 0),
+     [visibleGigs]
+   );
 
-  function setField(field: keyof CreateGigRequest, value: string | number | undefined) {
-    setForm((f) => ({ ...f, [field]: value }));
-  }
+  // Derive the list of people who have at least one assigned role across all gigs
+  const peopleWithGigs = useMemo(() => {
+    const personIds = new Set<number>();
+    (gigs ?? []).forEach((g) => {
+      g.personIds?.forEach((id) => personIds.add(id));
+    });
+    return Array.from(personIds)
+      .map((id) => people.find((p) => p.id === id))
+      .filter((p): p is typeof people[0] => p !== undefined)
+      .sort((a, b) => {
+        const aName = formatPersonName(a);
+        const bName = formatPersonName(b);
+        return aName.localeCompare(bName);
+      });
+  }, [gigs, people]);
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    await createGig.mutateAsync(form);
-    setShowCreate(false);
-    setForm(EMPTY_FORM);
-  }
+   function setField(field: keyof CreateGigRequest, value: string | number | undefined) {
+     setForm((f) => ({ ...f, [field]: value }));
+   }
 
-  if (isLoading) return <main className="container"><LoadingState /></main>;
-  if (error) return <main className="container"><ErrorBanner error={error} /></main>;
+   async function handleCreate(e: React.FormEvent) {
+     e.preventDefault();
+     await createGig.mutateAsync(form);
+     setShowCreate(false);
+     setForm(EMPTY_FORM);
+   }
 
-  const selectedServiceName = selectedServiceId
-    ? (services.find((s) => s.id === selectedServiceId)?.name ?? null)
-    : null;
+   if (isLoading) return <main className="container"><LoadingState /></main>;
+   if (error) return <main className="container"><ErrorBanner error={error} /></main>;
+
+   const selectedServiceName = selectedServiceId
+     ? (services.find((s) => s.id === selectedServiceId)?.name ?? null)
+     : null;
+
+   const selectedPersonName = selectedPersonId
+     ? (peopleWithGigs.find((p) => p.id === selectedPersonId)?.displayName ?? null)
+     : null;
 
   return (
     <main className="container">
@@ -215,29 +254,52 @@ export default function GigsList() {
           All
         </button>
 
-        <label style={{ marginLeft: "auto", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          Service
-          <select
-            value={selectedServiceId ?? ""}
-            onChange={handleServiceChange}
-            style={{ width: "auto" }}
-          >
-            <option value="">All</option>
-            {services.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-        </label>
-        {selectedServiceId !== null && (
-          <button
-            className="secondary outline"
-            style={{ padding: "0.3em 0.7em" }}
-            onClick={() => setSearchParams({}, { replace: true })}
-          >
-            ✕ {selectedServiceName ?? "Clear filter"}
-          </button>
-        )}
-      </div>
+         <label style={{ marginLeft: "auto", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+           Service
+           <select
+             value={selectedServiceId ?? ""}
+             onChange={handleServiceChange}
+             style={{ width: "auto" }}
+           >
+             <option value="">All</option>
+             {services.map((s) => (
+               <option key={s.id} value={s.id}>{s.name}</option>
+             ))}
+           </select>
+         </label>
+         {selectedServiceId !== null && (
+           <button
+             className="secondary outline"
+             style={{ padding: "0.3em 0.7em" }}
+             onClick={() => setSearchParams({}, { replace: true })}
+           >
+             ✕ {selectedServiceName ?? "Clear filter"}
+           </button>
+         )}
+
+          <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+            Person
+            <select
+              value={selectedPersonId ?? ""}
+              onChange={handlePersonChange}
+              style={{ width: "auto" }}
+            >
+              <option value="">All</option>
+              {peopleWithGigs.map((p) => (
+                <option key={p.id} value={p.id}>{formatPersonName(p)}</option>
+              ))}
+            </select>
+          </label>
+         {selectedPersonId !== null && (
+           <button
+             className="secondary outline"
+             style={{ padding: "0.3em 0.7em" }}
+             onClick={() => setSearchParams({}, { replace: true })}
+           >
+             ✕ {selectedPersonName ?? "Clear filter"}
+           </button>
+         )}
+       </div>
 
       <DataTable<Gig>
         columns={columns}

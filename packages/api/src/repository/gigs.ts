@@ -223,9 +223,20 @@ export interface GigServiceMappingRow {
   service_id: number;
 }
 
+export interface GigPersonMappingRow {
+  gig_id: number;
+  person_id: number;
+}
+
 export async function readGigServiceMappings(): Promise<GigServiceMappingRow[]> {
   return run_query<GigServiceMappingRow>({
     text: `SELECT gig_id, service_id FROM gig_services ORDER BY gig_id;`,
+  });
+}
+
+export async function readGigPersonMappings(): Promise<GigPersonMappingRow[]> {
+  return run_query<GigPersonMappingRow>({
+    text: `SELECT DISTINCT gig_id, person_id FROM assigned_roles WHERE person_id IS NOT NULL ORDER BY gig_id;`,
   });
 }
 
