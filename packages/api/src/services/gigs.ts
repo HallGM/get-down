@@ -16,15 +16,17 @@ import { DEFAULT_SECTION_NAME } from "../constants.js";
 import { fireGenerateDeliveryPhotos } from "../jobs/generateDeliveryPhotos.js";
 
 export async function getGigs(): Promise<Gig[]> {
-  const [rows, financials, predictedProfits, settledStatuses, serviceMappings] = await Promise.all([
+  const [rows, financials, predictedProfits, settledStatuses, serviceMappings, personMappings] = await Promise.all([
     gigsRepo.readGigs(),
     gigsRepo.readGigFinancialTotals(),
     gigsRepo.readGigPredictedProfits(),
     gigsRepo.readGigSettledStatuses(),
     gigsRepo.readGigServiceMappings(),
+    gigsRepo.readGigPersonMappings(),
   ]);
   const { financialMap, predictedProfitMap, settledMap } = buildGigMaps(financials, predictedProfits, settledStatuses);
   const serviceIdsMap = groupById(serviceMappings, (m) => m.gig_id, (m) => m.service_id);
+  const personIdsMap = groupById(personMappings, (m) => m.gig_id, (m) => m.person_id);
   return rows.map((row) => {
     const fin = financialMap.get(row.id) ?? { netReceived: 0, feesTotal: 0, billingTotal: 0 };
     return {
@@ -35,6 +37,7 @@ export async function getGigs(): Promise<Gig[]> {
       predictedProfit: predictedProfitMap.get(row.id) ?? null,
       settled: settledMap.get(row.id) ?? false,
       serviceIds: serviceIdsMap.get(row.id) ?? [],
+      personIds: personIdsMap.get(row.id) ?? [],
     };
   });
 }
