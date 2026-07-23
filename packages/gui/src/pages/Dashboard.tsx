@@ -339,7 +339,7 @@ function FeeAllocationExpenseMismatchTable({ mismatches }: { mismatches: FeeAllo
           <th>Event</th>
           <th>Date</th>
           <th>Fee Allocation Total</th>
-          <th>Apportioned Expense</th>
+          <th>Apportioned Expenses</th>
           <th>Difference</th>
           <th style={{ width: "1%" }}></th>
         </tr>
@@ -348,13 +348,13 @@ function FeeAllocationExpenseMismatchTable({ mismatches }: { mismatches: FeeAllo
         {mismatches.map((m) => {
           const isExpanded = !isCollapsed(m.allocationId);
           return (
-            <Fragment key={`${m.allocationId}-${m.expenseId}`}>
+            <Fragment key={m.allocationId}>
               <tr>
                 <td>{m.personName ?? <span style={{ color: "var(--pico-muted-color)" }}>Unassigned</span>}</td>
                 <td><AllocationEventCell eventName={m.eventName} gigId={m.gigId} showcaseId={undefined} /></td>
                 <td>{m.eventDate ? formatDate(m.eventDate) : "—"}</td>
                 <td>{formatPennies(m.allocationTotal)}</td>
-                <td>{formatPennies(m.apportionedAmount)}</td>
+                <td>{formatPennies(m.apportionedTotal)}</td>
                 <td style={alertCellStyle}>
                   {formatPennies(Math.abs(m.difference))}{m.difference < 0 ? " over" : " under"}
                 </td>

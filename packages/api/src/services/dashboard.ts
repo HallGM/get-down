@@ -103,13 +103,12 @@ function mapEmptyRoleAlert(row: EmptyRoleAlertRow): EmptyRoleAlert {
 function mapFeeAllocationExpenseMismatch(row: FeeAllocationExpenseMismatchRow): FeeAllocationExpenseMismatchAlert {
   return {
     allocationId: row.allocation_id,
-    expenseId: row.expense_id,
     personName: row.person_name ?? undefined,
     eventName: row.event_name ?? `Allocation #${row.allocation_id}`,
     eventDate: row.event_date ?? undefined,
     gigId: row.gig_id ?? undefined,
     allocationTotal: Number(row.allocation_total),
-    apportionedAmount: Number(row.apportioned_amount),
+    apportionedTotal: Number(row.apportioned_total),
     difference: Number(row.difference),
   };
 }

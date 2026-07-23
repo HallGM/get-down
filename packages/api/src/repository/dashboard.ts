@@ -37,13 +37,12 @@ export interface ApportionmentMismatchRow {
 
 export interface FeeAllocationExpenseMismatchRow {
   allocation_id: number;
-  expense_id: number;
   person_name: string | null;
   event_name: string | null;
   event_date: string | null;
   gig_id: number | null;
   allocation_total: number;
-  apportioned_amount: number;
+  apportioned_total: number;
   difference: number;
 }
 
@@ -395,25 +394,37 @@ export async function readEmptyShowcaseRoles(): Promise<EmptyRoleAlertRow[]> {
 export async function readFeeAllocationExpenseMismatches(): Promise<FeeAllocationExpenseMismatchRow[]> {
   return run_query<FeeAllocationExpenseMismatchRow>({
     text: `
+      WITH line_item_totals AS (
+        SELECT
+          allocation_id,
+          COALESCE(SUM(amount), 0)::int AS total
+        FROM fee_allocation_line_items
+        GROUP BY allocation_id
+      ),
+      expense_totals AS (
+        SELECT
+          fae.allocation_id,
+          COALESCE(SUM(COALESCE(fae.apportioned_amount, e.amount)), 0)::int AS total
+        FROM fee_allocations_expenses fae
+        JOIN expenses e ON e.id = fae.expense_id
+        GROUP BY fae.allocation_id
+      )
       SELECT
         fa.id AS allocation_id,
-        fae.expense_id,
         ${SQL_PERSON_NAME},
         ${SQL_GIG_EVENT_NAME},
         g.date AS event_date,
         g.id AS gig_id,
-        COALESCE(SUM(li.amount), 0)::int AS allocation_total,
-        COALESCE(fae.apportioned_amount, e.amount)::int AS apportioned_amount,
-        (COALESCE(SUM(li.amount), 0) - COALESCE(fae.apportioned_amount, e.amount))::int AS difference
+        COALESCE(lit.total, 0)::int AS allocation_total,
+        COALESCE(et.total, 0)::int AS apportioned_total,
+        (COALESCE(lit.total, 0) - COALESCE(et.total, 0))::int AS difference
       FROM fee_allocations fa
-      JOIN fee_allocations_expenses fae ON fae.allocation_id = fa.id
-      JOIN expenses e ON e.id = fae.expense_id
+      INNER JOIN expense_totals et ON et.allocation_id = fa.id
+      LEFT JOIN line_item_totals lit ON lit.allocation_id = fa.id
       JOIN gigs g ON g.id = fa.gig_id
       LEFT JOIN people p ON p.id = fa.person_id
-      LEFT JOIN fee_allocation_line_items li ON li.allocation_id = fa.id
       WHERE fa.gig_id IS NOT NULL
-      GROUP BY fa.id, fae.expense_id, fa.person_id, p.display_name, p.first_name, p.last_name, g.id, g.first_name, g.last_name, g.date, fae.apportioned_amount, e.amount
-      HAVING COALESCE(SUM(li.amount), 0) <> COALESCE(fae.apportioned_amount, e.amount)
+        AND COALESCE(lit.total, 0) <> COALESCE(et.total, 0)
       ORDER BY g.date ASC;
     `,
   });

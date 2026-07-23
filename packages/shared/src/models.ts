@@ -1361,8 +1361,6 @@ export interface ExpenseApportionmentMismatchAlert {
 export interface FeeAllocationExpenseMismatchAlert {
   /** Fee allocation id. */
   allocationId: number;
-  /** Expense id. */
-  expenseId: number;
   /** Performer name, or undefined if the allocation is unassigned. */
   personName?: string;
   /** Client name for gig allocations. */
@@ -1373,9 +1371,9 @@ export interface FeeAllocationExpenseMismatchAlert {
   gigId?: number;
   /** Sum of allocation's line item amounts in pennies. */
   allocationTotal: number;
-  /** Apportioned amount for this expense link (or full expense amount if null) in pennies. */
-  apportionedAmount: number;
-  /** Difference (allocationTotal - apportionedAmount) in pennies. */
+  /** Sum of all apportioned amounts across expense links (null links count as their full expense amount) in pennies. */
+  apportionedTotal: number;
+  /** Difference (allocationTotal - apportionedTotal) in pennies. */
   difference: number;
 }
 
