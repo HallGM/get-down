@@ -4,11 +4,10 @@ import { useAllExpensePayments } from "../../api/hooks/useExpensePayments.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import EmptyState from "../../components/EmptyState.js";
-import MoneyDisplay from "../../components/MoneyDisplay.js";
 import RunningTotal from "../../components/RunningTotal.js";
-import DateCell from "../../components/DateCell.js";
 import YearFilterBar from "../../components/YearFilterBar.js";
 import { useYearFilterData } from "../../hooks/useYearFilter.js";
+import ExpensePaymentRow from "./ExpensePaymentRow.js";
 
 export default function ExpensePaymentsPage() {
   const { data: payments = [], isLoading, error } = useAllExpensePayments();
@@ -45,30 +44,22 @@ export default function ExpensePaymentsPage() {
         <EmptyState message="No expense payments found." />
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Expense</th>
-                <th style={{ textAlign: "right" }}>Amount</th>
-                <th>Paid for by</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id}>
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    <DateCell date={p.date} />
-                  </td>
-                  <td>{p.expenseDescription}</td>
-                  <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                    <MoneyDisplay pennies={p.amount} />
-                  </td>
-                  <td>{p.paidForBy}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+           <table>
+             <thead>
+               <tr>
+                 <th>Date</th>
+                 <th>Expense</th>
+                 <th style={{ textAlign: "right" }}>Amount</th>
+                 <th>Paid for by</th>
+                 <th style={{ textAlign: "right" }}>Actions</th>
+               </tr>
+             </thead>
+             <tbody>
+               {filtered.map((p) => (
+                 <ExpensePaymentRow key={p.id} payment={p} />
+               ))}
+             </tbody>
+           </table>
         </div>
       )}
 

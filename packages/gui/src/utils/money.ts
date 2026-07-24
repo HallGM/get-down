@@ -32,3 +32,12 @@ export function parseToPennies(value: string): number {
   const num = parseFloat(value.replace(/[^0-9.]/g, ""));
   return Math.round(num * 100);
 }
+
+/**
+ * Format a penny amount as a human-readable payment label for deletion confirmations.
+ * e.g. 1250 → "payment of 12.50", -500 → "payment of -5.00"
+ */
+export function formatPaymentAmount(pennies: number): string {
+  const sign = pennies < 0 ? "-" : "";
+  return `payment of ${sign}${(Math.abs(pennies) / 100).toFixed(2)}`;
+}
