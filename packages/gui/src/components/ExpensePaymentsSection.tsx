@@ -12,6 +12,7 @@ import ConfirmDelete from "./ConfirmDelete.js";
 import MoneyDisplay from "./MoneyDisplay.js";
 import PaymentStatusBadge from "./PaymentStatusBadge.js";
 import { formatDate, toInputDate } from "../utils/date.js";
+import { formatPaymentAmount } from "../utils/money.js";
 
 
 interface Props {
@@ -148,18 +149,18 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
       )}
 
       {/* Delete confirmation */}
-      {deleteTarget && (
-        <ConfirmDelete
-          open={!!deleteTarget}
-          itemName={`payment of ${deleteTarget.amount < 0 ? "-" : ""}${(Math.abs(deleteTarget.amount) / 100).toFixed(2)}`}
-          onConfirm={async () => {
-            await deletePayment.mutateAsync(deleteTarget.id);
-            setDeleteTarget(null);
-          }}
-          onCancel={() => setDeleteTarget(null)}
-          loading={deletePayment.isPending}
-        />
-      )}
+       {deleteTarget && (
+         <ConfirmDelete
+           open={!!deleteTarget}
+           itemName={formatPaymentAmount(deleteTarget.amount)}
+           onConfirm={async () => {
+             await deletePayment.mutateAsync(deleteTarget.id);
+             setDeleteTarget(null);
+           }}
+           onCancel={() => setDeleteTarget(null)}
+           loading={deletePayment.isPending}
+         />
+       )}
     </div>
   );
 }
