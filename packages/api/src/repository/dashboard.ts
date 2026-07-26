@@ -1,5 +1,5 @@
 import { run_query } from "../db/init.js";
-import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME, SQL_PAYMENT_SUBQUERY, SQL_BILLING_CTE_COLS, SQL_GIG_EVENT_NAME, SQL_SHOWCASE_EVENT_NAME } from "./sql-fragments.js";
+import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME, SQL_PAYMENT_SUBQUERY, SQL_BILLING_CTE_COLS, SQL_GIG_EVENT_NAME, SQL_SHOWCASE_EVENT_NAME, SQL_GIG_DATE_PAST, SQL_SHOWCASE_DATE_PAST } from "./sql-fragments.js";
 
 export interface GigAlertBaseRow {
   id: number;
@@ -233,7 +233,7 @@ export async function readPastPaymentMismatches(): Promise<GigPaymentMismatchAle
         JOIN gig_line_items li ON li.gig_id = g.id
         ${SQL_PAYMENT_SUBQUERY}
         WHERE g.status = 'confirmed'
-          AND g.date < CURRENT_DATE
+          AND ${SQL_GIG_DATE_PAST}
         GROUP BY g.id, p.total_paid, r.total_refunded, cr.total_credits
       )
       SELECT
@@ -276,7 +276,7 @@ export async function readGigRolesWithoutAllocation(): Promise<RoleWithoutAlloca
       WHERE ar.gig_id IS NOT NULL
         AND ar.fee_allocation_id IS NULL
         AND g.status = 'confirmed'
-        AND g.date < CURRENT_DATE
+        AND ${SQL_GIG_DATE_PAST}
       ORDER BY g.date ASC;
     `,
   });
@@ -304,7 +304,7 @@ export async function readShowcaseRolesWithoutAllocation(): Promise<RoleWithoutA
       JOIN people p ON p.id = ar.person_id
       WHERE ar.showcase_id IS NOT NULL
         AND ar.fee_allocation_id IS NULL
-        AND s.date < CURRENT_DATE
+        AND ${SQL_SHOWCASE_DATE_PAST}
       ORDER BY s.date ASC;
     `,
   });
@@ -356,7 +356,7 @@ export async function readEmptyGigRoles(): Promise<EmptyRoleAlertRow[]> {
       WHERE ar.gig_id IS NOT NULL
         AND ar.person_id IS NULL
         AND g.status = 'confirmed'
-        AND g.date < CURRENT_DATE
+        AND ${SQL_GIG_DATE_PAST}
       ORDER BY g.date ASC;
     `,
   });
@@ -381,7 +381,7 @@ export async function readEmptyShowcaseRoles(): Promise<EmptyRoleAlertRow[]> {
       JOIN showcases s ON s.id = ar.showcase_id
       WHERE ar.showcase_id IS NOT NULL
         AND ar.person_id IS NULL
-        AND s.date < CURRENT_DATE
+        AND ${SQL_SHOWCASE_DATE_PAST}
       ORDER BY s.date ASC;
     `,
   });
@@ -425,6 +425,7 @@ export async function readFeeAllocationExpenseMismatches(): Promise<FeeAllocatio
       LEFT JOIN people p ON p.id = fa.person_id
       WHERE fa.gig_id IS NOT NULL
         AND COALESCE(lit.total, 0) <> COALESCE(et.total, 0)
+        AND ${SQL_GIG_DATE_PAST}
       ORDER BY g.date ASC;
     `,
   });
