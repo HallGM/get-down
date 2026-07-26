@@ -12,6 +12,12 @@
  *   r     → refunds aggregate  (introduced by the subquery)
  */
 
+/** WHERE predicate: gig date is strictly before today. Requires alias `g` on the `gigs` table. */
+export const SQL_GIG_DATE_PAST = `g.date < CURRENT_DATE`;
+
+/** WHERE predicate: showcase date is strictly before today. Requires alias `s` on the `showcases` table. */
+export const SQL_SHOWCASE_DATE_PAST = `s.date < CURRENT_DATE`;
+
 /** SELECT expression: gig client display name. Alias: event_name. Requires alias `g` on the `gigs` table. */
 export const SQL_GIG_EVENT_NAME =
   `g.first_name || ' ' || g.last_name AS event_name`;
