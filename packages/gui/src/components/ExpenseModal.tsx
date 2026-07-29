@@ -15,6 +15,7 @@ import {
   useLinkAttributionFeeToExpense,
   useUnlinkAttributionFeeFromExpense,
 } from "../api/hooks/useExpenses.js";
+import { useViewPersonInvoicePdf } from "../api/hooks/usePersonInvoices.js";
 
 interface Props {
   /** The expense to edit. When null the modal is closed. */
@@ -37,6 +38,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
   const unlinkAllocation = useUnlinkAllocationFromExpense();
   const linkAttributionFee = useLinkAttributionFeeToExpense();
   const unlinkAttributionFee = useUnlinkAttributionFeeFromExpense();
+  const viewPersonInvoicePdf = useViewPersonInvoicePdf();
 
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState<number | undefined>(undefined);
@@ -128,37 +130,54 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
             onChange={(e) => setRecipientName(e.target.value)}
           />
 
-          {/* Document */}
-          <div style={{ gridColumn: "1 / -1" }}>
-            <small><strong>Document</strong></small>
-            {localDocUrl ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "0.25rem" }}>
-                <a href={localDocUrl} target="_blank" rel="noopener noreferrer">View</a>
-                <button
-                  type="button"
-                  className="secondary outline"
-                  style={{ padding: "0.2em 0.5em" }}
-                  aria-busy={deleteDocument.isPending}
-                  disabled={deleteDocument.isPending}
-                  onClick={async () => {
-                    if (!expense) return;
-                    await deleteDocument.mutateAsync(expense.id);
-                    setLocalDocUrl(undefined);
-                  }}
-                >
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <div style={{ marginTop: "0.25rem" }}>
-                <label>
-                  <small>Upload invoice (optional, max 20 MB)</small>
-                  <input type="file" onChange={handleFileChange} style={{ marginTop: "0.25rem" }} />
-                </label>
-                {fileError && <small style={{ color: "var(--pico-color-red-500)" }}>{fileError}</small>}
-              </div>
-            )}
-          </div>
+           {/* Document */}
+           <div style={{ gridColumn: "1 / -1" }}>
+             <small><strong>Document</strong></small>
+             {expense?.personInvoice ? (
+               <div style={{ marginTop: "0.25rem" }}>
+                 <button
+                   type="button"
+                   className="secondary"
+                   style={{ padding: "0.4em 0.8em" }}
+                   aria-busy={viewPersonInvoicePdf.isPending}
+                   disabled={viewPersonInvoicePdf.isPending}
+                   onClick={() => {
+                     if (expense.personInvoice) {
+                       viewPersonInvoicePdf.mutate({ id: expense.personInvoice.id });
+                     }
+                   }}
+                 >
+                   Invoice {expense.personInvoice.invoiceNumber} — {expense.personInvoice.personName}
+                 </button>
+               </div>
+             ) : localDocUrl ? (
+               <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "0.25rem" }}>
+                 <a href={localDocUrl} target="_blank" rel="noopener noreferrer">View</a>
+                 <button
+                   type="button"
+                   className="secondary outline"
+                   style={{ padding: "0.2em 0.5em" }}
+                   aria-busy={deleteDocument.isPending}
+                   disabled={deleteDocument.isPending}
+                   onClick={async () => {
+                     if (!expense) return;
+                     await deleteDocument.mutateAsync(expense.id);
+                     setLocalDocUrl(undefined);
+                   }}
+                 >
+                   Remove
+                 </button>
+               </div>
+             ) : (
+               <div style={{ marginTop: "0.25rem" }}>
+                 <label>
+                   <small>Upload invoice (optional, max 20 MB)</small>
+                   <input type="file" onChange={handleFileChange} style={{ marginTop: "0.25rem" }} />
+                 </label>
+                 {fileError && <small style={{ color: "var(--pico-color-red-500)" }}>{fileError}</small>}
+               </div>
+             )}
+           </div>
 
           {/* Linked fee allocations */}
           {expense && (

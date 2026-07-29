@@ -46,16 +46,23 @@ function makeRequest(
   const body = JSON.stringify(payload);
 
   return new Promise<void>((resolve, reject) => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(body).toString(),
+    };
+
+    // Add API key for /generate-generic endpoint
+    if (path === "/generate-generic" && process.env.INVOICE_API_KEY) {
+      headers["Authorization"] = `Bearer ${process.env.INVOICE_API_KEY}`;
+    }
+
     const proxyReq = transport.request(
       {
         hostname: url.hostname,
         port: url.port || (url.protocol === "https:" ? 443 : 80),
         path: url.pathname,
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Content-Length": Buffer.byteLength(body),
-        },
+        headers,
       },
       (proxyRes) => {
         if (proxyRes.statusCode && proxyRes.statusCode >= 400) {

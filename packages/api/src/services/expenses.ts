@@ -4,6 +4,8 @@ import { z } from "zod";
 import type { Expense, CreateExpenseRequest, UpdateExpenseRequest } from "@get-down/shared";
 import * as expensesRepo from "../repository/expenses.js";
 import * as expensePaymentsRepo from "../repository/expense_payments.js";
+import * as personInvoicesRepo from "../repository/person_invoices.js";
+import * as peopleRepo from "../repository/people.js";
 import { mapPayment as mapExpensePayment, CreatePaymentSchema } from "../services/expense_payments.js";
 import * as feeAllocationsRepo from "../repository/fee_allocations.js";
 import * as attributionFeesRepo from "../repository/attribution_fees.js";
@@ -12,21 +14,26 @@ import * as storage from "../utils/storage.js";
 import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
+import { resolvePersonRowName } from "../utils/person.js";
 
 
 export async function getAllExpenses(): Promise<Expense[]> {
   const rows = await expensesRepo.readAllExpenses();
   const ids = rows.map((r) => r.id);
-  const [allocationMap, attributionFeeMap, paymentStatusMap] = await Promise.all([
+  const [allocationMap, attributionFeeMap, paymentStatusMap, personInvoiceMap] = await Promise.all([
     expensesRepo.readAllocationIdsByExpenseIds(ids),
     expensesRepo.readAttributionFeeIdsByExpenseIds(ids),
     expensePaymentsRepo.readPaymentStatusByExpenseIds(ids),
+    personInvoicesRepo.readPersonInvoicesByExpenseIds(ids),
   ]);
+  const personMap = await resolvePeopleForPersonInvoices(personInvoiceMap);
   return Promise.all(rows.map(async (row) => {
     const status = paymentStatusMap.get(row.id);
     const totalPaid = status?.total_paid ?? 0;
     const documentUrl = await tryGetPresignedUrl(row.document_key);
-    return mapExpense(row, allocationMap.get(row.id) ?? [], attributionFeeMap.get(row.id) ?? [], totalPaid, documentUrl);
+    const personInvoice = personInvoiceMap.get(row.id);
+    const person = personInvoice ? personMap.get(personInvoice.person_id) : null;
+    return mapExpense(row, allocationMap.get(row.id) ?? [], attributionFeeMap.get(row.id) ?? [], totalPaid, documentUrl, personInvoice, person);
   }));
 }
 
@@ -161,14 +168,19 @@ export async function unlinkAttributionFeeFromExpense(
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 async function assembleExpense(row: expensesRepo.ExpenseRow): Promise<Expense> {
-  const [allocationIds, attributionFeeIds, payments] = await Promise.all([
+  const [allocationIds, attributionFeeIds, payments, personInvoice] = await Promise.all([
     expensesRepo.readAllocationIdsByExpenseId(row.id),
     expensesRepo.readAttributionFeeIdsByExpenseId(row.id),
     expensePaymentsRepo.readPaymentsByExpenseId(row.id),
+    personInvoicesRepo.readPersonInvoiceByExpenseId(row.id),
   ]);
+  const personMap = await resolvePeopleForPersonInvoices(
+    new Map(personInvoice ? [[row.id, personInvoice]] as const : [])
+  );
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
   const documentUrl = await tryGetPresignedUrl(row.document_key);
-  const expense = mapExpense(row, allocationIds, attributionFeeIds, totalPaid, documentUrl);
+  const person = personInvoice ? personMap.get(personInvoice.person_id) : null;
+  const expense = mapExpense(row, allocationIds, attributionFeeIds, totalPaid, documentUrl, personInvoice, person);
   expense.payments = payments.map(mapExpensePayment);
   return expense;
 }
@@ -208,9 +220,11 @@ export function mapExpense(
   feeAllocationIds: number[],
   attributionFeeIds: number[],
   totalPaid: number,
-  documentUrl?: string
+  documentUrl?: string,
+  personInvoice?: personInvoicesRepo.PersonInvoiceByExpenseRow | null,
+  person?: peopleRepo.PersonRow | null
 ): Expense {
-  return {
+  const expense: Expense = {
     id: row.id,
     date: toDateString(row.date) ?? undefined,
     amount: row.amount,
@@ -224,6 +238,16 @@ export function mapExpense(
     totalPaid,
     paymentStatus: computePaymentStatus(totalPaid, row.amount),
   };
+  
+  if (personInvoice && person) {
+    expense.personInvoice = {
+      id: personInvoice.id,
+      invoiceNumber: personInvoice.invoice_number,
+      personName: resolvePersonRowName(person),
+    };
+  }
+  
+  return expense;
 }
 
 function buildMutationInput(
@@ -243,5 +267,15 @@ function buildMutationInput(
     recipientName: input.recipientName?.trim() ?? existing?.recipientName,
     airtableId: input.airtableId ?? existing?.airtableId,
   };
+}
+
+async function resolvePeopleForPersonInvoices(
+  personInvoiceMap: Map<number, personInvoicesRepo.PersonInvoiceByExpenseRow>
+): Promise<Map<number, peopleRepo.PersonRow>> {
+  if (personInvoiceMap.size === 0) return new Map();
+  const personIds = Array.from(
+    new Set(Array.from(personInvoiceMap.values()).map((pi) => pi.person_id))
+  );
+  return peopleRepo.readPeopleByIds(personIds);
 }
 

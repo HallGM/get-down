@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePeople, useCreatePerson, useUpdatePerson, useDeletePerson, useGeneratePerformerToken } from "../../api/hooks/usePeople.js";
 import type { CreatePersonRequest, UpdatePersonRequest, Person } from "@get-down/shared";
 import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
-import FormField from "../../components/FormField.js";
+import PersonFormFields from "../../components/PersonFormFields.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import BooleanCell from "../../components/BooleanCell.js";
@@ -36,6 +37,7 @@ function filterPerson(person: Person, query: string): boolean {
 }
 
 export default function PeopleList() {
+  const navigate = useNavigate();
   const { data: people, isLoading, error } = usePeople();
   const createPerson = useCreatePerson();
   const updatePerson = useUpdatePerson();
@@ -88,6 +90,14 @@ export default function PeopleList() {
       email: person.email,
       phone: person.phone,
       bankDetails: person.bankDetails,
+      businessName: person.businessName,
+      addressLine1: person.addressLine1,
+      addressLine2: person.addressLine2,
+      addressTown: person.addressTown,
+      addressCounty: person.addressCounty,
+      addressPostcode: person.addressPostcode,
+      accountNumber: person.accountNumber,
+      sortCode: person.sortCode,
       isPartner: person.isPartner,
       isActive: person.isActive,
     });
@@ -109,6 +119,7 @@ export default function PeopleList() {
           header: "",
           render: (p) => (
             <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); void navigate(`/people/${p.id}/invoices`); }}>Invoices</button>
               <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); openEdit(p); }}>Edit</button>
               <button
                 className="secondary outline"
@@ -129,16 +140,7 @@ export default function PeopleList() {
       {/* Create */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Person">
         <form onSubmit={handleCreate}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            <FormField label="First Name" value={form.firstName} onChange={(e) => setField("firstName", e.target.value)} required />
-            <FormField label="Last Name" value={form.lastName ?? ""} onChange={(e) => setField("lastName", e.target.value)} />
-            <FormField label="Display Name" value={form.displayName ?? ""} onChange={(e) => setField("displayName", e.target.value)} />
-            <FormField label="Email" type="email" value={form.email ?? ""} onChange={(e) => setField("email", e.target.value)} />
-            <FormField label="Phone" type="tel" value={form.phone ?? ""} onChange={(e) => setField("phone", e.target.value)} />
-          </div>
-          <label>
-            <input type="checkbox" checked={!!form.isPartner} onChange={(e) => setField("isPartner", e.target.checked)} /> Partner
-          </label>
+          <PersonFormFields values={form} onFieldChange={setField} />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="secondary" onClick={() => setShowCreate(false)}>Cancel</button>
             <button type="submit" aria-busy={createPerson.isPending} disabled={createPerson.isPending}>Create</button>
@@ -149,15 +151,11 @@ export default function PeopleList() {
       {/* Edit */}
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit Person">
         <form onSubmit={handleUpdate}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            <FormField label="First Name" value={editForm.firstName ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, firstName: e.target.value }))} required />
-            <FormField label="Last Name" value={editForm.lastName ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, lastName: e.target.value }))} />
-            <FormField label="Display Name" value={editForm.displayName ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, displayName: e.target.value }))} />
-            <FormField label="Email" type="email" value={editForm.email ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} />
-            <FormField label="Phone" type="tel" value={editForm.phone ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} />
-          </div>
-          <label><input type="checkbox" checked={!!editForm.isPartner} onChange={(e) => setEditForm((f) => ({ ...f, isPartner: e.target.checked }))} /> Partner</label>
-          <label><input type="checkbox" checked={!!editForm.isActive} onChange={(e) => setEditForm((f) => ({ ...f, isActive: e.target.checked }))} /> Active</label>
+          <PersonFormFields
+            values={editForm}
+            onFieldChange={(field, value) => setEditForm((f) => ({ ...f, [field]: value }))}
+            showActive
+          />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="contrast outline" onClick={() => { setDeleteTarget(editTarget); setEditTarget(null); }}>Delete</button>
             <button type="button" className="secondary" onClick={() => setEditTarget(null)}>Cancel</button>
