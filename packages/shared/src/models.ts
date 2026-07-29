@@ -54,6 +54,14 @@ export interface Person {
   email?: string;
   phone?: string;
   bankDetails?: string;
+  businessName?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  addressTown?: string;
+  addressCounty?: string;
+  addressPostcode?: string;
+  accountNumber?: string;
+  sortCode?: string;
   isPartner: boolean;
   isActive: boolean;
   airtableId?: string;
@@ -67,6 +75,14 @@ export interface CreatePersonRequest {
   email?: string;
   phone?: string;
   bankDetails?: string;
+  businessName?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  addressTown?: string;
+  addressCounty?: string;
+  addressPostcode?: string;
+  accountNumber?: string;
+  sortCode?: string;
   isPartner?: boolean;
   isActive?: boolean;
   airtableId?: string;
@@ -79,6 +95,14 @@ export interface UpdatePersonRequest {
   email?: string;
   phone?: string;
   bankDetails?: string;
+  businessName?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  addressTown?: string;
+  addressCounty?: string;
+  addressPostcode?: string;
+  accountNumber?: string;
+  sortCode?: string;
   isPartner?: boolean;
   isActive?: boolean;
   airtableId?: string;
@@ -731,6 +755,8 @@ export interface Expense {
   paymentStatus: 'unpaid' | 'partial' | 'paid';
   /** Full list of payments. Present on single-record fetch; undefined on list fetch. */
   payments?: ExpensePayment[];
+  /** When present, this expense was auto-created for a person invoice (no manual document upload possible). */
+  personInvoice?: { id: number; invoiceNumber: string; personName: string };
 }
 
 export interface CreateExpenseRequest {
@@ -943,6 +969,45 @@ export interface UpdateLegacyInvoiceRequest {
   invoiceNumber?: string;
   date?: string;
   description?: string;
+}
+
+export interface PersonInvoiceLineItem {
+  id: number;
+  personInvoiceId: number;
+  description?: string;
+  amount?: number;
+}
+
+export interface PersonInvoice {
+  id: number;
+  personId: number;
+  invoiceNumber: string;
+  date: string;
+  totalAmount: number;
+  expenseId: number;
+  lineItems?: PersonInvoiceLineItem[];
+}
+
+export interface CreatePersonInvoiceRequest {
+  personId: number;
+  date: string;
+  lineItems: Array<{
+    description: string;
+    amount: number;
+  }>;
+}
+
+export interface UpdatePersonInvoiceRequest {
+  date?: string;
+  lineItems?: Array<{
+    description: string;
+    amount: number;
+  }>;
+}
+
+export interface CreatePersonInvoiceLineItemRequest {
+  description: string;
+  amount: number;
 }
 
 export interface Account {

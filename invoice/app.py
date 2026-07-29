@@ -6,6 +6,7 @@ import logging
 import threading
 import time
 from urllib.request import urlopen
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, send_file
 from src.invoice_ev import generate_ev_invoice, generate_receipt, generate_credit_note, EVInvoiceOptions
 from src.generic_invoice import create_generic_invoice, create_generic_receipt
@@ -14,6 +15,9 @@ from src.config import BusinessConfig, Address
 from src.ev_config import EV_CONFIG
 from src.services import get_service_by_id, get_all_services_flat
 from io import BytesIO
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging for stdout/stderr (required for Render)
 logging.basicConfig(
@@ -29,8 +33,34 @@ app.config['DEBUG'] = os.getenv('DEBUG', 'False').lower() == 'true'
 app.config['SECRET_KEY'] = os.getenv(
     'SECRET_KEY', 'dev-key-change-in-production')
 app.config['ENV'] = os.getenv('FLASK_ENV', 'production')
+app.config['INVOICE_API_KEY'] = os.getenv('INVOICE_API_KEY', '')
 
 logger.info(f"Flask app initialized in {app.config['ENV']} mode")
+
+
+def _verify_api_key():
+    """Verify the request has a valid API key in the Authorization header.
+    
+    In production (INVOICE_API_KEY set), authentication is required.
+    In development (INVOICE_API_KEY empty), authentication is optional for local testing.
+    
+    Raises ValueError if the key is invalid (when auth is required).
+    """
+    expected_key = app.config.get('INVOICE_API_KEY', '')
+    
+    # If no key is configured (dev mode), allow unauthenticated requests
+    if not expected_key:
+        logger.warning("INVOICE_API_KEY not configured; allowing unauthenticated requests (dev mode)")
+        return
+    
+    # If key is configured (production), require valid authentication
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        raise ValueError('Missing or invalid Authorization header')
+    
+    token = auth_header[7:]  # Strip 'Bearer '
+    if token != expected_key:
+        raise ValueError('Invalid API key')
 
 
 def _parse_item_list(raw_items: list, desc_error: str = "Each line item must have a description") -> list:
@@ -378,6 +408,12 @@ def generate_credit_note_route():
 def generate_generic_invoice():
     """Generate a generic invoice from user-supplied business details and line items."""
     try:
+        # Verify API key
+        try:
+            _verify_api_key()
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 401
+        
         data = request.get_json()
         logger.info(
             f"Generic invoice generation requested for {data.get('customer_name', 'unknown')}")
@@ -452,8 +488,33 @@ def generate_generic_invoice():
             ],
         )
 
+        # Extract optional customer address for the invoice (if provided)
+        customer_address = None
+        if data.get("customer_address_lines"):
+            # Build an Address from the provided customer address lines
+            lines = data["customer_address_lines"]
+            if lines:
+                customer_address = Address(
+                    line_1=lines[0] if len(lines) > 0 else "",
+                    line_2=lines[1] if len(lines) > 1 else None,
+                    line_3=lines[2] if len(lines) > 2 else None,
+                    line_4=lines[3] if len(lines) > 3 else None,
+                    line_5=lines[4] if len(lines) > 4 else None,
+                )
+
+        # Extract optional invoice date and contact line flag
+        invoice_date = data.get("date") or None
+        show_contact_line = data.get("show_contact_line", True)
+
         # Generate PDF bytes
-        pdf_bytes = create_generic_invoice(invoice, business_config, return_bytes=True)
+        pdf_bytes = create_generic_invoice(
+            invoice,
+            business_config,
+            return_bytes=True,
+            invoice_date=invoice_date,
+            customer_address=customer_address,
+            show_contact_line=show_contact_line,
+        )
         if pdf_bytes is None:
             return jsonify({"error": "Failed to generate invoice PDF"}), 500
 

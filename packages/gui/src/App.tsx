@@ -10,6 +10,7 @@ import InvoiceEdit from "./pages/gigs/InvoiceEdit.js";
 import EnquiriesList from "./pages/enquiries/EnquiriesList.js";
 import EmailGenerator from "./pages/enquiries/EmailGenerator.js";
 import PeopleList from "./pages/people/PeopleList.js";
+import PersonInvoicesList from "./pages/people/PersonInvoicesList.js";
 import ServicesList from "./pages/services/ServicesList.js";
 import ServiceDetail from "./pages/services/ServiceDetail.js";
 import RolesList from "./pages/services/RolesList.js";
@@ -187,6 +188,7 @@ export default function App() {
           <Route path="/enquiries/email-generator" element={<EmailGenerator />} />
           <Route path="/songs" element={<SongsList />} />
           <Route path="/people" element={<PeopleList />} />
+          <Route path="/people/:personId/invoices" element={<PersonInvoicesList />} />
           <Route path="/services" element={<ServicesList />} />
           <Route path="/services/roles" element={<RolesList />} />
           <Route path="/services/:id" element={<ServiceDetail />} />

@@ -88,6 +88,14 @@ export async function setExpenseDocumentKey(id: number, key: string | null): Pro
   });
 }
 
+export async function hasPayments(expenseId: number): Promise<boolean> {
+  const rows = await run_query<{ count: number }>({
+    text: `SELECT COUNT(*)::int AS count FROM expense_payments WHERE expense_id = $1;`,
+    values: [expenseId],
+  });
+  return rows[0]?.count > 0;
+}
+
 export async function deleteExpense(id: number): Promise<boolean> {
   const rows = await run_query<{ id: number }>({
     text: `DELETE FROM expenses WHERE id = $1 RETURNING id;`,

@@ -31,6 +31,14 @@ export async function createPerson(input: CreatePersonRequest): Promise<Person> 
     email: normalizeOptionalString(input.email)?.toLowerCase(),
     phone: normalizeOptionalString(input.phone),
     bankDetails: normalizeOptionalString(input.bankDetails),
+    businessName: normalizeOptionalString(input.businessName),
+    addressLine1: normalizeOptionalString(input.addressLine1),
+    addressLine2: normalizeOptionalString(input.addressLine2),
+    addressTown: normalizeOptionalString(input.addressTown),
+    addressCounty: normalizeOptionalString(input.addressCounty),
+    addressPostcode: normalizeOptionalString(input.addressPostcode),
+    accountNumber: normalizeOptionalString(input.accountNumber),
+    sortCode: normalizeOptionalString(input.sortCode),
     isPartner: input.isPartner ?? false,
     isActive: input.isActive ?? true,
     airtableId: input.airtableId,
@@ -84,6 +92,14 @@ function mapPerson(row: {
   email: string | null;
   phone: string | null;
   bank_details: string | null;
+  business_name: string | null;
+  address_line_1: string | null;
+  address_line_2: string | null;
+  address_town: string | null;
+  address_county: string | null;
+  address_postcode: string | null;
+  account_number: string | null;
+  sort_code: string | null;
   is_partner: boolean;
   is_active: boolean;
   airtable_id: string | null;
@@ -97,6 +113,14 @@ function mapPerson(row: {
     email: row.email ?? undefined,
     phone: row.phone ?? undefined,
     bankDetails: row.bank_details ?? undefined,
+    businessName: row.business_name ?? undefined,
+    addressLine1: row.address_line_1 ?? undefined,
+    addressLine2: row.address_line_2 ?? undefined,
+    addressTown: row.address_town ?? undefined,
+    addressCounty: row.address_county ?? undefined,
+    addressPostcode: row.address_postcode ?? undefined,
+    accountNumber: row.account_number ?? undefined,
+    sortCode: row.sort_code ?? undefined,
     isPartner: row.is_partner,
     isActive: row.is_active,
     airtableId: row.airtable_id ?? undefined,
@@ -126,6 +150,14 @@ function mergeUpdate(existing: Person, input: UpdatePersonRequest): peopleReposi
     email: normalizeOptionalString(input.email) ?? existing.email,
     phone: normalizeOptionalString(input.phone) ?? existing.phone,
     bankDetails: normalizeOptionalString(input.bankDetails) ?? existing.bankDetails,
+    businessName: normalizeOptionalString(input.businessName) ?? existing.businessName,
+    addressLine1: normalizeOptionalString(input.addressLine1) ?? existing.addressLine1,
+    addressLine2: normalizeOptionalString(input.addressLine2) ?? existing.addressLine2,
+    addressTown: normalizeOptionalString(input.addressTown) ?? existing.addressTown,
+    addressCounty: normalizeOptionalString(input.addressCounty) ?? existing.addressCounty,
+    addressPostcode: normalizeOptionalString(input.addressPostcode) ?? existing.addressPostcode,
+    accountNumber: normalizeOptionalString(input.accountNumber) ?? existing.accountNumber,
+    sortCode: normalizeOptionalString(input.sortCode) ?? existing.sortCode,
     isPartner: input.isPartner ?? existing.isPartner,
     isActive: input.isActive ?? existing.isActive,
     airtableId: input.airtableId ?? existing.airtableId,

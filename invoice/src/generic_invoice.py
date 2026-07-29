@@ -10,7 +10,7 @@ from jinja2 import Template
 from dataclasses import dataclass
 
 from .invoice import Invoice, Receipt, Line_item, Section, Document
-from .config import BusinessConfig
+from .config import BusinessConfig, Address
 
 
 def _get_logo_data_uri(business_config: BusinessConfig) -> Optional[str]:
@@ -40,11 +40,22 @@ def _get_logo_data_uri(business_config: BusinessConfig) -> Optional[str]:
 def _render_document_with_config(
     document: Document,
     business_config: BusinessConfig,
-    return_bytes: bool = False
+    return_bytes: bool = False,
+    invoice_date: Optional[str] = None,
+    customer_address: Optional["Address"] = None,
+    show_contact_line: bool = True,
 ) -> Optional[bytes]:
     """
     Generic function to render and generate invoices and receipts with custom business config.
     If return_bytes is True, returns PDF as bytes. Otherwise, writes to disk.
+    
+    Args:
+        document: The document to render
+        business_config: Business configuration (issuer details)
+        return_bytes: If True, return PDF bytes; otherwise write to disk
+        invoice_date: Optional invoice date (YYYY-MM-DD format); falls back to today
+        customer_address: Optional Address for the customer (Every Angle for person invoices)
+        show_contact_line: Whether to show the "Got a question..." contact line (default True)
     """
     # Get the app root directory (parent of src/)
     app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -62,7 +73,11 @@ def _render_document_with_config(
     
     template = Template(template_content)
     
-    formatted_date = datetime.today().strftime('%d/%m/%Y')
+    # Use provided invoice date or fall back to today
+    if invoice_date:
+        formatted_date = invoice_date
+    else:
+        formatted_date = datetime.today().strftime('%d/%m/%Y')
     
     # Prepare business details for template
     business_details = {
@@ -74,6 +89,11 @@ def _render_document_with_config(
         "sort_code": business_config.sort_code,
     }
     
+    # Prepare customer address lines if provided
+    customer_address_lines = []
+    if customer_address:
+        customer_address_lines = customer_address.to_lines()
+    
     # Prepare document data
     document_data = {
         "customer_name": document.customer_name,
@@ -84,7 +104,9 @@ def _render_document_with_config(
         "sections": [
             {"heading": section.heading, "rows": section.rows}
             for section in document.sections
-        ]
+        ],
+        "customer_address_lines": customer_address_lines,
+        "show_contact_line": show_contact_line,
     }
     
     document_html = template.render(
@@ -123,17 +145,27 @@ def _render_document_with_config(
         return None
 
 
-def create_generic_invoice(invoice: Invoice, business_config: BusinessConfig, return_bytes: bool = False) -> Optional[bytes]:
+def create_generic_invoice(
+    invoice: Invoice,
+    business_config: BusinessConfig,
+    **kwargs,
+) -> Optional[bytes]:
     """
     Render and generate invoice with custom business configuration.
-    If return_bytes is True, returns PDF bytes instead of writing to disk.
+    See _render_document_with_config for the full set of supported kwargs
+    (return_bytes, invoice_date, customer_address, show_contact_line).
     """
-    return _render_document_with_config(invoice, business_config, return_bytes=return_bytes)
+    return _render_document_with_config(invoice, business_config, **kwargs)
 
 
-def create_generic_receipt(receipt: Receipt, business_config: BusinessConfig, return_bytes: bool = False) -> Optional[bytes]:
+def create_generic_receipt(
+    receipt: Receipt,
+    business_config: BusinessConfig,
+    **kwargs,
+) -> Optional[bytes]:
     """
     Render and generate receipt with custom business configuration.
-    If return_bytes is True, returns PDF bytes instead of writing to disk.
+    See _render_document_with_config for the full set of supported kwargs
+    (return_bytes, invoice_date, customer_address, show_contact_line).
     """
-    return _render_document_with_config(receipt, business_config, return_bytes=return_bytes)
+    return _render_document_with_config(receipt, business_config, **kwargs)

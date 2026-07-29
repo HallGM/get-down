@@ -111,6 +111,13 @@
       <h2>{{ data.title }}</h2>
       {% endif %}
       <p><strong>{{ data.customer_name }}</strong></p>
+      {% if data.customer_address_lines %}
+      <div style="margin-bottom: 12px">
+        {% for line in data.customer_address_lines %}
+        <p style="margin: 2px 0">{{ line }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
 
       <table style="margin-bottom: 24px">
         <tbody>
@@ -140,8 +147,10 @@
       {% endif %}
 
       <p style="text-align: center; margin-top: 20px">
+        {% if data.show_contact_line %}
         Got a question regarding this {% if data.document_type == 'receipt' %}receipt{% else %}invoice{% endif %}? Contact
         <a href="mailto:{{ business.email_address }}">{{ business.email_address }}</a>
+        {% endif %}
       </p>
 
       {% if data.linked_invoice_number and data.document_type != 'receipt' %}
