@@ -330,26 +330,23 @@ export interface GigPredictedProfitRow {
 
 /**
  * Lateral-subquery SQL fragment that computes predicted_profit for a single
- * gig aliased as `g`.  Returns NULL when:
+ * gig aliased as `g`. Returns NULL when:
  *   - the gig is cancelled
- *   - no services are attached
- *   - any attached service has price_to_client IS NULL
+ *   - no line items exist
  *   - any role linked to those services has fee IS NULL
  *
- * The service_count = 0 guard must precede the BOOL_OR checks because
- * BOOL_OR over an empty set returns NULL (falsy), which would otherwise fall
- * through to ELSE and compute £0 for an unset gig.
+ * Predicted profit is now based on the gig's actual line-item total (after any
+ * per-item or overall discounts are applied), minus predicted role fees.
+ * Travel cost is excluded (it flows directly to performers, net-zero cost).
  */
 export const PREDICTED_PROFIT_LATERALS = `
   LEFT JOIN LATERAL (
     SELECT
-      COUNT(*)                                        AS service_count,
-      BOOL_OR(s.price_to_client IS NULL)              AS has_null_price,
-      COALESCE(SUM(s.price_to_client), 0)             AS service_subtotal
-    FROM gig_services gs
-    JOIN services s ON s.id = gs.service_id
-    WHERE gs.gig_id = g.id
-  ) svc ON true
+      COUNT(*)                                                                     AS line_item_count,
+      COALESCE(SUM(li.amount * (1.0 - GREATEST(li.discount_percent, g.discount_percent) / 100.0)), 0)::int AS line_items_subtotal
+    FROM gig_line_items li
+    WHERE li.gig_id = g.id
+  ) li ON true
   LEFT JOIN LATERAL (
     SELECT
       BOOL_OR(r.fee IS NULL)  AS has_null_fee,
@@ -364,16 +361,12 @@ export const PREDICTED_PROFIT_LATERALS = `
 export const PREDICTED_PROFIT_CASE = `
   CASE
     WHEN g.status = 'cancelled'  THEN NULL
-    WHEN svc.service_count = 0   THEN NULL
-    WHEN svc.has_null_price      THEN NULL
+    WHEN li.line_item_count = 0  THEN NULL
     WHEN rls.has_null_fee        THEN NULL
     -- When no roles are attached, BOOL_OR over an empty set returns NULL (falsy),
     -- which falls through to here with role_fee_total = NULL → COALESCE to 0.
     -- Intentional: a service with no roles contributes £0 to role fees, not unavailable.
-    ELSE ROUND(
-      svc.service_subtotal * (1.0 - g.discount_percent / 100.0)
-      - COALESCE(rls.role_fee_total, 0)
-    )::int
+    ELSE (li.line_items_subtotal - COALESCE(rls.role_fee_total, 0))::int
   END AS predicted_profit
 `;
 
@@ -434,12 +427,12 @@ export interface GigFinancialTotalsRow {
 /**
  * The billing total arithmetic, aliasless.
  * Assumes `li` (gig_line_items) and `g` (gigs) are in scope.
+ * Applies per-item discounts (GREATEST) with overall discount to handle both discount types.
  * Single source of truth — used by both BILLING_TOTAL_SUBQUERY and SETTLED_CONDITION.
  */
 const BILLING_TOTAL_EXPR = `
   (
-    COALESCE(SUM(li.amount), 0)
-    - ROUND(COALESCE(SUM(li.amount), 0) * g.discount_percent::numeric / 100)::int
+    COALESCE(SUM(li.amount * (1.0 - GREATEST(li.discount_percent, g.discount_percent) / 100.0)), 0)::int
     + g.travel_cost
     + COALESCE(${SQL_ADDITIONAL_CHARGES_EXPR}, 0)
     - COALESCE((SELECT SUM(r.amount) FROM refunds r WHERE r.gig_id = g.id AND r.subtype IN ('credit', 'write_off')), 0)

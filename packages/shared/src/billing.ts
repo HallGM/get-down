@@ -33,6 +33,10 @@ export function isRefundSubtype(subtype: string): boolean {
  * Derives all billing figures from raw totals.
  * Single source of truth shared between the API service and the GUI.
  *
+ * Note: `subtotal` is expected to already reflect any item-level discounts.
+ * Overall discount and item-level discounts are mutually exclusive (enforced at the API layer),
+ * so the `discountPercent` field here is only non-zero when no item discounts are in use.
+ *
  * - `billingTotal`    = line-item subtotal, minus discount, plus travel,
  *                         minus totalCredits (sum of 'credit' + 'write_off' refunds),
  *                         plus totalAdditionalCharges
@@ -65,4 +69,28 @@ export function calcBillingTotals(opts: {
     depositPaid:   Math.min(netReceived, depositRequired),
     balanceAmount: Math.max(0, billingTotal - netReceived),
   };
+}
+
+/**
+ * Applies an item-level discount percentage to an amount (in pennies).
+ * Returns the discounted amount (in pennies), rounded correctly.
+ */
+export function applyItemDiscount(amount: number, discountPercent: number): number {
+  if (discountPercent <= 0) return amount;
+  if (discountPercent >= 100) return 0;
+  return Math.round(amount * (1 - discountPercent / 100));
+}
+
+/**
+ * Computes the total of line items after applying each item's individual discount (if any).
+ * Used wherever a line items subtotal is needed when item-level discounts may be present.
+ */
+export function effectiveLineItemsSubtotal(
+  items: { amount?: number | null; discountPercent?: number | null }[]
+): number {
+  return items.reduce((sum, item) => {
+    const amount = item.amount ?? 0;
+    const discount = item.discountPercent ?? 0;
+    return sum + applyItemDiscount(amount, discount);
+  }, 0);
 }
