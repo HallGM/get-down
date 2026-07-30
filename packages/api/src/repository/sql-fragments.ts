@@ -114,8 +114,7 @@ export const SQL_BILLING_CTE_COLS = `
   g.venue_name,
   g.location,
   (
-    SUM(COALESCE(li.amount, 0))
-    - ROUND(SUM(COALESCE(li.amount, 0)) * g.discount_percent::numeric / 100)::int
+    COALESCE(SUM(li.amount * (1.0 - GREATEST(li.discount_percent, g.discount_percent) / 100.0)), 0)::int
     + g.travel_cost
     + COALESCE(${SQL_ADDITIONAL_CHARGES_EXPR}, 0)
     - COALESCE(cr.total_credits, 0)

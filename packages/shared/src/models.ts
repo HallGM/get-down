@@ -223,6 +223,7 @@ export interface GigLineItem {
   gigId: number;
   description?: string;
   amount?: number;
+  discountPercent?: number;
 }
 
 export interface LineItemFields {
@@ -230,8 +231,12 @@ export interface LineItemFields {
   amount?: number;
 }
 
-export type CreateGigLineItemRequest = LineItemFields;
-export type UpdateGigLineItemRequest = LineItemFields;
+export interface GigLineItemFields extends LineItemFields {
+  discountPercent?: number;
+}
+
+export type CreateGigLineItemRequest = GigLineItemFields;
+export type UpdateGigLineItemRequest = GigLineItemFields;
 
 export interface ShowcaseGigSummary {
   id: number;
@@ -265,6 +270,7 @@ export interface Gig {
   depositPaid?: number;
   balanceAmount?: number;
   travelCost: number;
+  /** Overall discount percentage applied to all line items (mutually exclusive with per-item discounts). */
   discountPercent: number;
   /** Net amount received in pennies: total payments minus total refunds. Present on list and detail responses. */
   netReceived?: number;
@@ -884,6 +890,7 @@ export interface InvoiceLineItem {
   invoiceId: number;
   description?: string;
   amount?: number;
+  discountPercent?: number;
 }
 
 export interface InvoiceAdditionalCharge {
@@ -911,6 +918,7 @@ export interface Invoice {
   venue?: string;
   date: string;
   subtotalAmount: number;
+  /** Overall discount percentage applied to all line items (mutually exclusive with per-item discounts). */
   discountPercent: number;
   travelCost: number;
   totalAmount: number;
@@ -940,8 +948,12 @@ export interface UpdateInvoiceRequest {
   invoiceType?: 'deposit' | 'balance';
 }
 
-export type CreateInvoiceLineItemRequest = LineItemFields;
-export type UpdateInvoiceLineItemRequest = LineItemFields;
+export interface InvoiceLineItemFields extends LineItemFields {
+  discountPercent?: number;
+}
+
+export type CreateInvoiceLineItemRequest = InvoiceLineItemFields;
+export type UpdateInvoiceLineItemRequest = InvoiceLineItemFields;
 
 export type CreateInvoiceAdditionalChargeRequest = LineItemFields;
 

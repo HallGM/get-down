@@ -159,10 +159,11 @@ Table gigs {
 }
 
 Table gig_line_items {
-  id          serial [pk, increment]
-  gig_id      int [ref: > gigs.id, not null]
-  description varchar(255)
-  amount      int
+  id               serial [pk, increment]
+  gig_id           int [ref: > gigs.id, not null]
+  description      varchar(255)
+  amount           int
+  discount_percent int [not null, default: 0]
 }
 
 Table assigned_roles {
@@ -240,10 +241,11 @@ Table invoices {
 }
 
 Table invoice_line_items {
-  id serial [pk, increment]
-  invoice_id int [ref: > invoices.id, not null]
-  description varchar(255)
-  amount int
+  id               serial [pk, increment]
+  invoice_id       int [ref: > invoices.id, not null]
+  description      varchar(255)
+  amount           int
+  discount_percent int [not null, default: 0]
 }
 
 Table invoice_additional_charges {

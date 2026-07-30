@@ -10,6 +10,7 @@ import type {
   UpdateInvoiceAdditionalChargeRequest,
   UpdateInvoicePaymentMadeRequest,
 } from "@get-down/shared";
+import { effectiveLineItemsSubtotal, applyItemDiscount } from "@get-down/shared";
 import * as invoicesRepo from "../repository/invoices.js";
 import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
@@ -17,6 +18,8 @@ import * as paymentsRepo from "../repository/payments.js";
 import * as refundsRepo from "../repository/refunds.js";
 import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
+import { validateDiscountPercent } from "../utils/validation.js";
+import { mapGigLineItem } from "./gigs.js";
 
 export async function getAllInvoices(): Promise<Invoice[]> {
   const rows = await invoicesRepo.readAllInvoices();
@@ -52,7 +55,7 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
 
   if (!gig) throw new NotFoundError("Gig not found");
 
-  const subtotal = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
+  const subtotal = effectiveLineItemsSubtotal(lineItems);
   const discountAmount = Math.round(subtotal * gig.discount_percent / 100);
   const baseTotal = subtotal - discountAmount + gig.travel_cost;
   const total = invoiceType === 'balance'
@@ -94,7 +97,7 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
     const [snappedLineItems, snappedPayments] = await Promise.all([
       Promise.all(
         lineItems.map((li) =>
-          invoicesRepo.createLineItem(row.id, li.description, li.amount)
+          invoicesRepo.createLineItem(row.id, li.description, li.amount, li.discount_percent)
         )
       ),
       Promise.all(
@@ -131,10 +134,20 @@ export async function addLineItem(
 ): Promise<InvoiceLineItem> {
   const inv = await invoicesRepo.readInvoiceById(invoiceId);
   if (!inv) throw new NotFoundError("Invoice not found");
+  
+  const discountPercent = input.discountPercent ?? 0;
+  validateDiscountPercent(discountPercent);
+  
+  // Check mutual exclusivity: cannot add item discount if invoice has overall discount
+  if (discountPercent > 0 && inv.discount_percent > 0) {
+    throw new BadRequestError("Cannot set an item-level discount while the invoice has an overall discount. Remove the overall discount first.");
+  }
+  
   const row = await invoicesRepo.createLineItem(
     invoiceId,
     input.description?.trim() ?? null,
-    input.amount ?? null
+    input.amount ?? null,
+    discountPercent
   );
   return mapLineItem(row);
 }
@@ -198,11 +211,21 @@ export async function updateLineItem(
 ): Promise<InvoiceLineItem> {
   const inv = await invoicesRepo.readInvoiceById(invoiceId);
   if (!inv) throw new NotFoundError("Invoice not found");
+  
+  const discountPercent = input.discountPercent ?? 0;
+  validateDiscountPercent(discountPercent);
+  
+  // Check mutual exclusivity: cannot set item discount if invoice has overall discount
+  if (discountPercent > 0 && inv.discount_percent > 0) {
+    throw new BadRequestError("Cannot set an item-level discount while the invoice has an overall discount. Remove the overall discount first.");
+  }
+  
   const row = await invoicesRepo.updateLineItem(
     invoiceId,
     lineItemId,
     input.description?.trim() ?? null,
-    input.amount ?? null
+    input.amount ?? null,
+    discountPercent
   );
   if (!row) throw new NotFoundError("LineItem not found");
   return mapLineItem(row);
@@ -278,7 +301,7 @@ export async function buildPreviewPayloadForGig(
       customerName: `${gig.first_name} ${gig.last_name}`,
       eventDate: toDateString(gig.date) ?? undefined,
       venue: gig.venue_name ?? undefined,
-      lineItems,
+      lineItems: lineItems.map(mapGigLineItem),
       additionalCharges,
       discountPercent: gig.discount_percent,
       travelCost: gig.travel_cost,
@@ -421,6 +444,7 @@ function mapLineItem(row: invoicesRepo.InvoiceLineItemRow): InvoiceLineItem {
     invoiceId: row.invoice_id,
     description: row.description ?? undefined,
     amount: row.amount ?? undefined,
+    discountPercent: row.discount_percent,
   };
 }
 
@@ -477,8 +501,17 @@ async function withSubresources(invoice: Invoice): Promise<Invoice> {
 
 // ── Flask payload helpers ──────────────────────────────────────────────────
 
-function toFlaskLineItem(item: { description?: string | null; amount?: number | null }) {
-  return { description: item.description ?? "", price: (item.amount ?? 0) / 100 };
+function toFlaskLineItem(item: { description?: string | null; amount?: number | null; discountPercent?: number }) {
+  const discountPercent = item.discountPercent ?? 0;
+  const amount = item.amount ?? 0;
+  const discountedAmount = applyItemDiscount(amount, discountPercent);
+  
+  let description = item.description ?? "";
+  if (discountPercent > 0) {
+    description = `${description} (${discountPercent}% discount applied)`;
+  }
+  
+  return { description, price: discountedAmount / 100 };
 }
 
 function toFlaskPaymentItem(item: { description?: string | null; amount?: number | null; date?: string | null }) {
@@ -494,7 +527,7 @@ function buildBaseFlaskPayload(invoice: {
   customerName: string;
   eventDate?: string;
   venue?: string;
-  lineItems?: Array<{ description?: string | null; amount?: number | null }>;
+  lineItems?: Array<{ description?: string | null; amount?: number | null; discountPercent?: number }>;
   additionalCharges?: Array<{ description?: string | null; amount?: number | null }>;
   discountPercent: number;
   travelCost: number;

@@ -21,6 +21,7 @@ export interface InvoiceLineItemRow {
   invoice_id: number;
   description: string | null;
   amount: number | null;
+  discount_percent: number;
 }
 
 export interface InvoiceAdditionalChargeRow {
@@ -178,7 +179,7 @@ export async function readLineItemsByInvoiceId(
   invoiceId: number
 ): Promise<InvoiceLineItemRow[]> {
   return run_query<InvoiceLineItemRow>({
-    text: `SELECT id, invoice_id, description, amount FROM invoice_line_items WHERE invoice_id = $1 ORDER BY id;`,
+    text: `SELECT id, invoice_id, description, amount, discount_percent FROM invoice_line_items WHERE invoice_id = $1 ORDER BY id;`,
     values: [invoiceId],
   });
 }
@@ -186,11 +187,12 @@ export async function readLineItemsByInvoiceId(
 export async function createLineItem(
   invoiceId: number,
   description: string | null,
-  amount: number | null
+  amount: number | null,
+  discountPercent: number = 0
 ): Promise<InvoiceLineItemRow> {
   const [row] = await run_query<InvoiceLineItemRow>({
-    text: `INSERT INTO invoice_line_items (invoice_id, description, amount) VALUES ($1, $2, $3) RETURNING id, invoice_id, description, amount;`,
-    values: [invoiceId, description, amount],
+    text: `INSERT INTO invoice_line_items (invoice_id, description, amount, discount_percent) VALUES ($1, $2, $3, $4) RETURNING id, invoice_id, description, amount, discount_percent;`,
+    values: [invoiceId, description, amount, discountPercent],
   });
   return row!;
 }
@@ -199,11 +201,12 @@ export async function updateLineItem(
   invoiceId: number,
   id: number,
   description: string | null,
-  amount: number | null
+  amount: number | null,
+  discountPercent: number = 0
 ): Promise<InvoiceLineItemRow | null> {
   const rows = await run_query<InvoiceLineItemRow>({
-    text: `UPDATE invoice_line_items SET description = $1, amount = $2 WHERE id = $3 AND invoice_id = $4 RETURNING id, invoice_id, description, amount;`,
-    values: [description, amount, id, invoiceId],
+    text: `UPDATE invoice_line_items SET description = $1, amount = $2, discount_percent = $3 WHERE id = $4 AND invoice_id = $5 RETURNING id, invoice_id, description, amount, discount_percent;`,
+    values: [description, amount, discountPercent, id, invoiceId],
   });
   return rows[0] ?? null;
 }

@@ -1,5 +1,5 @@
 import type { Gig, GigLineItem, Service, CreateGigRequest, UpdateGigRequest, CreateGigLineItemRequest, UpdateGigLineItemRequest } from "@get-down/shared";
-import { calcBillingTotals, isCreditSubtype, isRefundSubtype } from "@get-down/shared";
+import { calcBillingTotals, isCreditSubtype, isRefundSubtype, effectiveLineItemsSubtotal } from "@get-down/shared";
 import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
 import * as paymentsRepo from "../repository/payments.js";
@@ -7,7 +7,7 @@ import * as refundsRepo from "../repository/refunds.js";
 import * as showcasesRepo from "../repository/showcases.js";
 import * as invoicesRepo from "../repository/invoices.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
-import { isValidUrl } from "../utils/validation.js";
+import { isValidUrl, validateDiscountPercent } from "../utils/validation.js";
 import { groupById } from "../utils/groupById.js";
 import * as songsRepo from "../repository/songs.js";
 import { withTransaction } from "../db/init.js";
@@ -57,7 +57,7 @@ export async function getGigById(id: number): Promise<Gig> {
   ]);
   if (!row) throw new NotFoundError("Gig not found");
 
-  const subtotal      = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
+  const subtotal      = effectiveLineItemsSubtotal(lineItems);
   const totalCredits  = refunds.filter(r => isCreditSubtype(r.subtype)).reduce((sum, r) => sum + r.amount, 0);
   const totalRefunded = refunds.filter(r => isRefundSubtype(r.subtype)).reduce((sum, r) => sum + r.amount, 0);
   const totalPaid     = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
@@ -103,6 +103,15 @@ export async function createGig(input: CreateGigRequest): Promise<Gig> {
 export async function updateGig(id: number, input: UpdateGigRequest): Promise<Gig> {
   const existing = await gigsRepo.readGigById(id);
   if (!existing) throw new NotFoundError("Gig not found");
+  
+  // Check mutual exclusivity: if trying to set overall discount, ensure no line items have per-item discounts
+  if (input.discountPercent !== undefined && input.discountPercent > 0) {
+    const lineItems = await gigLineItemsRepo.readGigLineItemsByGigId(id);
+    if (lineItems.some(li => li.discount_percent > 0)) {
+      throw new BadRequestError("Cannot set an overall discount while line items have per-item discounts. Remove the item-level discounts first.");
+    }
+  }
+  
   const mutationInput = buildMutationInput(input, mapGig(existing));
   const row = await gigsRepo.updateGig(id, mutationInput);
   if (!row) throw new NotFoundError("Gig not found");
@@ -125,10 +134,20 @@ export async function addGigLineItem(
   gigId: number,
   input: CreateGigLineItemRequest
 ): Promise<GigLineItem> {
-  await requireGig(gigId);
+  const gig = await gigsRepo.readGigById(gigId);
+  if (!gig) throw new NotFoundError("Gig not found");
   if (input.amount === undefined) throw new BadRequestError("amount is required");
+  
+  const discountPercent = input.discountPercent ?? 0;
+  validateDiscountPercent(discountPercent);
+  
+  // Check mutual exclusivity: cannot add item discount if gig already has overall discount
+  if (discountPercent > 0 && gig.discount_percent > 0) {
+    throw new BadRequestError("Cannot set an item-level discount while the gig has an overall discount. Remove the overall discount first.");
+  }
+  
   const { description, amount } = normaliseLineItemInput(input);
-  const row = await gigLineItemsRepo.createGigLineItem(gigId, description, amount);
+  const row = await gigLineItemsRepo.createGigLineItem(gigId, description, amount, discountPercent);
   return mapGigLineItem(row);
 }
 
@@ -143,12 +162,22 @@ export async function updateGigLineItem(
   lineItemId: number,
   input: UpdateGigLineItemRequest
 ): Promise<GigLineItem> {
-  await requireGig(gigId);
-  if (input.description === undefined && input.amount === undefined) {
-    throw new BadRequestError("At least one of description or amount must be provided");
+  const gig = await gigsRepo.readGigById(gigId);
+  if (!gig) throw new NotFoundError("Gig not found");
+  if (input.description === undefined && input.amount === undefined && input.discountPercent === undefined) {
+    throw new BadRequestError("At least one of description, amount, or discountPercent must be provided");
   }
+  
+  const discountPercent = input.discountPercent ?? 0;
+  validateDiscountPercent(discountPercent);
+  
+  // Check mutual exclusivity: cannot set item discount if gig already has overall discount
+  if (discountPercent > 0 && gig.discount_percent > 0) {
+    throw new BadRequestError("Cannot set an item-level discount while the gig has an overall discount. Remove the overall discount first.");
+  }
+  
   const { description, amount } = normaliseLineItemInput(input);
-  const row = await gigLineItemsRepo.updateGigLineItem(lineItemId, gigId, description, amount);
+  const row = await gigLineItemsRepo.updateGigLineItem(lineItemId, gigId, description, amount, discountPercent);
   if (!row) throw new NotFoundError("Line item not found");
   return mapGigLineItem(row);
 }
@@ -258,12 +287,13 @@ function mapGig(row: gigsRepo.GigRow): Gig {
   };
 }
 
-function mapGigLineItem(row: gigLineItemsRepo.GigLineItemRow): GigLineItem {
+export function mapGigLineItem(row: gigLineItemsRepo.GigLineItemRow): GigLineItem {
   return {
     id: row.id,
     gigId: row.gig_id,
     description: row.description ?? undefined,
     amount: row.amount ?? undefined,
+    discountPercent: row.discount_percent,
   };
 }
 
@@ -337,6 +367,7 @@ function buildMutationInput(
     ceilidhStyle: input.ceilidhStyle ?? existing?.ceilidhStyle,
     vimeoUrl,
     dropboxUrl,
-    deliveryTitle: input.deliveryTitle ?? existing?.deliveryTitle,
-  };
+     deliveryTitle: input.deliveryTitle ?? existing?.deliveryTitle,
+   };
 }
+

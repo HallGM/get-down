@@ -96,7 +96,7 @@ export default function GigsList() {
       {
         key: "billingTotal",
         header: "Amount charged",
-        headerHint: "Billing total: line items minus discount plus travel cost, minus any credit refunds",
+        headerHint: "Billing total: line items with applied discounts, plus travel cost, minus any credit refunds",
         render: (g: Gig) => <MoneyDisplay pennies={g.billingTotal ?? 0} />,
       },
       {

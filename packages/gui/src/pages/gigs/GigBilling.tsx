@@ -50,7 +50,7 @@ import { confirmedProfit } from "./gigUtils.js";
 import useEditTarget from "../../hooks/useEditTarget.js";
 import { useFileUpload } from "../../hooks/useFileUpload.js";
 import type { CreateGigLineItemRequest, UpdateGigLineItemRequest, Invoice, InvoiceAdditionalCharge, LegacyInvoice, Payment, Refund, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
-import { calcBillingTotals, REFUND_SUBTYPE_DEFAULT, isCreditSubtype, isRefundSubtype } from "@get-down/shared";
+import { calcBillingTotals, REFUND_SUBTYPE_DEFAULT, isCreditSubtype, isRefundSubtype, effectiveLineItemsSubtotal, applyItemDiscount } from "@get-down/shared";
 
 // ---------------------------------------------------------------------------
 // Local hook: manages a single PDF blob modal (load → display → revoke on close)
@@ -131,20 +131,31 @@ interface LineItemFormModalProps {
   open: boolean;
   title: string;
   submitLabel: string;
-  form: { description?: string; amount?: number };
-  onChange: (form: { description?: string; amount?: number }) => void;
+  form: { description?: string; amount?: number; discountPercent?: number };
+  onChange: (form: { description?: string; amount?: number; discountPercent?: number }) => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onClose: () => void;
   isPending: boolean;
   error?: Error | null;
+  hasOverallDiscount?: boolean;
 }
 
-function LineItemFormModal({ open, title, submitLabel, form, onChange, onSubmit, onClose, isPending, error }: LineItemFormModalProps) {
+function LineItemFormModal({ open, title, submitLabel, form, onChange, onSubmit, onClose, isPending, error, hasOverallDiscount }: LineItemFormModalProps) {
   return (
     <Modal open={open} onClose={onClose} title={title}>
       <form onSubmit={onSubmit}>
         <FormField label="Description" value={form.description ?? ""} onChange={(e) => onChange({ ...form, description: e.target.value })} required placeholder="e.g. 3-piece band" />
         <MoneyField label="Amount" value={form.amount ?? undefined} onChange={(pennies) => onChange({ ...form, amount: pennies ?? 0 })} required min={0} />
+        <FormField
+          label="Item discount (%)"
+          type="number"
+          value={form.discountPercent ?? 0}
+          onChange={(e) => onChange({ ...form, discountPercent: Number(e.target.value) })}
+          min={0}
+          max={100}
+          disabled={hasOverallDiscount}
+          title={hasOverallDiscount ? "Item-level discounts are disabled when an overall discount is set" : undefined}
+        />
         {error && <ErrorBanner error={error.message} />}
         <ModalFooter>
           <button type="button" className="secondary" onClick={onClose}>Cancel</button>
@@ -212,11 +223,11 @@ export default function GigBilling() {
 
   // Add line item modal
   const [showAddLineItem, setShowAddLineItem] = useState(false);
-  const [lineItemForm, setLineItemForm] = useState<CreateGigLineItemRequest>({ description: "", amount: 0 });
+  const [lineItemForm, setLineItemForm] = useState<CreateGigLineItemRequest>({ description: "", amount: 0, discountPercent: 0 });
 
   // Edit line item modal
   const [editLineItemId, setEditLineItemId] = useState<number | null>(null);
-  const [editLineItemForm, setEditLineItemForm] = useState<UpdateGigLineItemRequest>({ description: "", amount: 0 });
+  const [editLineItemForm, setEditLineItemForm] = useState<UpdateGigLineItemRequest>({ description: "", amount: 0, discountPercent: 0 });
 
   // Additional charge modals
   const [showAddCharge, setShowAddCharge] = useState(false);
@@ -276,7 +287,8 @@ export default function GigBilling() {
   if (error || !gig) return <ErrorBanner error={error ?? "Gig not found"} />;
 
   // Compute financial summary fully client-side from live data
-  const subtotal      = (gig.lineItems ?? []).reduce((sum, li) => sum + (li.amount ?? 0), 0);
+  const subtotal      = effectiveLineItemsSubtotal(gig.lineItems ?? []);
+  const hasItemDiscount = (gig.lineItems ?? []).some(li => (li.discountPercent ?? 0) > 0);
   const totalCredits  = (refunds ?? []).filter(r => isCreditSubtype(r.subtype)).reduce((sum, r) => sum + r.amount, 0);
   const totalPaid     = (payments ?? []).reduce((sum, p) => sum + p.amount, 0);
   const totalRefunded = (refunds ?? []).filter(r => isRefundSubtype(r.subtype)).reduce((sum, r) => sum + r.amount, 0);
@@ -311,20 +323,20 @@ export default function GigBilling() {
     e.preventDefault();
     await addGigLineItem.mutateAsync({
       gigId,
-      input: { ...lineItemForm, amount: lineItemForm.amount ?? 0 },
+      input: { ...lineItemForm, amount: lineItemForm.amount ?? 0, discountPercent: lineItemForm.discountPercent ?? 0 },
     });
     setShowAddLineItem(false);
-    setLineItemForm({ description: "", amount: 0 });
+    setLineItemForm({ description: "", amount: 0, discountPercent: 0 });
   }
 
-  function openEditLineItem(item: { id: number; description?: string; amount?: number }) {
+  function openEditLineItem(item: { id: number; description?: string; amount?: number; discountPercent?: number }) {
     setEditLineItemId(item.id);
-    setEditLineItemForm({ description: item.description ?? "", amount: item.amount });
+    setEditLineItemForm({ description: item.description ?? "", amount: item.amount, discountPercent: item.discountPercent ?? 0 });
   }
 
   function closeEditLineItem() {
     setEditLineItemId(null);
-    setEditLineItemForm({ description: "", amount: 0 });
+    setEditLineItemForm({ description: "", amount: 0, discountPercent: 0 });
   }
 
   async function handleEditLineItem(e: React.FormEvent) {
@@ -333,7 +345,7 @@ export default function GigBilling() {
     await updateGigLineItem.mutateAsync({
       gigId,
       itemId: editLineItemId,
-      input: { ...editLineItemForm, amount: editLineItemForm.amount ?? 0 },
+      input: { ...editLineItemForm, amount: editLineItemForm.amount ?? 0, discountPercent: editLineItemForm.discountPercent ?? 0 },
     });
     closeEditLineItem();
   }
@@ -471,7 +483,7 @@ export default function GigBilling() {
         <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem" }}>
           <dt>Quoted Price</dt><dd><MoneyDisplay pennies={gig.totalPrice} /></dd>
           <dt>Subtotal</dt><dd><MoneyDisplay pennies={subtotal} /></dd>
-          {gig.discountPercent > 0 && <><dt>Discount ({gig.discountPercent}%)</dt><dd>−<MoneyDisplay pennies={discountAmount} /></dd></>}
+          {gig.discountPercent > 0 && <><dt>Overall discount ({gig.discountPercent}%)</dt><dd>−<MoneyDisplay pennies={discountAmount} /></dd></>}
           {gig.travelCost > 0 && <><dt>Travel Cost</dt><dd><MoneyDisplay pennies={gig.travelCost} /></dd></>}
           {totalCredits > 0 && <><dt>Credits applied</dt><dd>−<MoneyDisplay pennies={totalCredits} /></dd></>}
           {(gig.totalAdditionalCharges ?? 0) > 0 && <><dt>Surcharges</dt><dd><MoneyDisplay pennies={gig.totalAdditionalCharges!} /></dd></>}
@@ -511,13 +523,22 @@ export default function GigBilling() {
         {!editingBilling ? (
           <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem" }}>
             <dt>Travel Cost</dt><dd><MoneyDisplay pennies={gig.travelCost} /></dd>
-            <dt>Discount</dt><dd>{gig.discountPercent}%</dd>
+            <dt>Overall discount</dt><dd>{gig.discountPercent}%{hasItemDiscount && " (disabled: item discounts are set)"}</dd>
           </dl>
         ) : (
           <form onSubmit={saveBilling}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem" }}>
               <MoneyField label="Travel Cost" value={billingForm.travelCost} onChange={(pennies) => setBillingForm((f) => ({ ...f, travelCost: pennies ?? 0 }))} min={0} />
-              <FormField label="Discount (%)" type="number" value={billingForm.discountPercent} onChange={(e) => setBillingForm((f) => ({ ...f, discountPercent: Number(e.target.value) }))} min={0} max={100} />
+              <FormField
+                label="Overall discount (%)"
+                type="number"
+                value={billingForm.discountPercent}
+                onChange={(e) => setBillingForm((f) => ({ ...f, discountPercent: Number(e.target.value) }))}
+                min={0}
+                max={100}
+                disabled={hasItemDiscount}
+                title={hasItemDiscount ? "Overall discounts are disabled when item-level discounts are set" : undefined}
+              />
             </div>
             {updateGig.error && <ErrorBanner error={updateGig.error instanceof Error ? updateGig.error.message : "Failed to save billing settings"} />}
             <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
@@ -546,12 +567,20 @@ export default function GigBilling() {
         </div>
         {gig.lineItems && gig.lineItems.length > 0 ? (
           <table>
-            <thead><tr><th>Description</th><th>Amount</th><th aria-label="Actions"></th></tr></thead>
+            <thead><tr><th>Description</th><th>Amount</th><th>Item Discount</th><th aria-label="Actions"></th></tr></thead>
             <tbody>
               {gig.lineItems.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.description ?? "—"}</td>
-                  <td><MoneyDisplay pennies={item.amount} /></td>
+                  <td>
+                    {item.description ?? "—"}
+                    {(item.discountPercent ?? 0) > 0 && (
+                      <div style={{ fontSize: "0.85em", color: "var(--muted-color)" }}>
+                        {item.discountPercent}% discount applied
+                      </div>
+                    )}
+                  </td>
+                  <td><MoneyDisplay pennies={applyItemDiscount(item.amount ?? 0, item.discountPercent ?? 0)} /></td>
+                  <td>{item.discountPercent ?? 0}%</td>
                   <td>
                     <div style={{ display: "flex", gap: "0.25rem" }}>
                       <button
@@ -931,6 +960,7 @@ export default function GigBilling() {
         onSubmit={handleAddLineItem}
         onClose={() => setShowAddLineItem(false)}
         isPending={addGigLineItem.isPending}
+        hasOverallDiscount={gig.discountPercent > 0}
       />
 
       <LineItemFormModal
@@ -943,6 +973,7 @@ export default function GigBilling() {
         onClose={closeEditLineItem}
         isPending={updateGigLineItem.isPending}
         error={updateGigLineItem.error}
+        hasOverallDiscount={gig.discountPercent > 0}
       />
 
       <AddTransactionModal

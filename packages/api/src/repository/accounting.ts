@@ -194,15 +194,13 @@ export async function readPredictedProfitSummary(bounds: DateBounds): Promise<Pr
           (COALESCE(pmt.total_paid, 0) - COALESCE(rfnd.total_refunded, 0)) AS net_received,
           CASE
             WHEN g.status = 'cancelled' THEN NULL
-            WHEN svc.service_count = 0  THEN NULL
-            WHEN svc.has_null_price     THEN NULL
+            WHEN li.line_item_count = 0  THEN NULL
             WHEN rls.has_null_fee       THEN NULL
-            ELSE ROUND(svc.service_subtotal * (1.0 - g.discount_percent / 100.0))::int
+            ELSE li.line_items_subtotal::int
           END AS predicted_billing,
           CASE
             WHEN g.status = 'cancelled' THEN NULL
-            WHEN svc.service_count = 0  THEN NULL
-            WHEN svc.has_null_price     THEN NULL
+            WHEN li.line_item_count = 0  THEN NULL
             WHEN rls.has_null_fee       THEN NULL
             ELSE COALESCE(rls.role_fee_total, 0)::int
           END AS predicted_fee_alloc,
