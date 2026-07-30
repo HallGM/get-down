@@ -53,6 +53,42 @@ function DashboardSection({
   );
 }
 
+/**
+ * Renders a pair of DashboardSections (gigs and showcases) for the same category of
+ * fee allocation alert, using the same table component for both.
+ */
+function GigShowcasePairSection({
+  gigTitle,
+  gigDescription,
+  gigData,
+  showcaseTitle,
+  showcaseDescription,
+  showcaseData,
+  badgeColor,
+  TableComponent,
+}: {
+  gigTitle: string;
+  gigDescription: string;
+  gigData: FeeAllocationAlert[];
+  showcaseTitle: string;
+  showcaseDescription: string;
+  showcaseData: FeeAllocationAlert[];
+  badgeColor: string;
+  TableComponent: React.ComponentType<{ allocations: FeeAllocationAlert[] }>;
+}) {
+  return (
+    <>
+      <DashboardSection title={gigTitle} description={gigDescription} count={gigData.length} badgeColor={badgeColor}>
+        <TableComponent allocations={gigData} />
+      </DashboardSection>
+
+      <DashboardSection title={showcaseTitle} description={showcaseDescription} count={showcaseData.length} badgeColor={badgeColor}>
+        <TableComponent allocations={showcaseData} />
+      </DashboardSection>
+    </>
+  );
+}
+
 function BalanceCells({ alert }: { alert: GigPaymentMismatchAlert }) {
   return (
     <>
@@ -505,41 +541,38 @@ export default function Dashboard() {
             <PaymentMismatchTable mismatches={data.pastPaymentMismatches} />
           </DashboardSection>
 
-          <DashboardSection
-            title="Fee Allocations Missing Expenses (Gigs)"
-            description="Gig fee allocations with no expense record linked. Manage inline by editing line items, linking roles, creating or linking expenses, and more."
-            count={data.allocationsWithoutExpensesGigs.length}
+          <GigShowcasePairSection
+            gigTitle="Fee Allocations Missing Expenses (Gigs)"
+            gigDescription="Gig fee allocations with no expense record linked. Manage inline by editing line items, linking roles, creating or linking expenses, and more."
+            gigData={data.allocationsWithoutExpensesGigs}
+            showcaseTitle="Fee Allocations Missing Expenses (Showcases)"
+            showcaseDescription="Showcase fee allocations with no expense record linked. Manage inline by editing line items, linking roles, creating or linking expenses, and more."
+            showcaseData={data.allocationsWithoutExpensesShowcases}
             badgeColor={PICO_ORANGE}
-          >
-            <SettleableAllocationTable allocations={data.allocationsWithoutExpensesGigs} />
-          </DashboardSection>
+            TableComponent={SettleableAllocationTable}
+          />
 
-          <DashboardSection
-            title="Fee Allocations Missing Expenses (Showcases)"
-            description="Showcase fee allocations with no expense record linked. Manage inline by editing line items, linking roles, creating or linking expenses, and more."
-            count={data.allocationsWithoutExpensesShowcases.length}
+          <GigShowcasePairSection
+            gigTitle="Partner Fee Allocations Awaiting Confirmation (Gigs)"
+            gigDescription="Gig fee allocations linked to partners that have not been confirmed. Confirm these allocations to mark them as reviewed and correct."
+            gigData={data.unconfirmedPartnerAllocationsGigs}
+            showcaseTitle="Partner Fee Allocations Awaiting Confirmation (Showcases)"
+            showcaseDescription="Showcase fee allocations linked to partners that have not been confirmed. Confirm these allocations to mark them as reviewed and correct."
+            showcaseData={data.unconfirmedPartnerAllocationsShowcases}
             badgeColor={PICO_ORANGE}
-          >
-            <SettleableAllocationTable allocations={data.allocationsWithoutExpensesShowcases} />
-          </DashboardSection>
+            TableComponent={SettleableAllocationTable}
+          />
 
-          <DashboardSection
-            title="Fee Allocations Not Assigned to a Role (Gigs)"
-            description="Gig fee allocations that exist without being assigned to a performer role."
-            count={data.allocationsWithoutRolesGigs.length}
+          <GigShowcasePairSection
+            gigTitle="Fee Allocations Not Assigned to a Role (Gigs)"
+            gigDescription="Gig fee allocations that exist without being assigned to a performer role."
+            gigData={data.allocationsWithoutRolesGigs}
+            showcaseTitle="Fee Allocations Not Assigned to a Role (Showcases)"
+            showcaseDescription="Showcase fee allocations that exist without being assigned to a performer role."
+            showcaseData={data.allocationsWithoutRolesShowcases}
             badgeColor={PICO_ORANGE}
-          >
-            <AllocationAlertTable allocations={data.allocationsWithoutRolesGigs} />
-          </DashboardSection>
-
-          <DashboardSection
-            title="Fee Allocations Not Assigned to a Role (Showcases)"
-            description="Showcase fee allocations that exist without being assigned to a performer role."
-            count={data.allocationsWithoutRolesShowcases.length}
-            badgeColor={PICO_ORANGE}
-          >
-            <AllocationAlertTable allocations={data.allocationsWithoutRolesShowcases} />
-          </DashboardSection>
+            TableComponent={AllocationAlertTable}
+          />
 
            <DashboardSection
              title="Showcase Apportionment Mismatches"

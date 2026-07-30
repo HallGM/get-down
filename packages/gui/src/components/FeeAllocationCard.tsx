@@ -7,12 +7,17 @@ interface FeeAllocationCardProps {
   onToggle: () => void;
   headerActions?: ReactNode;
   children?: ReactNode;
+  isPartner?: boolean;
+  confirmed?: boolean;
+  onToggleConfirmed?: (confirmed: boolean) => void;
+  isTogglingConfirmed?: boolean;
 }
 
 /**
  * A collapsible card for displaying fee allocation details.
- * Shows a toggle button, title, and "(settled)" badge in the header.
+ * Shows a toggle button, title, and "(settled)" badge or confirmed checkbox in the header.
  * Body content is conditionally rendered based on collapse state.
+ * For partner allocations, shows a confirmation checkbox instead of the "(settled)" badge.
  */
 export function FeeAllocationCard({
   title,
@@ -21,6 +26,10 @@ export function FeeAllocationCard({
   onToggle,
   headerActions,
   children,
+  isPartner = false,
+  confirmed = false,
+  onToggleConfirmed,
+  isTogglingConfirmed = false,
 }: FeeAllocationCardProps) {
   return (
     <article style={{ margin: 0 }}>
@@ -36,8 +45,21 @@ export function FeeAllocationCard({
             {isCollapsed ? "▶" : "▼"}
           </button>
           <strong>{title}</strong>
-          {hasExpenses && (
-            <span style={{ color: "var(--pico-muted-color)", fontSize: "0.85em" }}>(settled)</span>
+          {isPartner ? (
+            <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={confirmed}
+                onChange={(e) => onToggleConfirmed?.(e.target.checked)}
+                disabled={isTogglingConfirmed}
+                title="Mark this partner allocation as confirmed"
+              />
+              <span style={{ fontSize: "0.85em", color: "var(--pico-muted-color)" }}>Confirmed</span>
+            </label>
+          ) : (
+            hasExpenses && (
+              <span style={{ color: "var(--pico-muted-color)", fontSize: "0.85em" }}>(settled)</span>
+            )
           )}
         </div>
         {!isCollapsed && headerActions}

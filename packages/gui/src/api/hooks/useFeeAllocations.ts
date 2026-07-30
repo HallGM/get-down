@@ -172,11 +172,11 @@ export function useRemoveFeeLineItem() {
   });
 }
 
-function invalidateAllocationCaches(qc: QueryClient, allocationId: number, secondaryKey: string) {
+function invalidateAllocationCaches(qc: QueryClient, allocationId: number, ...extraKeys: string[]) {
   qc.invalidateQueries({ queryKey: [KEY, allocationId] });
   qc.invalidateQueries({ queryKey: [GIG_KEY] });
   qc.invalidateQueries({ queryKey: [SHOWCASE_KEY] });
-  qc.invalidateQueries({ queryKey: [secondaryKey] });
+  for (const key of extraKeys) qc.invalidateQueries({ queryKey: [key] });
 }
 
 export function useGenerateExpenseForAllocation() {
@@ -281,5 +281,16 @@ export function useUnlinkTransactionFromAllocation() {
       apiFetch<void>("DELETE", `/fee-allocations/${allocationId}/transactions/${transactionId}`),
     onSuccess: (_data, { allocationId }) => invalidateAllocationCaches(qc, allocationId, "accounts"),
     successMessage: "Transaction unlinked",
+  });
+}
+
+export function useConfirmFeeAllocation() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ allocationId, confirmed }: { allocationId: number; confirmed: boolean }) =>
+      apiFetch<FeeAllocation>("PATCH", `/fee-allocations/${allocationId}/confirm`, { confirmed }),
+    onSuccess: (_data, { allocationId }) =>
+      invalidateAllocationCaches(qc, allocationId, SUMMARY_KEY, "dashboard"),
+    successMessage: "Allocation confirmed",
   });
 }

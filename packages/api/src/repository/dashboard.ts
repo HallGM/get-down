@@ -164,6 +164,19 @@ export async function readAllocationsWithoutExpenses(): Promise<AllocationAlertR
 }
 
 /**
+ * Partner fee allocations that have not been confirmed yet.
+ * Only includes allocations where the linked person is a partner.
+ */
+export async function readUnconfirmedPartnerAllocations(): Promise<AllocationAlertRow[]> {
+  return run_query<AllocationAlertRow>({
+    text: buildAllocationAlertQuery(
+      `SELECT 1 FROM fee_allocations x WHERE x.id = fa.id AND x.confirmed = true`,
+      `p.is_partner = true`,
+    ),
+  });
+}
+
+/**
  * Fee allocations that have no assigned_roles row pointing at them.
  * Covers gig allocations, showcase allocations, and fully orphaned allocations.
  * No partner exclusion — all allocations are in scope.

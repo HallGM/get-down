@@ -9,6 +9,7 @@ export interface FeeAllocationRow {
   notes: string | null;
   is_invoiced: boolean;
   invoice_ref: string | null;
+  confirmed: boolean;
 }
 
 export interface LineItemRow {
@@ -32,7 +33,7 @@ export interface FeeAllocationMutationInput {
   invoiceRef?: string;
 }
 
-const SELECT_COLS = `id, person_id, gig_id, notes, is_invoiced, invoice_ref`;
+const SELECT_COLS = `id, person_id, gig_id, notes, is_invoiced, invoice_ref, confirmed`;
 const LINE_ITEM_COLS = `id, allocation_id, description, amount`;
 
 export async function createFeeAllocation(
@@ -79,7 +80,7 @@ export async function readFeeAllocationsByGigId(gigId: number): Promise<FeeAlloc
 export async function readFeeAllocationsByShowcaseId(showcaseId: number): Promise<FeeAllocationRow[]> {
   return run_query<FeeAllocationRow>({
     text: `
-      SELECT DISTINCT fa.id, fa.person_id, fa.gig_id, fa.notes, fa.is_invoiced, fa.invoice_ref
+      SELECT DISTINCT fa.id, fa.person_id, fa.gig_id, fa.notes, fa.is_invoiced, fa.invoice_ref, fa.confirmed
       FROM fee_allocations fa
       JOIN assigned_roles ar ON ar.fee_allocation_id = fa.id
       WHERE ar.showcase_id = $1
@@ -108,6 +109,19 @@ export async function updateFeeAllocation(
       input.invoiceRef ?? null,
       id,
     ],
+  });
+  return rows[0] ?? null;
+}
+
+export async function updateConfirmed(id: number, confirmed: boolean): Promise<FeeAllocationRow | null> {
+  const rows = await run_query<FeeAllocationRow>({
+    text: `
+      UPDATE fee_allocations
+      SET confirmed = $1
+      WHERE id = $2
+      RETURNING ${SELECT_COLS};
+    `,
+    values: [confirmed, id],
   });
   return rows[0] ?? null;
 }
@@ -346,6 +360,8 @@ export interface FeeAllocationSummaryRow {
   id: number;
   person_id: number | null;
   person_name: string | null;
+  person_is_partner: boolean | null;
+  confirmed: boolean;
   event_name: string | null;
   event_date: string | null;
   gig_id: number | null;
@@ -363,6 +379,8 @@ export async function readAllFeeAllocationSummaries(): Promise<FeeAllocationSumm
         fa.person_id,
         fa.notes,
         fa.is_invoiced,
+        fa.confirmed,
+        p.is_partner AS person_is_partner,
         ${SQL_PERSON_NAME},
         ${SQL_EVENT_COLS},
         COALESCE(SUM(li.amount), 0) AS total_fee
@@ -373,7 +391,7 @@ export async function readAllFeeAllocationSummaries(): Promise<FeeAllocationSumm
       LEFT JOIN fee_allocation_line_items li ON li.allocation_id = fa.id
       GROUP BY
         fa.id,
-        p.display_name, p.first_name, p.last_name,
+        p.display_name, p.first_name, p.last_name, p.is_partner,
         ${SQL_EVENT_GROUP_BY_COLS}
       ORDER BY COALESCE(g.date, s.date) DESC NULLS LAST;
     `,

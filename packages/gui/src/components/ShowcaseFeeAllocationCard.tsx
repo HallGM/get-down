@@ -5,14 +5,15 @@ import { useShowcaseRoles } from "../api/hooks/useAssignedRoles.js";
 import { usePeople } from "../api/hooks/usePeople.js";
 import { useShowcase } from "../api/hooks/useShowcases.js";
 import {
-   useFeeAllocationsByShowcase,
-   useAddFeeLineItem,
-   useUpdateFeeLineItem,
-   useRemoveFeeLineItem,
-   useDeleteFeeAllocation,
-   useLinkExpenseToAllocation,
-   useUnlinkExpenseFromAllocation,
- } from "../api/hooks/useFeeAllocations.js";
+    useFeeAllocationsByShowcase,
+    useAddFeeLineItem,
+    useUpdateFeeLineItem,
+    useRemoveFeeLineItem,
+    useDeleteFeeAllocation,
+    useLinkExpenseToAllocation,
+    useUnlinkExpenseFromAllocation,
+    useConfirmFeeAllocation,
+  } from "../api/hooks/useFeeAllocations.js";
  import { useExpenses, useDeleteExpense } from "../api/hooks/useExpenses.js";
  import { useUpdateRole } from "../api/hooks/useAssignedRoles.js";
  import { useUpdateShowcaseExpenseLink } from "../api/hooks/useShowcases.js";
@@ -25,7 +26,7 @@ import {
  import { LinkedRolesSection } from "./LinkedRolesSection.js";
  import { UnlinkOrDeleteModal } from "./UnlinkOrDeleteModal.js";
  import { ApportionModal } from "./ApportionModal.js";
- import { formatPersonName, resolvePersonName, formatShowcaseName } from "../utils/people.js";
+ import { formatPersonName, resolvePersonName, formatShowcaseName, resolvePerson } from "../utils/people.js";
  import { getAllocationTitle, buildExpenseInitialValues } from "../utils/allocations.js";
 
 interface ShowcaseFeeAllocationCardProps {
@@ -33,14 +34,16 @@ interface ShowcaseFeeAllocationCardProps {
   allocationId: number;
   isCollapsed: boolean;
   onToggle: () => void;
+  setCollapsed?: (id: number, value: boolean) => void;
 }
 
 export function ShowcaseFeeAllocationCard({
-   showcaseId,
-   allocationId,
-   isCollapsed,
-   onToggle,
- }: ShowcaseFeeAllocationCardProps) {
+    showcaseId,
+    allocationId,
+    isCollapsed,
+    onToggle,
+    setCollapsed,
+  }: ShowcaseFeeAllocationCardProps) {
     const { data: roles = [] } = useShowcaseRoles(showcaseId);
     const { data: people = [] } = usePeople();
     const { data: showcase } = useShowcase(showcaseId);
@@ -53,6 +56,7 @@ export function ShowcaseFeeAllocationCard({
     const deleteFeeAllocation = useDeleteFeeAllocation();
     const linkExpense = useLinkExpenseToAllocation();
     const unlinkExpense = useUnlinkExpenseFromAllocation();
+    const confirmFeeAllocation = useConfirmFeeAllocation();
     const deleteExpense = useDeleteExpense();
     const updateRole = useUpdateRole();
     const updateExpenseLink = useUpdateShowcaseExpenseLink(showcaseId);
@@ -70,14 +74,25 @@ export function ShowcaseFeeAllocationCard({
    const unlinkedRoles = roles.filter((r) => !r.feeAllocationId);
    const hasExpenses = allocation.expenseIds.length > 0;
    const editExpense = modals.editExpenseId != null ? (allExpenses.find((e) => e.id === modals.editExpenseId) ?? null) : null;
+    
+    // Determine if this allocation is for a partner
+    const allocationPerson = resolvePerson(people, allocation.personId);
+    const isPartner = allocationPerson?.isPartner ?? false;
 
   return (
     <>
-      <FeeAllocationCard
-         title={getAllocationTitle(allocation, people, roles)}
-         isCollapsed={isCollapsed}
-         hasExpenses={hasExpenses}
-         onToggle={onToggle}
+       <FeeAllocationCard
+          title={getAllocationTitle(allocation, people, roles)}
+          isCollapsed={isCollapsed}
+          hasExpenses={hasExpenses}
+          onToggle={onToggle}
+          isPartner={isPartner}
+          confirmed={allocation.confirmed}
+          onToggleConfirmed={(confirmed) => {
+            setCollapsed?.(allocationId, confirmed);
+            confirmFeeAllocation.mutate({ allocationId, confirmed });
+          }}
+          isTogglingConfirmed={confirmFeeAllocation.isPending}
          headerActions={
           <button
             type="button"

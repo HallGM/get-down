@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { FeeAllocationSummary } from "@get-down/shared";
-import { useFeeAllocationSummaries } from "../../api/hooks/useFeeAllocations.js";
+import { useFeeAllocationSummaries, useConfirmFeeAllocation } from "../../api/hooks/useFeeAllocations.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import EmptyState from "../../components/EmptyState.js";
@@ -48,6 +48,7 @@ function applyFilter(allocations: FeeAllocationSummary[], filter: FilterValue): 
 
 export default function FeeAllocationsList() {
   const { data: allocations = [], isLoading, error } = useFeeAllocationSummaries();
+  const confirmFeeAllocation = useConfirmFeeAllocation();
   const [personFilter, setPersonFilter] = useState<FilterValue>("all");
   const {
     calendarYear, taxYear, setCalendarYear, setTaxYear,
@@ -117,6 +118,7 @@ export default function FeeAllocationsList() {
                 <th>Date</th>
                 <th style={{ textAlign: "right" }}>Fee</th>
                 <th style={{ textAlign: "center" }}>Invoiced</th>
+                <th style={{ textAlign: "center" }}>Confirmed</th>
                 <th>Notes</th>
               </tr>
             </thead>
@@ -145,6 +147,22 @@ export default function FeeAllocationsList() {
                     </td>
                     <td style={{ textAlign: "center" }}>
                       <BooleanCell value={a.isInvoiced} />
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      {a.personIsPartner ? (
+                        <input
+                          type="checkbox"
+                          checked={a.confirmed}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            confirmFeeAllocation.mutate({ allocationId: a.id, confirmed: e.target.checked });
+                          }}
+                          disabled={confirmFeeAllocation.isPending}
+                          title={a.confirmed ? "Uncheck to revert confirmation" : "Check to confirm"}
+                        />
+                      ) : (
+                        <span style={{ color: "var(--pico-muted-color)" }}>n/a</span>
+                      )}
                     </td>
                     <td style={{ color: a.notes ? undefined : "var(--pico-muted-color)" }}>
                       {a.notes ?? "—"}

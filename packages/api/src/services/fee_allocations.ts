@@ -39,6 +39,8 @@ export async function getAllFeeAllocationSummaries(): Promise<FeeAllocationSumma
     totalFee: Number(row.total_fee),
     isInvoiced: row.is_invoiced,
     notes: row.notes ?? undefined,
+    confirmed: row.confirmed,
+    personIsPartner: row.person_is_partner ?? undefined,
   }));
 }
 
@@ -106,6 +108,35 @@ export async function updateFeeAllocation(
   const allocation = mapAllocation(row, transactionIds, expenseLinks);
   allocation.lineItems = lineItemRows.map(mapLineItem);
   return allocation;
+}
+
+export async function confirmFeeAllocation(id: number, body: unknown): Promise<FeeAllocation> {
+  const ConfirmSchema = z.object({ confirmed: z.boolean() });
+  const input = parseOrBadRequest(ConfirmSchema, body);
+
+  const allocation = await feeAllocationsRepo.readFeeAllocationById(id);
+  if (!allocation) throw new NotFoundError("FeeAllocation not found");
+
+  // Verify the allocation is linked to a partner
+  if (!allocation.person_id) {
+    throw new BadRequestError("Fee allocation has no person linked — cannot confirm");
+  }
+  const person = await peopleRepo.readPersonById(allocation.person_id);
+  if (!person || !person.is_partner) {
+    throw new BadRequestError("Only allocations linked to a partner can be confirmed");
+  }
+
+  const row = await feeAllocationsRepo.updateConfirmed(id, input.confirmed);
+  if (!row) throw new NotFoundError("FeeAllocation not found");
+
+  const [lineItemRows, expenseLinks, transactionIds] = await Promise.all([
+    feeAllocationsRepo.readLineItemsByAllocationId(id),
+    feeAllocationsRepo.readExpenseLinksByAllocationId(id),
+    feeAllocationsRepo.readTransactionIdsByAllocationId(id),
+  ]);
+  const updated = mapAllocation(row, transactionIds, expenseLinks);
+  updated.lineItems = lineItemRows.map(mapLineItem);
+  return updated;
 }
 
 export async function deleteFeeAllocation(id: number): Promise<void> {
@@ -599,6 +630,7 @@ function mapAllocation(
     notes: row.notes ?? undefined,
     isInvoiced: row.is_invoiced,
     invoiceRef: row.invoice_ref ?? undefined,
+    confirmed: row.confirmed,
     expenseIds: links.map((l) => l.expense_id),
     transactionIds,
     ...(derivedExpenseLinks.length > 0 ? { expenseLinks: derivedExpenseLinks } : {}),

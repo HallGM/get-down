@@ -590,6 +590,7 @@ export interface FeeAllocation {
   notes?: string;
   isInvoiced: boolean;
   invoiceRef?: string;
+  confirmed: boolean;
   lineItems?: FeeAllocationLineItem[];
   /** IDs of expenses linked to this allocation via fee_allocations_expenses. Always present, never undefined. */
   expenseIds: number[];
@@ -1292,6 +1293,9 @@ export interface FeeAllocationSummary extends FeeAllocationAlert {
   personId?: number;
   isInvoiced: boolean;
   notes?: string;
+  confirmed: boolean;
+  /** Whether the linked person is a partner, or undefined if no person is linked. */
+  personIsPartner?: boolean;
 }
 
 export interface FeeAllocationBreakdown {
@@ -1506,6 +1510,10 @@ export interface DashboardAlerts {
   allocationsWithoutExpensesGigs: FeeAllocationAlert[];
   /** Showcase fee allocations with no expense record linked. */
   allocationsWithoutExpensesShowcases: FeeAllocationAlert[];
+  /** Gig fee allocations linked to partners that have not been confirmed. */
+  unconfirmedPartnerAllocationsGigs: FeeAllocationAlert[];
+  /** Showcase fee allocations linked to partners that have not been confirmed. */
+  unconfirmedPartnerAllocationsShowcases: FeeAllocationAlert[];
   /** Gig fee allocations with no assigned_roles row pointing at them. */
   allocationsWithoutRolesGigs: FeeAllocationAlert[];
   /** Showcase fee allocations with no assigned_roles row pointing at them. */

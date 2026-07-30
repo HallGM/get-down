@@ -24,7 +24,7 @@ export default function ShowcaseRolesTab({ showcaseId }: Props) {
   const updateRole = useUpdateRole();
   const deleteRole = useDeleteRole();
   const generateFeeAllocations = useGenerateFeeAllocationsForShowcase(showcaseId);
-  const { toggle: toggleAllocationCollapse, isCollapsed: isAllocationCollapsed } = useCollapsibleAllocations(feeAllocations);
+  const { toggle: toggleAllocationCollapse, isCollapsed: isAllocationCollapsed, setCollapsed: setAllocationCollapsed } = useCollapsibleAllocations(feeAllocations);
 
   const [showAddRole, setShowAddRole] = useState(false);
   const [roleForm, setRoleForm] = useState<{ roleName: string; personId: number | null }>({ roleName: "", personId: null });
@@ -125,12 +125,13 @@ export default function ShowcaseRolesTab({ showcaseId }: Props) {
               const isCollapsed = isAllocationCollapsed(allocation.id);
               return (
                 <ShowcaseFeeAllocationCard
-                  key={allocation.id}
-                  showcaseId={showcaseId}
-                  allocationId={allocation.id}
-                  isCollapsed={isCollapsed}
-                  onToggle={() => toggleAllocationCollapse(allocation.id)}
-                />
+                   key={allocation.id}
+                   showcaseId={showcaseId}
+                   allocationId={allocation.id}
+                   isCollapsed={isCollapsed}
+                   onToggle={() => toggleAllocationCollapse(allocation.id)}
+                   setCollapsed={setAllocationCollapsed}
+                 />
               );
             })}
           </div>

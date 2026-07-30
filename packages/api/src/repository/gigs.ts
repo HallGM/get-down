@@ -505,7 +505,9 @@ export async function readGigFinancialTotalById(id: number): Promise<GigFinancia
  *   3. Has at least one assigned role.
  *   4. Every role has a person linked (person_id IS NOT NULL).
  *   5. Every role has a fee allocation linked (fee_allocation_id IS NOT NULL).
- *   6. Every non-partner performer's fee allocation has at least one linked expense.
+ *   6. Every performer's fee allocation meets ONE of:
+ *      a. Person is not a partner AND has at least one linked expense, OR
+ *      b. Person is a partner AND fee allocation is confirmed (confirmed = true)
  */
 export const SETTLED_CONDITION = `
   (
@@ -530,11 +532,14 @@ export const SETTLED_CONDITION = `
       SELECT 1
       FROM assigned_roles ar
       JOIN fee_allocations fa ON fa.id = ar.fee_allocation_id
-      JOIN people pe ON pe.id = fa.person_id
+      LEFT JOIN people pe ON pe.id = fa.person_id
       WHERE ar.gig_id = g.id
-        AND pe.is_partner = false
-        AND NOT EXISTS (
-          SELECT 1 FROM fee_allocations_expenses fae WHERE fae.allocation_id = ar.fee_allocation_id
+        AND NOT (
+          (COALESCE(pe.is_partner, false) = false AND EXISTS (
+            SELECT 1 FROM fee_allocations_expenses fae WHERE fae.allocation_id = ar.fee_allocation_id
+          ))
+          OR
+          (COALESCE(pe.is_partner, false) = true AND fa.confirmed = true)
         )
     )
   )

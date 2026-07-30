@@ -94,6 +94,7 @@ Table fee_allocations {
   notes         text
   is_invoiced   boolean [not null, default: false]
   invoice_ref   varchar(255)
+  confirmed     boolean [not null, default: false]
 }
 
 Table join_account_transactions_fee_allocations {
