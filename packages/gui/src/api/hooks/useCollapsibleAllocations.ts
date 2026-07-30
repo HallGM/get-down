@@ -45,5 +45,17 @@ export function useCollapsibleAllocations(allocations: CollapsibleAllocation[]) 
 
   const isCollapsed = useCallback((id: number) => collapsed.has(id), [collapsed]);
 
-  return { toggle, isCollapsed };
+  const forceSetCollapsed = useCallback((id: number, value: boolean) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (value) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }, []);
+
+  return { toggle, isCollapsed, setCollapsed: forceSetCollapsed };
 }

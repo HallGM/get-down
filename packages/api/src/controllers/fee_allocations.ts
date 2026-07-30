@@ -11,6 +11,7 @@ router.get("/fee-allocations/summary", handle(() => feeAllocationsService.getAll
 router.get("/fee-allocations/:id",    handle(req => feeAllocationsService.getFeeAllocationById(+req.params.id)));
 router.post("/fee-allocations",       handle(req => feeAllocationsService.createFeeAllocation(req.body), 201));
 router.put("/fee-allocations/:id",    handle(req => feeAllocationsService.updateFeeAllocation(+req.params.id, req.body)));
+router.patch("/fee-allocations/:id/confirm", handle(req => feeAllocationsService.confirmFeeAllocation(+req.params.id, req.body)));
 router.delete("/fee-allocations/:id", handle(req => feeAllocationsService.deleteFeeAllocation(+req.params.id), 204));
 router.post("/fee-allocations/:id/line-items",               handle(req => feeAllocationsService.addLineItem(+req.params.id, req.body), 201));
 router.put("/fee-allocations/:id/line-items/:lineItemId",    handle(req => feeAllocationsService.updateLineItem(+req.params.id, +req.params.lineItemId, req.body)));

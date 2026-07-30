@@ -16,6 +16,7 @@ import {
   useUpdateFeeAllocationExpenseLink,
   useLinkTransactionToAllocation,
   useUnlinkTransactionFromAllocation,
+  useConfirmFeeAllocation,
 } from "../api/hooks/useFeeAllocations.js";
 import { useExpenses, useDeleteExpense } from "../api/hooks/useExpenses.js";
 import { useAccounts } from "../api/hooks/useAccounts.js";
@@ -34,7 +35,7 @@ import { LinkedRolesSection } from "./LinkedRolesSection.js";
 import { LinkedTransactionsSection } from "./LinkedTransactionsSection.js";
 import { UnlinkOrDeleteModal } from "./UnlinkOrDeleteModal.js";
 import { ApportionModal } from "./ApportionModal.js";
-import { formatPersonName, formatGigName, resolvePersonName } from "../utils/people.js";
+import { formatPersonName, formatGigName, resolvePersonName, resolvePerson } from "../utils/people.js";
 import { getAllocationTitle, buildExpenseInitialValues } from "../utils/allocations.js";
 
 interface GigFeeAllocationCardProps {
@@ -42,6 +43,7 @@ interface GigFeeAllocationCardProps {
   allocationId: number;
   isCollapsed: boolean;
   onToggle: () => void;
+  setCollapsed?: (id: number, value: boolean) => void;
 }
 
 export function GigFeeAllocationCard({
@@ -49,6 +51,7 @@ export function GigFeeAllocationCard({
   allocationId,
   isCollapsed,
   onToggle,
+  setCollapsed,
 }: GigFeeAllocationCardProps) {
   const { data: gig } = useGig(gigId);
   const { data: roles = [] } = useGigRoles(gigId);
@@ -57,18 +60,19 @@ export function GigFeeAllocationCard({
   const { data: allExpenses = [] } = useExpenses();
   const { data: accounts = [] } = useAccounts();
 
-  const resetFeeAllocation = useResetFeeAllocation();
-  const addLineItem = useAddFeeLineItem();
-  const updateLineItem = useUpdateFeeLineItem();
-  const removeLineItem = useRemoveFeeLineItem();
-  const deleteFeeAllocation = useDeleteFeeAllocation();
-  const linkExpense = useLinkExpenseToAllocation();
-  const unlinkExpense = useUnlinkExpenseFromAllocation();
-  const updateExpenseLink = useUpdateFeeAllocationExpenseLink();
-  const linkTransaction = useLinkTransactionToAllocation();
-  const unlinkTransaction = useUnlinkTransactionFromAllocation();
-  const deleteExpense = useDeleteExpense();
-  const updateRole = useUpdateRole();
+   const resetFeeAllocation = useResetFeeAllocation();
+   const addLineItem = useAddFeeLineItem();
+   const updateLineItem = useUpdateFeeLineItem();
+   const removeLineItem = useRemoveFeeLineItem();
+   const deleteFeeAllocation = useDeleteFeeAllocation();
+   const linkExpense = useLinkExpenseToAllocation();
+   const unlinkExpense = useUnlinkExpenseFromAllocation();
+   const updateExpenseLink = useUpdateFeeAllocationExpenseLink();
+   const linkTransaction = useLinkTransactionToAllocation();
+   const unlinkTransaction = useUnlinkTransactionFromAllocation();
+   const confirmFeeAllocation = useConfirmFeeAllocation();
+   const deleteExpense = useDeleteExpense();
+   const updateRole = useUpdateRole();
 
    const modals = useExpenseLinkModals();
    const [apportionExpense, setApportionExpense] = useState<{
@@ -83,43 +87,54 @@ export function GigFeeAllocationCard({
    const unlinkedRoles = roles.filter((r) => !r.feeAllocationId);
    const hasExpenses = (allocation.expenseLinks?.length ?? 0) > 0;
    const editExpense = modals.editExpenseId != null ? (allExpenses.find((e) => e.id === modals.editExpenseId) ?? null) : null;
+    
+    // Determine if this allocation is for a partner
+    const allocationPerson = resolvePerson(people, allocation.personId);
+    const isPartner = allocationPerson?.isPartner ?? false;
 
    async function handleReset() {
      await resetFeeAllocation.mutateAsync(allocationId);
    }
 
-  return (
-    <>
-      <FeeAllocationCard
-         title={getAllocationTitle(allocation, people, roles)}
-         isCollapsed={isCollapsed}
-         hasExpenses={hasExpenses}
-         onToggle={onToggle}
-         headerActions={
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button
-              type="button"
-              className="secondary outline"
-              style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
-              aria-busy={resetFeeAllocation.isPending}
-              disabled={resetFeeAllocation.isPending}
-              onClick={handleReset}
-            >
-              Reset to defaults
-            </button>
-            <button
-              type="button"
-              className="contrast outline"
-              style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
-              aria-busy={deleteFeeAllocation.isPending}
-              disabled={deleteFeeAllocation.isPending}
-              onClick={() => deleteFeeAllocation.mutate(allocationId)}
-            >
-              ✕
-            </button>
-          </div>
-        }
-      >
+   return (
+     <>
+        <FeeAllocationCard
+           title={getAllocationTitle(allocation, people, roles)}
+           isCollapsed={isCollapsed}
+           hasExpenses={hasExpenses}
+           onToggle={onToggle}
+           isPartner={isPartner}
+           confirmed={allocation.confirmed}
+           onToggleConfirmed={(confirmed) => {
+             setCollapsed?.(allocationId, confirmed);
+             confirmFeeAllocation.mutate({ allocationId, confirmed });
+           }}
+           isTogglingConfirmed={confirmFeeAllocation.isPending}
+          headerActions={
+           <div style={{ display: "flex", gap: "0.5rem" }}>
+             <button
+               type="button"
+               className="secondary outline"
+               style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
+               aria-busy={resetFeeAllocation.isPending}
+               disabled={resetFeeAllocation.isPending}
+               onClick={handleReset}
+             >
+               Reset to defaults
+             </button>
+             <button
+               type="button"
+               className="contrast outline"
+               style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
+               aria-busy={deleteFeeAllocation.isPending}
+               disabled={deleteFeeAllocation.isPending}
+               onClick={() => deleteFeeAllocation.mutate(allocationId)}
+             >
+               ✕
+             </button>
+           </div>
+         }
+       >
         {/* Linked roles */}
         <LinkedRolesSection
           linkedRoles={linkedRoles}

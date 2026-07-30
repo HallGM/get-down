@@ -3,10 +3,11 @@ import * as repo from "../repository/dashboard.js";
 import type { GigAlertBaseRow, GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow, GigNoLineItemsAlertRow, GigPaymentMismatchAlertRow, RoleWithoutAllocationAlertRow, EmptyRoleAlertRow, FeeAllocationExpenseMismatchRow, ExpenseOverApportionmentRow, ExpenseOverApportionmentAllocationRow } from "../repository/dashboard.js";
 
 export async function getDashboardAlerts(): Promise<DashboardAlerts> {
-  const [noDepositRows, balanceDueSoonRows, allocationRows, withoutRoleRows, mismatchRows, noLineItemsRows, paymentMismatchRows, gigRoleRows, showcaseRoleRows, emptyGigRoleRows, emptyShowcaseRoleRows, expenseMismatchRows, overApportionedRows] = await Promise.all([
+  const [noDepositRows, balanceDueSoonRows, allocationRows, unconfirmedPartnerRows, withoutRoleRows, mismatchRows, noLineItemsRows, paymentMismatchRows, gigRoleRows, showcaseRoleRows, emptyGigRoleRows, emptyShowcaseRoleRows, expenseMismatchRows, overApportionedRows] = await Promise.all([
     repo.readDepositAlerts(),
     repo.readBalanceDueSoonAlerts(),
     repo.readAllocationsWithoutExpenses(),
+    repo.readUnconfirmedPartnerAllocations(),
     repo.readAllocationsWithoutRoles(),
     repo.readApportionmentMismatches(),
     repo.readGigsWithoutLineItems(),
@@ -26,6 +27,8 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
 
   const { gigs: allocationsWithoutExpensesGigs, showcases: allocationsWithoutExpensesShowcases } =
     partitionByEventType(allocationRows);
+  const { gigs: unconfirmedPartnerAllocationsGigs, showcases: unconfirmedPartnerAllocationsShowcases } =
+    partitionByEventType(unconfirmedPartnerRows);
   const { gigs: allocationsWithoutRolesGigs, showcases: allocationsWithoutRolesShowcases } =
     partitionByEventType(withoutRoleRows);
 
@@ -36,6 +39,8 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     pastPaymentMismatches: paymentMismatchRows.map(mapPaymentMismatchAlert),
     allocationsWithoutExpensesGigs,
     allocationsWithoutExpensesShowcases,
+    unconfirmedPartnerAllocationsGigs,
+    unconfirmedPartnerAllocationsShowcases,
     allocationsWithoutRolesGigs,
     allocationsWithoutRolesShowcases,
     apportionmentMismatches: mismatchRows.map(mapMismatchAlert),

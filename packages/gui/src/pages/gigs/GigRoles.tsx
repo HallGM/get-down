@@ -38,7 +38,7 @@ export default function GigRoles() {
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
   const [showAddAllocation, setShowAddAllocation] = useState(false);
   const [addAllocationPersonId, setAddAllocationPersonId] = useState<number | null>(null);
-  const { toggle: toggleAllocationCollapse, isCollapsed: isAllocationCollapsed } = useCollapsibleAllocations(feeAllocations);
+  const { toggle: toggleAllocationCollapse, isCollapsed: isAllocationCollapsed, setCollapsed: setAllocationCollapsed } = useCollapsibleAllocations(feeAllocations);
 
   if (gigLoading) return <LoadingState />;
   if (gigError || !gig) return <ErrorBanner error={gigError ?? "Gig not found"} />;
@@ -164,12 +164,13 @@ export default function GigRoles() {
               const isCollapsed = isAllocationCollapsed(allocation.id);
               return (
                 <GigFeeAllocationCard
-                  key={allocation.id}
-                  gigId={gigId}
-                  allocationId={allocation.id}
-                  isCollapsed={isCollapsed}
-                  onToggle={() => toggleAllocationCollapse(allocation.id)}
-                />
+                   key={allocation.id}
+                   gigId={gigId}
+                   allocationId={allocation.id}
+                   isCollapsed={isCollapsed}
+                   onToggle={() => toggleAllocationCollapse(allocation.id)}
+                   setCollapsed={setAllocationCollapsed}
+                 />
               );
             })}
           </div>

@@ -8,10 +8,16 @@ export function formatGigName(gig: Pick<Gig, "firstName" | "lastName">): string 
   return `${gig.firstName}${gig.lastName ? ` ${gig.lastName}` : ""}`.trim();
 }
 
+/** Safely resolve a person object from a list by ID. Returns undefined if not found. */
+export function resolvePerson(people: Person[], personId: number | undefined): Person | undefined {
+  if (!personId) return undefined;
+  return people.find((p) => p.id === personId);
+}
+
 /** Safely resolve a person's display name from a list. Returns empty string if not found. */
 export function resolvePersonName(people: Person[], personId: number | undefined): string {
   if (!personId) return "";
-  const person = people.find((p) => p.id === personId);
+  const person = resolvePerson(people, personId);
   return person ? formatPersonName(person) : "";
 }
 
