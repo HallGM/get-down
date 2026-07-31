@@ -116,7 +116,14 @@ export default function AttributionDetail() {
       <ConfirmDelete
         open={showDelete}
         itemName={attribution.name}
-        onConfirm={async () => { await deleteAttribution.mutateAsync(attributionId); navigate("/attributions"); }}
+        onConfirm={async () => {
+          try {
+            await deleteAttribution.mutateAsync(attributionId);
+            navigate("/attributions");
+          } catch {
+            setShowDelete(false);
+          }
+        }}
         onCancel={() => setShowDelete(false)}
         loading={deleteAttribution.isPending}
       />

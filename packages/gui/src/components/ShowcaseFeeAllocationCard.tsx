@@ -20,6 +20,7 @@ import {
  import ExpensePickerModal from "./ExpensePickerModal.js";
  import ExpenseCreateModal from "./ExpenseCreateModal.js";
  import ExpenseModal from "./ExpenseModal.js";
+ import { GenerateInvoiceButton } from "./GenerateInvoiceButton.js";
  import { FeeAllocationPanel } from "./FeeAllocationPanel.js";
  import { FeeAllocationCard } from "./FeeAllocationCard.js";
  import { LinkedExpensesSection } from "./LinkedExpensesSection.js";
@@ -56,15 +57,15 @@ export function ShowcaseFeeAllocationCard({
     const deleteFeeAllocation = useDeleteFeeAllocation();
     const linkExpense = useLinkExpenseToAllocation();
     const unlinkExpense = useUnlinkExpenseFromAllocation();
-    const confirmFeeAllocation = useConfirmFeeAllocation();
-    const deleteExpense = useDeleteExpense();
-    const updateRole = useUpdateRole();
-    const updateExpenseLink = useUpdateShowcaseExpenseLink(showcaseId);
+     const confirmFeeAllocation = useConfirmFeeAllocation();
+     const deleteExpense = useDeleteExpense();
+     const updateRole = useUpdateRole();
+     const updateExpenseLink = useUpdateShowcaseExpenseLink(showcaseId);
 
-    const modals = useExpenseLinkModals();
-    const [apportionExpense, setApportionExpense] = useState<{
-      expense: Expense;
-    } | null>(null);
+     const modals = useExpenseLinkModals();
+     const [apportionExpense, setApportionExpense] = useState<{
+       expense: Expense;
+     } | null>(null);
 
    // Find the allocation by ID
    const allocation = feeAllocations.find((a) => a.id === allocationId);
@@ -93,18 +94,21 @@ export function ShowcaseFeeAllocationCard({
             confirmFeeAllocation.mutate({ allocationId, confirmed });
           }}
           isTogglingConfirmed={confirmFeeAllocation.isPending}
-         headerActions={
-          <button
-            type="button"
-            className="contrast outline"
-            style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
-            aria-busy={deleteFeeAllocation.isPending}
-            disabled={deleteFeeAllocation.isPending}
-            onClick={() => deleteFeeAllocation.mutate(allocationId)}
-          >
-            ✕
-          </button>
-        }
+          headerActions={
+           <div style={{ display: "flex", gap: "0.5rem" }}>
+             <GenerateInvoiceButton allocationId={allocationId} personId={allocation.personId} />
+             <button
+               type="button"
+               className="contrast outline"
+               style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
+               aria-busy={deleteFeeAllocation.isPending}
+               disabled={deleteFeeAllocation.isPending}
+               onClick={() => deleteFeeAllocation.mutate(allocationId)}
+             >
+               ✕
+             </button>
+           </div>
+         }
       >
         {/* Linked roles */}
         <LinkedRolesSection
@@ -194,19 +198,19 @@ export function ShowcaseFeeAllocationCard({
         />
 
         {apportionExpense && (
-          <ApportionModal
-            expense={apportionExpense.expense}
-            currentAmount={apportionExpense.expense.amount}
-            onClose={() => setApportionExpense(null)}
-            onSave={(amount) => {
-              updateExpenseLink.mutate(
-                { expenseId: apportionExpense.expense.id, apportionedAmount: amount },
-                { onSuccess: () => setApportionExpense(null) }
-              );
-            }}
-            isPending={updateExpenseLink.isPending}
-          />
-        )}
-     </>
-   );
+           <ApportionModal
+             expense={apportionExpense.expense}
+             currentAmount={apportionExpense.expense.amount}
+             onClose={() => setApportionExpense(null)}
+             onSave={(amount) => {
+               updateExpenseLink.mutate(
+                 { expenseId: apportionExpense.expense.id, apportionedAmount: amount },
+                 { onSuccess: () => setApportionExpense(null) }
+               );
+             }}
+             isPending={updateExpenseLink.isPending}
+           />
+         )}
+      </>
+    );
 }

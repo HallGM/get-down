@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import type { Expense, FeeAllocation, FeeAllocationLineItem, FeeAllocationSummary, UpdateFeeAllocationLineItemRequest, CreateFeeAllocationLineItemRequest, CreateExpenseRequest } from "@get-down/shared";
+import type { Expense, FeeAllocation, FeeAllocationLineItem, FeeAllocationSummary, UpdateFeeAllocationLineItemRequest, CreateFeeAllocationLineItemRequest, CreateExpenseRequest, PersonInvoice } from "@get-down/shared";
 import { apiFetch, apiFetchFormData } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
@@ -186,6 +186,19 @@ export function useGenerateExpenseForAllocation() {
       apiFetch<Expense>("POST", `/fee-allocations/${allocationId}/expenses/generate`),
     onSuccess: (_data, allocationId) => invalidateAllocationCaches(qc, allocationId, "expenses"),
     successMessage: "Expense generated",
+  });
+}
+
+export function useGenerateInvoiceForAllocation() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: (allocationId: number) =>
+      apiFetch<PersonInvoice>("POST", `/fee-allocations/${allocationId}/invoices/generate`),
+    onSuccess: (_data, allocationId) => {
+      invalidateAllocationCaches(qc, allocationId, "expenses", "person-invoices");
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    successMessage: "Invoice generated",
   });
 }
 

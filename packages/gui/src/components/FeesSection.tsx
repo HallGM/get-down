@@ -116,7 +116,13 @@ export function FeesSection({ fees, attributionId }: FeesSectionProps) {
         <ConfirmDelete
           open={!!deleteFeeTarget}
           itemName={deleteFeeTarget.description ?? `Fee #${deleteFeeTarget.id}`}
-          onConfirm={async () => { await deleteFee.mutateAsync(deleteFeeTarget.id); setDeleteFeeTarget(null); }}
+          onConfirm={async () => {
+            try {
+              await deleteFee.mutateAsync(deleteFeeTarget.id);
+            } finally {
+              setDeleteFeeTarget(null);
+            }
+          }}
           onCancel={() => setDeleteFeeTarget(null)}
           loading={deleteFee.isPending}
         />

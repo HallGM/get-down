@@ -84,8 +84,11 @@ export default function GigRehearsalsTab({ gigId }: Props) {
 
   async function handleConfirmDeleteRehearsal() {
     if (!deleteRehearsalTarget) return;
-    await unlinkGigRehearsal.mutateAsync(deleteRehearsalTarget.id);
-    setDeleteRehearsalTarget(null);
+    try {
+      await unlinkGigRehearsal.mutateAsync(deleteRehearsalTarget.id);
+    } finally {
+      setDeleteRehearsalTarget(null);
+    }
   }
 
   async function handleLinkExpense(expense: { id: number }) {

@@ -46,10 +46,12 @@ export default function ExpensePaymentRow({ payment }: Props) {
           onConfirm={async () => {
             try {
               await deletePayment.mutateAsync(payment.id);
-              setDeleteConfirming(false);
             } catch (err) {
               console.error("Failed to delete payment:", err);
-              // Error toast already shown by useApiMutation; keep modal open for retry
+              // Error toast already shown by useApiMutation; close anyway since the
+              // toast renders behind the still-open native <dialog> otherwise.
+            } finally {
+              setDeleteConfirming(false);
             }
           }}
           onCancel={() => setDeleteConfirming(false)}

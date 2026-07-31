@@ -64,8 +64,12 @@ export default function ServiceDetail() {
   }
 
   async function handleDelete() {
-    await deleteService.mutateAsync(serviceId);
-    navigate("/services");
+    try {
+      await deleteService.mutateAsync(serviceId);
+      navigate("/services");
+    } catch {
+      setShowDelete(false);
+    }
   }
 
   async function handleCreateAndAttach(e: React.FormEvent) {

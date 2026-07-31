@@ -88,6 +88,14 @@ services:
         sync: false
       - key: INVOICE_SERVICE_URL
         sync: false
+      # Every Angle's own business address, shown as the "customer" on person
+      # invoices; must match the values set for the invoice/Flask service above
+      - key: BUSINESS_ADDRESS_LINE1
+        sync: false
+      - key: BUSINESS_ADDRESS_LINE2
+        sync: false
+      - key: BUSINESS_ADDRESS_LINE3
+        sync: false
       - key: CLOUDFLARE_R2_ACCOUNT_ID
         sync: false
       - key: CLOUDFLARE_R2_ACCESS_KEY_ID

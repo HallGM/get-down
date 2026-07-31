@@ -24,6 +24,9 @@ router.post("/fee-allocations/:id/expenses",          handle(req => feeAllocatio
 router.patch("/fee-allocations/:id/expenses/:expenseId", handle(req => feeAllocationsService.updateExpenseLink(+req.params.id, +req.params.expenseId, req.body), 204));
 router.delete("/fee-allocations/:id/expenses/:expenseId", handle(req => feeAllocationsService.unlinkExpenseFromAllocation(+req.params.id, +req.params.expenseId), 204));
 
+// Invoice generation
+router.post("/fee-allocations/:id/invoices/generate", handle(req => feeAllocationsService.generateInvoiceForAllocation(+req.params.id), 201));
+
 // Transaction links
 router.post("/fee-allocations/:id/transactions",                    handle(req => feeAllocationsService.linkTransactionToAllocation(+req.params.id, req.body), 204));
 router.delete("/fee-allocations/:id/transactions/:transactionId",   handle(req => feeAllocationsService.unlinkTransactionFromAllocation(+req.params.id, +req.params.transactionId), 204));

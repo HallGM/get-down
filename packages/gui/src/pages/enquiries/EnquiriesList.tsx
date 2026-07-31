@@ -103,8 +103,11 @@ export default function EnquiriesList() {
           open={!!deleteTarget}
           itemName={`${deleteTarget.firstName} ${deleteTarget.lastName}`}
           onConfirm={async () => {
-            await deleteEnquiry.mutateAsync(Number(deleteTarget.id));
-            setDeleteTarget(null);
+            try {
+              await deleteEnquiry.mutateAsync(Number(deleteTarget.id));
+            } finally {
+              setDeleteTarget(null);
+            }
           }}
           onCancel={() => setDeleteTarget(null)}
           loading={deleteEnquiry.isPending}

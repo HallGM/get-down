@@ -324,8 +324,11 @@ export default function AccountDetail() {
           itemName={`${deleteTarget.label} — ${formatPennies(Math.abs(deleteTarget.amount))}`}
           onConfirm={async () => {
             if (deleteTarget.entryType !== 'transaction') return;
-            await deleteTx.mutateAsync(deleteTarget.sourceId);
-            setDeleteTarget(null);
+            try {
+              await deleteTx.mutateAsync(deleteTarget.sourceId);
+            } finally {
+              setDeleteTarget(null);
+            }
           }}
           onCancel={() => setDeleteTarget(null)}
           loading={deleteTx.isPending}

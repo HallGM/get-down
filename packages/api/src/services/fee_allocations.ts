@@ -3,6 +3,7 @@ import type {
   FeeAllocationLineItem,
   FeeAllocationSummary,
   Expense,
+  PersonInvoice,
   CreateFeeAllocationRequest,
   UpdateFeeAllocationRequest,
   UpdateFeeAllocationLineItemRequest,
@@ -18,6 +19,7 @@ import * as gigsRepo from "../repository/gigs.js";
 import * as peopleRepo from "../repository/people.js";
 import * as accountsRepo from "../repository/accounts.js";
 import * as expensePaymentsRepo from "../repository/expense_payments.js";
+import * as personInvoicesService from "./person_invoices.js";
 import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
@@ -554,6 +556,58 @@ export async function settleAllocationWithExpense(
 
     // Return the assembled expense
     return mapExpense(expenseRow, [allocationId], [], paymentAmount, undefined);
+   });
+}
+
+/**
+ * Generate a person invoice from a fee allocation.
+ * Creates the invoice with line items copied from the allocation, creates its backing expense,
+ * links that expense to the allocation, and marks the allocation as invoiced.
+ * Requires the allocation to have a person and at least one line item.
+ */
+export async function generateInvoiceForAllocation(allocationId: number): Promise<PersonInvoice> {
+  const allocation = await feeAllocationsRepo.readFeeAllocationById(allocationId);
+  if (!allocation) throw new NotFoundError("FeeAllocation not found");
+
+  // Guard: allocation must have a person
+  const personId = allocation.person_id;
+  if (!personId) {
+    throw new BadRequestError("Allocation has no person. Cannot generate invoice.");
+  }
+
+  // Load line items
+  const lineItems = await feeAllocationsRepo.readLineItemsByAllocationId(allocationId);
+
+  // Guard: must have at least one line item
+  if (lineItems.length === 0) {
+    throw new BadRequestError("Allocation has no line items. Cannot generate invoice.");
+  }
+
+  return withTransaction(async () => {
+    // Step 1: Create the person invoice (which also creates its backing expense)
+    // Line item amount can be null (e.g. not yet filled in); treat as 0 so the
+    // invoice line item total still balances rather than failing on unset amounts.
+    const invoice = await personInvoicesService.createPersonInvoiceFromAllocationLineItems(
+      personId,
+      lineItems.map((li) => ({
+        description: li.description ?? undefined,
+        amount: li.amount ?? 0,
+      }))
+    );
+
+    // Step 2: Link the invoice's expense to this allocation
+    await feeAllocationsRepo.linkExpenseToAllocation(allocationId, invoice.expenseId);
+
+    // Step 3: Update the allocation to mark it as invoiced
+    await feeAllocationsRepo.updateFeeAllocation(allocationId, {
+      personId,
+      gigId: allocation.gig_id ?? undefined,
+      notes: allocation.notes ?? undefined,
+      isInvoiced: true,
+      invoiceRef: invoice.invoiceNumber,
+    });
+
+    return invoice;
   });
 }
 

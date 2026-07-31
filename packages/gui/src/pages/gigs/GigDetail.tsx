@@ -100,8 +100,12 @@ export default function GigDetail() {
   }
 
   async function handleDeleteGig() {
-    await deleteGig.mutateAsync(gigId);
-    navigate("/gigs");
+    try {
+      await deleteGig.mutateAsync(gigId);
+      navigate("/gigs");
+    } catch {
+      setShowDeleteGig(false);
+    }
   }
 
   return (

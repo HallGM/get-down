@@ -154,8 +154,11 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
            open={!!deleteTarget}
            itemName={formatPaymentAmount(deleteTarget.amount)}
            onConfirm={async () => {
-             await deletePayment.mutateAsync(deleteTarget.id);
-             setDeleteTarget(null);
+             try {
+               await deletePayment.mutateAsync(deleteTarget.id);
+             } finally {
+               setDeleteTarget(null);
+             }
            }}
            onCancel={() => setDeleteTarget(null)}
            loading={deletePayment.isPending}

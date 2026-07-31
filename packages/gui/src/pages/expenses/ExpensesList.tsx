@@ -145,7 +145,13 @@ export default function ExpensesList() {
         <ConfirmDelete
           open={!!deleteTarget}
           itemName={deleteTarget.description}
-          onConfirm={async () => { await deleteExpense.mutateAsync(deleteTarget.id); setDeleteTarget(null); }}
+          onConfirm={async () => {
+            try {
+              await deleteExpense.mutateAsync(deleteTarget.id);
+            } finally {
+              setDeleteTarget(null);
+            }
+          }}
           onCancel={() => setDeleteTarget(null)}
           loading={deleteExpense.isPending}
         />
