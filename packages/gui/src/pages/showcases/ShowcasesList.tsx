@@ -134,7 +134,13 @@ export default function ShowcasesList() {
         <ConfirmDelete
           open={!!deleteTarget}
           itemName={deleteTarget.fullName ?? deleteTarget.nickname ?? String(deleteTarget.id)}
-          onConfirm={async () => { await deleteShowcase.mutateAsync(deleteTarget.id); setDeleteTarget(null); }}
+          onConfirm={async () => {
+            try {
+              await deleteShowcase.mutateAsync(deleteTarget.id);
+            } finally {
+              setDeleteTarget(null);
+            }
+          }}
           onCancel={() => setDeleteTarget(null)}
           loading={deleteShowcase.isPending}
         />

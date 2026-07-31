@@ -14,3 +14,10 @@ export function toDateString(value: string | Date | null): string | null {
   if (typeof value === "string") return value;
   return value.toISOString().slice(0, 10);
 }
+
+/**
+ * Return today's date as an ISO date string (YYYY-MM-DD).
+ */
+export function todayDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}

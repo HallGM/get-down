@@ -1,4 +1,4 @@
-import Modal from "./Modal.js";
+import ConfirmAction from "./ConfirmAction.js";
 
 interface Props {
   open: boolean;
@@ -10,18 +10,19 @@ interface Props {
 
 export default function ConfirmDelete({ open, itemName, onConfirm, onCancel, loading }: Props) {
   return (
-    <Modal open={open} onClose={onCancel} title="Confirm Delete">
+    <ConfirmAction
+      open={open}
+      title="Confirm Delete"
+      confirmLabel="Delete"
+      confirmClassName="contrast"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+      loading={loading}
+    >
       <p>
         Are you sure you want to delete <strong>{itemName}</strong>? This cannot be undone.
       </p>
-      <footer>
-        <button className="secondary" onClick={onCancel} disabled={loading}>
-          Cancel
-        </button>
-        <button className="contrast" onClick={onConfirm} aria-busy={loading}>
-          Delete
-        </button>
-      </footer>
-    </Modal>
+    </ConfirmAction>
   );
 }
+

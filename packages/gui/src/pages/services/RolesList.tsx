@@ -153,8 +153,11 @@ export default function RolesList() {
           open={!!deleteTarget}
           itemName={deleteTarget.name}
           onConfirm={async () => {
-            await deleteRole.mutateAsync(deleteTarget.id);
-            setDeleteTarget(null);
+            try {
+              await deleteRole.mutateAsync(deleteTarget.id);
+            } finally {
+              setDeleteTarget(null);
+            }
           }}
           onCancel={() => setDeleteTarget(null)}
           loading={deleteRole.isPending}

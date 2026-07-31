@@ -11,7 +11,7 @@ import * as peopleService from "./people.js";
 import { withTransaction } from "../db/init.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
-import { toDateString } from "../utils/date.js";
+import { toDateString, todayDate } from "../utils/date.js";
 import { resolvePersonRowName } from "../utils/person.js";
 
 const CreatePersonInvoiceSchema = z.object({
@@ -64,14 +64,97 @@ export async function createPersonInvoice(body: unknown): Promise<PersonInvoice>
   const person = await peopleRepo.readPersonById(input.personId);
   if (!person) throw new NotFoundError("Person not found");
 
+  assertPersonHasInvoiceDetails(
+    {
+      addressLine1: person.address_line_1,
+      phone: person.phone,
+      email: person.email,
+      accountNumber: person.account_number,
+      sortCode: person.sort_code,
+    },
+    resolvePersonRowName(person)
+  );
+
+  return createPersonInvoiceWithDetails(input.personId, input.lineItems, input.date, person);
+}
+
+/**
+ * Create a person invoice from fee allocation line items.
+ * Used by the fee allocation invoice generation feature.
+ */
+export async function createPersonInvoiceFromAllocationLineItems(
+  personId: number,
+  lineItems: Array<{ description?: string; amount: number }>
+): Promise<PersonInvoice> {
+  // Defense-in-depth: the current caller (fee_allocations.generateInvoiceForAllocation)
+  // already validates this, but this function is exported and may gain other callers.
+  if (!lineItems || lineItems.length === 0) {
+    throw new BadRequestError("at least one line item is required");
+  }
+
+  // Verify person exists
+  const person = await peopleRepo.readPersonById(personId);
+  if (!person) throw new NotFoundError("Person not found");
+
+  assertPersonHasInvoiceDetails(
+    {
+      addressLine1: person.address_line_1,
+      phone: person.phone,
+      email: person.email,
+      accountNumber: person.account_number,
+      sortCode: person.sort_code,
+    },
+    resolvePersonRowName(person)
+  );
+
+  // Use today's date
+  const date = todayDate();
+
+  return createPersonInvoiceWithDetails(personId, lineItems, date, person);
+}
+
+// ─── Private helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Verify a person has the details required to generate an invoice PDF for them
+ * (address, phone, email, account number, sort code). Used both when creating a
+ * person invoice and when generating its PDF, so staff get a clear error as early
+ * as possible rather than discovering the gap only at PDF-generation time.
+ */
+function assertPersonHasInvoiceDetails(person: {
+  addressLine1?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  accountNumber?: string | null;
+  sortCode?: string | null;
+}, businessName: string, context: "invoice" | "invoice PDF" = "invoice"): void {
+  const missingFields: string[] = [];
+  if (!person.addressLine1) missingFields.push("address line 1");
+  if (!person.phone) missingFields.push("phone number");
+  if (!person.email) missingFields.push("email address");
+  if (!person.accountNumber) missingFields.push("account number");
+  if (!person.sortCode) missingFields.push("sort code");
+  if (missingFields.length > 0) {
+    throw new BadRequestError(
+      `Cannot generate ${context}: ${businessName} is missing ${missingFields.join(", ")}. Update the person's details first.`
+    );
+  }
+}
+
+async function createPersonInvoiceWithDetails(
+  personId: number,
+  lineItems: Array<{ description?: string | null; amount: number }>,
+  date: string,
+  person: NonNullable<Awaited<ReturnType<typeof peopleRepo.readPersonById>>>
+): Promise<PersonInvoice> {
   return withTransaction(async () => {
     // Calculate total
-    const totalAmount = input.lineItems.reduce((sum, item) => sum + item.amount, 0);
+    const totalAmount = lineItems.reduce((sum, item) => sum + item.amount, 0);
 
     // Create linked expense
     const expenseDescription = `Person Invoice: ${resolvePersonRowName(person)}`;
     const expenseRow = await expensesRepo.createExpense({
-      date: input.date,
+      date,
       amount: totalAmount,
       description: expenseDescription,
       recipientName: resolvePersonRowName(person),
@@ -83,17 +166,17 @@ export async function createPersonInvoice(body: unknown): Promise<PersonInvoice>
 
     // Create person invoice
     const invoiceRow = await personInvoicesRepo.createPersonInvoice({
-      personId: input.personId,
+      personId,
       invoiceNumber,
-      date: input.date,
+      date,
       totalAmount,
       expenseId: expenseRow.id,
     });
 
     // Create line items
     await Promise.all(
-      input.lineItems.map((item) =>
-        personInvoicesRepo.createLineItem(invoiceRow.id, item.description, item.amount)
+      lineItems.map((item) =>
+        personInvoicesRepo.createLineItem(invoiceRow.id, item.description ?? null, item.amount)
       )
     );
 
@@ -223,6 +306,10 @@ export async function buildFlaskPayloadForPersonInvoice(invoiceId: number): Prom
     firstName: person.firstName,
     lastName: person.lastName,
   });
+
+  // The PDF service requires these fields to be set; check up-front and give a clear
+  // error instead of letting the Flask request fail with a generic 400.
+  assertPersonHasInvoiceDetails(person, businessName, "invoice PDF");
 
   // Every Angle's address is sourced from environment variables (same as Flask-side)
   const evAddressLine1 = process.env.BUSINESS_ADDRESS_LINE1 || "";

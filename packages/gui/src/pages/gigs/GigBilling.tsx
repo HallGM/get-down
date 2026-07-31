@@ -396,8 +396,11 @@ export default function GigBilling() {
 
   async function handleDeleteInvoice() {
     if (!deleteInvoiceTarget) return;
-    await deleteInvoice.mutateAsync({ id: deleteInvoiceTarget.id, gigId });
-    setDeleteInvoiceTarget(null);
+    try {
+      await deleteInvoice.mutateAsync({ id: deleteInvoiceTarget.id, gigId });
+    } finally {
+      setDeleteInvoiceTarget(null);
+    }
   }
 
   async function handleLinkPayment(paymentId: number) {
@@ -465,11 +468,14 @@ export default function GigBilling() {
 
   async function handleDeleteLegacyInvoice() {
     if (!deleteLegacyInvoiceTarget) return;
-    await deleteLegacyInvoice.mutateAsync({
-      id: deleteLegacyInvoiceTarget.id,
-      gigId,
-    });
-    setDeleteLegacyInvoiceTarget(null);
+    try {
+      await deleteLegacyInvoice.mutateAsync({
+        id: deleteLegacyInvoiceTarget.id,
+        gigId,
+      });
+    } finally {
+      setDeleteLegacyInvoiceTarget(null);
+    }
   }
 
   // Payments not yet linked to any invoice

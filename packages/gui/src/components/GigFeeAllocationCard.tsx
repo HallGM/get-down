@@ -28,6 +28,7 @@ import ExpenseModal from "./ExpenseModal.js";
 import TransactionPickerModal from "./TransactionPickerModal.js";
 import TransactionCreateModal from "./TransactionCreateModal.js";
 import TransactionModal from "./TransactionModal.js";
+import { GenerateInvoiceButton } from "./GenerateInvoiceButton.js";
 import { FeeAllocationPanel } from "./FeeAllocationPanel.js";
 import { FeeAllocationCard } from "./FeeAllocationCard.js";
 import { LinkedExpensesSection } from "./LinkedExpensesSection.js";
@@ -70,14 +71,14 @@ export function GigFeeAllocationCard({
    const updateExpenseLink = useUpdateFeeAllocationExpenseLink();
    const linkTransaction = useLinkTransactionToAllocation();
    const unlinkTransaction = useUnlinkTransactionFromAllocation();
-   const confirmFeeAllocation = useConfirmFeeAllocation();
-   const deleteExpense = useDeleteExpense();
-   const updateRole = useUpdateRole();
+    const confirmFeeAllocation = useConfirmFeeAllocation();
+    const deleteExpense = useDeleteExpense();
+    const updateRole = useUpdateRole();
 
-   const modals = useExpenseLinkModals();
-   const [apportionExpense, setApportionExpense] = useState<{
-      expense: Expense;
-    } | null>(null);
+    const modals = useExpenseLinkModals();
+    const [apportionExpense, setApportionExpense] = useState<{
+       expense: Expense;
+     } | null>(null);
 
    // Find the allocation by ID
    const allocation = feeAllocations.find((a) => a.id === allocationId);
@@ -110,30 +111,31 @@ export function GigFeeAllocationCard({
              confirmFeeAllocation.mutate({ allocationId, confirmed });
            }}
            isTogglingConfirmed={confirmFeeAllocation.isPending}
-          headerActions={
-           <div style={{ display: "flex", gap: "0.5rem" }}>
-             <button
-               type="button"
-               className="secondary outline"
-               style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
-               aria-busy={resetFeeAllocation.isPending}
-               disabled={resetFeeAllocation.isPending}
-               onClick={handleReset}
-             >
-               Reset to defaults
-             </button>
-             <button
-               type="button"
-               className="contrast outline"
-               style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
-               aria-busy={deleteFeeAllocation.isPending}
-               disabled={deleteFeeAllocation.isPending}
-               onClick={() => deleteFeeAllocation.mutate(allocationId)}
-             >
-               ✕
-             </button>
-           </div>
-         }
+           headerActions={
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <GenerateInvoiceButton allocationId={allocationId} personId={allocation.personId} />
+              <button
+                type="button"
+                className="secondary outline"
+                style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
+                aria-busy={resetFeeAllocation.isPending}
+                disabled={resetFeeAllocation.isPending}
+                onClick={handleReset}
+              >
+                Reset to defaults
+              </button>
+              <button
+                type="button"
+                className="contrast outline"
+                style={{ padding: "0.15em 0.5em", fontSize: "0.85em" }}
+                aria-busy={deleteFeeAllocation.isPending}
+                disabled={deleteFeeAllocation.isPending}
+                onClick={() => deleteFeeAllocation.mutate(allocationId)}
+              >
+                ✕
+              </button>
+            </div>
+          }
        >
         {/* Linked roles */}
         <LinkedRolesSection
@@ -229,20 +231,20 @@ export function GigFeeAllocationCard({
           deletePending={deleteExpense.isPending}
         />
 
-        {apportionExpense && (
-           <ApportionModal
-             expense={apportionExpense.expense}
-             currentAmount={apportionExpense.expense.amount}
-             onClose={() => setApportionExpense(null)}
-             onSave={(amount) => {
-               updateExpenseLink.mutate(
-                 { allocationId, expenseId: apportionExpense.expense.id, apportionedAmount: amount },
-                 { onSuccess: () => setApportionExpense(null) }
-               );
-             }}
-             isPending={updateExpenseLink.isPending}
-           />
-         )}
-       </>
-     );
-   }
+         {apportionExpense && (
+            <ApportionModal
+              expense={apportionExpense.expense}
+              currentAmount={apportionExpense.expense.amount}
+              onClose={() => setApportionExpense(null)}
+              onSave={(amount) => {
+                updateExpenseLink.mutate(
+                  { allocationId, expenseId: apportionExpense.expense.id, apportionedAmount: amount },
+                  { onSuccess: () => setApportionExpense(null) }
+                );
+              }}
+              isPending={updateExpenseLink.isPending}
+            />
+          )}
+        </>
+      );
+    }

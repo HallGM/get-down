@@ -347,8 +347,11 @@ export default function GigsList() {
           open={!!deleteTarget}
           itemName={`${deleteTarget.firstName} ${deleteTarget.lastName ?? ""}`.trim()}
           onConfirm={async () => {
-            await deleteGig.mutateAsync(deleteTarget.id);
-            setDeleteTarget(null);
+            try {
+              await deleteGig.mutateAsync(deleteTarget.id);
+            } finally {
+              setDeleteTarget(null);
+            }
           }}
           onCancel={() => setDeleteTarget(null)}
           loading={deleteGig.isPending}

@@ -122,7 +122,13 @@ export default function RehearsalsList() {
         <ConfirmDelete
           open={!!deleteTarget}
           itemName={deleteTarget.name}
-          onConfirm={async () => { await deleteRehearsal.mutateAsync(deleteTarget.id); setDeleteTarget(null); }}
+          onConfirm={async () => {
+            try {
+              await deleteRehearsal.mutateAsync(deleteTarget.id);
+            } finally {
+              setDeleteTarget(null);
+            }
+          }}
           onCancel={() => setDeleteTarget(null)}
           loading={deleteRehearsal.isPending}
         />

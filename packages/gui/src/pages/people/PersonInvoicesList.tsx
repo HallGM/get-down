@@ -229,7 +229,13 @@ export default function PersonInvoicesList() {
         <ConfirmDelete
           open={!!deleteTarget}
           itemName={deleteTarget.invoiceNumber}
-          onConfirm={async () => { await deletePersonInvoice.mutateAsync({ id: deleteTarget.id, personId }); setDeleteTarget(null); }}
+          onConfirm={async () => {
+            try {
+              await deletePersonInvoice.mutateAsync({ id: deleteTarget.id, personId });
+            } finally {
+              setDeleteTarget(null);
+            }
+          }}
           onCancel={() => setDeleteTarget(null)}
           loading={deletePersonInvoice.isPending}
         />

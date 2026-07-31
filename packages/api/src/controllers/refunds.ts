@@ -5,6 +5,7 @@ import * as gigsRepo from "../repository/gigs.js";
 import { handle } from "../utils/handle.js";
 import { proxyToFlask, handleFlask } from "../utils/proxyToFlask.js";
 import { NotFoundError } from "../errors.js";
+import { todayDate } from "../utils/date.js";
 
 const router: Router = express.Router();
 router.use(authenticateToken);
@@ -22,7 +23,7 @@ router.post("/refunds/:id/credit-note", requirePartner, handleFlask(async (req, 
 
   const payload: Record<string, unknown> = {
     customer_name: `${gig.first_name} ${gig.last_name}`,
-    date: refund.date ?? new Date().toISOString().slice(0, 10),
+    date: refund.date ?? todayDate(),
     amount: refund.amount / 100,
     description: refund.description ?? "Refund",
     reference: `REF-${refund.id}`,

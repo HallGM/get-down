@@ -275,7 +275,13 @@ export default function SongsList() {
         <ConfirmDelete
           open={!!deleteTarget}
           itemName={`${deleteTarget.title}${deleteTarget.artist ? ` – ${deleteTarget.artist}` : ""}`}
-          onConfirm={async () => { await deleteSong.mutateAsync(deleteTarget.id); setDeleteTarget(null); }}
+          onConfirm={async () => {
+            try {
+              await deleteSong.mutateAsync(deleteTarget.id);
+            } finally {
+              setDeleteTarget(null);
+            }
+          }}
           onCancel={() => setDeleteTarget(null)}
           loading={deleteSong.isPending}
         />

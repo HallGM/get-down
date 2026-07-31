@@ -19,6 +19,7 @@ import * as refundsRepo from "../repository/refunds.js";
 import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { validateDiscountPercent } from "../utils/validation.js";
+import { todayDate } from "../utils/date.js";
 import { mapGigLineItem } from "./gigs.js";
 
 export async function getAllInvoices(): Promise<Invoice[]> {
@@ -72,7 +73,7 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
     throw new BadRequestError(`Invoice total (${total}) exceeds maximum allowed value`);
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayDate();
   const year = today.slice(2, 4);
 
   return withTransaction(async () => {

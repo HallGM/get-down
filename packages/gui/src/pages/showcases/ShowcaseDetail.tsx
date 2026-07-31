@@ -140,7 +140,14 @@ export default function ShowcaseDetail() {
         <ConfirmDelete
           open={showDelete}
           itemName={displayName}
-          onConfirm={async () => { await deleteShowcase.mutateAsync(showcaseId); navigate("/showcases"); }}
+          onConfirm={async () => {
+            try {
+              await deleteShowcase.mutateAsync(showcaseId);
+              navigate("/showcases");
+            } catch {
+              setShowDelete(false);
+            }
+          }}
           onCancel={() => setShowDelete(false)}
           loading={deleteShowcase.isPending}
         />

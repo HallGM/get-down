@@ -168,7 +168,13 @@ export default function PeopleList() {
         <ConfirmDelete
           open={!!deleteTarget}
           itemName={`${deleteTarget.firstName} ${deleteTarget.lastName ?? ""}`.trim()}
-          onConfirm={async () => { await deletePerson.mutateAsync(deleteTarget.id); setDeleteTarget(null); }}
+          onConfirm={async () => {
+            try {
+              await deletePerson.mutateAsync(deleteTarget.id);
+            } finally {
+              setDeleteTarget(null);
+            }
+          }}
           onCancel={() => setDeleteTarget(null)}
           loading={deletePerson.isPending}
         />
