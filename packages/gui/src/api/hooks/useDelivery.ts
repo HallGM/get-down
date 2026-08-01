@@ -3,6 +3,7 @@ import type {
   DeliveryPageResponse,
   DeliveryPhoto,
   DeliveryVideo,
+  DeliveryPhotoStatus,
   CreateDeliveryVideoRequest,
   UpdateDeliveryVideoRequest,
 } from "@get-down/shared";
@@ -80,5 +81,16 @@ export function useRefreshDeliveryPhotos(gigId: number) {
     mutationFn: () =>
       apiFetch<void>("POST", `/gigs/${gigId}/delivery/refresh-thumbnails`),
     successMessage: "Photos are being regenerated.",
+  });
+}
+
+export function useDeliveryPhotoStatus(gigId: number, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ["delivery-photo-status", gigId],
+    queryFn: () =>
+      apiFetch<DeliveryPhotoStatus>("GET", `/gigs/${gigId}/delivery/photo-status`),
+    enabled: !!gigId && enabled,
+    refetchInterval: (query) =>
+      (query.state.data as DeliveryPhotoStatus | undefined)?.processing ? 2000 : false,
   });
 }

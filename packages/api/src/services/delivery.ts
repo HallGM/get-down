@@ -1,14 +1,16 @@
-import type { DeliveryPageResponse, DeliveryPhoto } from "@get-down/shared";
+import type { DeliveryPageResponse, DeliveryPhoto, DeliveryPhotoStatus } from "@get-down/shared";
 import { extractVimeoId } from "@get-down/shared";
 import sharp from "sharp";
 import * as gigsRepo from "../repository/gigs.js";
 import * as videosRepo from "../repository/gig_delivery_videos.js";
 import { mapVideo } from "./deliveryVideos.js";
-import { NotFoundError, BadRequestError } from "../errors.js";
+import { NotFoundError, BadRequestError, ServiceUnavailableError } from "../errors.js";
 import * as dropbox from "../utils/dropbox.js";
 import * as storage from "../utils/storage.js";
 import * as vimeo from "../utils/vimeo.js";
-import { semaphore, r2Key, VARIANTS, type VariantName, fireGenerateDeliveryPhotos, memMB } from "../jobs/generateDeliveryPhotos.js";
+import { throttleIfMemoryHigh, memMB } from "../utils/memory.js";
+import { semaphore, r2Key, VARIANTS, type VariantName, fireGenerateDeliveryPhotos } from "../jobs/generateDeliveryPhotos.js";
+import * as photoStatus from "../jobs/deliveryPhotoStatus.js";
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -83,11 +85,16 @@ export async function getVideoDownloadUrl(
   return { url };
 }
 
+export function getPhotoStatus(gigId: number): DeliveryPhotoStatus {
+  return photoStatus.getStatus(gigId);
+}
+
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 /**
  * Returns a presigned R2 URL for the requested image variant of the named photo.
  * Lazily generates and uploads to R2 on a cache miss, gated by the shared semaphore.
+ * Tracks processing status for the gig.
  */
 async function getVariantUrl(token: string, name: string, variant: VariantName): Promise<string> {
   const gig = await gigsRepo.readGigByClientToken(token);
@@ -101,23 +108,41 @@ async function getVariantUrl(token: string, name: string, variant: VariantName):
   const exists = await storage.headFile(key);
 
   if (!exists) {
-    const { width, height, quality } = VARIANTS[variant];
-    console.info(`[delivery] cache-miss: ${variant} "${name}" gig=${gig.id} | sem=${semaphore.available} avail / ${semaphore.queued} waiting | ${memMB()}`);
-    await semaphore.acquire();
-    console.info(`[delivery] acquired:   ${variant} "${name}" gig=${gig.id} | sem=${semaphore.available} avail / ${semaphore.queued} waiting | ${memMB()}`);
+    photoStatus.startOnDemandProcessing(gig.id);
     try {
-      const buffer = await dropbox.fetchFileBuffer(gig.dropbox_url, `/${entry.name}`);
-      console.info(`[delivery] downloaded: ${variant} "${name}" ${(buffer.length / 1024 / 1024).toFixed(2)}MB | ${memMB()}`);
-      const out = await sharp(buffer)
-        .resize(width, height, { fit: "cover", position: "centre" })
-        .jpeg({ quality })
-        .toBuffer();
-      console.info(`[delivery] sharp-done: ${variant} "${name}" output=${(out.length / 1024).toFixed(0)}KB | ${memMB()}`);
-      await storage.uploadFile(key, out, "image/jpeg");
-      console.info(`[delivery] uploaded:   ${variant} "${name}"`);
+      const { width, height, quality } = VARIANTS[variant];
+
+      // Check memory pressure before queueing for a processing slot, so a
+      // throttle here doesn't hold the shared semaphore hostage for other
+      // gigs or the background batch job. If memory is still high after the
+      // max wait, fail the request rather than adding more load while under
+      // sustained pressure.
+      const recovered = await throttleIfMemoryHigh(`[delivery] gig=${gig.id} "${name}"`);
+      if (!recovered) {
+        throw new ServiceUnavailableError(
+          "Photo processing is temporarily unavailable due to high server load. Please try again in a moment."
+        );
+      }
+
+      console.info(`[delivery] cache-miss: ${variant} "${name}" gig=${gig.id} | sem=${semaphore.available} avail / ${semaphore.queued} waiting | ${memMB()}`);
+      await semaphore.acquire();
+      console.info(`[delivery] acquired:   ${variant} "${name}" gig=${gig.id} | sem=${semaphore.available} avail / ${semaphore.queued} waiting | ${memMB()}`);
+      try {
+        const buffer = await dropbox.fetchFileBuffer(gig.dropbox_url, `/${entry.name}`);
+        console.info(`[delivery] downloaded: ${variant} "${name}" ${(buffer.length / 1024 / 1024).toFixed(2)}MB | ${memMB()}`);
+        const out = await sharp(buffer)
+          .resize(width, height, { fit: "cover", position: "centre" })
+          .jpeg({ quality })
+          .toBuffer();
+        console.info(`[delivery] sharp-done: ${variant} "${name}" output=${(out.length / 1024).toFixed(0)}KB | ${memMB()}`);
+        await storage.uploadFile(key, out, "image/jpeg");
+        console.info(`[delivery] uploaded:   ${variant} "${name}"`);
+      } finally {
+        semaphore.release();
+        console.info(`[delivery] released:   ${variant} "${name}" | sem=${semaphore.available} avail / ${semaphore.queued} waiting | ${memMB()}`);
+      }
     } finally {
-      semaphore.release();
-      console.info(`[delivery] released:   ${variant} "${name}" | sem=${semaphore.available} avail / ${semaphore.queued} waiting | ${memMB()}`);
+      photoStatus.finishOnDemandProcessing(gig.id);
     }
   } else {
     console.info(`[delivery] cache-hit:  ${variant} "${name}" gig=${gig.id}`);

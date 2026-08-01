@@ -431,6 +431,12 @@ export interface DeliveryPhoto {
   name: string;
 }
 
+export interface DeliveryPhotoStatus {
+  processing: boolean;
+  completed?: number; // photos already processed
+  total?: number;     // total photos in the gallery
+}
+
 // ─── Performer portal types ────────────────────────────────────────────────────
 
 /** Summary of a gig shown on the performer's gig list page */
