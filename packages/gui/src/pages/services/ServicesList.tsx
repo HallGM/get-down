@@ -59,6 +59,7 @@ export default function ServicesList() {
         columns={[...COLUMNS, {
           key: "timesUsed",
           header: "Times Used",
+          interactive: true,
           render: (s) => (
             <button
               className="secondary outline"
@@ -70,6 +71,7 @@ export default function ServicesList() {
           ),
         }, {
           key: "actions", header: "",
+          interactive: true,
           render: (s) => (
             <button
               className="secondary outline"
@@ -82,7 +84,7 @@ export default function ServicesList() {
         }]}
         data={services ?? []}
         emptyMessage="No services yet."
-        onRowClick={(s) => navigate(`/services/${s.id}`)}
+        rowHref={(s) => `/services/${s.id}`}
       />
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Service">

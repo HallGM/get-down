@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import type { FeeAllocationSummary } from "@get-down/shared";
 import { useFeeAllocationSummaries, useConfirmFeeAllocation } from "../../api/hooks/useFeeAllocations.js";
 import LoadingState from "../../components/LoadingState.js";
@@ -10,6 +9,7 @@ import BooleanCell from "../../components/BooleanCell.js";
 import AllocationEventCell from "../../components/AllocationEventCell.js";
 import YearSelect from "../../components/YearSelect.js";
 import CountBadge from "../../components/CountBadge.js";
+import DataTable, { type Column } from "../../components/DataTable.js";
 import { formatDate } from "../../utils/date.js";
 import { useYearFilterData } from "../../hooks/useYearFilter.js";
 import RunningTotal from "../../components/RunningTotal.js";
@@ -55,13 +55,73 @@ export default function FeeAllocationsList() {
     calendarYearOptions, taxYearOptions,
     filtered: yearFiltered,
   } = useYearFilterData(allocations, (a) => a.eventDate);
-  const navigate = useNavigate();
 
   const personOptions = useMemo(() => buildPersonOptions(allocations), [allocations]);
 
   const filtered = useMemo(() => applyFilter(yearFiltered, personFilter), [yearFiltered, personFilter]);
 
   const total = useMemo(() => filtered.reduce((sum, a) => sum + a.totalFee, 0), [filtered]);
+
+  const columns: Column<FeeAllocationSummary>[] = useMemo(() => [
+    {
+      key: "personName",
+      header: "Person",
+      render: (a) => a.personName ?? <span style={{ color: "var(--pico-muted-color)" }}>Unassigned</span>,
+    },
+    {
+      key: "eventName",
+      header: "Event",
+      interactive: true, // AllocationEventCell renders its own link
+      render: (a) => <AllocationEventCell eventName={a.eventName} gigId={a.gigId} showcaseId={a.showcaseId} />,
+    },
+    {
+      key: "eventDate",
+      header: "Date",
+      cellStyle: { whiteSpace: "nowrap" },
+      render: (a) => formatDate(a.eventDate),
+    },
+    {
+      key: "totalFee",
+      header: "Fee",
+      headerStyle: { textAlign: "right" },
+      cellStyle: { textAlign: "right", whiteSpace: "nowrap" },
+      render: (a) => <MoneyDisplay pennies={a.totalFee} />,
+    },
+    {
+      key: "isInvoiced",
+      header: "Invoiced",
+      headerStyle: { textAlign: "center" },
+      cellStyle: { textAlign: "center" },
+      render: (a) => <BooleanCell value={a.isInvoiced} />,
+    },
+    {
+      key: "confirmed",
+      header: "Confirmed",
+      headerStyle: { textAlign: "center" },
+      cellStyle: { textAlign: "center" },
+      interactive: true,
+      render: (a) =>
+        a.personIsPartner ? (
+          <input
+            type="checkbox"
+            checked={a.confirmed}
+            onChange={(e) => {
+              e.stopPropagation();
+              confirmFeeAllocation.mutate({ allocationId: a.id, confirmed: e.target.checked });
+            }}
+            disabled={confirmFeeAllocation.isPending}
+            title={a.confirmed ? "Uncheck to revert confirmation" : "Check to confirm"}
+          />
+        ) : (
+          <span style={{ color: "var(--pico-muted-color)" }}>n/a</span>
+        ),
+    },
+    {
+      key: "notes",
+      header: "Notes",
+      render: (a) => a.notes ?? <span style={{ color: "var(--pico-muted-color)" }}>—</span>,
+    },
+  ], [confirmFeeAllocation]);
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
   if (error)     return <main className="container"><ErrorBanner error={error} /></main>;
@@ -109,70 +169,12 @@ export default function FeeAllocationsList() {
       {filtered.length === 0 ? (
         <EmptyState message="No fee allocations found." />
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Person</th>
-                <th>Event</th>
-                <th>Date</th>
-                <th style={{ textAlign: "right" }}>Fee</th>
-                <th style={{ textAlign: "center" }}>Invoiced</th>
-                <th style={{ textAlign: "center" }}>Confirmed</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((a) => {
-                const href = a.gigId
-                  ? `/gigs/${a.gigId}`
-                  : a.showcaseId
-                    ? `/showcases/${a.showcaseId}`
-                    : null;
-                return (
-                  <tr
-                    key={a.id}
-                    onClick={() => href && navigate(href)}
-                    style={href ? { cursor: "pointer" } : undefined}
-                  >
-                    <td>
-                      {a.personName ?? (
-                        <span style={{ color: "var(--pico-muted-color)" }}>Unassigned</span>
-                      )}
-                    </td>
-                    <td><AllocationEventCell eventName={a.eventName} gigId={a.gigId} showcaseId={a.showcaseId} /></td>
-                    <td style={{ whiteSpace: "nowrap" }}>{formatDate(a.eventDate)}</td>
-                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      <MoneyDisplay pennies={a.totalFee} />
-                    </td>
-                    <td style={{ textAlign: "center" }}>
-                      <BooleanCell value={a.isInvoiced} />
-                    </td>
-                    <td style={{ textAlign: "center" }}>
-                      {a.personIsPartner ? (
-                        <input
-                          type="checkbox"
-                          checked={a.confirmed}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            confirmFeeAllocation.mutate({ allocationId: a.id, confirmed: e.target.checked });
-                          }}
-                          disabled={confirmFeeAllocation.isPending}
-                          title={a.confirmed ? "Uncheck to revert confirmation" : "Check to confirm"}
-                        />
-                      ) : (
-                        <span style={{ color: "var(--pico-muted-color)" }}>n/a</span>
-                      )}
-                    </td>
-                    <td style={{ color: a.notes ? undefined : "var(--pico-muted-color)" }}>
-                      {a.notes ?? "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <DataTable<FeeAllocationSummary>
+          columns={columns}
+          data={filtered}
+          rowHref={(a) => (a.gigId ? `/gigs/${a.gigId}` : a.showcaseId ? `/showcases/${a.showcaseId}` : undefined)}
+          hideSearch
+        />
       )}
 
       {/* Total */}

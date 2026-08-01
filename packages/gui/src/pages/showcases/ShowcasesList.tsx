@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useShowcases, useCreateShowcase, useUpdateShowcase, useDeleteShowcase } from "../../api/hooks/useShowcases.js";
 import type { CreateShowcaseRequest, UpdateShowcaseRequest, Showcase } from "@get-down/shared";
 import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
@@ -46,11 +45,10 @@ function filterShowcase(showcase: Showcase, query: string): boolean {
 }
 
 export default function ShowcasesList() {
-  const { data: showcases, isLoading, error } = useShowcases();
-  const createShowcase = useCreateShowcase();
-  const updateShowcase = useUpdateShowcase();
-  const deleteShowcase = useDeleteShowcase();
-  const navigate = useNavigate();
+   const { data: showcases, isLoading, error } = useShowcases();
+   const createShowcase = useCreateShowcase();
+   const updateShowcase = useUpdateShowcase();
+   const deleteShowcase = useDeleteShowcase();
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CreateShowcaseRequest>(EMPTY_FORM);
@@ -90,13 +88,14 @@ export default function ShowcasesList() {
       <DataTable<Showcase>
         columns={[...COLUMNS, {
           key: "actions", header: "",
+          interactive: true,
           render: (s) => <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); openEdit(s); }}>Edit</button>,
         }]}
         data={showcases ?? []}
         emptyMessage="No showcases yet."
         filterPlaceholder="Search showcases…"
         filterFn={filterShowcase}
-        onRowClick={(s) => navigate(`/showcases/${s.id}`)}
+        rowHref={(s) => `/showcases/${s.id}`}
       />
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Showcase">
