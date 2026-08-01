@@ -1,6 +1,8 @@
 import sharp from "sharp";
 import * as dropbox from "../utils/dropbox.js";
 import { headFile, uploadFile } from "../utils/storage.js";
+import { throttleIfMemoryHigh, memMB } from "../utils/memory.js";
+import * as photoStatus from "./deliveryPhotoStatus.js";
 
 // ─── Concurrency semaphore ─────────────────────────────────────────────────────
 
@@ -46,6 +48,18 @@ class Semaphore {
  */
 export const semaphore = new Semaphore(1);
 
+// ─── Sharp configuration ──────────────────────────────────────────────────────
+
+// Disable sharp's internal operation cache, which retains decoded image buffers
+// in memory between calls. With this disabled, each sharp() call starts fresh,
+// avoiding accumulation of decoded data across many photo resizing operations.
+sharp.cache(false);
+
+// Limit sharp's libvips concurrency to 1. By default, libvips can spin up multiple
+// native worker threads, each with its own image buffers. Forcing it to 1 ensures
+// sequential processing and prevents thread-local buffer accumulation.
+sharp.concurrency(1);
+
 // ─── Key helpers ───────────────────────────────────────────────────────────────
 
 export function r2Key(prefix: string, gigId: number, rev: string, filename: string): string {
@@ -62,13 +76,6 @@ export const VARIANTS = {
 export type VariantName = keyof typeof VARIANTS;
 
 // ─── Debug helpers ─────────────────────────────────────────────────────────────
-
-/** Returns a compact memory snapshot string. `ext` = libvips / native buffers. */
-export function memMB(): string {
-  const { rss, heapUsed, heapTotal, external } = process.memoryUsage();
-  const mb = (b: number) => (b / 1024 / 1024).toFixed(1);
-  return `rss=${mb(rss)} heap=${mb(heapUsed)}/${mb(heapTotal)} ext=${mb(external)}`;
-}
 
 function semState(): string {
   return `sem=${semaphore.available} avail / ${semaphore.queued} waiting`;
@@ -88,68 +95,87 @@ export async function generateDeliveryPhotos(gigId: number, dropboxUrl: string):
   const total = entries.length;
   console.info(`[generate] gig=${gigId} total=${total} | ${memMB()}`);
 
+  photoStatus.startBatchGeneration(gigId, total);
+
   let skipped = 0;
 
-  for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i];
-    const n = i + 1;
-    const tag = `[generate] [${n}/${total}] ${entry.name}`;
+  try {
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      const n = i + 1;
+      const tag = `[generate] [${n}/${total}] ${entry.name}`;
 
-    console.info(`${tag} pre-acquire | ${semState()} | ${memMB()}`);
-    await semaphore.acquire();
-    console.info(`${tag} acquired | ${semState()} | ${memMB()}`);
+      try {
+        const thumbKey   = r2Key("thumbnails", gigId, entry.rev, entry.name);
+        const displayKey = r2Key("display",    gigId, entry.rev, entry.name);
 
-    try {
-      const thumbKey   = r2Key("thumbnails", gigId, entry.rev, entry.name);
-      const displayKey = r2Key("display",    gigId, entry.rev, entry.name);
+        const [thumbExists, displayExists] = await Promise.all([
+          headFile(thumbKey),
+          headFile(displayKey),
+        ]);
 
-      const [thumbExists, displayExists] = await Promise.all([
-        headFile(thumbKey),
-        headFile(displayKey),
-      ]);
+        console.info(`${tag} r2 check: thumb=${thumbExists} display=${displayExists}`);
 
-      console.info(`${tag} r2 check: thumb=${thumbExists} display=${displayExists}`);
+        if (thumbExists && displayExists) {
+          skipped++;
+          console.info(`${tag} skip (both cached) total_skipped=${skipped}`);
+          photoStatus.incrementCompleted(gigId);
+          continue;
+        }
 
-      if (thumbExists && displayExists) {
-        skipped++;
-        console.info(`${tag} skip (both cached) total_skipped=${skipped}`);
-        continue;
+        // Check memory pressure before queueing for a processing slot, so a
+        // throttle here doesn't hold the shared semaphore hostage for other
+        // gigs or on-demand guest requests.
+        const recovered = await throttleIfMemoryHigh(tag);
+        if (!recovered) {
+          console.warn(`${tag} proceeding despite sustained high memory after max wait`);
+        }
+
+        console.info(`${tag} pre-acquire | ${semState()} | ${memMB()}`);
+        await semaphore.acquire();
+        console.info(`${tag} acquired | ${semState()} | ${memMB()}`);
+
+        try {
+          console.info(`${tag} downloading | ${memMB()}`);
+          const buffer = await dropbox.fetchFileBuffer(dropboxUrl, `/${entry.name}`);
+          console.info(`${tag} downloaded ${(buffer.length / 1024 / 1024).toFixed(2)}MB | ${memMB()}`);
+
+          if (!thumbExists) {
+            console.info(`${tag} sharp:thumbnail start | ${memMB()}`);
+            const thumbBuffer = await sharp(buffer)
+              .resize(VARIANTS.thumbnails.width, VARIANTS.thumbnails.height, { fit: "cover", position: "centre" })
+              .jpeg({ quality: VARIANTS.thumbnails.quality })
+              .toBuffer();
+            console.info(`${tag} sharp:thumbnail done output=${(thumbBuffer.length / 1024).toFixed(0)}KB | ${memMB()}`);
+            await uploadFile(thumbKey, thumbBuffer, "image/jpeg");
+            console.info(`${tag} uploaded thumbnail`);
+          }
+
+          if (!displayExists) {
+            console.info(`${tag} sharp:display start | ${memMB()}`);
+            const displayBuffer = await sharp(buffer)
+              .resize(VARIANTS.display.width, VARIANTS.display.height, { fit: "cover", position: "centre" })
+              .jpeg({ quality: VARIANTS.display.quality })
+              .toBuffer();
+            console.info(`${tag} sharp:display done output=${(displayBuffer.length / 1024).toFixed(0)}KB | ${memMB()}`);
+            await uploadFile(displayKey, displayBuffer, "image/jpeg");
+            console.info(`${tag} uploaded display`);
+          }
+
+          photoStatus.incrementCompleted(gigId);
+        } finally {
+          semaphore.release();
+          console.info(`${tag} released | ${semState()} | ${memMB()}`);
+        }
+      } catch (err) {
+        console.error(`${tag} ERROR | ${memMB()}`, err);
       }
-
-      console.info(`${tag} downloading | ${memMB()}`);
-      const buffer = await dropbox.fetchFileBuffer(dropboxUrl, `/${entry.name}`);
-      console.info(`${tag} downloaded ${(buffer.length / 1024 / 1024).toFixed(2)}MB | ${memMB()}`);
-
-      if (!thumbExists) {
-        console.info(`${tag} sharp:thumbnail start | ${memMB()}`);
-        const thumbBuffer = await sharp(buffer)
-          .resize(VARIANTS.thumbnails.width, VARIANTS.thumbnails.height, { fit: "cover", position: "centre" })
-          .jpeg({ quality: VARIANTS.thumbnails.quality })
-          .toBuffer();
-        console.info(`${tag} sharp:thumbnail done output=${(thumbBuffer.length / 1024).toFixed(0)}KB | ${memMB()}`);
-        await uploadFile(thumbKey, thumbBuffer, "image/jpeg");
-        console.info(`${tag} uploaded thumbnail`);
-      }
-
-      if (!displayExists) {
-        console.info(`${tag} sharp:display start | ${memMB()}`);
-        const displayBuffer = await sharp(buffer)
-          .resize(VARIANTS.display.width, VARIANTS.display.height, { fit: "cover", position: "centre" })
-          .jpeg({ quality: VARIANTS.display.quality })
-          .toBuffer();
-        console.info(`${tag} sharp:display done output=${(displayBuffer.length / 1024).toFixed(0)}KB | ${memMB()}`);
-        await uploadFile(displayKey, displayBuffer, "image/jpeg");
-        console.info(`${tag} uploaded display`);
-      }
-    } catch (err) {
-      console.error(`${tag} ERROR | ${memMB()}`, err);
-    } finally {
-      semaphore.release();
-      console.info(`${tag} released | ${semState()} | ${memMB()}`);
     }
-  }
 
-  console.info(`[generate] gig=${gigId} complete skipped=${skipped} | ${memMB()}`);
+    console.info(`[generate] gig=${gigId} complete skipped=${skipped} | ${memMB()}`);
+  } finally {
+    photoStatus.finishBatch(gigId);
+  }
 }
 
 /**

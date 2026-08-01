@@ -117,4 +117,12 @@ router.post(
   handle((req) => deliveryService.refreshThumbnails(+req.params.id), 204)
 );
 
+// ─── Authenticated admin route — get photo processing status ──────────────────
+
+router.get(
+  "/gigs/:id/delivery/photo-status",
+  authenticateToken,
+  handle((req) => deliveryService.getPhotoStatus(+req.params.id))
+);
+
 export default router;

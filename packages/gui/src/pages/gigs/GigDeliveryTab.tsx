@@ -7,6 +7,7 @@ import {
   useDeleteDeliveryVideo,
   useReorderDeliveryVideos,
   useRefreshDeliveryPhotos,
+  useDeliveryPhotoStatus,
 } from "../../api/hooks/useDelivery.js";
 import { useUpdateGig } from "../../api/hooks/useGigs.js";
 import CopyLinkBanner from "../../components/CopyLinkBanner.js";
@@ -19,6 +20,15 @@ interface Props {
 
 const EMPTY_VIDEO = { title: "", vimeoUrl: "" };
 
+const STATUS_BANNER_STYLE: React.CSSProperties = {
+  backgroundColor: "var(--pico-form-element-background-color)",
+  border: "1px solid var(--pico-form-element-border-color)",
+  borderRadius: "var(--pico-border-radius)",
+  padding: "0.75rem",
+  marginBottom: "1rem",
+  fontSize: "0.9rem",
+};
+
 export default function GigDeliveryTab({ gigId, gig }: Props) {
   const { data: deliveryVideos = [] } = useGigDeliveryVideos(gigId);
   const createDeliveryVideo = useCreateDeliveryVideo(gigId);
@@ -27,6 +37,7 @@ export default function GigDeliveryTab({ gigId, gig }: Props) {
   const reorderDeliveryVideos = useReorderDeliveryVideos(gigId);
   const updateGig = useUpdateGig();
   const refreshDeliveryPhotos = useRefreshDeliveryPhotos(gigId);
+  const photoStatus = useDeliveryPhotoStatus(gigId, !!gig.dropboxUrl);
 
   const [newVideoForm, setNewVideoForm] = useState(EMPTY_VIDEO);
   const [showAddVideo, setShowAddVideo] = useState(false);
@@ -57,6 +68,26 @@ export default function GigDeliveryTab({ gigId, gig }: Props) {
       {/* Photos */}
       <section>
         <h2>Photos</h2>
+        
+        {/* Processing status banner */}
+        {photoStatus.data?.processing && (
+          <div style={STATUS_BANNER_STYLE}>
+            {photoStatus.data.total !== undefined ? (
+              <span>
+                <strong>Processing photos:</strong> {photoStatus.data.completed ?? 0} of {photoStatus.data.total}
+              </span>
+            ) : (
+              <span><strong>Processing photos.</strong> Photos may load slowly.</span>
+            )}
+          </div>
+        )}
+        
+        {photoStatus.data && !photoStatus.data.processing && photoStatus.data.total !== undefined && photoStatus.data.total > 0 && (
+          <div style={{ ...STATUS_BANNER_STYLE, color: "var(--pico-muted-color)" }}>
+            All photos processed. Photos are ready for delivery.
+          </div>
+        )}
+        
         <FormField label="Delivery page title" value={deliveryTitle} onChange={(e) => setDeliveryTitle(e.target.value)} placeholder="e.g. Sarah & Sean · Wedding Film" />
         <FormField label="Dropbox folder link" value={dropboxUrl} onChange={(e) => setDropboxUrl(e.target.value)} />
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", alignItems: "flex-start" }}>
