@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useGigs, useCreateGig, useDeleteGig } from "../../api/hooks/useGigs.js";
 import { useServices } from "../../api/hooks/useServices.js";
 import { usePeople } from "../../api/hooks/usePeople.js";
@@ -47,8 +47,7 @@ function buildFilterGig(services: Service[]) {
 }
 
 export default function GigsList() {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+   const [searchParams, setSearchParams] = useSearchParams();
   const { data: gigs, isLoading, error } = useGigs();
   const { data: services = [] } = useServices();
   const { data: people = [] } = usePeople();
@@ -304,7 +303,7 @@ export default function GigsList() {
       <DataTable<Gig>
         columns={columns}
         data={displayedGigs}
-        onRowClick={(g) => navigate(`/gigs/${g.id}`)}
+        rowHref={(g) => `/gigs/${g.id}`}
         emptyMessage="No gigs found."
         filterPlaceholder="Search gigs…"
         filterFn={filterGig}

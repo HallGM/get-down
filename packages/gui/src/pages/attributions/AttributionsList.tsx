@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAttributions, useCreateAttribution, useUpdateAttribution, useDeleteAttribution } from "../../api/hooks/useAttributions.js";
 import type { CreateAttributionRequest, UpdateAttributionRequest, Attribution } from "@get-down/shared";
 import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
@@ -29,11 +28,10 @@ function filterAttribution(attribution: Attribution, query: string): boolean {
 }
 
 export default function AttributionsList() {
-  const { data: attributions, isLoading, error } = useAttributions();
-  const createAttribution = useCreateAttribution();
-  const updateAttribution = useUpdateAttribution();
-  const deleteAttribution = useDeleteAttribution();
-  const navigate = useNavigate();
+   const { data: attributions, isLoading, error } = useAttributions();
+   const createAttribution = useCreateAttribution();
+   const updateAttribution = useUpdateAttribution();
+   const deleteAttribution = useDeleteAttribution();
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CreateAttributionRequest>(EMPTY_FORM);
@@ -69,6 +67,7 @@ export default function AttributionsList() {
       <DataTable<Attribution>
         columns={[...COLUMNS, {
           key: "actions", header: "",
+          interactive: true,
           render: (a) => (
             <button
               className="secondary outline"
@@ -83,7 +82,7 @@ export default function AttributionsList() {
         emptyMessage="No attributions yet."
         filterPlaceholder="Search attributions…"
         filterFn={filterAttribution}
-        onRowClick={(a) => navigate(`/attributions/${a.id}`)}
+        rowHref={(a) => `/attributions/${a.id}`}
       />
 
       {/* New Attribution modal */}

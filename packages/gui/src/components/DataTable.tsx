@@ -1,4 +1,5 @@
-import { type ReactNode, useState } from "react";
+import { type CSSProperties, type ReactNode, useState } from "react";
+import LinkCell from "./LinkCell.js";
 
 export interface Column<T> {
   key: string;
@@ -7,6 +8,13 @@ export interface Column<T> {
   headerHint?: string;
   render?: (row: T) => ReactNode;
   sortable?: boolean;
+  /** When true, this column's cells will not be wrapped in a link, allowing interactive
+   *  elements (buttons, nested links) to work standalone. */
+  interactive?: boolean;
+  /** Inline style applied to every `<td>` in this column (e.g. alignment, whitespace, formatting). */
+  cellStyle?: CSSProperties;
+  /** Inline style applied to this column's `<th>` (e.g. alignment to match cellStyle). */
+  headerStyle?: CSSProperties;
 }
 
 export function defaultFilter<T extends object>(row: T, q: string): boolean {
@@ -33,6 +41,9 @@ interface Props<T> {
   columns: Column<T>[];
   data: T[];
   onRowClick?: (row: T) => void;
+  /** When provided, rows become real links pointing to this href. When a row has a rowHref,
+   *  onRowClick is ignored. Columns with interactive: true are not wrapped in the link. */
+  rowHref?: (row: T) => string | undefined;
   emptyMessage?: string;
   filterPlaceholder?: string;
   filterFn?: (row: T, query: string) => boolean;
@@ -41,17 +52,22 @@ interface Props<T> {
   query?: string;
   /** Called when the search input changes in controlled mode. */
   onQueryChange?: (q: string) => void;
+  /** When true, the built-in search input is not rendered. Use this when the caller
+   *  provides its own filter controls (e.g. custom search bars, year/person selects). */
+  hideSearch?: boolean;
 }
 
 export default function DataTable<T extends object>({
   columns,
   data,
   onRowClick,
+  rowHref,
   emptyMessage = "No items found.",
   filterPlaceholder = "Search…",
   filterFn,
   query: controlledQuery,
   onQueryChange,
+  hideSearch = false,
 }: Props<T>) {
   const [internalQuery, setInternalQuery] = useState("");
 
@@ -94,7 +110,7 @@ export default function DataTable<T extends object>({
 
   return (
     <>
-      {filterFn !== null && (
+      {!hideSearch && filterFn !== null && (
         <input
           type="search"
           placeholder={filterPlaceholder}
@@ -111,7 +127,10 @@ export default function DataTable<T extends object>({
                 <th
                   key={col.key}
                   onClick={col.sortable ? () => handleSort(col.key) : undefined}
-                  style={col.sortable ? { cursor: "pointer", userSelect: "none" } : undefined}
+                  style={{
+                    ...(col.sortable ? { cursor: "pointer", userSelect: "none" as const } : {}),
+                    ...col.headerStyle,
+                  }}
                   aria-sort={
                     sortKey === col.key
                       ? sortDir === "asc"
@@ -142,19 +161,36 @@ export default function DataTable<T extends object>({
                 </td>
               </tr>
             ) : (
-              rows.map((row, i) => (
-                <tr
-                  key={i}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
-                  style={onRowClick ? { cursor: "pointer" } : undefined}
-                >
-                  {columns.map((col) => (
-                    <td key={col.key}>
-                      {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "—")}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              rows.map((row, i) => {
+                const href = rowHref ? rowHref(row) : undefined;
+                return (
+                  <tr
+                    key={i}
+                    onClick={onRowClick && !href ? () => onRowClick(row) : undefined}
+                    style={onRowClick || href ? { cursor: "pointer" } : undefined}
+                  >
+                    {columns.map((col) => {
+                      const isInteractive = col.interactive === true;
+                      const cellContent = col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "—");
+                      
+                      // If rowHref is provided and this column is not interactive, wrap content in a link
+                      if (href && !isInteractive) {
+                        return (
+                          <LinkCell key={col.key} to={href} cellStyle={col.cellStyle}>
+                            {cellContent}
+                          </LinkCell>
+                        );
+                      }
+                      
+                      return (
+                        <td key={col.key} style={col.cellStyle}>
+                          {cellContent}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

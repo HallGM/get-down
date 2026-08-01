@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import type { Invoice } from "@get-down/shared";
 import { useAllInvoices } from "../../api/hooks/useInvoices.js";
 import { useSearch } from "../../hooks/useSearch.js";
@@ -10,6 +9,7 @@ import MoneyDisplay from "../../components/MoneyDisplay.js";
 import DateCell from "../../components/DateCell.js";
 import YearFilterBar from "../../components/YearFilterBar.js";
 import SearchInput from "../../components/SearchInput.js";
+import DataTable, { type Column } from "../../components/DataTable.js";
 
 // ---------------------------------------------------------------------------
 // Filter predicate (module-scope keeps the reference stable for useSearch)
@@ -22,10 +22,46 @@ function filterInvoice(inv: Invoice, q: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Columns
+// ---------------------------------------------------------------------------
+const COLUMNS: Column<Invoice>[] = [
+  {
+    key: "invoiceNumber",
+    header: "Invoice no.",
+    cellStyle: { whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" },
+  },
+  { key: "customerName", header: "Customer" },
+  {
+    key: "date",
+    header: "Date",
+    cellStyle: { whiteSpace: "nowrap" },
+    render: (inv) => <DateCell date={inv.date} />,
+  },
+  {
+    key: "invoiceType",
+    header: "Type",
+    cellStyle: { textTransform: "capitalize" },
+  },
+  {
+    key: "totalAmount",
+    header: "Total",
+    headerStyle: { textAlign: "right" },
+    cellStyle: { textAlign: "right", whiteSpace: "nowrap" },
+    render: (inv) => <MoneyDisplay pennies={inv.totalAmount} />,
+  },
+  {
+    key: "amountDue",
+    header: "Amount due",
+    headerStyle: { textAlign: "right" },
+    cellStyle: { textAlign: "right", whiteSpace: "nowrap" },
+    render: (inv) => <MoneyDisplay pennies={inv.amountDue} />,
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Page component
 // ---------------------------------------------------------------------------
 export default function InvoicesList() {
-  const navigate = useNavigate();
   const { data: invoices = [], isLoading, error } = useAllInvoices();
 
   const currentYear = String(new Date().getFullYear());
@@ -70,44 +106,12 @@ export default function InvoicesList() {
       {displayed.length === 0 ? (
         <EmptyState message={search ? "No invoices match your search." : "No invoices found."} />
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Invoice no.</th>
-                <th>Customer</th>
-                <th>Date</th>
-                <th>Type</th>
-                <th style={{ textAlign: "right" }}>Total</th>
-                <th style={{ textAlign: "right" }}>Amount due</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayed.map((inv) => (
-                <tr
-                  key={inv.id}
-                  style={{ cursor: "pointer" }}
-                  onClick={() => navigate(`/gigs/${inv.gigId}?tab=billing`)}
-                >
-                  <td style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                    {inv.invoiceNumber}
-                  </td>
-                  <td>{inv.customerName}</td>
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    <DateCell date={inv.date} />
-                  </td>
-                  <td style={{ textTransform: "capitalize" }}>{inv.invoiceType}</td>
-                  <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                    <MoneyDisplay pennies={inv.totalAmount} />
-                  </td>
-                  <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                    <MoneyDisplay pennies={inv.amountDue} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable<Invoice>
+          columns={COLUMNS}
+          data={displayed}
+          rowHref={(inv) => `/gigs/${inv.gigId}?tab=billing`}
+          hideSearch
+        />
       )}
     </main>
   );
