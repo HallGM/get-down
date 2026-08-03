@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import type { Expense, FeeAllocation, AttributionFee } from "@get-down/shared";
+import type { Expense, FeeAllocation, AttributionFee, CreateInvoiceCardChargeRequest, UpdateInvoiceCardChargeRequest } from "@get-down/shared";
 import { MAX_DOCUMENT_SIZE_BYTES } from "@get-down/shared";
 import Modal from "./Modal.js";
 import FormField from "./FormField.js";
 import MoneyField from "./MoneyField.js";
 import ExpensePaymentsSection from "./ExpensePaymentsSection.js";
+import { PaymentFormFields, EMPTY_PAYMENT_FORM, type PaymentFormState } from "./ExpensePaymentFormFields.js";
 import { toInputDate } from "../utils/date.js";
+import { apiFetch } from "../api/client.js";
 import {
   useUpdateExpense,
   useUploadExpenseDocument,
@@ -16,6 +18,15 @@ import {
   useUnlinkAttributionFeeFromExpense,
 } from "../api/hooks/useExpenses.js";
 import { useViewPersonInvoicePdf } from "../api/hooks/usePersonInvoices.js";
+import { useAddCardCharge, useUpdateCardCharge, useGigInvoices } from "../api/hooks/useInvoices.js";
+import { useAccounts } from "../api/hooks/useAccounts.js";
+import { useRecordPaymentForm } from "../api/hooks/useRecordPaymentForm.js";
+
+export interface CardChargeContext {
+  invoiceId: number | null;
+  gigId: number;
+  chargeId?: number;
+}
 
 interface Props {
   /** The expense to edit. When null the modal is closed. */
@@ -27,9 +38,11 @@ interface Props {
   allAttributionFees?: AttributionFee[];
   /** When provided a Delete button appears in the footer; the caller handles the actual deletion. */
   onDelete?: () => void;
+  /** When present, modal is in "card charge editing" mode: description/amount are always editable and save flows through card charge endpoints. */
+  cardChargeContext?: CardChargeContext;
 }
 
-export default function ExpenseModal({ expense, onClose, allAllocations, allAttributionFees, onDelete }: Props) {
+export default function ExpenseModal({ expense, onClose, allAllocations, allAttributionFees, onDelete, cardChargeContext }: Props) {
   const safeAttributionFees = allAttributionFees ?? [];
   const updateExpense = useUpdateExpense();
   const uploadDocument = useUploadExpenseDocument();
@@ -39,6 +52,10 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
   const linkAttributionFee = useLinkAttributionFeeToExpense();
   const unlinkAttributionFee = useUnlinkAttributionFeeFromExpense();
   const viewPersonInvoicePdf = useViewPersonInvoicePdf();
+  const addCardCharge = useAddCardCharge();
+  const updateCardCharge = useUpdateCardCharge();
+  const { data: accounts = [] } = useAccounts();
+  const { data: invoices = [] } = useGigInvoices(cardChargeContext?.gigId ?? 0);
 
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState<number | undefined>(undefined);
@@ -48,6 +65,21 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
   const [file, setFile] = useState<File | undefined>(undefined);
   const [fileError, setFileError] = useState<string | undefined>(undefined);
   const [localDocUrl, setLocalDocUrl] = useState<string | undefined>(undefined);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
+
+  // Payment recording state for the add-card-charge flow
+  const businessAccount = accounts.find((a) => a.isBusiness);
+  const {
+    recordPayment,
+    handleRecordPaymentToggle,
+    paymentForm,
+    setPaymentFormFields,
+  } = useRecordPaymentForm(
+    cardChargeContext ? !cardChargeContext.chargeId && !expense : false,
+    amount,
+    date,
+    businessAccount?.id
+  );
 
   // Reset form when expense changes
   useEffect(() => {
@@ -62,23 +94,125 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
     setLocalDocUrl(expense.documentUrl);
   }, [expense?.id]);
 
+  // Sync selectedInvoiceId with cardChargeContext when editing
+  useEffect(() => {
+    if (cardChargeContext?.chargeId) {
+      setSelectedInvoiceId(cardChargeContext.invoiceId);
+    }
+  }, [cardChargeContext?.chargeId, cardChargeContext?.invoiceId]);
+
+  // Determine if description/amount should be locked (read-only)
+  // They are locked when:
+  // - cardChargeContext is NOT present (normal expense editing from Expenses page)
+  // - AND expense is linked to a card charge
+  const isDescriptionAmountLocked = !cardChargeContext && !!expense?.linkedCardCharge;
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!expense || fileError) return;
-    await updateExpense.mutateAsync({
-      id: expense.id,
-      input: {
+    if (fileError) return;
+    
+    // Card charge creation flow (chargeId undefined, expense is null)
+    if (cardChargeContext && !cardChargeContext.chargeId && !expense) {
+       const chargeInput: CreateInvoiceCardChargeRequest = {
+         description,
+         amount: amount ?? 0,
+         recipientName: recipientName || undefined,
+       };
+       const newCharge = await addCardCharge.mutateAsync({
+         invoiceId: selectedInvoiceId,
+         gigId: cardChargeContext.gigId,
+         input: chargeInput,
+       });
+      
+       // newCharge includes expenseId. Now update the expense with date/category if they differ from defaults
+       // and upload document if present
+       const expenseId = newCharge.expenseId;
+       if (expenseId) {
+         const updates = [];
+         if (date || category) {
+           updates.push(
+             updateExpense.mutateAsync({
+               id: expenseId,
+               input: {
+                 date: date || undefined,
+                 category: category || undefined,
+               },
+             })
+           );
+         }
+         if (file) {
+           updates.push(uploadDocument.mutateAsync({ id: expenseId, file }));
+         }
+         if (updates.length > 0) {
+           await Promise.all(updates);
+         }
+         
+          // Record payment if checkbox was checked
+          if (recordPayment && typeof paymentForm.accountId === "number" && paymentForm.accountId > 0) {
+           await apiFetch("POST", `/expenses/${expenseId}/payments`, {
+             accountId: paymentForm.accountId,
+             amount: paymentForm.amount,
+             date: paymentForm.date || undefined,
+             paymentMethod: paymentForm.paymentMethod || undefined,
+             description: paymentForm.description || undefined,
+           });
+         }
+       }
+       // Always close the modal after successful add
+       onClose();
+       return;
+    }
+    
+    // Card charge update flow (chargeId is set)
+    if (cardChargeContext && cardChargeContext.chargeId && expense) {
+      const chargeInput: UpdateInvoiceCardChargeRequest = {
+        invoiceId: selectedInvoiceId,
         description,
         amount: amount ?? 0,
-        date: date || undefined,
-        category: category || undefined,
         recipientName: recipientName || undefined,
-      },
-    });
-    if (file) {
-      await uploadDocument.mutateAsync({ id: expense.id, file });
+      };
+      await updateCardCharge.mutateAsync({
+        invoiceId: cardChargeContext.invoiceId,
+        chargeId: cardChargeContext.chargeId,
+        gigId: cardChargeContext.gigId,
+        input: chargeInput,
+      });
+      
+      // Update expense fields that card charge doesn't sync (date, category)
+      if (date || category) {
+        await updateExpense.mutateAsync({
+          id: expense.id,
+          input: {
+            date: date || undefined,
+            category: category || undefined,
+          },
+        });
+      }
+      
+      if (file) {
+        await uploadDocument.mutateAsync({ id: expense.id, file });
+      }
+      onClose();
+      return;
     }
-    onClose();
+    
+    // Normal expense editing flow
+    if (expense && !cardChargeContext) {
+      await updateExpense.mutateAsync({
+        id: expense.id,
+        input: {
+          description: isDescriptionAmountLocked ? undefined : description,
+          amount: isDescriptionAmountLocked ? undefined : (amount ?? 0),
+          date: date || undefined,
+          category: category || undefined,
+          recipientName: recipientName || undefined,
+        },
+      });
+      if (file) {
+        await uploadDocument.mutateAsync({ id: expense.id, file });
+      }
+      onClose();
+    }
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -94,25 +228,42 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
     setFile(f);
   }
 
-  const isBusy = updateExpense.isPending || uploadDocument.isPending;
+  const isBusy = updateExpense.isPending || uploadDocument.isPending || addCardCharge.isPending || updateCardCharge.isPending;
+
+  // Determine modal title
+  const modalTitle = cardChargeContext
+    ? (cardChargeContext.chargeId ? "Edit Card Charge" : "Add Card Charge")
+    : "Edit Expense";
 
   return (
-    <Modal open={!!expense} onClose={onClose} title="Edit Expense">
+    <Modal open={!!expense || (cardChargeContext && !cardChargeContext.chargeId)} onClose={onClose} title={modalTitle}>
       <form onSubmit={handleSave}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-          <FormField
-            label="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-          />
-          <MoneyField
-            label="Amount"
-            value={amount}
-            onChange={(p) => setAmount(p ?? 0)}
-            required
-            min={0}
-          />
+          <div>
+            <FormField
+              label="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+              disabled={isDescriptionAmountLocked}
+            />
+            {isDescriptionAmountLocked && (
+              <small style={{ color: "var(--pico-muted-color)" }}>Set by the linked card charge.</small>
+            )}
+          </div>
+          <div>
+            <MoneyField
+              label="Amount"
+              value={amount}
+              onChange={(p) => setAmount(p ?? 0)}
+              required
+              min={0}
+              disabled={isDescriptionAmountLocked}
+            />
+            {isDescriptionAmountLocked && (
+              <small style={{ color: "var(--pico-muted-color)" }}>Set by the linked card charge.</small>
+            )}
+          </div>
           <FormField
             label="Date"
             type="date"
@@ -177,9 +328,56 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
                  {fileError && <small style={{ color: "var(--pico-color-red-500)" }}>{fileError}</small>}
                </div>
              )}
-           </div>
+             </div>
 
-          {/* Linked fee allocations */}
+            {/* Invoice selector - for add or edit card charge flow */}
+            {cardChargeContext && !expense && (
+              <div style={{ gridColumn: "1 / -1", marginTop: "0.25rem" }}>
+                <label>
+                  <small>Invoice (optional)</small>
+                  <select
+                    value={selectedInvoiceId ?? ""}
+                    onChange={(e) => setSelectedInvoiceId(e.target.value ? +e.target.value : null)}
+                    style={{ marginTop: "0.25rem" }}
+                  >
+                    <option value="">No invoice</option>
+                    {invoices.map((inv) => (
+                      <option key={inv.id} value={inv.id}>
+                        {inv.invoiceNumber} ({inv.invoiceType})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
+
+            {/* Record payment now checkbox - only for add-card-charge flow */}
+           {cardChargeContext && !cardChargeContext.chargeId && !expense && (
+             <div style={{ gridColumn: "1 / -1", marginTop: "0.25rem" }}>
+               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", userSelect: "none" }}>
+                 <input
+                   type="checkbox"
+                   checked={recordPayment}
+                   onChange={(e) => handleRecordPaymentToggle(e.target.checked)}
+                   style={{ margin: 0 }}
+                 />
+                 <span>Record payment now</span>
+               </label>
+             </div>
+           )}
+
+           {/* Inline payment fields - only shown when recording payment for new card charge */}
+           {recordPayment && cardChargeContext && !cardChargeContext.chargeId && !expense && (
+             <div style={{ gridColumn: "1 / -1" }}>
+               <PaymentFormFields
+                 form={paymentForm}
+                 setForm={setPaymentFormFields}
+                 accounts={accounts}
+               />
+             </div>
+           )}
+
+           {/* Linked fee allocations */}
           {expense && (
             <div style={{ gridColumn: "1 / -1" }}>
               <small><strong>Linked fee allocations</strong></small>

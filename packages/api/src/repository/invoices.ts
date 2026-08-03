@@ -24,11 +24,13 @@ export interface InvoiceLineItemRow {
   discount_percent: number;
 }
 
-export interface InvoiceAdditionalChargeRow {
+export interface InvoiceCardChargeRow {
   id: number;
-  invoice_id: number;
+  gig_id: number;
+  invoice_id: number | null;
   description: string | null;
   amount: number | null;
+  expense_id: number;
 }
 
 export interface InvoicePaymentMadeRow {
@@ -219,72 +221,85 @@ export async function deleteLineItem(id: number): Promise<boolean> {
   return rows.length > 0;
 }
 
-// --- Additional charges ---
+// --- Card charges ---
 
-export async function readAdditionalChargesByInvoiceId(
+export async function readCardChargesByInvoiceId(
   invoiceId: number
-): Promise<InvoiceAdditionalChargeRow[]> {
-  return run_query<InvoiceAdditionalChargeRow>({
-    text: `SELECT id, invoice_id, description, amount FROM invoice_additional_charges WHERE invoice_id = $1 ORDER BY id;`,
+): Promise<InvoiceCardChargeRow[]> {
+  return run_query<InvoiceCardChargeRow>({
+    text: `SELECT id, gig_id, invoice_id, description, amount, expense_id FROM invoice_card_charges WHERE invoice_id = $1 ORDER BY id;`,
     values: [invoiceId],
   });
 }
 
-export async function createAdditionalCharge(
-  invoiceId: number,
+export async function readCardChargeById(
+  chargeId: number
+): Promise<InvoiceCardChargeRow | undefined> {
+  const rows = await run_query<InvoiceCardChargeRow>({
+    text: `SELECT id, gig_id, invoice_id, description, amount, expense_id FROM invoice_card_charges WHERE id = $1;`,
+    values: [chargeId],
+  });
+  return rows[0];
+}
+
+export async function createCardCharge(
+  gigId: number,
+  invoiceId: number | null,
   description: string | null,
-  amount: number | null
-): Promise<InvoiceAdditionalChargeRow> {
-  const [row] = await run_query<InvoiceAdditionalChargeRow>({
-    text: `INSERT INTO invoice_additional_charges (invoice_id, description, amount) VALUES ($1, $2, $3) RETURNING id, invoice_id, description, amount;`,
-    values: [invoiceId, description, amount],
+  amount: number | null,
+  expenseId: number
+): Promise<InvoiceCardChargeRow> {
+  const [row] = await run_query<InvoiceCardChargeRow>({
+    text: `INSERT INTO invoice_card_charges (gig_id, invoice_id, description, amount, expense_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, gig_id, invoice_id, description, amount, expense_id;`,
+    values: [gigId, invoiceId, description, amount, expenseId],
   });
   return row!;
 }
 
-export async function updateAdditionalCharge(
-  invoiceId: number,
+export async function updateCardCharge(
+  invoiceId: number | null,
   id: number,
   description: string | null,
   amount: number | null
-): Promise<InvoiceAdditionalChargeRow | null> {
-  const rows = await run_query<InvoiceAdditionalChargeRow>({
-    text: `UPDATE invoice_additional_charges SET description = $1, amount = $2 WHERE id = $3 AND invoice_id = $4 RETURNING id, invoice_id, description, amount;`,
+): Promise<InvoiceCardChargeRow | null> {
+  const rows = await run_query<InvoiceCardChargeRow>({
+    text: `UPDATE invoice_card_charges SET description = $1, amount = $2 WHERE id = $3 AND invoice_id = $4 RETURNING id, invoice_id, description, amount, expense_id;`,
     values: [description, amount, id, invoiceId],
   });
   return rows[0] ?? null;
 }
 
-export async function deleteAdditionalCharge(id: number): Promise<boolean> {
+export async function deleteCardCharge(id: number): Promise<boolean> {
   const rows = await run_query<{ id: number }>({
-    text: `DELETE FROM invoice_additional_charges WHERE id = $1 RETURNING id;`,
+    text: `DELETE FROM invoice_card_charges WHERE id = $1 RETURNING id;`,
     values: [id],
   });
   return rows.length > 0;
 }
 
-export interface AdditionalChargeWithInvoiceRow extends InvoiceAdditionalChargeRow {
+export interface CardChargeWithInvoiceRow extends InvoiceCardChargeRow {
   invoice_number: string;
+  gig_id: number;
 }
 
-/** Return all additional charges across all invoices for a gig, ordered by charge id. */
-export async function readAdditionalChargesByGigId(gigId: number): Promise<AdditionalChargeWithInvoiceRow[]> {
-  return run_query<AdditionalChargeWithInvoiceRow>({
+/** Return all card charges across all invoices for a gig, ordered by charge id. */
+export async function readCardChargesByGigId(gigId: number): Promise<CardChargeWithInvoiceRow[]> {
+  return run_query<CardChargeWithInvoiceRow>({
     text: `
-      SELECT iac.id, iac.invoice_id, inv.invoice_number, iac.description, iac.amount
-      FROM invoice_additional_charges iac
-      JOIN invoices inv ON inv.id = iac.invoice_id
-      WHERE inv.gig_id = $1
-      ORDER BY iac.id;
+      SELECT icc.id, icc.invoice_id, inv.invoice_number, icc.description, icc.amount, icc.expense_id, icc.gig_id
+      FROM invoice_card_charges icc
+      LEFT JOIN invoices inv ON inv.id = icc.invoice_id
+      WHERE icc.gig_id = $1
+      ORDER BY icc.id;
     `,
     values: [gigId],
   });
 }
 
-/** Return the sum of all additional charge amounts for a single invoice. Returns 0 when none exist. */
-export async function readAdditionalChargesSumByInvoiceId(invoiceId: number): Promise<number> {
+/** Return the sum of all card charge amounts for a single invoice. Returns 0 when none exist. */
+export async function readCardChargesSumByInvoiceId(invoiceId: number): Promise<number> {
   const rows = await run_query<{ total: number | null }>({
-    text: `SELECT COALESCE(SUM(amount), 0) AS total FROM invoice_additional_charges WHERE invoice_id = $1;`,
+    text: `SELECT COALESCE(SUM(amount), 0) AS total FROM invoice_card_charges WHERE invoice_id = $1;`,
     values: [invoiceId],
   });
   // SUM() returns bigint; pg v8 returns bigint as string. Convert to number to avoid
@@ -292,16 +307,16 @@ export async function readAdditionalChargesSumByInvoiceId(invoiceId: number): Pr
   return Number(rows[0]?.total ?? 0);
 }
 
-/** Return the sum of additional charge amounts grouped by invoice ID for a set of invoices.
+/** Return the sum of card charge amounts grouped by invoice ID for a set of invoices.
  *  Invoices with no charges are omitted from the result — use `chargeSums.get(id) ?? 0` on the returned Map. */
-export async function readAdditionalChargesSumsByInvoiceIds(
+export async function readCardChargesSumsByInvoiceIds(
   invoiceIds: number[]
 ): Promise<Map<number, number>> {
   if (invoiceIds.length === 0) return new Map();
   const rows = await run_query<{ invoice_id: number; total: number | null }>({
     text: `
       SELECT invoice_id, COALESCE(SUM(amount), 0) AS total
-      FROM invoice_additional_charges
+      FROM invoice_card_charges
       WHERE invoice_id = ANY($1)
       GROUP BY invoice_id
     `,
@@ -312,13 +327,13 @@ export async function readAdditionalChargesSumsByInvoiceIds(
   return new Map(rows.map(r => [r.invoice_id, Number(r.total ?? 0)]));
 }
 
-/** Return the sum of all additional charge amounts across all invoices for a gig. Returns 0 when none exist. */
-export async function readAdditionalChargesSumByGigId(gigId: number): Promise<number> {
+/** Return the sum of all card charge amounts across all invoices for a gig. Returns 0 when none exist. */
+export async function readCardChargesSumByGigId(gigId: number): Promise<number> {
   const rows = await run_query<{ total: number | null }>({
     text: `
-      SELECT COALESCE(SUM(iac.amount), 0) AS total
+      SELECT COALESCE(SUM(icc.amount), 0) AS total
       FROM invoices inv
-      JOIN invoice_additional_charges iac ON iac.invoice_id = inv.id
+      JOIN invoice_card_charges icc ON icc.invoice_id = inv.id
       WHERE inv.gig_id = $1;
     `,
     values: [gigId],

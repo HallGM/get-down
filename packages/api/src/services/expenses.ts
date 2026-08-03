@@ -12,7 +12,7 @@ import * as attributionFeesRepo from "../repository/attribution_fees.js";
 import * as accountsRepo from "../repository/accounts.js";
 import * as storage from "../utils/storage.js";
 import { withTransaction } from "../db/init.js";
-import { BadRequestError, NotFoundError } from "../errors.js";
+import { BadRequestError, NotFoundError, ConflictError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 import { resolvePersonRowName } from "../utils/person.js";
 
@@ -33,7 +33,13 @@ export async function getAllExpenses(): Promise<Expense[]> {
     const documentUrl = await tryGetPresignedUrl(row.document_key);
     const personInvoice = personInvoiceMap.get(row.id);
     const person = personInvoice ? personMap.get(personInvoice.person_id) : null;
-    return mapExpense(row, allocationMap.get(row.id) ?? [], attributionFeeMap.get(row.id) ?? [], totalPaid, documentUrl, personInvoice, person);
+    // For list endpoint, linkedCardCharge is null - callers that need it can use getExpenseById or assembleExpense
+    return mapExpense(row, allocationMap.get(row.id) ?? [], attributionFeeMap.get(row.id) ?? [], totalPaid, {
+      documentUrl,
+      personInvoice,
+      person,
+      linkedCardCharge: null,
+    });
   }));
 }
 
@@ -100,6 +106,12 @@ export async function removeExpenseDocument(id: number): Promise<void> {
 }
 
 export async function deleteExpense(id: number): Promise<void> {
+  // Check if this expense is linked to a card charge; if so, reject deletion
+  const cardCharge = await expensesRepo.readCardChargeByExpenseId(id);
+  if (cardCharge) {
+    throw new ConflictError("Cannot delete an expense linked to a card charge. Delete the card charge instead.");
+  }
+
   const row = await expensesRepo.readExpenseById(id);
   const deleted = await expensesRepo.deleteExpense(id);
   if (!deleted) throw new NotFoundError("Expense not found");
@@ -168,11 +180,12 @@ export async function unlinkAttributionFeeFromExpense(
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 async function assembleExpense(row: expensesRepo.ExpenseRow): Promise<Expense> {
-  const [allocationIds, attributionFeeIds, payments, personInvoice] = await Promise.all([
+  const [allocationIds, attributionFeeIds, payments, personInvoice, linkedCardCharge] = await Promise.all([
     expensesRepo.readAllocationIdsByExpenseId(row.id),
     expensesRepo.readAttributionFeeIdsByExpenseId(row.id),
     expensePaymentsRepo.readPaymentsByExpenseId(row.id),
     personInvoicesRepo.readPersonInvoiceByExpenseId(row.id),
+    expensesRepo.readCardChargeByExpenseId(row.id),
   ]);
   const personMap = await resolvePeopleForPersonInvoices(
     new Map(personInvoice ? [[row.id, personInvoice]] as const : [])
@@ -180,7 +193,12 @@ async function assembleExpense(row: expensesRepo.ExpenseRow): Promise<Expense> {
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
   const documentUrl = await tryGetPresignedUrl(row.document_key);
   const person = personInvoice ? personMap.get(personInvoice.person_id) : null;
-  const expense = mapExpense(row, allocationIds, attributionFeeIds, totalPaid, documentUrl, personInvoice, person);
+  const expense = mapExpense(row, allocationIds, attributionFeeIds, totalPaid, {
+    documentUrl,
+    personInvoice,
+    person,
+    linkedCardCharge,
+  });
   expense.payments = payments.map(mapExpensePayment);
   return expense;
 }
@@ -215,15 +233,21 @@ function computePaymentStatus(totalPaid: number, amount: number): 'unpaid' | 'pa
   return 'unpaid';
 }
 
+export interface MapExpenseOptions {
+  documentUrl?: string;
+  personInvoice?: personInvoicesRepo.PersonInvoiceByExpenseRow | null;
+  person?: peopleRepo.PersonRow | null;
+  linkedCardCharge?: { id: number; invoice_id: number; gig_id: number } | null;
+}
+
 export function mapExpense(
   row: expensesRepo.ExpenseRow,
   feeAllocationIds: number[],
   attributionFeeIds: number[],
   totalPaid: number,
-  documentUrl?: string,
-  personInvoice?: personInvoicesRepo.PersonInvoiceByExpenseRow | null,
-  person?: peopleRepo.PersonRow | null
+  options: MapExpenseOptions = {}
 ): Expense {
+  const { documentUrl, personInvoice, person, linkedCardCharge } = options;
   const expense: Expense = {
     id: row.id,
     date: toDateString(row.date) ?? undefined,
@@ -244,6 +268,14 @@ export function mapExpense(
       id: personInvoice.id,
       invoiceNumber: personInvoice.invoice_number,
       personName: resolvePersonRowName(person),
+    };
+  }
+  
+  if (linkedCardCharge) {
+    expense.linkedCardCharge = {
+      id: linkedCardCharge.id,
+      invoiceId: linkedCardCharge.invoice_id,
+      gigId: linkedCardCharge.gig_id,
     };
   }
   

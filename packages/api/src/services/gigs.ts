@@ -43,7 +43,7 @@ export async function getGigs(): Promise<Gig[]> {
 }
 
 export async function getGigById(id: number): Promise<Gig> {
-  const [row, lineItems, services, payments, refunds, predictedProfit, settled, financialTotals, showcaseSummary, totalAdditionalCharges] = await Promise.all([
+  const [row, lineItems, services, payments, refunds, predictedProfit, settled, financialTotals, showcaseSummary, totalCardCharges] = await Promise.all([
     gigsRepo.readGigById(id),
     gigLineItemsRepo.readGigLineItemsByGigId(id),
     gigsRepo.readGigServicesByGigId(id),
@@ -53,7 +53,7 @@ export async function getGigById(id: number): Promise<Gig> {
     gigsRepo.readGigSettledStatusById(id),
     gigsRepo.readGigFinancialTotalById(id),
     showcasesRepo.readShowcaseSummaryByGigId(id),
-    invoicesRepo.readAdditionalChargesSumByGigId(id),
+    invoicesRepo.readCardChargesSumByGigId(id),
   ]);
   if (!row) throw new NotFoundError("Gig not found");
 
@@ -68,7 +68,7 @@ export async function getGigById(id: number): Promise<Gig> {
     totalCredits,
     totalPaid,
     totalRefunded,
-    totalAdditionalCharges,
+    totalCardCharges,
   });
 
   return {
@@ -80,7 +80,7 @@ export async function getGigById(id: number): Promise<Gig> {
     netReceived:  financialTotals?.net_received ?? 0,
     feesTotal:    financialTotals?.total_fees ?? 0,
     billingTotal: financialTotals?.billing_total ?? 0,
-    totalAdditionalCharges,
+    totalCardCharges,
     predictedProfit,
     settled,
     lineItems: lineItems.map(mapGigLineItem),

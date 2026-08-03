@@ -18,9 +18,9 @@ router.post("/invoices/:id/line-items",                  handle(req => invoicesS
 router.put("/invoices/:id/line-items/:itemId",           handle(req => invoicesService.updateLineItem(+req.params.id, +req.params.itemId, req.body)));
 router.delete("/invoices/:id/line-items/:itemId",        handle(req => invoicesService.removeLineItem(+req.params.id, +req.params.itemId), 204));
 
-router.post("/invoices/:id/additional-charges",             handle(req => invoicesService.addAdditionalCharge(+req.params.id, req.body), 201));
-router.put("/invoices/:id/additional-charges/:chargeId",    handle(req => invoicesService.updateAdditionalCharge(+req.params.id, +req.params.chargeId, req.body)));
-router.delete("/invoices/:id/additional-charges/:chargeId", handle(req => invoicesService.removeAdditionalCharge(+req.params.id, +req.params.chargeId), 204));
+router.post("/invoices/:id/card-charges",             handle(req => invoicesService.addCardCharge(+req.params.id, req.body), 201));
+router.put("/invoices/:id/card-charges/:chargeId",    handle(req => invoicesService.updateCardCharge(+req.params.id, +req.params.chargeId, req.body)));
+router.delete("/invoices/:id/card-charges/:chargeId", handle(req => invoicesService.removeCardCharge(+req.params.id, +req.params.chargeId), 204));
 
 router.post("/invoices/:id/payments-made",                  handle(req => invoicesService.addPaymentMade(+req.params.id, req.body), 201));
 router.put("/invoices/:id/payments-made/:paymentMadeId",    handle(req => invoicesService.updatePaymentMade(+req.params.id, +req.params.paymentMadeId, req.body)));

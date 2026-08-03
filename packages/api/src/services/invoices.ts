@@ -1,26 +1,32 @@
 import type {
   Invoice,
   InvoiceLineItem,
-  InvoiceAdditionalCharge,
+  InvoiceCardCharge,
   InvoicePaymentMade,
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
   CreateInvoiceLineItemRequest,
   UpdateInvoiceLineItemRequest,
-  UpdateInvoiceAdditionalChargeRequest,
+  CreateInvoiceCardChargeRequest,
+  UpdateInvoiceCardChargeRequest,
   UpdateInvoicePaymentMadeRequest,
 } from "@get-down/shared";
+import { z } from "zod";
 import { effectiveLineItemsSubtotal, applyItemDiscount } from "@get-down/shared";
 import * as invoicesRepo from "../repository/invoices.js";
 import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
 import * as paymentsRepo from "../repository/payments.js";
 import * as refundsRepo from "../repository/refunds.js";
+import * as expensesRepo from "../repository/expenses.js";
+import * as storage from "../utils/storage.js";
 import { withTransaction } from "../db/init.js";
-import { BadRequestError, NotFoundError } from "../errors.js";
+import { BadRequestError, NotFoundError, ForbiddenError } from "../errors.js";
 import { validateDiscountPercent } from "../utils/validation.js";
+import { parseOrBadRequest } from "../utils/parse.js";
 import { todayDate } from "../utils/date.js";
 import { mapGigLineItem } from "./gigs.js";
+
 
 export async function getAllInvoices(): Promise<Invoice[]> {
   const rows = await invoicesRepo.readAllInvoices();
@@ -38,20 +44,20 @@ export async function getInvoiceById(id: number): Promise<Invoice> {
   return withSubresources(mapInvoice(row));
 }
 
-export async function getAdditionalChargesByGig(gigId: number): Promise<InvoiceAdditionalCharge[]> {
-  const rows = await invoicesRepo.readAdditionalChargesByGigId(gigId);
-  return rows.map(mapAdditionalChargeWithInvoice);
+export async function getCardChargesByGig(gigId: number): Promise<InvoiceCardCharge[]> {
+  const rows = await invoicesRepo.readCardChargesByGigId(gigId);
+  return rows.map(mapCardChargeWithInvoice);
 }
 
 export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoice> {
   const { gigId, invoiceType = 'balance' } = input;
   if (!gigId) throw new BadRequestError("gigId is required");
 
-  const [gig, lineItems, payments, existingAdditionalCharges] = await Promise.all([
+  const [gig, lineItems, payments, existingCardCharges] = await Promise.all([
     gigsRepo.readGigById(gigId),
     gigLineItemsRepo.readGigLineItemsByGigId(gigId),
     paymentsRepo.readPaymentsByGigId(gigId),
-    invoicesRepo.readAdditionalChargesSumByGigId(gigId),
+    invoicesRepo.readCardChargesSumByGigId(gigId),
   ]);
 
   if (!gig) throw new NotFoundError("Gig not found");
@@ -60,7 +66,7 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
   const discountAmount = Math.round(subtotal * gig.discount_percent / 100);
   const baseTotal = subtotal - discountAmount + gig.travel_cost;
   const total = invoiceType === 'balance'
-    ? baseTotal + existingAdditionalCharges
+    ? baseTotal + existingCardCharges
     : baseTotal;
   const paid = Math.max(0, payments.reduce((sum, p) => sum + p.amount, 0));
   const amountDue = invoiceType === 'deposit'
@@ -69,7 +75,7 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
 
   const PG_INT_MAX = 2_147_483_647;
   if (total > PG_INT_MAX || amountDue > PG_INT_MAX) {
-    console.error(`[createInvoice] Overflow: total=${total} amountDue=${amountDue} gigId=${gigId} invoiceType=${invoiceType} subtotal=${subtotal} discountAmount=${discountAmount} baseTotal=${baseTotal} travel=${gig.travel_cost} discountPct=${gig.discount_percent} existingCharges=${existingAdditionalCharges} paid=${paid} lineItems=${JSON.stringify(lineItems)}`);
+    console.error(`[createInvoice] Overflow: total=${total} amountDue=${amountDue} gigId=${gigId} invoiceType=${invoiceType} subtotal=${subtotal} discountAmount=${discountAmount} baseTotal=${baseTotal} travel=${gig.travel_cost} discountPct=${gig.discount_percent} existingCharges=${existingCardCharges} paid=${paid} lineItems=${JSON.stringify(lineItems)}`);
     throw new BadRequestError(`Invoice total (${total}) exceeds maximum allowed value`);
   }
 
@@ -111,7 +117,7 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
     return {
       ...mapInvoice(row),
       lineItems: snappedLineItems.map(mapLineItem),
-      additionalCharges: [],
+      cardCharges: [],
       paymentsMade: snappedPayments.map(mapPaymentMade),
     };
   });
@@ -160,27 +166,144 @@ export async function removeLineItem(invoiceId: number, lineItemId: number): Pro
   if (!deleted) throw new NotFoundError("LineItem not found");
 }
 
-export async function addAdditionalCharge(
+const CreateCardChargeSchema = z.object({
+  description: z.string().max(255).optional(),
+  amount: z.number().int().min(0).max(2_147_483_647).optional(),
+  recipientName: z.string().max(255).optional(),
+});
+
+export async function addCardCharge(
   invoiceId: number,
-  input: CreateInvoiceLineItemRequest
-): Promise<InvoiceAdditionalCharge> {
+  body: unknown
+): Promise<InvoiceCardCharge> {
   const inv = await invoicesRepo.readInvoiceById(invoiceId);
   if (!inv) throw new NotFoundError("Invoice not found");
-  const row = await invoicesRepo.createAdditionalCharge(
-    invoiceId,
-    input.description?.trim() ?? null,
-    input.amount ?? null
-  );
-  await recalculateAmountDueForGig(inv.gig_id);
-  return mapAdditionalCharge(row);
+
+  const input = parseOrBadRequest(CreateCardChargeSchema, body) as CreateInvoiceCardChargeRequest;
+
+  return withTransaction(async () => {
+    // Create the linked expense first
+    const expenseRow = await expensesRepo.createExpense({
+      date: inv.date,
+      amount: input.amount ?? 0,
+      description: input.description?.trim() ?? 'Card charge',
+      category: 'Processing fees',
+      recipientName: input.recipientName?.trim(),
+    });
+
+    // Then create the card charge linked to it
+    const chargeRow = await invoicesRepo.createCardCharge(
+      inv.gig_id,
+      invoiceId,
+      input.description?.trim() ?? null,
+      input.amount ?? null,
+      expenseRow.id
+    );
+
+    await recalculateAmountDueForGig(inv.gig_id);
+    return mapCardCharge(chargeRow);
+  });
 }
 
-export async function removeAdditionalCharge(invoiceId: number, chargeId: number): Promise<void> {
+export async function addCardChargeToGig(
+  gigId: number,
+  invoiceId: number | null | undefined,
+  body: unknown
+): Promise<InvoiceCardCharge> {
+  const gig = await gigsRepo.readGigById(gigId);
+  if (!gig) throw new NotFoundError("Gig not found");
+
+  let invoiceDate: string | undefined;
+  let invoiceGigId = gigId;
+
+  // If invoiceId is provided, validate it and use its date
+  if (invoiceId) {
+    const inv = await invoicesRepo.readInvoiceById(invoiceId);
+    if (!inv) throw new NotFoundError("Invoice not found");
+    if (inv.gig_id !== gigId) throw new BadRequestError("Invoice does not belong to this gig");
+    invoiceDate = inv.date;
+    invoiceGigId = inv.gig_id;
+  } else {
+    // Use gig date if no invoice specified
+    invoiceDate = gig.date;
+  }
+
+  const input = parseOrBadRequest(CreateCardChargeSchema, body) as CreateInvoiceCardChargeRequest;
+
+  return withTransaction(async () => {
+    // Create the linked expense first
+    const expenseRow = await expensesRepo.createExpense({
+      date: invoiceDate,
+      amount: input.amount ?? 0,
+      description: input.description?.trim() ?? 'Card charge',
+      category: 'Processing fees',
+      recipientName: input.recipientName?.trim(),
+    });
+
+    // Then create the card charge (optionally linked to invoice)
+    const chargeRow = await invoicesRepo.createCardCharge(
+      gigId,
+      invoiceId ?? null,
+      input.description?.trim() ?? null,
+      input.amount ?? null,
+      expenseRow.id
+    );
+
+    // Recalculate amount due for the gig
+    await recalculateAmountDueForGig(invoiceGigId);
+    return mapCardCharge(chargeRow);
+  });
+}
+
+export async function removeCardCharge(invoiceId: number, chargeId: number): Promise<void> {
   const inv = await invoicesRepo.readInvoiceById(invoiceId);
   if (!inv) throw new NotFoundError("Invoice not found");
-  const deleted = await invoicesRepo.deleteAdditionalCharge(chargeId);
-  if (!deleted) throw new NotFoundError("AdditionalCharge not found");
-  await recalculateAmountDueForGig(inv.gig_id);
+
+  return withTransaction(async () => {
+    // Get the charge to find its linked expense
+    const charge = await getCardChargeOrThrow(chargeId);
+    const expenseId = charge.expense_id;
+
+    // Delete the card charge
+    const deleted = await invoicesRepo.deleteCardCharge(chargeId);
+    if (!deleted) throw new NotFoundError("CardCharge not found");
+
+    // Delete the linked expense (including any attached document)
+    const expenseRow = await expensesRepo.readExpenseById(expenseId);
+    if (expenseRow?.document_key) {
+      await storage.tryDeleteFile(expenseRow.document_key);
+    }
+    await expensesRepo.deleteExpense(expenseId);
+
+    await recalculateAmountDueForGig(inv.gig_id);
+  });
+}
+
+export async function removeCardChargeByGig(gigId: number, chargeId: number): Promise<void> {
+  const gig = await gigsRepo.readGigById(gigId);
+  if (!gig) throw new NotFoundError("Gig not found");
+
+  return withTransaction(async () => {
+    // Get all gig charges and find the one we want
+    const allCharges = await invoicesRepo.readCardChargesByGigId(gigId);
+    const charge = allCharges.find(c => c.id === chargeId);
+    if (!charge) throw new NotFoundError("CardCharge not found");
+
+    const expenseId = charge.expense_id;
+
+    // Delete the card charge
+    const deleted = await invoicesRepo.deleteCardCharge(chargeId);
+    if (!deleted) throw new NotFoundError("CardCharge not found");
+
+    // Delete the linked expense (including any attached document)
+    const expenseRow = await expensesRepo.readExpenseById(expenseId);
+    if (expenseRow?.document_key) {
+      await storage.tryDeleteFile(expenseRow.document_key);
+    }
+    await expensesRepo.deleteExpense(expenseId);
+
+    await recalculateAmountDueForGig(gigId);
+  });
 }
 
 export async function addPaymentMade(
@@ -232,25 +355,116 @@ export async function updateLineItem(
   return mapLineItem(row);
 }
 
-export async function updateAdditionalCharge(
+const UpdateCardChargeSchema = z.object({
+  invoiceId: z.number().int().positive().nullable().optional(),
+  description: z.string().max(255).optional(),
+  amount: z.number().int().min(0).max(2_147_483_647).optional(),
+  recipientName: z.string().max(255).optional(),
+});
+
+export async function updateCardCharge(
   invoiceId: number,
   chargeId: number,
-  input: UpdateInvoiceAdditionalChargeRequest
-): Promise<InvoiceAdditionalCharge> {
+  body: unknown
+): Promise<InvoiceCardCharge> {
   const inv = await invoicesRepo.readInvoiceById(invoiceId);
   if (!inv) throw new NotFoundError("Invoice not found");
-  const row = await invoicesRepo.updateAdditionalCharge(
-    invoiceId,
-    chargeId,
-    input.description?.trim() ?? null,
-    input.amount ?? null
-  );
-  if (!row) throw new NotFoundError("AdditionalCharge not found");
-  await recalculateAmountDueForGig(inv.gig_id);
-  return mapAdditionalCharge(row);
-}
 
-export async function updatePaymentMade(
+  const input = parseOrBadRequest(UpdateCardChargeSchema, body) as UpdateInvoiceCardChargeRequest;
+
+  return withTransaction(async () => {
+    // Get the card charge to find its linked expense
+    const charge = await getCardChargeOrThrow(chargeId);
+    const expenseId = charge.expense_id;
+
+    // Update the card charge (keep it linked to the same invoice in this endpoint)
+    const row = await invoicesRepo.updateCardCharge(
+      invoiceId,
+      chargeId,
+      input.description?.trim() ?? null,
+      input.amount ?? null
+    );
+    if (!row) throw new NotFoundError("CardCharge not found");
+
+    // Sync the linked expense from the updated card charge (amount/description
+    // mirror the charge exactly, matching its clear-on-omit semantics); other
+    // fields (date, category, airtableId) stay as they were on the expense.
+    const expenseRow = await expensesRepo.readExpenseById(expenseId);
+    if (expenseRow) {
+      await expensesRepo.updateExpense(expenseId, {
+        amount: row.amount ?? 0,
+        description: row.description ?? 'Card charge',
+        date: expenseRow.date ?? undefined,
+        category: expenseRow.category ?? undefined,
+        recipientName: input.recipientName?.trim() ?? expenseRow.recipient_name ?? undefined,
+        airtableId: expenseRow.airtable_id ?? undefined,
+      });
+    }
+
+    await recalculateAmountDueForGig(inv.gig_id);
+     return mapCardCharge(row);
+   });
+ }
+
+ export async function updateCardChargeByGig(
+   gigId: number,
+   chargeId: number,
+   body: unknown
+ ): Promise<InvoiceCardCharge> {
+   const gig = await gigsRepo.readGigById(gigId);
+   if (!gig) throw new NotFoundError("Gig not found");
+
+   const input = parseOrBadRequest(UpdateCardChargeSchema, body) as UpdateInvoiceCardChargeRequest;
+
+   return withTransaction(async () => {
+     // Get the card charge
+     const charge = await getCardChargeOrThrow(chargeId);
+     if (charge.gig_id !== gigId) throw new ForbiddenError("Card charge does not belong to this gig");
+
+     const oldInvoiceId = charge.invoice_id;
+     const newInvoiceId = 'invoiceId' in input ? input.invoiceId : oldInvoiceId;
+     const expenseId = charge.expense_id;
+
+     // If a new invoiceId is provided, validate it
+     if (newInvoiceId !== undefined && newInvoiceId !== oldInvoiceId) {
+       if (newInvoiceId !== null) {
+         const inv = await invoicesRepo.readInvoiceById(newInvoiceId);
+         if (!inv) throw new NotFoundError("Invoice not found");
+         if (inv.gig_id !== gigId) throw new BadRequestError("Invoice does not belong to this gig");
+       }
+     }
+
+     // Update the card charge with new invoice ID if changed
+     const row = await invoicesRepo.updateCardCharge(
+       newInvoiceId ?? null,
+       chargeId,
+       input.description?.trim() ?? null,
+       input.amount ?? null
+     );
+     if (!row) throw new NotFoundError("CardCharge not found");
+
+     // Sync the linked expense
+     const expenseRow = await expensesRepo.readExpenseById(expenseId);
+     if (expenseRow) {
+       await expensesRepo.updateExpense(expenseId, {
+         amount: row.amount ?? 0,
+         description: row.description ?? 'Card charge',
+         date: expenseRow.date ?? undefined,
+         category: expenseRow.category ?? undefined,
+         recipientName: input.recipientName?.trim() ?? expenseRow.recipient_name ?? undefined,
+         airtableId: expenseRow.airtable_id ?? undefined,
+       });
+     }
+
+     // Recalculate for both old and new invoices if they changed
+     if (oldInvoiceId) await recalculateAmountDueForGig(gigId);
+     if (newInvoiceId && newInvoiceId !== oldInvoiceId) await recalculateAmountDueForGig(gigId);
+
+     return mapCardCharge(row);
+   });
+ }
+
+ export async function updatePaymentMade(
   invoiceId: number,
   paymentMadeId: number,
   input: UpdateInvoicePaymentMadeRequest
@@ -276,20 +490,20 @@ export async function buildPreviewPayloadForGig(
   gigId: number,
   invoiceType: 'deposit' | 'balance' = 'balance'
 ): Promise<Record<string, unknown>> {
-  const [gig, lineItems, payments, existingAdditionalCharges] = await Promise.all([
+  const [gig, lineItems, payments, existingCardCharges] = await Promise.all([
     gigsRepo.readGigById(gigId),
     gigLineItemsRepo.readGigLineItemsByGigId(gigId),
     paymentsRepo.readPaymentsByGigId(gigId),
-    invoicesRepo.readAdditionalChargesSumByGigId(gigId),
+    invoicesRepo.readCardChargesSumByGigId(gigId),
   ]);
 
   if (!gig) throw new NotFoundError("Gig not found");
 
-  // For a balance preview, pre-populate additional charges from existing
+  // For a balance preview, pre-populate card charges from existing
   // invoices (e.g. a card surcharge on the deposit invoice) so the total
   // and amount-due are correct. For deposit previews, start fresh.
-  const additionalCharges = invoiceType === 'balance' && existingAdditionalCharges > 0
-    ? [{ description: "Existing surcharges", amount: existingAdditionalCharges }]
+  const cardCharges = invoiceType === 'balance' && existingCardCharges > 0
+    ? [{ description: "Existing card charges", amount: existingCardCharges }]
     : [];
 
   const year = new Date().toISOString().slice(2, 4);
@@ -303,7 +517,7 @@ export async function buildPreviewPayloadForGig(
       eventDate: toDateString(gig.date) ?? undefined,
       venue: gig.venue_name ?? undefined,
       lineItems: lineItems.map(mapGigLineItem),
-      additionalCharges,
+      cardCharges,
       discountPercent: gig.discount_percent,
       travelCost: gig.travel_cost,
     }),
@@ -355,7 +569,7 @@ export async function recalculateAmountDueForGig(gigId: number): Promise<void> {
     // cause amountDue to overflow PostgreSQL's integer column.
     const safePaid = Math.max(0, paid);
 
-    const chargeSums = await invoicesRepo.readAdditionalChargesSumsByInvoiceIds(
+    const chargeSums = await invoicesRepo.readCardChargesSumsByInvoiceIds(
       invoices.map(inv => inv.id)
     );
 
@@ -449,18 +663,19 @@ function mapLineItem(row: invoicesRepo.InvoiceLineItemRow): InvoiceLineItem {
   };
 }
 
-function mapAdditionalCharge(row: invoicesRepo.InvoiceAdditionalChargeRow): InvoiceAdditionalCharge {
+function mapCardCharge(row: invoicesRepo.InvoiceCardChargeRow): InvoiceCardCharge {
   return {
     id: row.id,
     invoiceId: row.invoice_id,
     description: row.description ?? undefined,
     amount: row.amount ?? undefined,
+    expenseId: row.expense_id,
   };
 }
 
-function mapAdditionalChargeWithInvoice(row: invoicesRepo.AdditionalChargeWithInvoiceRow): InvoiceAdditionalCharge {
+function mapCardChargeWithInvoice(row: invoicesRepo.CardChargeWithInvoiceRow): InvoiceCardCharge {
   return {
-    ...mapAdditionalCharge(row),
+    ...mapCardCharge(row),
     invoiceNumber: row.invoice_number,
   };
 }
@@ -476,26 +691,25 @@ function mapPaymentMade(row: invoicesRepo.InvoicePaymentMadeRow): InvoicePayment
 }
 
 async function withSubresources(invoice: Invoice): Promise<Invoice> {
-  const [lineItems, additionalCharges, paymentsMade] = await Promise.all([
+  const [lineItems, cardCharges, paymentsMade] = await Promise.all([
     invoicesRepo.readLineItemsByInvoiceId(invoice.id),
-    invoicesRepo.readAdditionalChargesByInvoiceId(invoice.id),
+    invoicesRepo.readCardChargesByInvoiceId(invoice.id),
     invoicesRepo.readPaymentsMadeByInvoiceId(invoice.id),
   ]);
-  let finalCharges = additionalCharges.map(mapAdditionalCharge);
+  let finalCharges = cardCharges.map(mapCardCharge);
   // Balance invoices have the inherited charges baked into totalAmount at creation
   // time, but the individual charge records live on the deposit invoice.  When the
   // balance invoice has no charges of its own, pull in the gig-level charges so
   // the invoice view and PDF show the full breakdown.  Flask computes the total
-  // as sum(custom_items) - discount + travel + sum(additional_charges), so the
   // charges must be present here to produce the correct total on the PDF.
   if (finalCharges.length === 0 && invoice.invoiceType === 'balance') {
-    const gigCharges = await invoicesRepo.readAdditionalChargesByGigId(invoice.gigId);
-    finalCharges = gigCharges.map(mapAdditionalChargeWithInvoice);
+    const gigCharges = await invoicesRepo.readCardChargesByGigId(invoice.gigId);
+    finalCharges = gigCharges.map(mapCardChargeWithInvoice);
   }
   return {
     ...invoice,
     lineItems: lineItems.map(mapLineItem),
-    additionalCharges: finalCharges,
+    cardCharges: finalCharges,
     paymentsMade: paymentsMade.map(mapPaymentMade),
   };
 }
@@ -529,7 +743,7 @@ function buildBaseFlaskPayload(invoice: {
   eventDate?: string;
   venue?: string;
   lineItems?: Array<{ description?: string | null; amount?: number | null; discountPercent?: number }>;
-  additionalCharges?: Array<{ description?: string | null; amount?: number | null }>;
+  cardCharges?: Array<{ description?: string | null; amount?: number | null }>;
   discountPercent: number;
   travelCost: number;
 }) {
@@ -539,10 +753,18 @@ function buildBaseFlaskPayload(invoice: {
     event_date: invoice.eventDate ?? "",
     venue: invoice.venue ?? "",
     custom_items: (invoice.lineItems ?? []).map(toFlaskLineItem),
-    additional_charges: (invoice.additionalCharges ?? []).map(toFlaskLineItem),
+    // Flask's payload key remains "additional_charges" (a generic term on
+    // that side); the API's own naming for this concept is "card charges".
+    additional_charges: (invoice.cardCharges ?? []).map(toFlaskLineItem),
     discount_percent: invoice.discountPercent > 0 ? invoice.discountPercent : undefined,
     travel_cost: invoice.travelCost > 0 ? invoice.travelCost / 100 : undefined,
   };
+}
+
+async function getCardChargeOrThrow(chargeId: number): Promise<invoicesRepo.InvoiceCardChargeRow> {
+  const charge = await invoicesRepo.readCardChargeById(chargeId);
+  if (!charge) throw new NotFoundError("CardCharge not found");
+  return charge;
 }
 
 function buildMutationInput(
@@ -575,3 +797,5 @@ function buildMutationInput(
     invoiceType: input.invoiceType ?? existing?.invoiceType ?? 'balance',
   };
 }
+
+

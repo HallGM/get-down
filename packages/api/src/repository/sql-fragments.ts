@@ -55,13 +55,13 @@ export const SQL_EVENT_GROUP_BY_COLS = `
   g.id, g.first_name, g.last_name, g.date,
   s.id, s.nickname, s.full_name, s.date`;
 
-/** Correlated subquery: sum of all additional charge amounts across all invoices for a gig.
+/** Correlated subquery: sum of all card charge amounts across all invoices for a gig.
  *  No alias. Requires alias `g` on the `gigs` table.
  *  Intended for use inside COALESCE(... , 0). */
-export const SQL_ADDITIONAL_CHARGES_EXPR = `
-  (SELECT SUM(iac.amount)
+export const SQL_CARD_CHARGES_EXPR = `
+  (SELECT SUM(icc.amount)
    FROM invoices inv
-   JOIN invoice_additional_charges iac ON iac.invoice_id = inv.id
+   JOIN invoice_card_charges icc ON icc.invoice_id = inv.id
    WHERE inv.gig_id = g.id)
 `;
 
@@ -116,7 +116,7 @@ export const SQL_BILLING_CTE_COLS = `
   (
     COALESCE(SUM(li.amount * (1.0 - GREATEST(li.discount_percent, g.discount_percent) / 100.0)), 0)::int
     + g.travel_cost
-    + COALESCE(${SQL_ADDITIONAL_CHARGES_EXPR}, 0)
+    + COALESCE(${SQL_CARD_CHARGES_EXPR}, 0)
     - COALESCE(cr.total_credits, 0)
   )::int AS billing_total,
   (COALESCE(p.total_paid, 0) - COALESCE(r.total_refunded, 0))::int AS net_received
