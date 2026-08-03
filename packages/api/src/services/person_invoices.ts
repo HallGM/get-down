@@ -104,7 +104,7 @@ export async function createPersonInvoiceFromAllocationLineItems(
 
 /**
  * Verify a person has the details required to generate an invoice PDF for them
- * (address, phone, email, account number, sort code). Only called when generating
+ * (address, email, account number, sort code). Only called when generating
  * the PDF, so staff get a clear error if required details are missing.
  */
 function assertPersonHasInvoiceDetails(person: {
@@ -116,7 +116,6 @@ function assertPersonHasInvoiceDetails(person: {
 }, businessName: string, context: "invoice" | "invoice PDF" = "invoice"): void {
   const missingFields: string[] = [];
   if (!person.addressLine1) missingFields.push("address line 1");
-  if (!person.phone) missingFields.push("phone number");
   if (!person.email) missingFields.push("email address");
   if (!person.accountNumber) missingFields.push("account number");
   if (!person.sortCode) missingFields.push("sort code");
