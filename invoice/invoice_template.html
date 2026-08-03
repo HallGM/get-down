@@ -119,6 +119,15 @@
       </div>
       {% endif %}
 
+      {% if data.gig and (data.gig.name or data.gig.date or data.gig.venue) %}
+      <div style="margin-bottom: 12px; padding: 8px; background-color: #f5f5f5; border-left: 3px solid hsl(177.93deg 33.33% 17.06%)">
+        <p style="margin: 0 0 4px 0"><strong>Gig Details</strong></p>
+        {% if data.gig.name %}<p style="margin: 2px 0"><strong>Name:</strong> {{ data.gig.name }}</p>{% endif %}
+        {% if data.gig.date %}<p style="margin: 2px 0"><strong>Date:</strong> {{ data.gig.date }}</p>{% endif %}
+        {% if data.gig.venue %}<p style="margin: 2px 0"><strong>Venue:</strong> {{ data.gig.venue }}</p>{% endif %}
+      </div>
+      {% endif %}
+
       <table style="margin-bottom: 24px">
         <tbody>
           {% for section in data.sections %} {% if not loop.first %}

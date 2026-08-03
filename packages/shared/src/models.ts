@@ -1013,6 +1013,7 @@ export interface PersonInvoice {
   date: string;
   totalAmount: number;
   expenseId: number;
+  gigId?: number;
   lineItems?: PersonInvoiceLineItem[];
 }
 
@@ -1023,6 +1024,7 @@ export interface CreatePersonInvoiceRequest {
     description: string;
     amount: number;
   }>;
+  gigId?: number;
 }
 
 export interface UpdatePersonInvoiceRequest {

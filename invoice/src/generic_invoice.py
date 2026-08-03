@@ -44,6 +44,7 @@ def _render_document_with_config(
     invoice_date: Optional[str] = None,
     customer_address: Optional["Address"] = None,
     show_contact_line: bool = True,
+    gig_details: Optional[dict] = None,
 ) -> Optional[bytes]:
     """
     Generic function to render and generate invoices and receipts with custom business config.
@@ -107,6 +108,7 @@ def _render_document_with_config(
         ],
         "customer_address_lines": customer_address_lines,
         "show_contact_line": show_contact_line,
+        "gig": gig_details,
     }
     
     document_html = template.render(
@@ -153,7 +155,7 @@ def create_generic_invoice(
     """
     Render and generate invoice with custom business configuration.
     See _render_document_with_config for the full set of supported kwargs
-    (return_bytes, invoice_date, customer_address, show_contact_line).
+    (return_bytes, invoice_date, customer_address, show_contact_line, gig_details).
     """
     return _render_document_with_config(invoice, business_config, **kwargs)
 

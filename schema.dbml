@@ -419,6 +419,7 @@ Table person_invoices {
   date           date [not null]
   total_amount   int [not null, default: 0]
   expense_id     int [ref: > expenses.id, not null, unique]
+  gig_id         int [ref: > gigs.id]
 }
 
 Table person_invoice_line_items {

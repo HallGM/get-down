@@ -14,6 +14,7 @@ import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import ExpenseModal from "../../components/ExpenseModal.js";
 import ExpenseCreateModal from "../../components/ExpenseCreateModal.js";
+import GigLink from "../../components/GigLink.js";
 import YearFilterBar from "../../components/YearFilterBar.js";
 import { formatDate } from "../../utils/date.js";
 import { formatGigName } from "../../utils/people.js";
@@ -76,9 +77,7 @@ export default function ExpensesList() {
         header: "Gig",
         render: (e) => {
           if (!e.linkedCardCharge) return null;
-          const gig = allGigs.find((g) => g.id === e.linkedCardCharge!.gigId);
-          const gigName = gig ? formatGigName(gig) : `#${e.linkedCardCharge.gigId}`;
-          return <Link to={`/gigs/${e.linkedCardCharge.gigId}`}>{gigName}</Link>;
+          return <GigLink gigId={e.linkedCardCharge.gigId} gigs={allGigs} />;
         },
       },
       {

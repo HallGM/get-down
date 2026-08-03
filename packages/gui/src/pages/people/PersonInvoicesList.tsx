@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { usePersonInvoices, useCreatePersonInvoice, useUpdatePersonInvoice, useDeletePersonInvoice, useGeneratePersonInvoicePdf } from "../../api/hooks/usePersonInvoices.js";
 import { usePeople } from "../../api/hooks/usePeople.js";
+import { useGigs } from "../../api/hooks/useGigs.js";
 import type { PersonInvoice, CreatePersonInvoiceRequest, UpdatePersonInvoiceRequest } from "@get-down/shared";
 import DataTable, { type Column } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
@@ -10,8 +11,10 @@ import FormField from "../../components/FormField.js";
 import LineItemEditor from "../../components/LineItemEditor.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
+import GigLink from "../../components/GigLink.js";
 import { useToast } from "../../components/Toast.js";
 import { formatDate } from "../../utils/date.js";
+import { formatGigName } from "../../utils/people.js";
 
 const COLUMNS: Column<PersonInvoice>[] = [
   { key: "invoiceNumber", header: "Invoice Number", sortable: true },
@@ -35,6 +38,7 @@ export default function PersonInvoicesList() {
   const personId = personIdStr ? parseInt(personIdStr, 10) : 0;
   const navigate = useNavigate();
   const { data: people } = usePeople();
+  const { data: gigs } = useGigs();
   const { data: invoices, isLoading, error } = usePersonInvoices(personId);
   const createPersonInvoice = useCreatePersonInvoice();
   const updatePersonInvoice = useUpdatePersonInvoice();
@@ -146,18 +150,25 @@ export default function PersonInvoicesList() {
         <button onClick={() => setShowCreate(true)}>+ New Invoice</button>
       </div>
 
-      <DataTable<PersonInvoice>
-        columns={[...COLUMNS, {
-          key: "actions",
-          header: "",
-          render: (pi) => (
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); void handleGeneratePdf(pi); }} aria-busy={pdfBusyIds.has(pi.id)}>PDF</button>
-              <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); openEdit(pi); }}>Edit</button>
-              <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); setDeleteTarget(pi); }}>Delete</button>
-            </div>
-          ),
-        }]}
+       <DataTable<PersonInvoice>
+         columns={[...COLUMNS, 
+           {
+             key: "gig",
+             header: "Gig",
+             render: (pi) => <GigLink gigId={pi.gigId} gigs={gigs} />,
+           },
+           {
+             key: "actions",
+             header: "",
+             render: (pi) => (
+               <div style={{ display: "flex", gap: "0.5rem" }}>
+                 <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); void handleGeneratePdf(pi); }} aria-busy={pdfBusyIds.has(pi.id)}>PDF</button>
+                 <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); openEdit(pi); }}>Edit</button>
+                 <button className="secondary outline" style={{ padding: "0.2em 0.5em" }} onClick={(e) => { e.stopPropagation(); setDeleteTarget(pi); }}>Delete</button>
+               </div>
+             ),
+           }
+         ]}
         data={invoices ?? []}
         emptyMessage="No invoices yet."
         filterPlaceholder="Search invoices…"
@@ -168,6 +179,21 @@ export default function PersonInvoicesList() {
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Person Invoice">
         <form onSubmit={handleCreate}>
           <FormField label="Date" type="date" value={form.date} onChange={(e) => setField("date", e.target.value)} required />
+          <div>
+            <label htmlFor="gig-select">Gig (optional)</label>
+            <select 
+              id="gig-select"
+              value={form.gigId ?? ""} 
+              onChange={(e) => setField("gigId", e.target.value ? parseInt(e.target.value, 10) : undefined)}
+            >
+              <option value="">No gig</option>
+              {gigs?.map((g) => (
+                <option key={g.id} value={String(g.id)}>
+                  {formatGigName(g)} ({formatDate(g.date)})
+                </option>
+              ))}
+            </select>
+          </div>
           <LineItemEditor
             lineItems={form.lineItems || []}
             onLineItemChange={setLineItem}
@@ -191,6 +217,14 @@ export default function PersonInvoicesList() {
             onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))} 
             required 
           />
+          {editTarget?.gigId && (
+            <div>
+              <label>Linked Gig</label>
+              <p>
+                <GigLink gigId={editTarget.gigId} gigs={gigs} />
+              </p>
+            </div>
+          )}
           <LineItemEditor
             lineItems={editForm.lineItems || []}
             onLineItemChange={(index, field, value) => {

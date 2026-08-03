@@ -24,6 +24,7 @@ import { withTransaction } from "../db/init.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 import { buildPersonName } from "../utils/people.js";
+import { formatGigName } from "../utils/gig.js";
 import { CreatePaymentSchema } from "./expense_payments.js";
 import { ExpenseLinkApportionmentSchema } from "./schemas.js";
 import { z } from "zod";
@@ -421,7 +422,7 @@ export async function generateExpenseForAllocation(allocationId: number): Promis
 
   const amount = lineItems.reduce((sum, li) => sum + (li.amount ?? 0), 0);
 
-  const gigLabel = `${gig.first_name} ${gig.last_name}`;
+  const gigLabel = formatGigName(gig);
   const personLabel = person ? buildPersonName(person) : null;
 
   let description = gigLabel;
@@ -592,7 +593,8 @@ export async function generateInvoiceForAllocation(allocationId: number): Promis
       lineItems.map((li) => ({
         description: li.description ?? undefined,
         amount: li.amount ?? 0,
-      }))
+      })),
+      allocation.gig_id ?? undefined
     );
 
     // Step 2: Link the invoice's expense to this allocation
