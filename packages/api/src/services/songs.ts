@@ -15,6 +15,7 @@ import { BadRequestError, NotFoundError } from "../errors.js";
 import { withTransaction } from "../db/init.js";
 import { DEFAULT_SECTION_NAME } from "../constants.js";
 import { parseOrBadRequest } from "../utils/parse.js";
+import { formatGigName } from "../utils/gig.js";
 
 export async function getSongs(): Promise<Song[]> {
   const rows = await songsRepo.readSongs();
@@ -367,8 +368,8 @@ export async function buildSetListPdfPayload(gigId: number): Promise<Record<stri
   if (!gig) throw new NotFoundError("Gig not found");
 
   const clientName = gig.partner_name
-    ? `${gig.first_name} ${gig.last_name} & ${gig.partner_name}`
-    : `${gig.first_name} ${gig.last_name}`;
+    ? `${formatGigName(gig)} & ${gig.partner_name}`
+    : formatGigName(gig);
 
   const eventDate = gig.date
     ? new Date(gig.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })

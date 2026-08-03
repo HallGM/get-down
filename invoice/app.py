@@ -497,14 +497,23 @@ def generate_generic_invoice():
                 customer_address = Address(
                     line_1=lines[0] if len(lines) > 0 else "",
                     line_2=lines[1] if len(lines) > 1 else None,
-                    line_3=lines[2] if len(lines) > 2 else None,
-                    line_4=lines[3] if len(lines) > 3 else None,
-                    line_5=lines[4] if len(lines) > 4 else None,
-                )
+                     line_3=lines[2] if len(lines) > 2 else None,
+                     line_4=lines[3] if len(lines) > 3 else None,
+                     line_5=lines[4] if len(lines) > 4 else None,
+                 )
 
         # Extract optional invoice date and contact line flag
         invoice_date = data.get("date") or None
         show_contact_line = data.get("show_contact_line", True)
+
+        # Extract optional gig details
+        gig_details = None
+        if data.get("gig_name") or data.get("gig_date") or data.get("gig_venue"):
+            gig_details = {
+                "name": data.get("gig_name") or "",
+                "date": data.get("gig_date") or "",
+                "venue": data.get("gig_venue") or "",
+            }
 
         # Generate PDF bytes
         pdf_bytes = create_generic_invoice(
@@ -514,6 +523,7 @@ def generate_generic_invoice():
             invoice_date=invoice_date,
             customer_address=customer_address,
             show_contact_line=show_contact_line,
+            gig_details=gig_details,
         )
         if pdf_bytes is None:
             return jsonify({"error": "Failed to generate invoice PDF"}), 500

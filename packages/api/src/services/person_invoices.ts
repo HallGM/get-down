@@ -6,6 +6,7 @@ import type {
 import { resolvePersonName } from "@get-down/shared";
 import * as personInvoicesRepo from "../repository/person_invoices.js";
 import * as peopleRepo from "../repository/people.js";
+import * as gigsRepo from "../repository/gigs.js";
 import * as expensesRepo from "../repository/expenses.js";
 import * as peopleService from "./people.js";
 import { withTransaction } from "../db/init.js";
@@ -13,6 +14,7 @@ import { parseOrBadRequest } from "../utils/parse.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { toDateString, todayDate } from "../utils/date.js";
 import { resolvePersonRowName } from "../utils/person.js";
+import { formatGigName, requireGig } from "../utils/gig.js";
 
 const CreatePersonInvoiceSchema = z.object({
   personId: z.number().int(),
@@ -23,6 +25,7 @@ const CreatePersonInvoiceSchema = z.object({
       amount: z.number().int().positive("amount must be positive"),
     })
   ).min(1, "at least one line item is required"),
+  gigId: z.number().int().positive().optional(),
 });
 
 const UpdatePersonInvoiceSchema = z.object({
@@ -64,6 +67,11 @@ export async function createPersonInvoice(body: unknown): Promise<PersonInvoice>
   const person = await peopleRepo.readPersonById(input.personId);
   if (!person) throw new NotFoundError("Person not found");
 
+  // Verify gig exists if provided
+  if (input.gigId != null) {
+    await requireGig(input.gigId);
+  }
+
   assertPersonHasInvoiceDetails(
     {
       addressLine1: person.address_line_1,
@@ -75,7 +83,7 @@ export async function createPersonInvoice(body: unknown): Promise<PersonInvoice>
     resolvePersonRowName(person)
   );
 
-  return createPersonInvoiceWithDetails(input.personId, input.lineItems, input.date, person);
+  return createPersonInvoiceWithDetails(input.personId, input.lineItems, input.date, person, input.gigId);
 }
 
 /**
@@ -84,7 +92,8 @@ export async function createPersonInvoice(body: unknown): Promise<PersonInvoice>
  */
 export async function createPersonInvoiceFromAllocationLineItems(
   personId: number,
-  lineItems: Array<{ description?: string; amount: number }>
+  lineItems: Array<{ description?: string; amount: number }>,
+  gigId?: number
 ): Promise<PersonInvoice> {
   // Defense-in-depth: the current caller (fee_allocations.generateInvoiceForAllocation)
   // already validates this, but this function is exported and may gain other callers.
@@ -110,7 +119,7 @@ export async function createPersonInvoiceFromAllocationLineItems(
   // Use today's date
   const date = todayDate();
 
-  return createPersonInvoiceWithDetails(personId, lineItems, date, person);
+  return createPersonInvoiceWithDetails(personId, lineItems, date, person, gigId);
 }
 
 // ─── Private helpers ─────────────────────────────────────────────────────────
@@ -145,7 +154,8 @@ async function createPersonInvoiceWithDetails(
   personId: number,
   lineItems: Array<{ description?: string | null; amount: number }>,
   date: string,
-  person: NonNullable<Awaited<ReturnType<typeof peopleRepo.readPersonById>>>
+  person: NonNullable<Awaited<ReturnType<typeof peopleRepo.readPersonById>>>,
+  gigId?: number
 ): Promise<PersonInvoice> {
   return withTransaction(async () => {
     // Calculate total
@@ -171,6 +181,7 @@ async function createPersonInvoiceWithDetails(
       date,
       totalAmount,
       expenseId: expenseRow.id,
+      gigId,
     });
 
     // Create line items
@@ -259,6 +270,7 @@ function mapPersonInvoice(row: {
   date: string;
   total_amount: number;
   expense_id: number;
+  gig_id: number | null;
 }): PersonInvoice {
   return {
     id: row.id,
@@ -267,6 +279,7 @@ function mapPersonInvoice(row: {
     date: toDateString(row.date) ?? row.date,
     totalAmount: row.total_amount,
     expenseId: row.expense_id,
+    gigId: row.gig_id ?? undefined,
   };
 }
 
@@ -318,7 +331,7 @@ export async function buildFlaskPayloadForPersonInvoice(invoiceId: number): Prom
   const evAddressLine4 = process.env.BUSINESS_ADDRESS_LINE4 || "";
   const evAddressLine5 = process.env.BUSINESS_ADDRESS_LINE5 || "";
 
-  return {
+  const payload: Record<string, unknown> = {
     invoice_number: invoice.invoiceNumber,
     title: "Invoice",
     business_name: businessName,
@@ -349,4 +362,20 @@ export async function buildFlaskPayloadForPersonInvoice(invoiceId: number): Prom
       price: (item.amount ?? 0) / 100,
     })),
   };
+
+  // Add gig details if invoice is linked to a gig
+  if (invoice.gigId) {
+    const gig = await gigsRepo.readGigById(invoice.gigId);
+    if (gig) {
+      const gigName = formatGigName(gig);
+      const gigDate = toDateString(gig.date) ?? gig.date;
+      const gigVenue = gig.venue_name ?? gig.location ?? "";
+      
+      payload.gig_name = gigName;
+      payload.gig_date = gigDate;
+      payload.gig_venue = gigVenue;
+    }
+  }
+
+  return payload;
 }

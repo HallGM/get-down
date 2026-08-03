@@ -8,6 +8,7 @@ export interface PersonInvoiceRow {
   date: string;
   total_amount: number;
   expense_id: number;
+  gig_id: number | null;
 }
 
 export interface PersonInvoiceLineItemRow {
@@ -23,10 +24,11 @@ export interface PersonInvoiceMutationInput {
   date: string;
   totalAmount: number;
   expenseId: number;
+  gigId?: number | null;
 }
 
 const PERSON_INVOICE_COLS = `
-  id, person_id, invoice_number, date, total_amount, expense_id
+  id, person_id, invoice_number, date, total_amount, expense_id, gig_id
 `;
 
 // --- Person Invoices ---
@@ -36,8 +38,8 @@ export async function createPersonInvoice(
 ): Promise<PersonInvoiceRow> {
   const [row] = await run_query<PersonInvoiceRow>({
     text: `
-      INSERT INTO person_invoices (person_id, invoice_number, date, total_amount, expense_id)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO person_invoices (person_id, invoice_number, date, total_amount, expense_id, gig_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING ${PERSON_INVOICE_COLS};
     `,
     values: [
@@ -46,6 +48,7 @@ export async function createPersonInvoice(
       input.date,
       input.totalAmount,
       input.expenseId,
+      input.gigId ?? null,
     ],
   });
   return row!;

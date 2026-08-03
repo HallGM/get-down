@@ -25,6 +25,7 @@ import { BadRequestError, NotFoundError, ForbiddenError } from "../errors.js";
 import { validateDiscountPercent } from "../utils/validation.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 import { todayDate } from "../utils/date.js";
+import { formatGigName } from "../utils/gig.js";
 import { mapGigLineItem } from "./gigs.js";
 
 
@@ -89,7 +90,7 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
     const row = await invoicesRepo.createInvoice({
       gigId,
       invoiceNumber,
-      customerName: `${gig.first_name} ${gig.last_name}`,
+      customerName: formatGigName(gig),
       eventDate: toDateString(gig.date) ?? undefined,
       venue: gig.venue_name ?? undefined,
       date: today,
@@ -513,7 +514,7 @@ export async function buildPreviewPayloadForGig(
   return {
     ...buildBaseFlaskPayload({
       invoiceNumber,
-      customerName: `${gig.first_name} ${gig.last_name}`,
+      customerName: formatGigName(gig),
       eventDate: toDateString(gig.date) ?? undefined,
       venue: gig.venue_name ?? undefined,
       lineItems: lineItems.map(mapGigLineItem),
