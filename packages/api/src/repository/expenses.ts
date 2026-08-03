@@ -155,3 +155,21 @@ export async function readAttributionFeeIdsByExpenseIds(
   });
   return groupById(rows, (r) => r.expense_id, (r) => r.attribution_fee_id);
 }
+
+// ─── Card charge link (read-side) ────────────────────────────────────────────
+
+export async function readCardChargeByExpenseId(
+  expenseId: number
+): Promise<{ id: number; invoice_id: number; gig_id: number } | null> {
+  const rows = await run_query<{ id: number; invoice_id: number; gig_id: number }>({
+    text: `
+      SELECT icc.id, icc.invoice_id, inv.gig_id
+      FROM invoice_card_charges icc
+      JOIN invoices inv ON inv.id = icc.invoice_id
+      WHERE icc.expense_id = $1
+      LIMIT 1;
+    `,
+    values: [expenseId],
+  });
+  return rows[0] ?? null;
+}

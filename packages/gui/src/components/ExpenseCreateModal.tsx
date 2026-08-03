@@ -3,24 +3,13 @@ import { useCreateExpense } from "../api/hooks/useExpenses.js";
 import { useSettleAllocationWithExpense } from "../api/hooks/useFeeAllocations.js";
 import { useAccounts } from "../api/hooks/useAccounts.js";
 import { useFileUpload } from "../hooks/useFileUpload.js";
+import { useRecordPaymentForm } from "../api/hooks/useRecordPaymentForm.js";
 import type { CreateExpenseRequest, Expense } from "@get-down/shared";
 import Modal from "./Modal.js";
 import FormField from "./FormField.js";
 import MoneyField from "./MoneyField.js";
 import { PaymentFormFields, EMPTY_PAYMENT_FORM, type PaymentFormState } from "./ExpensePaymentFormFields.js";
 import { toInputDate } from "../utils/date.js";
-
-// Extends the shared form state with dirty-tracking for auto-sync behaviour
-interface LocalPaymentState extends PaymentFormState {
-  amountDirty: boolean;
-  dateDirty: boolean;
-}
-
-const EMPTY_LOCAL_PAYMENT: LocalPaymentState = {
-  ...EMPTY_PAYMENT_FORM,
-  amountDirty: false,
-  dateDirty: false,
-};
 
 export interface ExpenseCreateModalProps {
   open: boolean;
@@ -52,8 +41,18 @@ export default function ExpenseCreateModal({
     amount: initialValues?.amount ?? 0,
     recipientName: initialValues?.recipientName ?? "",
   }));
-  const [recordPayment, setRecordPayment] = useState(false);
-  const [paymentForm, setPaymentForm] = useState<LocalPaymentState>(EMPTY_LOCAL_PAYMENT);
+
+  const businessAccount = accounts.find((a) => a.isBusiness);
+  const getPaymentDate = () =>
+    paymentDateIsToday ? toInputDate(new Date()) : (form.date || toInputDate(new Date()));
+
+  const {
+    recordPayment,
+    setRecordPayment,
+    handleRecordPaymentToggle,
+    paymentForm,
+    setPaymentFormFields,
+  } = useRecordPaymentForm(true, form.amount, form.date, businessAccount?.id, getPaymentDate);
 
   // Reset everything whenever the modal opens
   useEffect(() => {
@@ -65,7 +64,6 @@ export default function ExpenseCreateModal({
       });
       fileUpload.reset();
       setRecordPayment(false);
-      setPaymentForm(EMPTY_LOCAL_PAYMENT);
       // Clear the file input's DOM value to remove any stale filename display
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -73,47 +71,6 @@ export default function ExpenseCreateModal({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-
-  // Keep payment amount/date in sync with expense (unless user has edited them)
-  useEffect(() => {
-    if (recordPayment) {
-      setPaymentForm((f) => ({
-        ...f,
-        amount: f.amountDirty ? f.amount : form.amount,
-        date:   f.dateDirty   ? f.date   : (form.date ?? ""),
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.amount, form.date]);
-
-  function handleRecordPaymentToggle(checked: boolean) {
-    setRecordPayment(checked);
-    if (checked) {
-      const businessAccount = accounts.find((a) => a.isBusiness);
-      setPaymentForm({
-        accountId: businessAccount?.id ?? "",
-        amount: form.amount,
-        date: paymentDateIsToday ? toInputDate(new Date()) : (form.date || toInputDate(new Date())),
-        paymentMethod: "Transfer",
-        description: "",
-        amountDirty: false,
-        dateDirty: true,
-      });
-    }
-  }
-
-  // Wrapper setter for PaymentFormFields — tracks which fields the user has edited
-  function setPaymentFormFields(fn: (f: PaymentFormState) => PaymentFormState) {
-    setPaymentForm((f) => {
-      const { amountDirty, dateDirty, ...base } = f;
-      const next = fn(base);
-      return {
-        ...next,
-        amountDirty: amountDirty || next.amount !== base.amount,
-        dateDirty:   dateDirty   || next.date   !== base.date,
-      };
-    });
-  }
 
   function handleClose() {
     onClose();

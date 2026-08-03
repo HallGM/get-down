@@ -119,7 +119,7 @@ function buildMutationInput(
 
   return {
     gigId,
-    date: input.date ?? existing?.date,
+    date: input.date?.trim() || existing?.date,
     amount,
     method: input.method?.trim() ?? existing?.method,
     description: input.description?.trim() ?? existing?.description,

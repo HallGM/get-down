@@ -278,8 +278,8 @@ export interface Gig {
   feesTotal?: number;
   /** Billing total in pennies: line items minus discount plus travel cost, minus credit refunds. Present on list and detail responses. */
   billingTotal?: number;
-  /** Sum of all invoice additional charges for this gig, in pennies. Present on detail response only. */
-  totalAdditionalCharges?: number;
+  /** Sum of all invoice card charges for this gig, in pennies. Present on detail response only. */
+  totalCardCharges?: number;
   /** IDs of services attached to this gig. Only present on list responses. */
   serviceIds?: number[];
   /** IDs of people assigned to any role on this gig. Only present on list responses. */
@@ -770,6 +770,8 @@ export interface Expense {
   payments?: ExpensePayment[];
   /** When present, this expense was auto-created for a person invoice (no manual document upload possible). */
   personInvoice?: { id: number; invoiceNumber: string; personName: string };
+  /** When present, this expense is linked to a card charge and some fields are synced (description, amount). */
+  linkedCardCharge?: { id: number; invoiceId: number; gigId: number };
 }
 
 export interface CreateExpenseRequest {
@@ -900,12 +902,13 @@ export interface InvoiceLineItem {
   discountPercent?: number;
 }
 
-export interface InvoiceAdditionalCharge {
+export interface InvoiceCardCharge {
   id: number;
-  invoiceId: number;
+  invoiceId: number | null;
   invoiceNumber?: string;
   description?: string;
   amount?: number;
+  expenseId: number;
 }
 
 export interface InvoicePaymentMade {
@@ -932,7 +935,7 @@ export interface Invoice {
   amountDue: number;
   invoiceType: 'deposit' | 'balance';
   lineItems?: InvoiceLineItem[];
-  additionalCharges?: InvoiceAdditionalCharge[];
+  cardCharges?: InvoiceCardCharge[];
   paymentsMade?: InvoicePaymentMade[];
 }
 
@@ -962,11 +965,17 @@ export interface InvoiceLineItemFields extends LineItemFields {
 export type CreateInvoiceLineItemRequest = InvoiceLineItemFields;
 export type UpdateInvoiceLineItemRequest = InvoiceLineItemFields;
 
-export type CreateInvoiceAdditionalChargeRequest = LineItemFields;
-
-export interface UpdateInvoiceAdditionalChargeRequest {
+export type CreateInvoiceCardChargeRequest = {
   description?: string;
   amount?: number;
+  recipientName?: string;
+};
+
+export interface UpdateInvoiceCardChargeRequest {
+  invoiceId?: number | null;
+  description?: string;
+  amount?: number;
+  recipientName?: string;
 }
 
 export interface UpdateInvoicePaymentMadeRequest {

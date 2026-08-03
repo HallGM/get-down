@@ -6,9 +6,9 @@ import {
   useAddLineItem,
   useRemoveLineItem,
   useUpdateLineItem,
-  useAddAdditionalCharge,
-  useRemoveAdditionalCharge,
-  useUpdateAdditionalCharge,
+  useAddCardCharge,
+  useRemoveCardCharge,
+  useUpdateCardCharge,
   useAddPaymentMade,
   useRemovePaymentMade,
   useUpdatePaymentMade,
@@ -22,7 +22,7 @@ import MoneyField from "../../components/MoneyField.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import type {
   InvoiceLineItem,
-  InvoiceAdditionalCharge,
+  InvoiceCardCharge,
   InvoicePaymentMade,
 } from "@get-down/shared";
 
@@ -30,7 +30,7 @@ import type {
 
 function calcTotals(
   lineItems: InvoiceLineItem[],
-  additionalCharges: InvoiceAdditionalCharge[],
+  cardCharges: InvoiceCardCharge[],
   paymentsMade: InvoicePaymentMade[],
   discountPercent: number,
   travelCost: number,
@@ -38,12 +38,12 @@ function calcTotals(
 ) {
   const subtotal = lineItems.reduce((s, li) => s + (li.amount ?? 0), 0);
   const discountAmount = Math.round(subtotal * discountPercent / 100);
-  const chargesTotal = additionalCharges.reduce((s, c) => s + (c.amount ?? 0), 0);
+  const chargesTotal = cardCharges.reduce((s, c) => s + (c.amount ?? 0), 0);
   const total = subtotal - discountAmount + travelCost + chargesTotal;
   const totalPaid = paymentsMade.reduce((s, p) => s + (p.amount ?? 0), 0);
 
   // Deposit invoices: amount_due is 20% of the service portion (subtotal - discount + travel)
-  // plus any additional charges on this invoice, minus what's been paid.
+  // plus any card charges on this invoice, minus what's been paid.
   // Balance invoices: amount_due is the full total minus what's been paid.
   const amountDue = invoiceType === "deposit"
     ? Math.max(0, Math.round((subtotal - discountAmount + travelCost) * 0.2) + chargesTotal - totalPaid)
@@ -61,12 +61,14 @@ interface LineRowProps {
   onSave: (id: number, description: string, amount: number) => Promise<void>;
   onRemove: (id: number) => Promise<void>;
   saving: boolean;
+  confirmRemoveMessage?: string;
 }
 
-function LineRow({ id, description, amount, onSave, onRemove, saving }: LineRowProps) {
+function LineRow({ id, description, amount, onSave, onRemove, saving, confirmRemoveMessage }: LineRowProps) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ description: description ?? "", amount: amount ?? 0 });
   const [rowError, setRowError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   async function handleSave() {
     setRowError(null);
@@ -137,11 +139,31 @@ function LineRow({ id, description, amount, onSave, onRemove, saving }: LineRowP
           <button
             className="contrast outline"
             style={{ padding: "0.4em 0.75em" }}
-            onClick={() => onRemove(id)}
+            onClick={() => confirmRemoveMessage ? setConfirmingDelete(true) : onRemove(id)}
             disabled={saving}
             aria-label="Remove line"
           >✕</button>
         </div>
+        {confirmingDelete && (
+          <div style={{ marginTop: "0.5rem", padding: "0.5rem", backgroundColor: "var(--pico-color-red-500)", borderRadius: "0.25rem", color: "white" }}>
+            <p style={{ margin: "0.25rem 0", fontSize: "0.85rem" }}>{confirmRemoveMessage}</p>
+            <div style={{ display: "flex", gap: "0.25rem" }}>
+              <button
+                style={{ padding: "0.3em 0.5em", fontSize: "0.85rem" }}
+                onClick={async () => {
+                  setConfirmingDelete(false);
+                  await onRemove(id);
+                }}
+                disabled={saving}
+              >Confirm delete</button>
+              <button
+                className="secondary outline"
+                style={{ padding: "0.3em 0.5em", fontSize: "0.85rem" }}
+                onClick={() => setConfirmingDelete(false)}
+              >Cancel</button>
+            </div>
+          </div>
+        )}
       </td>
     </tr>
   );
@@ -389,9 +411,9 @@ export default function InvoiceEdit() {
   const addLineItem = useAddLineItem();
   const removeLineItem = useRemoveLineItem();
   const updateLineItem = useUpdateLineItem();
-  const addAdditionalCharge = useAddAdditionalCharge();
-  const removeAdditionalCharge = useRemoveAdditionalCharge();
-  const updateAdditionalCharge = useUpdateAdditionalCharge();
+  const addCardCharge = useAddCardCharge();
+  const removeCardCharge = useRemoveCardCharge();
+  const updateCardCharge = useUpdateCardCharge();
   const addPaymentMade = useAddPaymentMade();
   const removePaymentMade = useRemovePaymentMade();
   const updatePaymentMade = useUpdatePaymentMade();
@@ -402,18 +424,18 @@ export default function InvoiceEdit() {
   if (error || !invoice) return <main className="container"><ErrorBanner error={error ?? "Invoice not found"} /></main>;
 
   const lineItems = invoice.lineItems ?? [];
-  const additionalCharges = invoice.additionalCharges ?? [];
+  const cardCharges = invoice.cardCharges ?? [];
   const paymentsMade = invoice.paymentsMade ?? [];
 
   const { subtotal, discountAmount, total, amountDue } = calcTotals(
-    lineItems, additionalCharges, paymentsMade, header.discountPercent, header.travelCost, invoice.invoiceType
+    lineItems, cardCharges, paymentsMade, header.discountPercent, header.travelCost, invoice.invoiceType
   );
 
   // ── helper: persist updated totals to the invoice header ──────────────
 
   async function saveTotals(
     items: InvoiceLineItem[],
-    charges: InvoiceAdditionalCharge[],
+    charges: InvoiceCardCharge[],
     payments: InvoicePaymentMade[],
     discountPct: number,
     travelCostPennies: number,
@@ -447,7 +469,7 @@ export default function InvoiceEdit() {
       setHeaderError("Customer name is required");
       return;
     }
-    await saveTotals(lineItems, additionalCharges, paymentsMade, header!.discountPercent, header!.travelCost, header!);
+    await saveTotals(lineItems, cardCharges, paymentsMade, header!.discountPercent, header!.travelCost, header!);
   }
 
   // ── handler factory ────────────────────────────────────────────────────
@@ -464,32 +486,32 @@ export default function InvoiceEdit() {
   ) {
     async function handleAdd(description: string, amount: number) {
       const newItem = await mutators.add.mutateAsync({ invoiceId: invId, input: { description, amount } });
-      await saveTotals([...current, newItem], additionalCharges, paymentsMade, header!.discountPercent, header!.travelCost);
+      await saveTotals([...current, newItem], cardCharges, paymentsMade, header!.discountPercent, header!.travelCost);
     }
     async function handleUpdate(itemId: number, description: string, amount: number) {
       await mutators.update.mutateAsync({ invoiceId: invId, itemId, input: { description, amount } });
       const updated = current.map(li => li.id === itemId ? { ...li, description, amount } : li);
-      await saveTotals(updated, additionalCharges, paymentsMade, header!.discountPercent, header!.travelCost);
+      await saveTotals(updated, cardCharges, paymentsMade, header!.discountPercent, header!.travelCost);
     }
     async function handleRemove(itemId: number) {
       await mutators.remove.mutateAsync({ invoiceId: invId, itemId });
-      await saveTotals(current.filter(li => li.id !== itemId), additionalCharges, paymentsMade, header!.discountPercent, header!.travelCost);
+      await saveTotals(current.filter(li => li.id !== itemId), cardCharges, paymentsMade, header!.discountPercent, header!.travelCost);
     }
     return { handleAdd, handleUpdate, handleRemove };
   }
 
-  function makeChargeHandlers(current: InvoiceAdditionalCharge[]) {
+  function makeChargeHandlers(current: InvoiceCardCharge[]) {
     async function handleAdd(description: string, amount: number) {
-      const newItem = await addAdditionalCharge.mutateAsync({ invoiceId: invId, input: { description, amount } });
+      const newItem = await addCardCharge.mutateAsync({ invoiceId: invId, gigId, input: { description, amount } });
       await saveTotals(lineItems, [...current, newItem], paymentsMade, header!.discountPercent, header!.travelCost);
     }
     async function handleUpdate(chargeId: number, description: string, amount: number) {
-      await updateAdditionalCharge.mutateAsync({ invoiceId: invId, chargeId, input: { description, amount } });
+      await updateCardCharge.mutateAsync({ invoiceId: invId, chargeId, gigId, input: { description, amount } });
       const updated = current.map(c => c.id === chargeId ? { ...c, description, amount } : c);
       await saveTotals(lineItems, updated, paymentsMade, header!.discountPercent, header!.travelCost);
     }
     async function handleRemove(chargeId: number) {
-      await removeAdditionalCharge.mutateAsync({ invoiceId: invId, chargeId });
+      await removeCardCharge.mutateAsync({ invoiceId: invId, chargeId, gigId });
       await saveTotals(lineItems, current.filter(c => c.id !== chargeId), paymentsMade, header!.discountPercent, header!.travelCost);
     }
     return { handleAdd, handleUpdate, handleRemove };
@@ -498,16 +520,16 @@ export default function InvoiceEdit() {
   function makePaymentHandlers(current: InvoicePaymentMade[]) {
     async function handleAdd(description: string, date: string, amount: number) {
       const newItem = await addPaymentMade.mutateAsync({ invoiceId: invId, input: { description, date: date || undefined, amount } });
-      await saveTotals(lineItems, additionalCharges, [...current, newItem], header!.discountPercent, header!.travelCost);
+      await saveTotals(lineItems, cardCharges, [...current, newItem], header!.discountPercent, header!.travelCost);
     }
     async function handleUpdate(pmId: number, description: string, date: string, amount: number) {
       await updatePaymentMade.mutateAsync({ invoiceId: invId, paymentMadeId: pmId, input: { description, date: date || undefined, amount } });
       const updated = current.map(p => p.id === pmId ? { ...p, description, date, amount } : p);
-      await saveTotals(lineItems, additionalCharges, updated, header!.discountPercent, header!.travelCost);
+      await saveTotals(lineItems, cardCharges, updated, header!.discountPercent, header!.travelCost);
     }
     async function handleRemove(pmId: number) {
       await removePaymentMade.mutateAsync({ invoiceId: invId, paymentMadeId: pmId });
-      await saveTotals(lineItems, additionalCharges, current.filter(p => p.id !== pmId), header!.discountPercent, header!.travelCost);
+      await saveTotals(lineItems, cardCharges, current.filter(p => p.id !== pmId), header!.discountPercent, header!.travelCost);
     }
     return { handleAdd, handleUpdate, handleRemove };
   }
@@ -517,18 +539,18 @@ export default function InvoiceEdit() {
     update: updateLineItem,
     remove: removeLineItem,
   });
-  const chargeHandlers = makeChargeHandlers(additionalCharges);
+  const chargeHandlers = makeChargeHandlers(cardCharges);
   const paymentHandlers = makePaymentHandlers(paymentsMade);
 
   const mutating =
     updateInvoice.isPending ||
     addLineItem.isPending || removeLineItem.isPending || updateLineItem.isPending ||
-    addAdditionalCharge.isPending || removeAdditionalCharge.isPending || updateAdditionalCharge.isPending ||
+    addCardCharge.isPending || removeCardCharge.isPending || updateCardCharge.isPending ||
     addPaymentMade.isPending || removePaymentMade.isPending || updatePaymentMade.isPending;
 
   const anyError =
     updateInvoice.error || addLineItem.error || removeLineItem.error || updateLineItem.error ||
-    addAdditionalCharge.error || removeAdditionalCharge.error || updateAdditionalCharge.error ||
+    addCardCharge.error || removeCardCharge.error || updateCardCharge.error ||
     addPaymentMade.error || removePaymentMade.error || updatePaymentMade.error;
 
   return (
@@ -564,8 +586,8 @@ export default function InvoiceEdit() {
           {header.travelCost > 0 && (
             <><dt>Travel Cost</dt><dd><MoneyDisplay pennies={header.travelCost} /></dd></>
           )}
-          {additionalCharges.length > 0 && (
-            <><dt>Additional Charges</dt><dd><MoneyDisplay pennies={additionalCharges.reduce((s, c) => s + (c.amount ?? 0), 0)} /></dd></>
+          {cardCharges.length > 0 && (
+            <><dt>Card Charges</dt><dd><MoneyDisplay pennies={cardCharges.reduce((s, c) => s + (c.amount ?? 0), 0)} /></dd></>
           )}
           <dt>Total</dt><dd><strong><MoneyDisplay pennies={total} /></strong></dd>
           <dt>Amount Due</dt><dd><strong><MoneyDisplay pennies={amountDue} /></strong></dd>
@@ -655,9 +677,9 @@ export default function InvoiceEdit() {
         </table>
       </section>
 
-      {/* Additional charges */}
+      {/* Card charges */}
       <section>
-        <h2>Additional Charges</h2>
+        <h2>Card Charges</h2>
         <table>
           <thead>
             <tr>
@@ -667,7 +689,7 @@ export default function InvoiceEdit() {
             </tr>
           </thead>
           <tbody>
-            {additionalCharges.map(c => (
+            {cardCharges.map(c => (
               <LineRow
                 key={c.id}
                 id={c.id}
@@ -676,6 +698,7 @@ export default function InvoiceEdit() {
                 onSave={chargeHandlers.handleUpdate}
                 onRemove={chargeHandlers.handleRemove}
                 saving={mutating}
+                confirmRemoveMessage="Deleting this card charge will also delete the linked expense (including any attached document or recorded payment). Continue?"
               />
             ))}
             <AddLineRow onAdd={chargeHandlers.handleAdd} saving={mutating} />

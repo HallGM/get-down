@@ -555,7 +555,7 @@ export async function settleAllocationWithExpense(
     await feeAllocationsRepo.linkExpenseToAllocation(allocationId, expenseRow.id);
 
     // Return the assembled expense
-    return mapExpense(expenseRow, [allocationId], [], paymentAmount, undefined);
+    return mapExpense(expenseRow, [allocationId], [], paymentAmount);
    });
 }
 

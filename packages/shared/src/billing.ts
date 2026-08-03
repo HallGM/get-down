@@ -43,7 +43,7 @@ export function isRefundSubtype(subtype: string): boolean {
  * - `netReceived`     = total paid minus totalRefunded (sum of 'credit' + 'adjustment' refunds,
  *                         explicitly excluding 'write_off' refunds which only affect billing total)
  * - `balanceAmount`   = max(0, billingTotal - netReceived)
- * - `depositRequired` = 20% of service-only subtotal (additional charges are excluded
+ * - `depositRequired` = 20% of service-only subtotal (card charges are excluded
  *                         from the deposit calculation)
  * - `depositPaid`     = min(netReceived, depositRequired)
  */
@@ -54,11 +54,11 @@ export function calcBillingTotals(opts: {
   totalCredits: number;
   totalPaid: number;
   totalRefunded: number;
-  totalAdditionalCharges?: number;
+  totalCardCharges?: number;
 }) {
   const discountAmount  = Math.round(opts.subtotal * opts.discountPercent / 100);
   const serviceTotal    = opts.subtotal - discountAmount + opts.travelCost - opts.totalCredits;
-  const billingTotal    = serviceTotal + (opts.totalAdditionalCharges ?? 0);
+  const billingTotal    = serviceTotal + (opts.totalCardCharges ?? 0);
   const netReceived     = opts.totalPaid - opts.totalRefunded;
   const depositRequired = Math.round(serviceTotal * 0.20);
   return {

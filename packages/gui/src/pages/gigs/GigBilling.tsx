@@ -19,10 +19,10 @@ import {
   useLinkPayment,
   useUnlinkPayment,
   useGenerateReceipt,
-  useGigAdditionalCharges,
-  useAddAdditionalCharge,
-  useRemoveAdditionalCharge,
-  useUpdateAdditionalCharge,
+  useGigCardCharges,
+  useAddCardCharge,
+  useRemoveCardCharge,
+  useUpdateCardCharge,
 } from "../../api/hooks/useInvoices.js";
 import {
   useGigLegacyInvoices,
@@ -30,6 +30,9 @@ import {
   useUpdateLegacyInvoice,
   useDeleteLegacyInvoice,
 } from "../../api/hooks/useLegacyInvoices.js";
+import { useExpenses } from "../../api/hooks/useExpenses.js";
+import { useFeeAllocations } from "../../api/hooks/useFeeAllocations.js";
+import { useAllAttributionFees } from "../../api/hooks/useAttributionFees.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
@@ -41,6 +44,7 @@ import ModalFooter from "../../components/ModalFooter.js";
 import PaymentRefundFormFields, { type PaymentRefundFormState } from "../../components/PaymentRefundFormFields.js";
 import UnavailableMoney from "../../components/UnavailableMoney.js";
 import LegacyInvoiceModal from "../../components/LegacyInvoiceModal.js";
+import ExpenseModal from "../../components/ExpenseModal.js";
 import { useAccounts, useReceivedByAccounts } from "../../api/hooks/useAccounts.js";
 import EditPaymentModal from "../../components/EditPaymentModal.js";
 import EditRefundModal from "../../components/EditRefundModal.js";
@@ -49,7 +53,7 @@ import { formatPennies } from "../../utils/money.js";
 import { confirmedProfit } from "./gigUtils.js";
 import useEditTarget from "../../hooks/useEditTarget.js";
 import { useFileUpload } from "../../hooks/useFileUpload.js";
-import type { CreateGigLineItemRequest, UpdateGigLineItemRequest, Invoice, InvoiceAdditionalCharge, LegacyInvoice, Payment, Refund, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
+import type { CreateGigLineItemRequest, UpdateGigLineItemRequest, Invoice, InvoiceCardCharge, LegacyInvoice, Payment, Refund, UpdatePaymentRequest, UpdateRefundRequest, Expense } from "@get-down/shared";
 import { calcBillingTotals, REFUND_SUBTYPE_DEFAULT, isCreditSubtype, isRefundSubtype, effectiveLineItemsSubtotal, applyItemDiscount } from "@get-down/shared";
 
 // ---------------------------------------------------------------------------
@@ -198,46 +202,56 @@ export default function GigBilling() {
   const linkPayment = useLinkPayment();
   const unlinkPayment = useUnlinkPayment();
   const generateReceiptMutation = useGenerateReceipt();
-  const addAdditionalCharge = useAddAdditionalCharge();
-  const removeAdditionalCharge = useRemoveAdditionalCharge();
-  const updateAdditionalCharge = useUpdateAdditionalCharge();
-  const { data: additionalCharges } = useGigAdditionalCharges(gigId);
+  const addCardCharge = useAddCardCharge();
+  const removeCardCharge = useRemoveCardCharge();
+  const updateCardCharge = useUpdateCardCharge();
+  const { data: cardCharges } = useGigCardCharges(gigId);
 
-  // Legacy invoices
-  const { data: legacyInvoices } = useGigLegacyInvoices(gigId);
-  const createLegacyInvoice = useCreateLegacyInvoice();
-  const updateLegacyInvoice = useUpdateLegacyInvoice();
-  const deleteLegacyInvoice = useDeleteLegacyInvoice();
+   // Legacy invoices
+   const { data: legacyInvoices } = useGigLegacyInvoices(gigId);
+   const createLegacyInvoice = useCreateLegacyInvoice();
+   const updateLegacyInvoice = useUpdateLegacyInvoice();
+   const deleteLegacyInvoice = useDeleteLegacyInvoice();
 
-  // PDF modals
-  const creditNoteModal = usePdfModal(useCallback((id) => generateCreditNoteMutation.mutateAsync(id), [generateCreditNoteMutation]));
-  const invoicePdfModal = usePdfModal(useCallback((id) => savedPdfMutation.mutateAsync(id), [savedPdfMutation]));
-  const receiptModal    = usePdfModal(useCallback((id) => generateReceiptMutation.mutateAsync(id), [generateReceiptMutation]));
+   // Expenses (for card charge modal)
+   const { data: expenses = [] } = useExpenses();
+   const { data: allAllocations = [] } = useFeeAllocations();
+   const { data: allAttributionFees = [] } = useAllAttributionFees();
 
-  // Receipt modal also needs the invoice number for the download filename
-  const [receiptInvoiceNumber, setReceiptInvoiceNumber] = useState<string>("");
+   // PDF modals
+   const creditNoteModal = usePdfModal(useCallback((id) => generateCreditNoteMutation.mutateAsync(id), [generateCreditNoteMutation]));
+   const invoicePdfModal = usePdfModal(useCallback((id) => savedPdfMutation.mutateAsync(id), [savedPdfMutation]));
+   const receiptModal    = usePdfModal(useCallback((id) => generateReceiptMutation.mutateAsync(id), [generateReceiptMutation]));
 
-  // Billing settings inline editing
-  const [editingBilling, setEditingBilling] = useState(false);
-  const [billingForm, setBillingForm] = useState({ travelCost: 0, discountPercent: 0 });
+   // Receipt modal also needs the invoice number for the download filename
+   const [receiptInvoiceNumber, setReceiptInvoiceNumber] = useState<string>("");
 
-  // Add line item modal
-  const [showAddLineItem, setShowAddLineItem] = useState(false);
-  const [lineItemForm, setLineItemForm] = useState<CreateGigLineItemRequest>({ description: "", amount: 0, discountPercent: 0 });
+   // Billing settings inline editing
+   const [editingBilling, setEditingBilling] = useState(false);
+   const [billingForm, setBillingForm] = useState({ travelCost: 0, discountPercent: 0 });
 
-  // Edit line item modal
-  const [editLineItemId, setEditLineItemId] = useState<number | null>(null);
-  const [editLineItemForm, setEditLineItemForm] = useState<UpdateGigLineItemRequest>({ description: "", amount: 0, discountPercent: 0 });
+   // Add line item modal
+   const [showAddLineItem, setShowAddLineItem] = useState(false);
+   const [lineItemForm, setLineItemForm] = useState<CreateGigLineItemRequest>({ description: "", amount: 0, discountPercent: 0 });
 
-  // Additional charge modals
-  const [showAddCharge, setShowAddCharge] = useState(false);
-  const [addChargeForm, setAddChargeForm] = useState<{ invoiceId: number | null; description: string; amount: number }>({ invoiceId: null, description: "", amount: 0 });
-  const [editChargeId, setEditChargeId] = useState<number | null>(null);
-  const [editChargeForm, setEditChargeForm] = useState<{ description?: string; amount?: number }>({ description: "", amount: 0 });
+   // Edit line item modal
+   const [editLineItemId, setEditLineItemId] = useState<number | null>(null);
+   const [editLineItemForm, setEditLineItemForm] = useState<UpdateGigLineItemRequest>({ description: "", amount: 0, discountPercent: 0 });
 
-  const { data: accounts = [] } = useAccounts();
-  const { data: receivedByAccounts = [] } = useReceivedByAccounts();
-  const accountNameById = new Map(accounts.map((a) => [a.id, a.personName]));
+   // Card charge modal with ExpenseModal
+   const [showChargeModal, setShowChargeModal] = useState(false);
+   const [chargeModalInvoiceId, setChargeModalInvoiceId] = useState<number | null>(null);
+   const [chargeModalChargeId, setChargeModalChargeId] = useState<number | null>(null);
+   const chargeModalExpense = chargeModalChargeId && cardCharges
+     ? (() => {
+       const charge = cardCharges.find(c => c.id === chargeModalChargeId);
+       return charge?.expenseId ? expenses.find(e => e.id === charge.expenseId) : null;
+     })()
+     : null;
+
+   const { data: accounts = [] } = useAccounts();
+   const { data: receivedByAccounts = [] } = useReceivedByAccounts();
+   const accountNameById = new Map(accounts.map((a) => [a.id, a.personName]));
 
   // Add payment / refund modals
   const [showAddPayment, setShowAddPayment] = useState(false);
@@ -263,6 +277,9 @@ export default function GigBilling() {
 
   // Delete invoice confirm
   const [deleteInvoiceTarget, setDeleteInvoiceTarget] = useState<{ id: number } | null>(null);
+
+  // Delete card charge confirm
+  const [deleteCardChargeTarget, setDeleteCardChargeTarget] = useState<{ id: number; description?: string } | null>(null);
 
   // Legacy invoices
   const [editLegacyInvoiceTarget, setEditLegacyInvoiceTarget] = useState<LegacyInvoice | null>(null);
@@ -299,7 +316,7 @@ export default function GigBilling() {
     totalCredits,
     totalPaid,
     totalRefunded,
-    totalAdditionalCharges: gig.totalAdditionalCharges ?? 0,
+    totalCardCharges: gig.totalCardCharges ?? 0,
   });
 
   function startEditBilling() {
@@ -403,52 +420,45 @@ export default function GigBilling() {
     }
   }
 
-  async function handleLinkPayment(paymentId: number) {
-    if (!linkPaymentTarget) return;
-    await linkPayment.mutateAsync({ invoiceId: linkPaymentTarget.id, paymentId, gigId });
+  async function handleDeleteCardCharge() {
+    if (!deleteCardChargeTarget) return;
+    const chargeData = cardCharges?.find(c => c.id === deleteCardChargeTarget.id);
+    if (!chargeData) return;
+    try {
+      await removeCardCharge.mutateAsync({ invoiceId: chargeData.invoiceId, chargeId: deleteCardChargeTarget.id, gigId });
+    } finally {
+      setDeleteCardChargeTarget(null);
+    }
   }
 
-  async function handleUnlinkPayment(invoiceId: number, paymentId: number) {
-    await unlinkPayment.mutateAsync({ invoiceId, paymentId, gigId });
-  }
+   async function handleLinkPayment(paymentId: number) {
+     if (!linkPaymentTarget) return;
+     await linkPayment.mutateAsync({ invoiceId: linkPaymentTarget.id, paymentId, gigId });
+   }
 
-  async function handleAddCharge(e: React.FormEvent) {
-    e.preventDefault();
-    if (addChargeForm.invoiceId === null) return;
-    await addAdditionalCharge.mutateAsync({
-      invoiceId: addChargeForm.invoiceId,
-      gigId,
-      input: { description: addChargeForm.description, amount: addChargeForm.amount },
-    });
-    setShowAddCharge(false);
-    setAddChargeForm({ invoiceId: null, description: "", amount: 0 });
-  }
+   async function handleUnlinkPayment(invoiceId: number, paymentId: number) {
+     await unlinkPayment.mutateAsync({ invoiceId, paymentId, gigId });
+   }
 
-  function openEditCharge(charge: InvoiceAdditionalCharge) {
-    setEditChargeId(charge.id);
-    setEditChargeForm({ description: charge.description ?? "", amount: charge.amount ?? 0 });
-  }
+    function openAddChargeModal(invoiceId?: number | null) {
+      setChargeModalInvoiceId(invoiceId ?? null);
+      setChargeModalChargeId(null);
+      setShowChargeModal(true);
+    }
 
-  function closeEditCharge() {
-    setEditChargeId(null);
-    setEditChargeForm({ description: "", amount: 0 });
-  }
+   function openEditChargeModal(charge: InvoiceCardCharge) {
+     setChargeModalInvoiceId(charge.invoiceId);
+     setChargeModalChargeId(charge.id);
+     setShowChargeModal(true);
+   }
 
-  async function handleEditCharge(e: React.FormEvent) {
-    e.preventDefault();
-    if (editChargeId === null) return;
-    const charge = additionalCharges?.find(c => c.id === editChargeId);
-    if (!charge) return;
-    await updateAdditionalCharge.mutateAsync({
-      invoiceId: charge.invoiceId,
-      chargeId: editChargeId,
-      gigId,
-      input: { description: editChargeForm.description, amount: editChargeForm.amount },
-    });
-    closeEditCharge();
-  }
+   function closeChargeModal() {
+     setChargeModalInvoiceId(null);
+     setChargeModalChargeId(null);
+     setShowChargeModal(false);
+   }
 
-  // Legacy invoices
+   // Legacy invoices
   async function handleAddLegacyInvoice(e: React.FormEvent) {
     e.preventDefault();
     if (!legacyInvoiceFileUpload.file) return;
@@ -492,7 +502,7 @@ export default function GigBilling() {
           {gig.discountPercent > 0 && <><dt>Overall discount ({gig.discountPercent}%)</dt><dd>−<MoneyDisplay pennies={discountAmount} /></dd></>}
           {gig.travelCost > 0 && <><dt>Travel Cost</dt><dd><MoneyDisplay pennies={gig.travelCost} /></dd></>}
           {totalCredits > 0 && <><dt>Credits applied</dt><dd>−<MoneyDisplay pennies={totalCredits} /></dd></>}
-          {(gig.totalAdditionalCharges ?? 0) > 0 && <><dt>Surcharges</dt><dd><MoneyDisplay pennies={gig.totalAdditionalCharges!} /></dd></>}
+          {(gig.totalCardCharges ?? 0) > 0 && <><dt>Surcharges</dt><dd><MoneyDisplay pennies={gig.totalCardCharges!} /></dd></>}
           <dt>Billing Total</dt><dd><strong><MoneyDisplay pennies={billingTotal} /></strong></dd>
           <dt>Total Paid</dt><dd><MoneyDisplay pennies={totalPaid} /></dd>
           {totalRefunded > 0 && <><dt>Total Refunded</dt><dd>−<MoneyDisplay pennies={totalRefunded} /></dd></>}
@@ -713,48 +723,46 @@ export default function GigBilling() {
         ) : <p style={{ color: "var(--pico-muted-color)" }}>No refunds recorded.</p>}
       </section>
 
-      {/* Additional Charges */}
-      <section>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2>Additional Charges</h2>
-          <button
-            className="secondary"
-            onClick={() => setShowAddCharge(true)}
-            disabled={!invoices?.length}
-            title={!invoices?.length ? "Create an invoice first" : undefined}
-          >+ Add</button>
-        </div>
-        {additionalCharges && additionalCharges.length > 0 ? (
-          <table>
-            <thead><tr><th>Invoice</th><th>Description</th><th>Amount</th><th aria-label="Actions"></th></tr></thead>
-            <tbody>
-              {additionalCharges.map((c) => (
-                <tr key={c.id}>
-                  <td>{c.invoiceNumber ?? "—"}</td>
-                  <td>{c.description ?? "—"}</td>
-                  <td><MoneyDisplay pennies={c.amount ?? 0} /></td>
-                  <td>
-                    <div style={{ display: "flex", gap: "0.25rem" }}>
-                      <button
-                        className="secondary outline"
-                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
-                        aria-label={`Edit charge: ${c.description ?? "untitled"}`}
-                        onClick={() => openEditCharge(c)}
-                      >✏️</button>
-                      <button
-                        className="contrast outline"
-                        style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
-                        aria-label={`Remove charge: ${c.description ?? "untitled"}`}
-                        onClick={() => removeAdditionalCharge.mutate({ invoiceId: c.invoiceId, chargeId: c.id, gigId })}
-                      >✕</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : <p style={{ color: "var(--pico-muted-color)" }}>No additional charges. Add a surcharge, processing fee, or other item.</p>}
-      </section>
+       {/* Card Charges */}
+       <section>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2>Card Charges</h2>
+            <button
+              className="secondary"
+              onClick={() => openAddChargeModal(null)}
+            >+ Add</button>
+          </div>
+         {cardCharges && cardCharges.length > 0 ? (
+           <table>
+             <thead><tr><th>Invoice</th><th>Description</th><th>Amount</th><th aria-label="Actions"></th></tr></thead>
+             <tbody>
+               {cardCharges.map((c) => (
+                 <tr key={c.id}>
+                   <td>{c.invoiceNumber ?? "—"}</td>
+                   <td>{c.description ?? "—"}</td>
+                   <td><MoneyDisplay pennies={c.amount ?? 0} /></td>
+                   <td>
+                     <div style={{ display: "flex", gap: "0.25rem" }}>
+                       <button
+                         className="secondary outline"
+                         style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                         aria-label={`Edit charge: ${c.description ?? "untitled"}`}
+                         onClick={() => openEditChargeModal(c)}
+                       >✏️</button>
+                       <button
+                         className="contrast outline"
+                         style={{ padding: "0.5em 0.75em", minWidth: "2.75rem", minHeight: "2.75rem" }}
+                         aria-label={`Remove charge: ${c.description ?? "untitled"}`}
+                         onClick={() => setDeleteCardChargeTarget({ id: c.id, description: c.description })}
+                       >✕</button>
+                     </div>
+                   </td>
+                 </tr>
+               ))}
+             </tbody>
+           </table>
+         ) : <p style={{ color: "var(--pico-muted-color)" }}>No card charges. Add a surcharge, processing fee, or other item.</p>}
+       </section>
 
       {/* Invoices */}
       <section>
@@ -1075,85 +1083,66 @@ export default function GigBilling() {
             src={receiptModal.url}
             title="Receipt PDF"
             style={{ width: "100%", height: "70vh", border: "none", display: "block" }}
-          />
-        )}
-        <ModalFooter>
-          <button className="secondary" onClick={receiptModal.close}>Close</button>
-          {receiptModal.url && (
-            <a href={receiptModal.url} download={`receipt-${receiptInvoiceNumber}.pdf`}>Download PDF</a>
-          )}
-        </ModalFooter>
-      </Modal>
+           />
+         )}
+         <ModalFooter>
+           <button className="secondary" onClick={receiptModal.close}>Close</button>
+           {receiptModal.url && (
+             <a href={receiptModal.url} download={`receipt-${receiptInvoiceNumber}.pdf`}>Download PDF</a>
+           )}
+         </ModalFooter>
+       </Modal>
 
-      {/* Add Additional Charge Modal */}
-      <Modal open={showAddCharge} onClose={() => setShowAddCharge(false)} title="Add Additional Charge">
-        <form onSubmit={handleAddCharge}>
-          <FormField label="Description" value={addChargeForm.description} onChange={(e) => setAddChargeForm(f => ({ ...f, description: e.target.value }))} required placeholder="e.g. Card processing fee" />
-          <MoneyField label="Amount" value={addChargeForm.amount} onChange={(pennies) => setAddChargeForm(f => ({ ...f, amount: pennies ?? 0 }))} required min={0} />
-          <FormField label="Invoice" as="select" value={addChargeForm.invoiceId ?? ""} onChange={(e) => setAddChargeForm(f => ({ ...f, invoiceId: Number(e.target.value) }))} required>
-            <option value="">Select invoice...</option>
-            {invoices?.map(inv => (
-              <option key={inv.id} value={inv.id}>{inv.invoiceNumber}</option>
-            ))}
-          </FormField>
-          {addAdditionalCharge.error && <ErrorBanner error={addAdditionalCharge.error.message} />}
-          <ModalFooter>
-            <button type="button" className="secondary" onClick={() => setShowAddCharge(false)}>Cancel</button>
-            <button type="submit" aria-busy={addAdditionalCharge.isPending} disabled={addAdditionalCharge.isPending || addChargeForm.invoiceId === null}>Add</button>
-          </ModalFooter>
-        </form>
-      </Modal>
+       {/* Card Charge Modal (using ExpenseModal) */}
+       <ExpenseModal
+         expense={showChargeModal && chargeModalChargeId ? chargeModalExpense : null}
+         onClose={closeChargeModal}
+         allAllocations={allAllocations}
+         allAttributionFees={allAttributionFees}
+         cardChargeContext={showChargeModal ? {
+           invoiceId: chargeModalInvoiceId,
+           gigId,
+           chargeId: chargeModalChargeId ?? undefined,
+         } : undefined}
+       />
 
-      {/* Edit Additional Charge Modal */}
-      <LineItemFormModal
-        open={editChargeId !== null}
-        title="Edit Additional Charge"
-        submitLabel="Save"
-        form={editChargeForm}
-        onChange={(f) => setEditChargeForm(f)}
-        onSubmit={handleEditCharge}
-        onClose={closeEditCharge}
-        isPending={updateAdditionalCharge.isPending}
-        error={updateAdditionalCharge.error}
-      />
-
-      {/* Link Payment Modal */}
-      <Modal
-        open={!!linkPaymentTarget}
-        onClose={() => setLinkPaymentTarget(null)}
-        title={`Link Payment to Invoice ${linkPaymentTarget?.invoiceNumber ?? ""}`}
-      >
-        {linkPayment.error && <ErrorBanner error={linkPayment.error instanceof Error ? linkPayment.error.message : "Failed to link payment"} />}
-        {unlinkedPayments.length === 0 ? (
-          <p style={{ color: "var(--pico-muted-color)" }}>No unlinked payments available for this gig.</p>
-        ) : (
-          <table>
-            <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Description</th><th aria-label="Actions"></th></tr></thead>
-            <tbody>
-              {unlinkedPayments.map(p => (
-                <tr key={p.id}>
-                  <td>{formatDate(p.date)}</td>
-                  <td><MoneyDisplay pennies={p.amount} /></td>
-                  <td>{p.method ?? "—"}</td>
-                  <td>{p.description ?? "—"}</td>
-                  <td>
-                    <button
-                      className="secondary outline"
-                      style={{ padding: "0.5em 0.75em" }}
-                      onClick={() => handleLinkPayment(p.id)}
-                      disabled={linkPayment.isPending}
-                      aria-busy={linkPayment.isPending}
-                    >Link</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <footer style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
-          <button className="secondary" onClick={() => setLinkPaymentTarget(null)}>Close</button>
-        </footer>
-      </Modal>
+       {/* Link Payment Modal */}
+       <Modal
+         open={!!linkPaymentTarget}
+         onClose={() => setLinkPaymentTarget(null)}
+         title={`Link Payment to Invoice ${linkPaymentTarget?.invoiceNumber ?? ""}`}
+       >
+         {linkPayment.error && <ErrorBanner error={linkPayment.error instanceof Error ? linkPayment.error.message : "Failed to link payment"} />}
+         {unlinkedPayments.length === 0 ? (
+           <p style={{ color: "var(--pico-muted-color)" }}>No unlinked payments available for this gig.</p>
+         ) : (
+           <table>
+             <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Description</th><th aria-label="Actions"></th></tr></thead>
+             <tbody>
+               {unlinkedPayments.map(p => (
+                 <tr key={p.id}>
+                   <td>{formatDate(p.date)}</td>
+                   <td><MoneyDisplay pennies={p.amount} /></td>
+                   <td>{p.method ?? "—"}</td>
+                   <td>{p.description ?? "—"}</td>
+                   <td>
+                     <button
+                       className="secondary outline"
+                       style={{ padding: "0.5em 0.75em" }}
+                       onClick={() => handleLinkPayment(p.id)}
+                       disabled={linkPayment.isPending}
+                       aria-busy={linkPayment.isPending}
+                     >Link</button>
+                   </td>
+                 </tr>
+               ))}
+             </tbody>
+           </table>
+         )}
+         <footer style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+           <button className="secondary" onClick={() => setLinkPaymentTarget(null)}>Close</button>
+         </footer>
+       </Modal>
 
       <ConfirmDelete
         open={!!deleteInvoiceTarget}
@@ -1161,6 +1150,15 @@ export default function GigBilling() {
         onConfirm={handleDeleteInvoice}
         onCancel={() => setDeleteInvoiceTarget(null)}
         loading={deleteInvoice.isPending}
+      />
+
+      <ConfirmDelete
+        open={!!deleteCardChargeTarget}
+        itemName={`this card charge${deleteCardChargeTarget?.description ? ` (${deleteCardChargeTarget.description})` : ""}`}
+        warning="This will also delete the linked expense, including any attached document or recorded payment."
+        onConfirm={handleDeleteCardCharge}
+        onCancel={() => setDeleteCardChargeTarget(null)}
+        loading={removeCardCharge.isPending}
       />
 
       <EditPaymentModal

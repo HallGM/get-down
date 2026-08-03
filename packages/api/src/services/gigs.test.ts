@@ -12,7 +12,7 @@ describe("calcBillingTotals", () => {
     const totalCredits = 20; // credit (goodwill cash, reduces billing total)
     const totalPaid = 50;
     const totalRefunded = 20; // same £20 comes out of net received
-    const totalAdditionalCharges = 0;
+    const totalCardCharges = 0;
 
     const result = calcBillingTotals({
       subtotal,
@@ -21,7 +21,7 @@ describe("calcBillingTotals", () => {
       totalCredits,
       totalPaid,
       totalRefunded,
-      totalAdditionalCharges,
+      totalCardCharges,
     });
 
     expect(result.billingTotal).toBe(80); // £100 - £20 credit
@@ -39,7 +39,7 @@ describe("calcBillingTotals", () => {
     const totalCredits = 0; // no price reductions
     const totalPaid = 130;
     const totalRefunded = 30; // adjustment (refund for overpayment, reduces net received only)
-    const totalAdditionalCharges = 0;
+    const totalCardCharges = 0;
 
     const result = calcBillingTotals({
       subtotal,
@@ -48,7 +48,7 @@ describe("calcBillingTotals", () => {
       totalCredits,
       totalPaid,
       totalRefunded,
-      totalAdditionalCharges,
+      totalCardCharges,
     });
 
     expect(result.billingTotal).toBe(100); // unchanged
@@ -68,7 +68,7 @@ describe("calcBillingTotals", () => {
     const totalCredits = 50; // credit (goodwill)
     const totalPaid = 1200;
     const totalRefunded = 150; // £50 credit + £100 adjustment
-    const totalAdditionalCharges = 0;
+    const totalCardCharges = 0;
 
     const result = calcBillingTotals({
       subtotal,
@@ -77,7 +77,7 @@ describe("calcBillingTotals", () => {
       totalCredits,
       totalPaid,
       totalRefunded,
-      totalAdditionalCharges,
+      totalCardCharges,
     });
 
     expect(result.billingTotal).toBe(950); // £1000 - £50 credit
@@ -94,7 +94,7 @@ describe("calcBillingTotals", () => {
     const totalCredits = 15; // two write-offs: £5 + £10
     const totalPaid = 1000;
     const totalRefunded = 0; // no cash refunds
-    const totalAdditionalCharges = 0;
+    const totalCardCharges = 0;
 
     const result = calcBillingTotals({
       subtotal,
@@ -103,7 +103,7 @@ describe("calcBillingTotals", () => {
       totalCredits,
       totalPaid,
       totalRefunded,
-      totalAdditionalCharges,
+      totalCardCharges,
     });
 
     expect(result.billingTotal).toBe(985); // £1000 - £15 write-off
