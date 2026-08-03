@@ -72,17 +72,6 @@ export async function createPersonInvoice(body: unknown): Promise<PersonInvoice>
     await requireGig(input.gigId);
   }
 
-  assertPersonHasInvoiceDetails(
-    {
-      addressLine1: person.address_line_1,
-      phone: person.phone,
-      email: person.email,
-      accountNumber: person.account_number,
-      sortCode: person.sort_code,
-    },
-    resolvePersonRowName(person)
-  );
-
   return createPersonInvoiceWithDetails(input.personId, input.lineItems, input.date, person, input.gigId);
 }
 
@@ -105,17 +94,6 @@ export async function createPersonInvoiceFromAllocationLineItems(
   const person = await peopleRepo.readPersonById(personId);
   if (!person) throw new NotFoundError("Person not found");
 
-  assertPersonHasInvoiceDetails(
-    {
-      addressLine1: person.address_line_1,
-      phone: person.phone,
-      email: person.email,
-      accountNumber: person.account_number,
-      sortCode: person.sort_code,
-    },
-    resolvePersonRowName(person)
-  );
-
   // Use today's date
   const date = todayDate();
 
@@ -126,9 +104,8 @@ export async function createPersonInvoiceFromAllocationLineItems(
 
 /**
  * Verify a person has the details required to generate an invoice PDF for them
- * (address, phone, email, account number, sort code). Used both when creating a
- * person invoice and when generating its PDF, so staff get a clear error as early
- * as possible rather than discovering the gap only at PDF-generation time.
+ * (address, phone, email, account number, sort code). Only called when generating
+ * the PDF, so staff get a clear error if required details are missing.
  */
 function assertPersonHasInvoiceDetails(person: {
   addressLine1?: string | null;
