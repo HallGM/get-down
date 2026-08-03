@@ -17,6 +17,23 @@ export function formatGigName(row: GigDisplayFields): string {
 }
 
 /**
+ * Format a date string (ISO or otherwise) for user-friendly display.
+ * e.g. "2025-06-14" → "14 June 2025"
+ */
+export function formatGigDate(dateValue: string | Date | null | undefined): string {
+  if (!dateValue) return "";
+  
+  const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+  if (isNaN(date.getTime())) return String(dateValue);
+  
+  const day = date.getDate();
+  const month = date.toLocaleString("en-GB", { month: "long" });
+  const year = date.getFullYear();
+  
+  return `${day} ${month} ${year}`;
+}
+
+/**
  * Verify a gig exists by ID, throw NotFoundError if not found.
  * Useful for defense-in-depth validation when a gigId is provided.
  */

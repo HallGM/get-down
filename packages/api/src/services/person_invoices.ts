@@ -14,7 +14,7 @@ import { parseOrBadRequest } from "../utils/parse.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { toDateString, todayDate } from "../utils/date.js";
 import { resolvePersonRowName } from "../utils/person.js";
-import { formatGigName, requireGig } from "../utils/gig.js";
+import { formatGigName, formatGigDate, requireGig } from "../utils/gig.js";
 
 const CreatePersonInvoiceSchema = z.object({
   personId: z.number().int(),
@@ -368,7 +368,7 @@ export async function buildFlaskPayloadForPersonInvoice(invoiceId: number): Prom
     const gig = await gigsRepo.readGigById(invoice.gigId);
     if (gig) {
       const gigName = formatGigName(gig);
-      const gigDate = toDateString(gig.date) ?? gig.date;
+      const gigDate = formatGigDate(gig.date);
       const gigVenue = gig.venue_name ?? gig.location ?? "";
       
       payload.gig_name = gigName;
