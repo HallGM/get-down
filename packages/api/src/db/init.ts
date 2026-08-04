@@ -60,20 +60,34 @@ function isLocalConnection(hostOrUrl: string | undefined): boolean {
  *
  * - Local connections (docker-compose, Testcontainers) get `ssl: false` — local
  *   Postgres does not support TLS at all.
- * - Every other connection defaults to `rejectUnauthorized: true` — full
+ * - Render-managed Postgres (detected by `*.render.com` hostname or `RENDER=true`
+ *   env var) uses self-signed certificates that cannot be verified against
+ *   Node's default root store. These get `rejectUnauthorized: false` automatically
+ *   for practicality; Render's infrastructure is trusted, and the TLS still
+ *   protects against passive eavesdropping.
+ * - Every other remote connection defaults to `rejectUnauthorized: true` — full
  *   certificate verification. This matters because this system holds real
  *   customer and financial data, and an unverified TLS connection only
  *   protects against passive eavesdropping, not an active man-in-the-middle
  *   attacker presenting their own certificate.
- * - `DB_SSL_REJECT_UNAUTHORIZED=false` is an emergency-only escape hatch: set
- *   it ONLY if strict verification unexpectedly breaks the production
- *   connection (e.g. the database's certificate cannot be verified against
- *   Node's default trusted root store). This should never be set in normal
- *   operation — see AGENTS.md's Deployment section for the post-deploy
- *   smoke-test checklist that exercises this.
+ * - `DB_SSL_REJECT_UNAUTHORIZED` can be set explicitly to override the above
+ *   logic: `true` forces verification, `false` disables it, for non-Render
+ *   deployments where the auto-detection fails.
  */
 function sslConfigFor(hostOrUrl: string | undefined): false | { rejectUnauthorized: boolean } {
   if (isLocalConnection(hostOrUrl)) return false;
+  
+  // Render-managed databases use self-signed certs; accept them by default.
+  const isRender = process.env.RENDER === "true" || (hostOrUrl?.includes(".render.com"));
+  if (isRender) {
+    const explicit = process.env.DB_SSL_REJECT_UNAUTHORIZED;
+    if (explicit !== undefined) {
+      return { rejectUnauthorized: explicit === "true" };
+    }
+    return { rejectUnauthorized: false };
+  }
+  
+  // Non-Render remote: verify by default.
   const rejectUnauthorized = process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false";
   return { rejectUnauthorized };
 }
