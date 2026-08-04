@@ -131,12 +131,12 @@ and every other file must import from there.
 
 `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `PORT`, `FRONTEND_URL`, `JWT_SECRET`, `SKIP_MIGRATION`, `DB_SSL_REJECT_UNAUTHORIZED`
 
-`DB_SSL_REJECT_UNAUTHORIZED` is an **emergency-only escape hatch**, not a normal
-configuration option. Every non-local database connection uses TLS with full
-certificate verification by default; setting this to the exact string
-`"false"` disables that verification. Only do this if strict verification
-unexpectedly breaks the production database connection — see the smoke-test
-checklist under Deployment below.
+**TLS behavior** — determined by `src/db/init.ts`:
+- **Local connections** (localhost, 127.0.0.1, ::1, host.docker.internal, docker-compose): `ssl: false`
+- **Render-managed Postgres** (detected by `*.render.com` hostname or `RENDER=true` env): `rejectUnauthorized: false` (Render uses self-signed certs)
+- **Other remote connections**: `rejectUnauthorized: true` (full certificate verification)
+
+`DB_SSL_REJECT_UNAUTHORIZED` can override the above: set to `"true"` to force verification, or `"false"` to disable it. Use this only if auto-detection fails or you need to test different settings.
 
 ## Deployment
 
@@ -144,14 +144,13 @@ checklist under Deployment below.
 
 Production connects to Postgres via the discrete `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME`
 variables (wired from the Render-managed database in `render.yaml`), not `DATABASE_URL`.
-Both connection paths in `packages/api/src/db/init.ts` use verified TLS (`rejectUnauthorized: true`)
-for any non-local host.
+TLS configuration is automatic: Render-managed Postgres uses self-signed certificates, so the API connects with `rejectUnauthorized: false` for that platform (detected via `*.render.com` hostname). For other remote databases, strict certificate verification (`rejectUnauthorized: true`) is the default.
 
-**After deploying any change to the database connection or TLS configuration:**
+**After deploying:**
 
-1. Watch the deploy logs for a successful startup — a failed TLS handshake will show up immediately as a connection error on startup (migrations will not run).
+1. Watch the deploy logs for a successful startup. TLS connection issues will show up immediately as errors during migrations.
 2. Hit a lightweight authenticated endpoint (e.g. log in, or load the Accounting summary) and confirm it returns data rather than a 500.
-3. If the connection fails and the cause looks like certificate verification (not credentials, network, or something else), set `DB_SSL_REJECT_UNAUTHORIZED=false` in the Render dashboard as an immediate unblock — no redeploy required, the API picks up the new env var on its next restart. Then investigate the real cause (e.g. the database's certificate may need a custom CA) before removing the override.
+3. If the TLS handshake fails for a non-Render database, set `DB_SSL_REJECT_UNAUTHORIZED=false` in the dashboard to unblock it, then investigate the root cause (custom CA cert, etc.) and re-enable verification.
 
 ## Airtable API Reference
 
