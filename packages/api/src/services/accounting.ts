@@ -13,6 +13,12 @@ type DateBounds = { start: string | null; end: string | null };
 
 // ─── Public entry point ───────────────────────────────────────────────────────
 
+/**
+ * Build the Accounting page summary for a period. See `./ACCOUNTING.md` for the
+ * plain-English definition of every figure returned here, including exactly
+ * what is settled vs predicted and whether partner fee allocations are
+ * included or excluded from each figure.
+ */
 export async function getSummary(params: SummaryParams): Promise<AccountingSummary> {
   const bounds = resolveBounds(params);
 

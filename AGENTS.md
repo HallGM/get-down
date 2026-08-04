@@ -100,18 +100,58 @@ export async function createThing(input: ...) {
 | ---------------------------------- | ------------------------------------- |
 | `pnpm dev`                         | Start everything (Docker + API + GUI) |
 | `pnpm build`                       | Build all packages                    |
-| `pnpm test`                        | Run all tests                         |
+| `pnpm test`                        | Run all unit tests                    |
+| `cd packages/api && pnpm test:unit`        | API unit tests only (fast, no DB)        |
+| `cd packages/api && pnpm test:integration` | API integration tests (Testcontainers-Postgres; requires Docker) |
 | `cd packages/api && pnpm dbml:sql` | Print SQL from DBML                   |
 | `cd packages/api && pnpm migrate`  | Run migrations standalone             |
 | `docker compose down -v`           | Stop Postgres and wipe data           |
 
+Integration tests (`*.integration.test.ts` under `packages/api/test/integration/`)
+spin up a disposable Postgres container per test file via Testcontainers, apply
+every migration, and drive real repository/service/API code against it — no
+mocking of SQL. If Docker is managed through Colima (or another non-default
+context) rather than Docker Desktop, set `DOCKER_HOST` to the active context's
+socket before running them, e.g. `docker context inspect | grep Host`.
+
+## Accounting
+
+`packages/api/src/services/ACCOUNTING.md` is the single source of truth for
+what every accounting figure means (Accounting page and per-gig profit
+views). If code and that document disagree, the document is correct — fix
+the code, or update the document deliberately with review before changing
+the code. **No calculation formula (billing total, net received, settled
+status, confirmed/predicted profit) may be duplicated across files.** Each
+lives in exactly one place — `@get-down/shared` (`billing.ts`) for the TS
+formulas shared between API and GUI, `repository/settled.ts` and
+`repository/gigs.ts` SQL fragments for the settled/predicted status queries —
+and every other file must import from there.
+
 ## Environment Variables (`packages/api/.env`)
 
-`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `PORT`, `FRONTEND_URL`, `JWT_SECRET`, `SKIP_MIGRATION`
+`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `PORT`, `FRONTEND_URL`, `JWT_SECRET`, `SKIP_MIGRATION`, `DB_SSL_REJECT_UNAUTHORIZED`
+
+`DB_SSL_REJECT_UNAUTHORIZED` is an **emergency-only escape hatch**, not a normal
+configuration option. Every non-local database connection uses TLS with full
+certificate verification by default; setting this to the exact string
+`"false"` disables that verification. Only do this if strict verification
+unexpectedly breaks the production database connection — see the smoke-test
+checklist under Deployment below.
 
 ## Deployment
 
 `render.yaml` — Render.com: managed Postgres, Node API (migrations run on startup), Vite static site, Flask invoice service.
+
+Production connects to Postgres via the discrete `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME`
+variables (wired from the Render-managed database in `render.yaml`), not `DATABASE_URL`.
+Both connection paths in `packages/api/src/db/init.ts` use verified TLS (`rejectUnauthorized: true`)
+for any non-local host.
+
+**After deploying any change to the database connection or TLS configuration:**
+
+1. Watch the deploy logs for a successful startup — a failed TLS handshake will show up immediately as a connection error on startup (migrations will not run).
+2. Hit a lightweight authenticated endpoint (e.g. log in, or load the Accounting summary) and confirm it returns data rather than a 500.
+3. If the connection fails and the cause looks like certificate verification (not credentials, network, or something else), set `DB_SSL_REJECT_UNAUTHORIZED=false` in the Render dashboard as an immediate unblock — no redeploy required, the API picks up the new env var on its next restart. Then investigate the real cause (e.g. the database's certificate may need a custom CA) before removing the override.
 
 ## Airtable API Reference
 

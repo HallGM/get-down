@@ -1,6 +1,8 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import multer from "multer";
+import { resolve } from "path";
+import { fileURLToPath } from "url";
 import { migrate } from "./scripts/migrate.js";
 import enquiries from "./controllers/enquiries.js";
 import auth from "./controllers/login.js";
@@ -31,7 +33,7 @@ import accounting from "./controllers/accounting.js";
 import dashboard from "./controllers/dashboard.js";
 import { AppError } from "./errors.js";
 
-const app = express();
+const app: express.Express = express();
 app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173" }));
 app.use(express.json());
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -98,15 +100,6 @@ function memMB(): string {
   return `rss=${mb(rss)} heap=${mb(heapUsed)}/${mb(heapTotal)} ext=${mb(external)}`;
 }
 
-process.on("unhandledRejection", (reason) => {
-  console.error(`[process] unhandledRejection | ${memMB()}`, reason);
-});
-
-process.on("uncaughtException", (err) => {
-  console.error(`[process] uncaughtException | ${memMB()}`, err);
-  process.exit(1);
-});
-
 async function start(): Promise<void> {
   console.log(`[startup] booting | ${memMB()}`);
 
@@ -138,7 +131,36 @@ async function start(): Promise<void> {
   }
 }
 
-start().catch((err) => {
-  console.error("Failed to start:", err);
-  process.exit(1);
+export default app;
+
+// Only boot the HTTP server (migrations, listen, keep-alive pings, process-level
+// crash handlers) when this file is run directly (`tsx src/app.ts` / `node dist/app.js`).
+// Importing `app` for tests (e.g. supertest against a Testcontainers Postgres instance)
+// must not trigger any of these production-only side effects.
+//
+// Checked against every argv entry (not just argv[1]) because some runners
+// (e.g. `tsx`) don't always place the script path there.
+const entryScript = resolve(fileURLToPath(import.meta.url));
+const isMain = process.argv.slice(1).some((arg) => {
+  try {
+    return resolve(arg) === entryScript;
+  } catch {
+    return false;
+  }
 });
+
+if (isMain) {
+  process.on("unhandledRejection", (reason) => {
+    console.error(`[process] unhandledRejection | ${memMB()}`, reason);
+  });
+
+  process.on("uncaughtException", (err) => {
+    console.error(`[process] uncaughtException | ${memMB()}`, err);
+    process.exit(1);
+  });
+
+  start().catch((err) => {
+    console.error("Failed to start:", err);
+    process.exit(1);
+  });
+}

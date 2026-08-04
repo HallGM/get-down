@@ -12,7 +12,7 @@ import type {
   UpdateInvoicePaymentMadeRequest,
 } from "@get-down/shared";
 import { z } from "zod";
-import { effectiveLineItemsSubtotal, applyItemDiscount } from "@get-down/shared";
+import { applyItemDiscount, calcInvoiceTotals } from "@get-down/shared";
 import * as invoicesRepo from "../repository/invoices.js";
 import * as gigsRepo from "../repository/gigs.js";
 import * as gigLineItemsRepo from "../repository/gig_line_items.js";
@@ -63,20 +63,22 @@ export async function createInvoice(input: CreateInvoiceRequest): Promise<Invoic
 
   if (!gig) throw new NotFoundError("Gig not found");
 
-  const subtotal = effectiveLineItemsSubtotal(lineItems);
-  const discountAmount = Math.round(subtotal * gig.discount_percent / 100);
-  const baseTotal = subtotal - discountAmount + gig.travel_cost;
-  const total = invoiceType === 'balance'
-    ? baseTotal + existingCardCharges
-    : baseTotal;
   const paid = Math.max(0, payments.reduce((sum, p) => sum + p.amount, 0));
-  const amountDue = invoiceType === 'deposit'
-    ? Math.max(0, Math.round(baseTotal * 0.20) - paid)
-    : Math.max(0, total - paid);
+  // Single source of truth for invoice arithmetic — see calcInvoiceTotals in
+  // @get-down/shared for the full definition (subtotal with item discounts applied,
+  // service total, deposit-vs-balance total shaping, amount due).
+  const { subtotal, discountAmount, serviceTotal, total, amountDue } = calcInvoiceTotals({
+    lineItems,
+    totalCardCharges: existingCardCharges,
+    totalPaid: paid,
+    discountPercent: gig.discount_percent,
+    travelCost: gig.travel_cost,
+    invoiceType,
+  });
 
   const PG_INT_MAX = 2_147_483_647;
   if (total > PG_INT_MAX || amountDue > PG_INT_MAX) {
-    console.error(`[createInvoice] Overflow: total=${total} amountDue=${amountDue} gigId=${gigId} invoiceType=${invoiceType} subtotal=${subtotal} discountAmount=${discountAmount} baseTotal=${baseTotal} travel=${gig.travel_cost} discountPct=${gig.discount_percent} existingCharges=${existingCardCharges} paid=${paid} lineItems=${JSON.stringify(lineItems)}`);
+    console.error(`[createInvoice] Overflow: total=${total} amountDue=${amountDue} gigId=${gigId} invoiceType=${invoiceType} subtotal=${subtotal} discountAmount=${discountAmount} serviceTotal=${serviceTotal} travel=${gig.travel_cost} discountPct=${gig.discount_percent} existingCharges=${existingCardCharges} paid=${paid} lineItems=${JSON.stringify(lineItems)}`);
     throw new BadRequestError(`Invoice total (${total}) exceeds maximum allowed value`);
   }
 
@@ -183,26 +185,9 @@ export async function addCardCharge(
   const input = parseOrBadRequest(CreateCardChargeSchema, body) as CreateInvoiceCardChargeRequest;
 
   return withTransaction(async () => {
-    // Create the linked expense first
-    const expenseRow = await expensesRepo.createExpense({
-      date: inv.date,
-      amount: input.amount ?? 0,
-      description: input.description?.trim() ?? 'Card charge',
-      category: 'Processing fees',
-      recipientName: input.recipientName?.trim(),
-    });
-
-    // Then create the card charge linked to it
-    const chargeRow = await invoicesRepo.createCardCharge(
-      inv.gig_id,
-      invoiceId,
-      input.description?.trim() ?? null,
-      input.amount ?? null,
-      expenseRow.id
-    );
-
+    const charge = await createCardChargeWithExpense(inv.gig_id, invoiceId, inv.date, input);
     await recalculateAmountDueForGig(inv.gig_id);
-    return mapCardCharge(chargeRow);
+    return charge;
   });
 }
 
@@ -232,27 +217,9 @@ export async function addCardChargeToGig(
   const input = parseOrBadRequest(CreateCardChargeSchema, body) as CreateInvoiceCardChargeRequest;
 
   return withTransaction(async () => {
-    // Create the linked expense first
-    const expenseRow = await expensesRepo.createExpense({
-      date: invoiceDate,
-      amount: input.amount ?? 0,
-      description: input.description?.trim() ?? 'Card charge',
-      category: 'Processing fees',
-      recipientName: input.recipientName?.trim(),
-    });
-
-    // Then create the card charge (optionally linked to invoice)
-    const chargeRow = await invoicesRepo.createCardCharge(
-      gigId,
-      invoiceId ?? null,
-      input.description?.trim() ?? null,
-      input.amount ?? null,
-      expenseRow.id
-    );
-
-    // Recalculate amount due for the gig
+    const charge = await createCardChargeWithExpense(gigId, invoiceId ?? null, invoiceDate!, input);
     await recalculateAmountDueForGig(invoiceGigId);
-    return mapCardCharge(chargeRow);
+    return charge;
   });
 }
 
@@ -265,17 +232,7 @@ export async function removeCardCharge(invoiceId: number, chargeId: number): Pro
     const charge = await getCardChargeOrThrow(chargeId);
     const expenseId = charge.expense_id;
 
-    // Delete the card charge
-    const deleted = await invoicesRepo.deleteCardCharge(chargeId);
-    if (!deleted) throw new NotFoundError("CardCharge not found");
-
-    // Delete the linked expense (including any attached document)
-    const expenseRow = await expensesRepo.readExpenseById(expenseId);
-    if (expenseRow?.document_key) {
-      await storage.tryDeleteFile(expenseRow.document_key);
-    }
-    await expensesRepo.deleteExpense(expenseId);
-
+    await deleteCardChargeAndExpense(chargeId, expenseId);
     await recalculateAmountDueForGig(inv.gig_id);
   });
 }
@@ -292,17 +249,7 @@ export async function removeCardChargeByGig(gigId: number, chargeId: number): Pr
 
     const expenseId = charge.expense_id;
 
-    // Delete the card charge
-    const deleted = await invoicesRepo.deleteCardCharge(chargeId);
-    if (!deleted) throw new NotFoundError("CardCharge not found");
-
-    // Delete the linked expense (including any attached document)
-    const expenseRow = await expensesRepo.readExpenseById(expenseId);
-    if (expenseRow?.document_key) {
-      await storage.tryDeleteFile(expenseRow.document_key);
-    }
-    await expensesRepo.deleteExpense(expenseId);
-
+    await deleteCardChargeAndExpense(chargeId, expenseId);
     await recalculateAmountDueForGig(gigId);
   });
 }
@@ -387,83 +334,61 @@ export async function updateCardCharge(
     );
     if (!row) throw new NotFoundError("CardCharge not found");
 
-    // Sync the linked expense from the updated card charge (amount/description
-    // mirror the charge exactly, matching its clear-on-omit semantics); other
-    // fields (date, category, airtableId) stay as they were on the expense.
-    const expenseRow = await expensesRepo.readExpenseById(expenseId);
-    if (expenseRow) {
-      await expensesRepo.updateExpense(expenseId, {
-        amount: row.amount ?? 0,
-        description: row.description ?? 'Card charge',
-        date: expenseRow.date ?? undefined,
-        category: expenseRow.category ?? undefined,
-        recipientName: input.recipientName?.trim() ?? expenseRow.recipient_name ?? undefined,
-        airtableId: expenseRow.airtable_id ?? undefined,
-      });
-    }
+    // Sync the linked expense from the updated card charge
+    await syncExpenseFromCharge(expenseId, row, input.recipientName);
 
     await recalculateAmountDueForGig(inv.gig_id);
-     return mapCardCharge(row);
-   });
- }
+    return mapCardCharge(row);
+  });
+}
 
- export async function updateCardChargeByGig(
-   gigId: number,
-   chargeId: number,
-   body: unknown
- ): Promise<InvoiceCardCharge> {
-   const gig = await gigsRepo.readGigById(gigId);
-   if (!gig) throw new NotFoundError("Gig not found");
+export async function updateCardChargeByGig(
+  gigId: number,
+  chargeId: number,
+  body: unknown
+): Promise<InvoiceCardCharge> {
+  const gig = await gigsRepo.readGigById(gigId);
+  if (!gig) throw new NotFoundError("Gig not found");
 
-   const input = parseOrBadRequest(UpdateCardChargeSchema, body) as UpdateInvoiceCardChargeRequest;
+  const input = parseOrBadRequest(UpdateCardChargeSchema, body) as UpdateInvoiceCardChargeRequest;
 
-   return withTransaction(async () => {
-     // Get the card charge
-     const charge = await getCardChargeOrThrow(chargeId);
-     if (charge.gig_id !== gigId) throw new ForbiddenError("Card charge does not belong to this gig");
+  return withTransaction(async () => {
+    // Get the card charge
+    const charge = await getCardChargeOrThrow(chargeId);
+    if (charge.gig_id !== gigId) throw new ForbiddenError("Card charge does not belong to this gig");
 
-     const oldInvoiceId = charge.invoice_id;
-     const newInvoiceId = 'invoiceId' in input ? input.invoiceId : oldInvoiceId;
-     const expenseId = charge.expense_id;
+    const oldInvoiceId = charge.invoice_id;
+    const newInvoiceId = 'invoiceId' in input ? input.invoiceId : oldInvoiceId;
+    const expenseId = charge.expense_id;
 
-     // If a new invoiceId is provided, validate it
-     if (newInvoiceId !== undefined && newInvoiceId !== oldInvoiceId) {
-       if (newInvoiceId !== null) {
-         const inv = await invoicesRepo.readInvoiceById(newInvoiceId);
-         if (!inv) throw new NotFoundError("Invoice not found");
-         if (inv.gig_id !== gigId) throw new BadRequestError("Invoice does not belong to this gig");
-       }
-     }
+    // If a new invoiceId is provided, validate it
+    if (newInvoiceId !== undefined && newInvoiceId !== oldInvoiceId) {
+      if (newInvoiceId !== null) {
+        const inv = await invoicesRepo.readInvoiceById(newInvoiceId);
+        if (!inv) throw new NotFoundError("Invoice not found");
+        if (inv.gig_id !== gigId) throw new BadRequestError("Invoice does not belong to this gig");
+      }
+    }
 
-     // Update the card charge with new invoice ID if changed
-     const row = await invoicesRepo.updateCardCharge(
-       newInvoiceId ?? null,
-       chargeId,
-       input.description?.trim() ?? null,
-       input.amount ?? null
-     );
-     if (!row) throw new NotFoundError("CardCharge not found");
+    // Update the card charge with new invoice ID if changed
+    const row = await invoicesRepo.updateCardCharge(
+      newInvoiceId ?? null,
+      chargeId,
+      input.description?.trim() ?? null,
+      input.amount ?? null
+    );
+    if (!row) throw new NotFoundError("CardCharge not found");
 
-     // Sync the linked expense
-     const expenseRow = await expensesRepo.readExpenseById(expenseId);
-     if (expenseRow) {
-       await expensesRepo.updateExpense(expenseId, {
-         amount: row.amount ?? 0,
-         description: row.description ?? 'Card charge',
-         date: expenseRow.date ?? undefined,
-         category: expenseRow.category ?? undefined,
-         recipientName: input.recipientName?.trim() ?? expenseRow.recipient_name ?? undefined,
-         airtableId: expenseRow.airtable_id ?? undefined,
-       });
-     }
+    // Sync the linked expense
+    await syncExpenseFromCharge(expenseId, row, input.recipientName);
 
-     // Recalculate for both old and new invoices if they changed
-     if (oldInvoiceId) await recalculateAmountDueForGig(gigId);
-     if (newInvoiceId && newInvoiceId !== oldInvoiceId) await recalculateAmountDueForGig(gigId);
+    // Recalculate for both old and new invoices if they changed
+    if (oldInvoiceId) await recalculateAmountDueForGig(gigId);
+    if (newInvoiceId && newInvoiceId !== oldInvoiceId) await recalculateAmountDueForGig(gigId);
 
-     return mapCardCharge(row);
-   });
- }
+    return mapCardCharge(row);
+  });
+}
 
  export async function updatePaymentMade(
   invoiceId: number,
@@ -760,6 +685,75 @@ function buildBaseFlaskPayload(invoice: {
     discount_percent: invoice.discountPercent > 0 ? invoice.discountPercent : undefined,
     travel_cost: invoice.travelCost > 0 ? invoice.travelCost / 100 : undefined,
   };
+}
+
+/**
+ * Create a card charge and its linked expense in a single atomic operation.
+ * Returns the created card charge mapped to the public API type.
+ */
+async function createCardChargeWithExpense(
+  gigId: number,
+  invoiceId: number | null,
+  chargeDate: string,
+  input: { amount?: number; description?: string | null; recipientName?: string | null }
+): Promise<InvoiceCardCharge> {
+  // Create the linked expense first
+  const expenseRow = await expensesRepo.createExpense({
+    date: chargeDate,
+    amount: input.amount ?? 0,
+    description: input.description?.trim() ?? 'Card charge',
+    category: 'Processing fees',
+    recipientName: input.recipientName?.trim(),
+  });
+
+  // Then create the card charge linked to it
+  const chargeRow = await invoicesRepo.createCardCharge(
+    gigId,
+    invoiceId,
+    input.description?.trim() ?? null,
+    input.amount ?? null,
+    expenseRow.id
+  );
+
+  return mapCardCharge(chargeRow);
+}
+
+/**
+ * Synchronize a linked expense to mirror a card charge's fields (amount, description, recipientName).
+ * Preserves other expense fields (date, category, airtableId).
+ */
+async function syncExpenseFromCharge(
+  expenseId: number,
+  chargeRow: invoicesRepo.InvoiceCardChargeRow,
+  recipientName?: string | null
+): Promise<void> {
+  const expenseRow = await expensesRepo.readExpenseById(expenseId);
+  if (!expenseRow) return;
+
+  await expensesRepo.updateExpense(expenseId, {
+    amount: chargeRow.amount ?? 0,
+    description: chargeRow.description ?? 'Card charge',
+    date: expenseRow.date ?? undefined,
+    category: expenseRow.category ?? undefined,
+    recipientName: recipientName?.trim() ?? expenseRow.recipient_name ?? undefined,
+    airtableId: expenseRow.airtable_id ?? undefined,
+  });
+}
+
+/**
+ * Delete a card charge and its linked expense (including any attached document) atomically.
+ */
+async function deleteCardChargeAndExpense(chargeId: number, expenseId: number): Promise<void> {
+  // Delete the card charge
+  const deleted = await invoicesRepo.deleteCardCharge(chargeId);
+  if (!deleted) throw new NotFoundError("CardCharge not found");
+
+  // Delete the linked expense (including any attached document)
+  const expenseRow = await expensesRepo.readExpenseById(expenseId);
+  if (expenseRow?.document_key) {
+    await storage.tryDeleteFile(expenseRow.document_key);
+  }
+  await expensesRepo.deleteExpense(expenseId);
 }
 
 async function getCardChargeOrThrow(chargeId: number): Promise<invoicesRepo.InvoiceCardChargeRow> {

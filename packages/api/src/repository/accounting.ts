@@ -1,6 +1,12 @@
 import type { ExpensesBreakdown } from "@get-down/shared";
 import { run_query } from "../db/init.js";
-import { PREDICTED_PROFIT_LATERALS, PREDICTED_PROFIT_CASE, SETTLED_CASE, SETTLED_CONDITION } from "./gigs.js";
+import {
+  PREDICTED_PROFIT_LATERALS,
+  PREDICTED_BILLING_CASE,
+  PREDICTED_FEE_ALLOC_CASE,
+  PREDICTED_PROFIT_CASE,
+} from "./gigs.js";
+import { SETTLED_CASE, SETTLED_CONDITION, NET_RECEIVED_EXPR } from "./settled.js";
 
 export interface GigCounts {
   booked: number;
@@ -71,6 +77,15 @@ export interface ExpensesBreakdownRow {
  *
  * The three values sum to settled/showcase/unlinked expenses only — not to the grand total
  * of all expenses in the period.
+ *
+ * IMPORTANT — full amount, not apportioned: every expense is counted here at its FULL
+ * amount (`e.amount`), even if it is linked (via `apportioned_amount`) to more than one gig
+ * or showcase for per-gig reporting purposes. This is intentional: the Accounting page is a
+ * business-wide total, not a per-gig figure, and the expense happened once, in full, no
+ * matter how many bookings later reference a share of it. See services/ACCOUNTING.md →
+ * "Expense apportionment on the Accounting page" for the full reasoning. In practice, an
+ * expense whose links span both settled and unsettled gigs, or span gigs and showcases, is
+ * expected to be rare — almost every expense linked to a gig is linked to exactly one gig.
  */
 export async function readExpensesBreakdown(bounds: DateBounds): Promise<ExpensesBreakdown> {
   const rows = await run_query<ExpensesBreakdownRow>({
@@ -158,6 +173,42 @@ export async function readPartnerFeeAllocations(bounds: DateBounds): Promise<Par
   });
 }
 
+// ─── Data integrity: partner allocations must never be expenses ──────────────
+
+export interface PartnerAllocationExpenseAuditRow {
+  allocation_id: number;
+  person_id: number;
+  person_name: string | null;
+  expense_id: number;
+}
+
+/**
+ * Data-integrity check: a partner's fee allocation must NEVER be linked to an
+ * expense. Partners take drawings, not business expenses (see
+ * services/ACCOUNTING.md → "Partner fee allocations are not expenses"). If
+ * this ever returns rows, a partner's allocation has been incorrectly treated
+ * as a contractor expense, which would double-count it: once as a business
+ * expense and once as a profit distribution. Any result must be investigated
+ * and corrected — this function exists purely to make that situation
+ * impossible to miss.
+ */
+export async function readPartnerAllocationDataAudit(): Promise<PartnerAllocationExpenseAuditRow[]> {
+  return run_query<PartnerAllocationExpenseAuditRow>({
+    text: `
+      SELECT
+        fa.id AS allocation_id,
+        p.id AS person_id,
+        COALESCE(p.display_name, p.first_name || COALESCE(' ' || p.last_name, '')) AS person_name,
+        fae.expense_id
+      FROM fee_allocations fa
+      JOIN people p ON p.id = fa.person_id
+      JOIN fee_allocations_expenses fae ON fae.allocation_id = fa.id
+      WHERE p.is_partner = true
+      ORDER BY fa.id;
+    `,
+  });
+}
+
 // ─── Predicted profit summary ─────────────────────────────────────────────────
 
 export interface PredictedProfitSummary {
@@ -171,12 +222,19 @@ export interface PredictedProfitSummary {
 /**
  * For all non-cancelled gigs in the period:
  *   settledNetReceived        — sum of net received for fully settled gigs.
- *   predictedBillingUnsettled — sum of predicted billing (discounted service subtotal) for
+ *   predictedBillingUnsettled — sum of predicted billing (discounted line items, PLUS
+ *                               travel cost, PLUS card charges — same shape as settled net
+ *                               received, so the two figures are directly comparable) for
  *                               non-settled gigs where the prediction is available.
  *   predictedFeeAllocUnsettled — sum of predicted role fees for those same gigs.
  *   predictedSharedProfit     — sum of (predicted billing minus role fees) for non-settled gigs
  *                               where the prediction is available.
  *   excludedCount             — count of non-settled gigs whose prediction is unavailable.
+ *
+ * Uses the same PREDICTED_BILLING_CASE / PREDICTED_FEE_ALLOC_CASE / PREDICTED_PROFIT_CASE
+ * fragments as the gigs list/detail pages, and the same NET_RECEIVED_EXPR and SETTLED_CASE
+ * as the settled-status calculation, so this summary can never silently drift from the
+ * per-gig figures shown elsewhere in the app.
  */
 export async function readPredictedProfitSummary(bounds: DateBounds): Promise<PredictedProfitSummary> {
   const rows = await run_query<{
@@ -191,41 +249,23 @@ export async function readPredictedProfitSummary(bounds: DateBounds): Promise<Pr
         SELECT
           g.id,
           g.date,
-          (COALESCE(pmt.total_paid, 0) - COALESCE(rfnd.total_refunded, 0)) AS net_received,
-          CASE
-            WHEN g.status = 'cancelled' THEN NULL
-            WHEN li.line_item_count = 0  THEN NULL
-            WHEN rls.has_null_fee       THEN NULL
-            ELSE li.line_items_subtotal::int
-          END AS predicted_billing,
-          CASE
-            WHEN g.status = 'cancelled' THEN NULL
-            WHEN li.line_item_count = 0  THEN NULL
-            WHEN rls.has_null_fee       THEN NULL
-            ELSE COALESCE(rls.role_fee_total, 0)::int
-          END AS predicted_fee_alloc,
+          ${NET_RECEIVED_EXPR} AS net_received,
+          ${PREDICTED_BILLING_CASE},
+          ${PREDICTED_FEE_ALLOC_CASE},
           ${PREDICTED_PROFIT_CASE},
           ${SETTLED_CASE}
         FROM gigs g
-        LEFT JOIN (
-          SELECT gig_id, SUM(amount) AS total_paid
-          FROM payments GROUP BY gig_id
-        ) pmt ON pmt.gig_id = g.id
-        LEFT JOIN (
-          SELECT gig_id, SUM(amount) AS total_refunded
-          FROM refunds WHERE subtype IN ('credit', 'adjustment') GROUP BY gig_id
-        ) rfnd ON rfnd.gig_id = g.id
         ${PREDICTED_PROFIT_LATERALS}
         WHERE g.status != 'cancelled'
           AND ($1::date IS NULL OR g.date >= $1)
           AND ($2::date IS NULL OR g.date <= $2)
       )
       SELECT
-        COALESCE(SUM(net_received)       FILTER (WHERE is_settled = true), 0)::bigint  AS settled_net_received,
-        COALESCE(SUM(predicted_billing)  FILTER (WHERE is_settled = false AND predicted_billing IS NOT NULL), 0)::bigint AS predicted_billing_unsettled,
+        COALESCE(SUM(net_received)        FILTER (WHERE is_settled = true), 0)::bigint  AS settled_net_received,
+        COALESCE(SUM(predicted_billing)   FILTER (WHERE is_settled = false AND predicted_billing IS NOT NULL), 0)::bigint AS predicted_billing_unsettled,
         COALESCE(SUM(predicted_fee_alloc) FILTER (WHERE is_settled = false AND predicted_fee_alloc IS NOT NULL), 0)::bigint AS predicted_fee_alloc_unsettled,
-        COALESCE(SUM(predicted_profit)   FILTER (WHERE is_settled = false AND predicted_profit IS NOT NULL), 0)::bigint AS predicted_shared_profit,
-        COALESCE(COUNT(*)                FILTER (WHERE is_settled = false AND predicted_profit IS NULL), 0)::int AS excluded_count
+        COALESCE(SUM(predicted_profit)    FILTER (WHERE is_settled = false AND predicted_profit IS NOT NULL), 0)::bigint AS predicted_shared_profit,
+        COALESCE(COUNT(*)                 FILTER (WHERE is_settled = false AND predicted_profit IS NULL), 0)::int AS excluded_count
       FROM gig_data;
     `,
     values: [bounds.start, bounds.end],

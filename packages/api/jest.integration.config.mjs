@@ -1,9 +1,9 @@
 export default {
   preset: "ts-jest",
   testEnvironment: "node",
-  testMatch: ["**/*.test.ts"],
-  testPathIgnorePatterns: ["/node_modules/", "\\.integration\\.test\\.ts$"],
+  testMatch: ["**/*.integration.test.ts"],
   extensionsToTreatAsEsm: [".ts"],
+  testTimeout: 60000,
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
     "^@get-down/shared$": "<rootDir>/../../packages/shared/dist/index.js",
@@ -16,6 +16,7 @@ export default {
         tsconfig: {
           module: "ESNext",
           paths: {},
+          rootDir: ".",
         },
       },
     ],
