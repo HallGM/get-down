@@ -25,9 +25,18 @@ import type {
   InvoiceCardCharge,
   InvoicePaymentMade,
 } from "@get-down/shared";
+import { calcInvoiceTotals } from "@get-down/shared";
 
 // ── helpers ───────────────────────────────────────────────────────────────
 
+/**
+ * Recomputes subtotal/total/amountDue from the invoice's current line items,
+ * card charges and payments. Delegates to the shared `calcInvoiceTotals` so
+ * this can never again silently drift from the API's invoice-creation logic
+ * (see @get-down/shared/billing.ts for the full definition and the two bugs
+ * this single-source-of-truth fix resolved: item-level discounts being
+ * dropped, and card charges being wrongly baked into a deposit invoice's total).
+ */
 function calcTotals(
   lineItems: InvoiceLineItem[],
   cardCharges: InvoiceCardCharge[],
@@ -36,18 +45,16 @@ function calcTotals(
   travelCost: number,
   invoiceType?: string
 ) {
-  const subtotal = lineItems.reduce((s, li) => s + (li.amount ?? 0), 0);
-  const discountAmount = Math.round(subtotal * discountPercent / 100);
-  const chargesTotal = cardCharges.reduce((s, c) => s + (c.amount ?? 0), 0);
-  const total = subtotal - discountAmount + travelCost + chargesTotal;
+  const totalCardCharges = cardCharges.reduce((s, c) => s + (c.amount ?? 0), 0);
   const totalPaid = paymentsMade.reduce((s, p) => s + (p.amount ?? 0), 0);
-
-  // Deposit invoices: amount_due is 20% of the service portion (subtotal - discount + travel)
-  // plus any card charges on this invoice, minus what's been paid.
-  // Balance invoices: amount_due is the full total minus what's been paid.
-  const amountDue = invoiceType === "deposit"
-    ? Math.max(0, Math.round((subtotal - discountAmount + travelCost) * 0.2) + chargesTotal - totalPaid)
-    : Math.max(0, total - totalPaid);
+  const { subtotal, discountAmount, total, amountDue } = calcInvoiceTotals({
+    lineItems,
+    totalCardCharges,
+    totalPaid,
+    discountPercent,
+    travelCost,
+    invoiceType: invoiceType === "deposit" ? "deposit" : "balance",
+  });
 
   return { subtotal, discountAmount, total, amountDue };
 }

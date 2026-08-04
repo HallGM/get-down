@@ -1,6 +1,9 @@
-import type { Gig } from "@get-down/shared";
+import { calcConfirmedProfit } from "@get-down/shared";
 
-/** Confirmed profit in pennies: billing total minus all fee allocation amounts. */
-export function confirmedProfit(g: Pick<Gig, "billingTotal" | "feesTotal">): number {
-  return (g.billingTotal ?? 0) - (g.feesTotal ?? 0);
-}
+/**
+ * Confirmed profit in pennies: billing total minus all fee allocation amounts.
+ * Single implementation lives in @get-down/shared, shared between the API and
+ * the GUI. See services/ACCOUNTING.md (API package) for the full definition.
+ */
+export { calcConfirmedProfit as confirmedProfit };
+

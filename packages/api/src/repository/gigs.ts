@@ -1,5 +1,6 @@
 import { run_query } from "../db/init.js";
 import { SQL_CARD_CHARGES_EXPR, SQL_PAYMENT_SUBQUERY } from "./sql-fragments.js";
+import { BILLING_TOTAL_EXPR } from "./settled.js";
 
 export interface GigRow {
   id: number;
@@ -329,21 +330,29 @@ export interface GigPredictedProfitRow {
 }
 
 /**
- * Lateral-subquery SQL fragment that computes predicted_profit for a single
- * gig aliased as `g`. Returns NULL when:
+ * Lateral-subquery SQL fragment that computes predicted billing and predicted
+ * profit for a single gig aliased as `g`. Both are NULL (unavailable) when:
  *   - the gig is cancelled
  *   - no line items exist
  *   - any role linked to those services has fee IS NULL
  *
- * Predicted profit is now based on the gig's actual line-item total (after any
- * per-item or overall discounts are applied), minus predicted role fees.
- * Travel cost is excluded (it flows directly to performers, net-zero cost).
+ * Predicted billing is deliberately the same shape as a settled gig's billing
+ * total: discounted line items, PLUS travel cost, PLUS card charges. This
+ * makes it directly comparable to (and summable with) settled net received —
+ * see services/ACCOUNTING.md → "Predicted profit (per-gig)" for the reasoning.
+ * Earlier versions of this fragment excluded travel and card charges, which
+ * understated predicted turnover relative to settled turnover; that has been
+ * corrected here.
  */
 export const PREDICTED_PROFIT_LATERALS = `
   LEFT JOIN LATERAL (
     SELECT
       COUNT(*)                                                                     AS line_item_count,
-      COALESCE(SUM(li.amount * (1.0 - GREATEST(li.discount_percent, g.discount_percent) / 100.0)), 0)::int AS line_items_subtotal
+      (
+        COALESCE(SUM(li.amount * (1.0 - GREATEST(li.discount_percent, g.discount_percent) / 100.0)), 0)::int
+        + g.travel_cost
+        + COALESCE(${SQL_CARD_CHARGES_EXPR}, 0)
+      )::int AS predicted_billing
     FROM gig_line_items li
     WHERE li.gig_id = g.id
   ) li ON true
@@ -358,7 +367,27 @@ export const PREDICTED_PROFIT_LATERALS = `
   ) rls ON true
 `;
 
-export const PREDICTED_PROFIT_CASE = `
+/**
+ * SELECT expression: predicted billing for the gig aliased `g`.
+ * Expects: aliases `li` (from PREDICTED_PROFIT_LATERALS lateral join) and `g` (gigs table).
+ * Produces: predicted_billing (total amount client will pay, including line items, travel, and card charges).
+ * See PREDICTED_PROFIT_LATERALS for the full computation and edge cases.
+ */
+export const PREDICTED_BILLING_CASE = `
+  CASE
+    WHEN g.status = 'cancelled'  THEN NULL
+    WHEN li.line_item_count = 0  THEN NULL
+    WHEN rls.has_null_fee        THEN NULL
+    ELSE li.predicted_billing
+  END AS predicted_billing
+`;
+
+/** SELECT expression: predicted fee allocation total for the gig aliased `g`.
+ * Expects: aliases `li` (from PREDICTED_PROFIT_LATERALS lateral join) and `rls` (role services lateral join).
+ * Produces: predicted_fee_alloc (total amount performer(s) will be paid in fees for this gig).
+ * See PREDICTED_PROFIT_LATERALS for the full computation and edge cases.
+ */
+export const PREDICTED_FEE_ALLOC_CASE = `
   CASE
     WHEN g.status = 'cancelled'  THEN NULL
     WHEN li.line_item_count = 0  THEN NULL
@@ -366,7 +395,21 @@ export const PREDICTED_PROFIT_CASE = `
     -- When no roles are attached, BOOL_OR over an empty set returns NULL (falsy),
     -- which falls through to here with role_fee_total = NULL → COALESCE to 0.
     -- Intentional: a service with no roles contributes £0 to role fees, not unavailable.
-    ELSE (li.line_items_subtotal - COALESCE(rls.role_fee_total, 0))::int
+    ELSE COALESCE(rls.role_fee_total, 0)::int
+  END AS predicted_fee_alloc
+`;
+
+/** SELECT expression: predicted profit (shared profit) for the gig aliased `g`.
+ * Expects: aliases `li` (from PREDICTED_PROFIT_LATERALS lateral join) and `rls` (role services lateral join).
+ * Produces: predicted_profit (predicted billing minus all predicted fees).
+ * See PREDICTED_PROFIT_LATERALS for the full computation and edge cases.
+ */
+export const PREDICTED_PROFIT_CASE = `
+  CASE
+    WHEN g.status = 'cancelled'  THEN NULL
+    WHEN li.line_item_count = 0  THEN NULL
+    WHEN rls.has_null_fee        THEN NULL
+    ELSE (li.predicted_billing - COALESCE(rls.role_fee_total, 0))::int
   END AS predicted_profit
 `;
 
@@ -424,21 +467,6 @@ export interface GigFinancialTotalsRow {
   billing_total: number;
 }
 
-/**
- * The billing total arithmetic, aliasless.
- * Assumes `li` (gig_line_items) and `g` (gigs) are in scope.
- * Applies per-item discounts (GREATEST) with overall discount to handle both discount types.
- * Single source of truth — used by both BILLING_TOTAL_SUBQUERY and SETTLED_CONDITION.
- */
-const BILLING_TOTAL_EXPR = `
-  (
-    COALESCE(SUM(li.amount * (1.0 - GREATEST(li.discount_percent, g.discount_percent) / 100.0)), 0)::int
-    + g.travel_cost
-    + COALESCE(${SQL_CARD_CHARGES_EXPR}, 0)
-    - COALESCE((SELECT SUM(r.amount) FROM refunds r WHERE r.gig_id = g.id AND r.subtype IN ('credit', 'write_off')), 0)
-  )::int
-`;
-
 const BILLING_TOTAL_SUBQUERY = `
   (
     SELECT ${BILLING_TOTAL_EXPR}
@@ -492,79 +520,18 @@ export async function readGigFinancialTotalById(id: number): Promise<GigFinancia
 }
 
 // ─── Settled status ───────────────────────────────────────────────────────────
-
-/**
- * Self-contained SQL boolean expression (no alias).
- * Requires only alias `g` on the gigs table; uses correlated subqueries only
- * (no lateral joins) so it can be embedded in any query or CTE that already
- * has a `gigs g` reference — including WHERE clauses.
- *
- * A gig is settled when ALL of:
- *   1. Has at least one line item.
- *   2. Billing total > 0 and equals net received exactly.
- *   3. Has at least one assigned role.
- *   4. Every role has a person linked (person_id IS NOT NULL).
- *   5. Every role has a fee allocation linked (fee_allocation_id IS NOT NULL).
- *   6. Every performer's fee allocation meets ONE of:
- *      a. Person is not a partner AND has at least one linked expense, OR
- *      b. Person is a partner AND fee allocation is confirmed (confirmed = true)
- */
-export const SETTLED_CONDITION = `
-  (
-    EXISTS (SELECT 1 FROM gig_line_items WHERE gig_id = g.id)
-    AND EXISTS (
-      SELECT 1
-      FROM (
-        SELECT ${BILLING_TOTAL_EXPR} AS billing_total
-        FROM gig_line_items li
-        WHERE li.gig_id = g.id
-      ) AS bt
-      WHERE bt.billing_total > 0
-        AND bt.billing_total = (
-          COALESCE((SELECT SUM(amount) FROM payments WHERE gig_id = g.id), 0)
-          - COALESCE((SELECT SUM(amount) FROM refunds WHERE gig_id = g.id AND subtype IN ('credit', 'adjustment')), 0)
-        )::int
-    )
-    AND EXISTS (SELECT 1 FROM assigned_roles WHERE gig_id = g.id)
-    AND NOT EXISTS (SELECT 1 FROM assigned_roles WHERE gig_id = g.id AND person_id IS NULL)
-    AND NOT EXISTS (SELECT 1 FROM assigned_roles WHERE gig_id = g.id AND fee_allocation_id IS NULL)
-    AND NOT EXISTS (
-      SELECT 1
-      FROM assigned_roles ar
-      JOIN fee_allocations fa ON fa.id = ar.fee_allocation_id
-      LEFT JOIN people pe ON pe.id = fa.person_id
-      WHERE ar.gig_id = g.id
-        AND NOT (
-          (COALESCE(pe.is_partner, false) = false AND EXISTS (
-            SELECT 1 FROM fee_allocations_expenses fae WHERE fae.allocation_id = ar.fee_allocation_id
-          ))
-          OR
-          (COALESCE(pe.is_partner, false) = true AND fa.confirmed = true)
-        )
-    )
-  )
-`;
-
-/** `SETTLED_CONDITION` aliased as `is_settled` for use in SELECT lists. */
-export const SETTLED_CASE = `${SETTLED_CONDITION} AS is_settled`;
-
-export interface GigSettledStatusRow {
-  gig_id: number;
-  is_settled: boolean;
-}
-
-/** Return the settled status for every gig. */
-export async function readGigSettledStatuses(): Promise<GigSettledStatusRow[]> {
-  return run_query<GigSettledStatusRow>({
-    text: `SELECT g.id AS gig_id, ${SETTLED_CASE} FROM gigs g ORDER BY g.id;`,
-  });
-}
-
-/** Return the settled status for a single gig. */
-export async function readGigSettledStatusById(id: number): Promise<boolean> {
-  const rows = await run_query<{ is_settled: boolean }>({
-    text: `SELECT ${SETTLED_CASE} FROM gigs g WHERE g.id = $1 LIMIT 1;`,
-    values: [id],
-  });
-  return rows[0]?.is_settled ?? false;
-}
+//
+// The settled condition and its billing/net-received arithmetic have moved to
+// `./settled.js` — it is the single source of truth used by both this file
+// and the Accounting repository. Re-exported here so existing imports of
+// `SETTLED_CONDITION` / `SETTLED_CASE` / the settled-status readers from
+// "./gigs.js" keep working without every call site needing to change.
+export {
+  BILLING_TOTAL_EXPR,
+  NET_RECEIVED_EXPR,
+  SETTLED_CONDITION,
+  SETTLED_CASE,
+  readGigSettledStatuses,
+  readGigSettledStatusById,
+} from "./settled.js";
+export type { GigSettledStatusRow } from "./settled.js";
