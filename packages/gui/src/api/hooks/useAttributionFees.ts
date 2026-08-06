@@ -5,10 +5,11 @@ import { useApiMutation } from "./useApiMutation.js";
 
 const KEY = "attribution-fees";
 
-export function useAllAttributionFees() {
+export function useAllAttributionFees(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [KEY],
     queryFn: () => apiFetch<AttributionFee[]>("GET", "/attribution-fees"),
+    enabled: options?.enabled !== false,
   });
 }
 

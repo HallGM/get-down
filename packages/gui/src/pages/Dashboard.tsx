@@ -1,6 +1,9 @@
 import { useState, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { useDashboardAlerts } from "../api/hooks/useDashboard.js";
+import { useExpenses } from "../api/hooks/useExpenses.js";
+import { useFeeAllocations } from "../api/hooks/useFeeAllocations.js";
+import { useAllAttributionFees } from "../api/hooks/useAttributionFees.js";
 import { useCollapsibleAllocations } from "../api/hooks/useCollapsibleAllocations.js";
 import { formatDate } from "../utils/date.js";
 import { formatPennies } from "../utils/money.js";
@@ -10,8 +13,9 @@ import LoadingState from "../components/LoadingState.js";
 import ErrorBanner from "../components/ErrorBanner.js";
 import { GigFeeAllocationCard } from "../components/GigFeeAllocationCard.js";
 import { ShowcaseFeeAllocationCard } from "../components/ShowcaseFeeAllocationCard.js";
+import ExpenseModal from "../components/ExpenseModal.js";
 import { formatGigName, formatLocation } from "../utils/people.js";
-import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert, FeeAllocationExpenseMismatchAlert, ExpenseOverApportionmentAlert } from "@get-down/shared";
+import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert, FeeAllocationExpenseMismatchAlert, ExpenseOverApportionmentAlert, UnpaidExpenseAlert } from "@get-down/shared";
 
 const PICO_RED = "var(--pico-color-red-500, #e53e3e)";
 const PICO_ORANGE = "var(--pico-color-orange-500, #dd6b20)";
@@ -19,6 +23,38 @@ const alertCellStyle: React.CSSProperties = { color: PICO_RED, fontWeight: 600 }
 
 function AllClear() {
   return <p style={{ color: "var(--pico-muted-color)" }}>None. All clear.</p>;
+}
+
+/**
+ * Reusable table component with empty state fallback.
+ * Renders empty state if rows are empty, otherwise renders a table with headers and rows.
+ */
+function TableWithEmpty<T extends { id: number }>({
+  rows,
+  headers,
+  renderRow,
+  tableStyle,
+}: {
+  rows: T[];
+  headers: string[];
+  renderRow: (row: T) => React.ReactNode;
+  tableStyle?: React.CSSProperties;
+}) {
+  if (rows.length === 0) {
+    return <AllClear />;
+  }
+  return (
+    <table style={tableStyle}>
+      <thead>
+        <tr>
+          {headers.map((h) => (
+            <th key={h}>{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>{rows.map(renderRow)}</tbody>
+    </table>
+  );
 }
 
 function DashboardSection({
@@ -317,6 +353,29 @@ function ApportionmentMismatchTable({ mismatches }: { mismatches: ExpenseApporti
   );
 }
 
+function UnpaidExpensesTable({ expenses, onEditExpense }: { expenses: UnpaidExpenseAlert[]; onEditExpense: (id: number) => void }) {
+  return (
+    <TableWithEmpty
+      rows={expenses}
+      headers={["Date", "Description", "Amount", "Paid so far"]}
+      tableStyle={{ cursor: "pointer" }}
+      renderRow={(exp) => {
+        const paidStyle: React.CSSProperties = exp.totalPaid < exp.amount
+          ? alertCellStyle
+          : { color: PICO_ORANGE, fontWeight: 600 };
+        return (
+          <tr key={exp.id} onClick={() => onEditExpense(exp.id)}>
+            <td>{exp.date ? formatDate(exp.date) : "No date"}</td>
+            <td>{exp.description}</td>
+            <td>{formatPennies(exp.amount)}</td>
+            <td style={paidStyle}>{formatPennies(exp.totalPaid)}</td>
+          </tr>
+        );
+      }}
+    />
+  );
+}
+
 function PaymentMismatchTable({ mismatches }: { mismatches: GigPaymentMismatchAlert[] }) {
   if (mismatches.length === 0) {
     return <AllClear />;
@@ -492,6 +551,15 @@ function ExpenseOverApportionmentTable({ mismatches }: { mismatches: ExpenseOver
 
 export default function Dashboard() {
   const { data, isLoading, error } = useDashboardAlerts();
+  const { data: expenses = [] } = useExpenses();
+  
+  const [editTargetId, setEditTargetId] = useState<number | null>(null);
+  const editTarget = editTargetId != null ? expenses.find((e) => e.id === editTargetId) ?? null : null;
+  
+  // Lazy-load allocations and fees only when modal is open (security: minimize sensitive data in memory)
+  // Always call hooks (Rules of Hooks) but disable fetching when modal is closed
+  const { data: allAllocations = [] } = useFeeAllocations({ enabled: editTargetId != null });
+  const { data: allAttributionFees = [] } = useAllAttributionFees({ enabled: editTargetId != null });
 
   return (
     <main className="container">
@@ -539,6 +607,15 @@ export default function Dashboard() {
             badgeColor={PICO_RED}
           >
             <PaymentMismatchTable mismatches={data.pastPaymentMismatches} />
+          </DashboardSection>
+
+          <DashboardSection
+            title="Unpaid Expenses"
+            description="Expenses where the amount paid does not match the total amount. Includes unpaid and partially paid expenses."
+            count={data.unpaidExpenses.length}
+            badgeColor={PICO_RED}
+          >
+            <UnpaidExpensesTable expenses={data.unpaidExpenses} onEditExpense={setEditTargetId} />
           </DashboardSection>
 
           <GigShowcasePairSection
@@ -638,6 +715,14 @@ export default function Dashboard() {
           </DashboardSection>
         </div>
       )}
+
+      {/* Edit Expense modal (shared component) */}
+      <ExpenseModal
+        expense={editTarget}
+        onClose={() => setEditTargetId(null)}
+        allAllocations={allAllocations}
+        allAttributionFees={allAttributionFees}
+      />
     </main>
   );
 }

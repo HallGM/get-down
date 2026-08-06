@@ -1,5 +1,6 @@
 import { run_query } from "../db/init.js";
 import { SQL_EVENT_COLS, SQL_SHOWCASE_LATERAL_JOIN, SQL_EVENT_GROUP_BY_COLS, SQL_PERSON_NAME, SQL_PAYMENT_SUBQUERY, SQL_BILLING_CTE_COLS, SQL_GIG_EVENT_NAME, SQL_SHOWCASE_EVENT_NAME, SQL_GIG_DATE_PAST, SQL_SHOWCASE_DATE_PAST } from "./sql-fragments.js";
+import * as expensePaymentsRepo from "./expense_payments.js";
 
 export interface GigAlertBaseRow {
   id: number;
@@ -84,6 +85,14 @@ export interface RoleWithoutAllocationAlertRow {
 }
 
 export type EmptyRoleAlertRow = Omit<RoleWithoutAllocationAlertRow, 'person_name'>;
+
+export interface UnpaidExpenseAlertRow {
+  id: number;
+  date: string | null;
+  description: string;
+  amount: number;
+  total_paid: number;
+}
 
 const SELECT_ALERT_COLS = `
   g.id,
@@ -495,4 +504,43 @@ export async function readAllocationsForOverApportionedExpenses(
     `,
     values: [expenseIds],
   });
+}
+
+/**
+ * All expenses where the total amount paid does not equal the expense total.
+ * This includes expenses with no payments recorded (unpaid) and expenses with
+ * partial payments recorded, as well as over-paid expenses.
+ * 
+ * Uses the centralized payment-status aggregation from expense_payments.readPaymentStatusByExpenseIds
+ * to avoid duplicating payment-sum logic across multiple repository modules.
+ */
+export async function readUnpaidExpenses(): Promise<UnpaidExpenseAlertRow[]> {
+  // Fetch all expenses (ordered by date descending)
+  const expenses = await run_query<{ id: number; date: string | null; description: string; amount: number }>({
+    text: `
+      SELECT id, date, description, amount
+      FROM expenses
+      ORDER BY date DESC NULLS LAST, id DESC;
+    `,
+  });
+
+  if (expenses.length === 0) {
+    return [];
+  }
+
+  // Get payment totals for all expenses using the centralized aggregation
+  const paymentStatus = await expensePaymentsRepo.readPaymentStatusByExpenseIds(
+    expenses.map((e) => e.id)
+  );
+
+  // Filter and map to UnpaidExpenseAlertRow: only include if amount !== total_paid
+  return expenses
+    .map((e) => ({
+      id: e.id,
+      date: e.date,
+      description: e.description,
+      amount: e.amount,
+      total_paid: paymentStatus.get(e.id)?.total_paid ?? 0,
+    }))
+    .filter((r) => r.amount !== r.total_paid);
 }
