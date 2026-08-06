@@ -1514,6 +1514,19 @@ export interface GigPaymentMismatchAlert extends GigAlertBase {
   difference: number;
 }
 
+export interface UnpaidExpenseAlert {
+  /** Expense id. */
+  id: number;
+  /** Expense date (ISO string), or undefined if no date was recorded. */
+  date?: string;
+  /** Expense description. */
+  description: string;
+  /** Expense total in pennies. */
+  amount: number;
+  /** Sum of all recorded expense payments in pennies. */
+  totalPaid: number;
+}
+
 export interface DashboardAlerts {
   /** Confirmed upcoming gigs where no payment has been received. */
   noDeposit: GigPaymentAlert[];
@@ -1523,6 +1536,8 @@ export interface DashboardAlerts {
   balanceDueSoon: GigPaymentMismatchAlert[];
   /** Confirmed past gigs with at least one line item where net received does not equal the billing total. */
   pastPaymentMismatches: GigPaymentMismatchAlert[];
+  /** Expenses where the total amount paid does not match the expense total (unpaid or partially paid). */
+  unpaidExpenses: UnpaidExpenseAlert[];
   /** Gig fee allocations with no expense record linked. */
   allocationsWithoutExpensesGigs: FeeAllocationAlert[];
   /** Showcase fee allocations with no expense record linked. */

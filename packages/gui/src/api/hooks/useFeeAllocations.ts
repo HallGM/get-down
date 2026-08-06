@@ -16,10 +16,11 @@ function invalidateLineItemCaches(qc: QueryClient, allocationId: number) {
   qc.invalidateQueries({ queryKey: ["accounts"] });
 }
 
-export function useFeeAllocations() {
+export function useFeeAllocations(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [KEY],
     queryFn: () => apiFetch<FeeAllocation[]>("GET", "/fee-allocations"),
+    enabled: options?.enabled !== false,
   });
 }
 
