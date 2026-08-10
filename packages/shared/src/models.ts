@@ -764,8 +764,10 @@ export interface Expense {
   attributionFeeIds: number[];
   /** Sum of all payment amounts in pennies (after refunds). */
   totalPaid: number;
-  /** Derived from totalPaid vs amount. */
-  paymentStatus: 'unpaid' | 'partial' | 'paid';
+  /** Derived from totalPaid vs amount; 'taxOnly' when this is a personal cost claimed for tax only. */
+  paymentStatus: 'unpaid' | 'partial' | 'paid' | 'taxOnly';
+  /** True if this is a personal cost claimed for tax purposes only, with no payment recorded and no effect on business budget. */
+  isTaxOnly: boolean;
   /** Full list of payments. Present on single-record fetch; undefined on list fetch. */
   payments?: ExpensePayment[];
   /** When present, this expense was auto-created for a person invoice (no manual document upload possible). */
@@ -781,7 +783,9 @@ export interface CreateExpenseRequest {
   category?: string;
   recipientName?: string;
   airtableId?: string;
-  /** When present, a payment is created atomically alongside the expense. */
+  /** When true, this expense is marked as a personal cost for tax purposes only, with no payment. */
+  isTaxOnly?: boolean;
+  /** When present, a payment is created atomically alongside the expense. Cannot be used if isTaxOnly is true. */
   payment?: {
     accountId: number;
     /** Signed amount in pennies. */
@@ -799,6 +803,8 @@ export interface UpdateExpenseRequest {
   category?: string;
   recipientName?: string;
   airtableId?: string;
+  /** When true, mark this expense as a personal cost for tax purposes only. Cannot be set if the expense has existing payments. */
+  isTaxOnly?: boolean;
 }
 
 export interface Payment {
@@ -1375,6 +1381,12 @@ export interface AccountingSummary {
   predictedSharedProfit: number;
   /** Count of non-cancelled unsettled gigs whose predicted profit cannot be calculated. */
   predictedProfitExcludedCount: number;
+
+  // Tax-only expenses and taxable profit
+  /** Sum of all expense amounts marked as personal costs for tax purposes only (is_tax_only = true) in the period. */
+  taxOnlyExpensesTotal: number;
+  /** Business profit adjusted for tax-only expenses: businessProfit − taxOnlyExpensesTotal. Used for tax return preparation. */
+  taxableProfit: number;
 }
 
 export function createService(id: number, name: string): Service {

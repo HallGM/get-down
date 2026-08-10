@@ -27,12 +27,14 @@ const readGigCounts = jest.fn<() => Promise<GigCounts>>();
 const readExpensesBreakdown = jest.fn<() => Promise<ExpensesBreakdown>>();
 const readPartnerFeeAllocations = jest.fn<() => Promise<PartnerAllocation[]>>();
 const readPredictedProfitSummary = jest.fn<() => Promise<PredictedSummary>>();
+const readTaxOnlyExpensesTotal = jest.fn<() => Promise<number>>();
 
 jest.unstable_mockModule("../repository/accounting.js", () => ({
   readGigCounts,
   readExpensesBreakdown,
   readPartnerFeeAllocations,
   readPredictedProfitSummary,
+  readTaxOnlyExpensesTotal,
 }));
 
 const { getSummary } = await import("./accounting.js");
@@ -47,6 +49,7 @@ describe("accounting service — getSummary", () => {
     expensesBreakdown?: ExpensesBreakdown;
     partnerAllocations?: PartnerAllocation[];
     predictedSummary?: PredictedSummary;
+    taxOnlyTotal?: number;
   }) {
     readGigCounts.mockResolvedValue(overrides.gigCounts ?? { booked: 0, performed: 0 });
     readExpensesBreakdown.mockResolvedValue(
@@ -62,6 +65,7 @@ describe("accounting service — getSummary", () => {
         excludedCount: 0,
       }
     );
+    readTaxOnlyExpensesTotal.mockResolvedValue(overrides.taxOnlyTotal ?? 0);
   }
 
   test("gig activity counts pass through unchanged", async () => {
@@ -161,5 +165,41 @@ describe("accounting service — getSummary", () => {
     await expect(getSummary({ year: 2024, taxYearStart: 2024 })).rejects.toThrow(
       "Provide either year or taxYearStart, not both"
     );
+  });
+
+  test("taxable profit is business profit minus tax-only expenses", async () => {
+    stubRepo({
+      predictedSummary: {
+        settledNetReceived: 100000,
+        predictedBillingUnsettled: 0,
+        predictedFeeAllocUnsettled: 0,
+        predictedSharedProfit: 0,
+        excludedCount: 0,
+      },
+      expensesBreakdown: { feeAllocation: 30000, showcase: 5000, other: 5000 },
+      taxOnlyTotal: 3000,
+    });
+    const result = await getSummary({});
+    expect(result.businessProfit).toBe(60000); // 100000 - 40000
+    expect(result.taxOnlyExpensesTotal).toBe(3000);
+    expect(result.taxableProfit).toBe(57000); // 60000 - 3000
+  });
+
+  test("taxable profit equals business profit when no tax-only expenses", async () => {
+    stubRepo({
+      predictedSummary: {
+        settledNetReceived: 100000,
+        predictedBillingUnsettled: 0,
+        predictedFeeAllocUnsettled: 0,
+        predictedSharedProfit: 0,
+        excludedCount: 0,
+      },
+      expensesBreakdown: { feeAllocation: 20000, showcase: 0, other: 0 },
+      taxOnlyTotal: 0,
+    });
+    const result = await getSummary({});
+    expect(result.businessProfit).toBe(80000);
+    expect(result.taxOnlyExpensesTotal).toBe(0);
+    expect(result.taxableProfit).toBe(80000);
   });
 });

@@ -141,9 +141,9 @@ at the partnership start date).
 | `gigsPerformed` | Count of non-cancelled gigs whose date falls in the period **and** is on or before today. |
 | `settledNetReceived` | Sum of `netReceived` across settled gigs in the period. Actual cash collected, proven by the settlement condition to equal billing. |
 | `predictedBillingUnsettled` | Sum of `predictedBilling` across non-cancelled, unsettled gigs in the period where a prediction is available. Uses the full amount the client is expected to pay (line items + travel + card charges), matching the shape of `settledNetReceived` so the two can be meaningfully added together. |
-| `expensesBreakdown.feeAllocation` | Sum of the **full** amount of every expense linked (via `fee_allocations_expenses`) to a fee allocation on a settled gig. Full amount, not apportioned — see "Expense apportionment" below. |
-| `expensesBreakdown.showcase` | Sum of the full amount of every expense linked to a showcase, either via a showcase fee allocation or directly via `showcase_expenses`, and not already counted in `feeAllocation`. |
-| `expensesBreakdown.other` | Sum of the full amount of every expense with no fee-allocation link and no showcase link. This also includes expenses linked only to fee allocations on **unsettled** gigs — until that gig settles, its linked expense is treated as a general business cost, not yet attributed to a specific gig's turnover. |
+| `expensesBreakdown.feeAllocation` | Sum of the **full** amount of every expense linked (via `fee_allocations_expenses`) to a fee allocation on a settled gig, **excluding tax-only expenses**. Full amount, not apportioned — see "Expense apportionment" below. |
+| `expensesBreakdown.showcase` | Sum of the full amount of every expense linked to a showcase, either via a showcase fee allocation or directly via `showcase_expenses`, and not already counted in `feeAllocation`. **Tax-only expenses are excluded.** |
+| `expensesBreakdown.other` | Sum of the full amount of every expense with no fee-allocation link and no showcase link, **excluding tax-only expenses**. This also includes expenses linked only to fee allocations on **unsettled** gigs — until that gig settles, its linked expense is treated as a general business cost, not yet attributed to a specific gig's turnover. |
 | `expenses` | `feeAllocation + showcase + other`. The total settled-period expense figure that turnover is measured against. |
 | `predictedFeeAllocations` | Sum of `predictedFees` across the same unsettled gigs used for `predictedBillingUnsettled` — the forecast cost of paying performers on bookings not yet settled. |
 | `businessProfit` | `settledNetReceived − expenses`. This is the whole-business result for the period: everything collected from clients minus everything spent, including contractor and partner-adjacent costs that show up as expenses. **Partner fee allocations are never included in `expenses`** because a partner drawing their allocated fee is not a business expense — it is a distribution of profit. See "Partner fee allocations" below. |
@@ -151,6 +151,29 @@ at the partnership start date).
 | `confirmedSharedProfit` | `businessProfit − feeAllocationsTotal`. What is left to split between partners after each partner has already taken their own playing fee. This is the number partners actually divide between themselves. |
 | `predictedSharedProfit` | Sum of `predictedProfit` across non-cancelled, unsettled gigs where a prediction is available. Already excludes predicted partner fees (since `predictedProfit` subtracts all predicted role fees, partner and contractor alike) — directly comparable to `confirmedSharedProfit`. |
 | `predictedProfitExcludedCount` | Count of non-cancelled, unsettled gigs in the period whose predicted profit is unavailable (missing price or fee configuration). Shown so a large number is a visible prompt to fix missing data, not a silent gap. |
+| `taxOnlyExpensesTotal` | Sum of all expense amounts where `is_tax_only = true` within the period. These are personal costs claimed for tax purposes only (e.g. home-working allowance, personal fuel costs), with no payment recorded and no effect on business profit or partner balances. Calculated via `repository/accounting.ts::readTaxOnlyExpensesTotal()`. |
+| `taxableProfit` | `businessProfit − taxOnlyExpensesTotal`. The profit figure for tax purposes, accounting for personal costs claimed as tax-only deductions. Used for tax return preparation; `businessProfit` remains unchanged and is the true business result before these personal adjustments. |
+
+### Tax-only expenses
+
+An expense can be marked `is_tax_only = true` to indicate it is a personal cost
+claimed for tax purposes only (e.g. an apportioned home-working allowance,
+personal fuel costs), with no payment recorded and no effect on the business
+budget or any partner's balance. Tax-only expenses are:
+
+- Always excluded from `expensesBreakdown` (all three buckets), so they never
+  reduce `businessProfit`.
+- Summed separately into `taxOnlyExpensesTotal` (via
+  `repository/accounting.ts::readTaxOnlyExpensesTotal(bounds)`).
+- Subtracted from `businessProfit` to compute `taxableProfit`, for use in tax
+  return preparation.
+- Never visible in dashboard unpaid-expense alerts (they have no payment by
+  design and should never appear as "unpaid").
+
+The `isTaxOnly` flag and `paymentStatus: 'taxOnly'` are set at creation/update;
+a tax-only expense cannot be switched to normal status if it already has
+payments (the payments must be removed first, via API guard in
+`services/expenses.ts::updateExpense()`).
 
 ### Partner fee allocations are not expenses
 

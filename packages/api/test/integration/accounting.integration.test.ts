@@ -293,3 +293,105 @@ describe("Card charges net-zero", () => {
     expect(withCardCharge.businessProfit).toBe(baseline.businessProfit);
   });
 });
+
+describe("Tax-only expenses", () => {
+  test("a tax-only expense is excluded from all expense breakdown buckets", async () => {
+    const contractor = await fixtures.makePerson({ isPartner: false });
+    const gig = await fixtures.makeGig();
+    await fixtures.makeLineItem(gig.id, 50000);
+    await fixtures.makePayment(gig.id, 50000);
+    
+    const allocation = await fixtures.makeFeeAllocation(gig.id, contractor.id, false);
+    await fixtures.makeFeeAllocationLineItem(allocation.id, 15000);
+    await fixtures.makeAssignedRole({ gigId: gig.id, personId: contractor.id, roleName: "Performer", feeAllocationId: allocation.id });
+    
+    // Regular expense linked to the allocation
+    const regularExpense = await fixtures.makeExpense({ amount: 15000, description: "Fee payment" });
+    await fixtures.linkExpenseToAllocation(allocation.id, regularExpense.id);
+    
+    // Tax-only expense (no allocation link)
+    const taxOnlyExpense = await fixtures.makeExpense({ amount: 5000, description: "Tax deduction", isTaxOnly: true });
+
+    const result = await getAccounting();
+    
+    // Tax-only expense should NOT appear in any breakdown bucket
+    expect(result.expensesBreakdown.feeAllocation).toBe(15000); // only regular expense
+    expect(result.expensesBreakdown.showcase).toBe(0);
+    expect(result.expensesBreakdown.other).toBe(0);
+    expect(result.expenses).toBe(15000);
+  });
+
+  test("taxOnlyExpensesTotal sums all tax-only expenses regardless of amount", async () => {
+    await fixtures.makeExpense({ amount: 3000, isTaxOnly: true });
+    await fixtures.makeExpense({ amount: 7500, isTaxOnly: true });
+    await fixtures.makeExpense({ amount: 2000, description: "Regular", isTaxOnly: false });
+
+    const result = await getAccounting();
+    
+    // Only the two tax-only expenses are summed
+    expect(result.taxOnlyExpensesTotal).toBe(10500);
+  });
+
+  test("taxableProfit = businessProfit - taxOnlyExpensesTotal", async () => {
+    const contractor = await fixtures.makePerson({ isPartner: false });
+    const gig = await fixtures.makeGig();
+    await fixtures.makeLineItem(gig.id, 100000);
+    await fixtures.makePayment(gig.id, 100000);
+    
+    const allocation = await fixtures.makeFeeAllocation(gig.id, contractor.id, false);
+    await fixtures.makeFeeAllocationLineItem(allocation.id, 30000);
+    await fixtures.makeAssignedRole({ gigId: gig.id, personId: contractor.id, roleName: "Performer", feeAllocationId: allocation.id });
+    
+    const regularExpense = await fixtures.makeExpense({ amount: 30000 });
+    await fixtures.linkExpenseToAllocation(allocation.id, regularExpense.id);
+    
+    // Add tax-only expenses
+    await fixtures.makeExpense({ amount: 10000, isTaxOnly: true });
+
+    const result = await getAccounting();
+    
+    // businessProfit = 100000 (settled net) - 30000 (regular expenses) = 70000
+    expect(result.businessProfit).toBe(70000);
+    expect(result.taxOnlyExpensesTotal).toBe(10000);
+    // taxableProfit = 70000 - 10000 = 60000
+    expect(result.taxableProfit).toBe(60000);
+  });
+
+  test("tax-only expenses from multiple partners are all included in taxableProfit", async () => {
+    const partner1 = await fixtures.makePartner();
+    const partner2 = await fixtures.makePartner();
+    
+    const gig1 = await fixtures.makeGig();
+    await fixtures.makeLineItem(gig1.id, 50000);
+    await fixtures.makePayment(gig1.id, 50000);
+    
+    const alloc1 = await fixtures.makeFeeAllocation(gig1.id, partner1.id, true);
+    await fixtures.makeFeeAllocationLineItem(alloc1.id, 10000);
+    await fixtures.makeAssignedRole({ gigId: gig1.id, personId: partner1.id, roleName: "Vocals", feeAllocationId: alloc1.id });
+    
+    const gig2 = await fixtures.makeGig();
+    await fixtures.makeLineItem(gig2.id, 60000);
+    await fixtures.makePayment(gig2.id, 60000);
+    
+    const alloc2 = await fixtures.makeFeeAllocation(gig2.id, partner2.id, true);
+    await fixtures.makeFeeAllocationLineItem(alloc2.id, 12000);
+    await fixtures.makeAssignedRole({ gigId: gig2.id, personId: partner2.id, roleName: "Bass", feeAllocationId: alloc2.id });
+    
+    // Each partner claims their own tax-only expenses
+    await fixtures.makeExpense({ amount: 5000, isTaxOnly: true, description: `${partner1.firstName}'s tax deduction` });
+    await fixtures.makeExpense({ amount: 3000, isTaxOnly: true, description: `${partner2.firstName}'s tax deduction` });
+
+    const result = await getAccounting();
+    
+    // businessProfit = 110000 (50000 + 60000 net) - 0 (no regular expenses) = 110000
+    // feeAllocationsTotal = 22000 (10000 + 12000, partners not expenses)
+    // confirmedSharedProfit = 110000 - 22000 = 88000
+    expect(result.businessProfit).toBe(110000);
+    expect(result.feeAllocationsTotal).toBe(22000);
+    
+    // taxOnlyExpensesTotal = 8000
+    // taxableProfit = 110000 - 8000 = 102000
+    expect(result.taxOnlyExpensesTotal).toBe(8000);
+    expect(result.taxableProfit).toBe(102000);
+  });
+});

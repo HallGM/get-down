@@ -3,7 +3,7 @@ import type { ExpensePayment, ExpensePaymentSummary } from "@get-down/shared";
 import * as repo from "../repository/expense_payments.js";
 import * as expensesRepo from "../repository/expenses.js";
 import * as accountsRepo from "../repository/accounts.js";
-import { BadRequestError, NotFoundError } from "../errors.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 
 export const BasePaymentSchema = z.object({
@@ -44,6 +44,11 @@ export async function getPaymentsByExpense(expenseId: number): Promise<ExpensePa
 export async function createPayment(expenseId: number, body: unknown): Promise<ExpensePayment> {
   const expense = await expensesRepo.readExpenseById(expenseId);
   if (!expense) throw new NotFoundError("Expense not found");
+  
+  // Guard: cannot add a payment to a tax-only expense
+  if (expense.is_tax_only) {
+    throw new ConflictError("Cannot add a payment to a tax-only expense");
+  }
 
   const input = parseOrBadRequest(CreatePaymentSchema, body);
   if (input.amount === 0) throw new BadRequestError("amount must not be zero");

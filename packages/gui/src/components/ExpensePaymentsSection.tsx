@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ExpensePayment, CreateExpensePaymentRequest, UpdateExpensePaymentRequest } from "@get-down/shared";
+import type { Expense, ExpensePayment, CreateExpensePaymentRequest, UpdateExpensePaymentRequest } from "@get-down/shared";
 import { useAccounts } from "../api/hooks/useAccounts.js";
 import {
   useExpensePayments,
@@ -18,7 +18,7 @@ import { formatPaymentAmount } from "../utils/money.js";
 interface Props {
   expenseId: number;
   amount: number;
-  paymentStatus: 'unpaid' | 'partial' | 'paid';
+  paymentStatus: Expense["paymentStatus"];
 }
 
 export default function ExpensePaymentsSection({ expenseId, amount, paymentStatus }: Props) {
@@ -90,7 +90,7 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
           <strong>Payments</strong>
           <PaymentStatusBadge status={paymentStatus} />
         </div>
-        {!showForm && !editTarget && (
+        {!showForm && !editTarget && paymentStatus !== 'taxOnly' && (
           <button
             type="button"
             className="secondary outline"
@@ -101,6 +101,13 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
           </button>
         )}
       </div>
+
+      {/* Tax-only notice */}
+      {paymentStatus === 'taxOnly' && (
+        <p style={{ color: "var(--pico-muted-color)", fontSize: "0.875rem", fontStyle: "italic" }}>
+          This is a personal cost claimed for tax purposes only; no payment is recorded against it.
+        </p>
+      )}
 
       {/* Payments list */}
       {isLoading ? (

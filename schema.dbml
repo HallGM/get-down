@@ -217,6 +217,7 @@ Table expenses {
   recipient_name varchar(255)
   airtable_id    varchar(255)
   document_key   varchar(255)
+  is_tax_only    boolean      [not null, default: false]
 }
 
 Table fee_allocations_expenses {

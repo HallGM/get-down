@@ -511,15 +511,19 @@ export async function readAllocationsForOverApportionedExpenses(
  * This includes expenses with no payments recorded (unpaid) and expenses with
  * partial payments recorded, as well as over-paid expenses.
  * 
+ * Tax-only expenses are always excluded since they have no payment by design
+ * and should never appear as "unpaid".
+ * 
  * Uses the centralized payment-status aggregation from expense_payments.readPaymentStatusByExpenseIds
  * to avoid duplicating payment-sum logic across multiple repository modules.
  */
 export async function readUnpaidExpenses(): Promise<UnpaidExpenseAlertRow[]> {
-  // Fetch all expenses (ordered by date descending)
+  // Fetch all expenses (ordered by date descending), excluding tax-only
   const expenses = await run_query<{ id: number; date: string | null; description: string; amount: number }>({
     text: `
       SELECT id, date, description, amount
       FROM expenses
+      WHERE is_tax_only = false
       ORDER BY date DESC NULLS LAST, id DESC;
     `,
   });

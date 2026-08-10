@@ -52,6 +52,11 @@ export async function getExpenseById(id: number): Promise<Expense> {
 export async function createExpense(input: CreateExpenseRequest): Promise<Expense> {
   const mutationInput = buildMutationInput(input);
 
+  // Guard: cannot create a tax-only expense with a payment
+  if (input.isTaxOnly && input.payment) {
+    throw new BadRequestError("Tax-only expenses cannot have a payment recorded");
+  }
+
   if (input.payment) {
     const paymentInput = parseOrBadRequest(CreatePaymentSchema, input.payment);
     if (paymentInput.amount === 0) throw new BadRequestError("payment amount must not be zero");
@@ -71,6 +76,15 @@ export async function createExpense(input: CreateExpenseRequest): Promise<Expens
 
 export async function updateExpense(id: number, input: UpdateExpenseRequest): Promise<Expense> {
   const existing = await getExpenseById(id);
+  
+  // Guard: cannot switch to tax-only if expense already has payments
+  if (input.isTaxOnly && !existing.isTaxOnly) {
+    const hasPayments = await expensesRepo.hasPayments(id);
+    if (hasPayments) {
+      throw new ConflictError("Cannot mark as tax-only: this expense has payments recorded. Remove all payments first.");
+    }
+  }
+  
   const row = await expensesRepo.updateExpense(id, buildMutationInput(input, existing));
   if (!row) throw new NotFoundError("Expense not found");
   return assembleExpense(row);
@@ -248,6 +262,7 @@ export function mapExpense(
   options: MapExpenseOptions = {}
 ): Expense {
   const { documentUrl, personInvoice, person, linkedCardCharge } = options;
+  const paymentStatus = row.is_tax_only ? 'taxOnly' : computePaymentStatus(totalPaid, row.amount);
   const expense: Expense = {
     id: row.id,
     date: toDateString(row.date) ?? undefined,
@@ -260,7 +275,8 @@ export function mapExpense(
     feeAllocationIds,
     attributionFeeIds,
     totalPaid,
-    paymentStatus: computePaymentStatus(totalPaid, row.amount),
+    paymentStatus,
+    isTaxOnly: row.is_tax_only,
   };
   
   if (personInvoice && person) {
@@ -298,6 +314,7 @@ function buildMutationInput(
     category: input.category?.trim() ?? existing?.category,
     recipientName: input.recipientName?.trim() ?? existing?.recipientName,
     airtableId: input.airtableId ?? existing?.airtableId,
+    isTaxOnly: input.isTaxOnly ?? existing?.isTaxOnly,
   };
 }
 
