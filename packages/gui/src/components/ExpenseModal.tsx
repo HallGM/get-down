@@ -62,8 +62,9 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("");
   const [recipientName, setRecipientName] = useState("");
+  const [isTaxOnly, setIsTaxOnly] = useState(false);
   const [file, setFile] = useState<File | undefined>(undefined);
-  const [fileError, setFileError] = useState<string | undefined>(undefined);
+  const [submitError, setSubmitError] = useState<string | undefined>(undefined);
   const [localDocUrl, setLocalDocUrl] = useState<string | undefined>(undefined);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
 
@@ -89,8 +90,9 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
     setDate(toInputDate(expense.date));
     setCategory(expense.category ?? "");
     setRecipientName(expense.recipientName ?? "");
+    setIsTaxOnly(expense.isTaxOnly ?? false);
     setFile(undefined);
-    setFileError(undefined);
+    setSubmitError(undefined);
     setLocalDocUrl(expense.documentUrl);
   }, [expense?.id]);
 
@@ -109,7 +111,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (fileError) return;
+    if (submitError) return;
     
     // Card charge creation flow (chargeId undefined, expense is null)
     if (cardChargeContext && !cardChargeContext.chargeId && !expense) {
@@ -196,8 +198,14 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
       return;
     }
     
-    // Normal expense editing flow
-    if (expense && !cardChargeContext) {
+     // Normal expense editing flow
+     if (expense && !cardChargeContext) {
+       // Cannot switch to tax-only if payments exist
+       if (isTaxOnly && !canToggleTaxOnly) {
+         setSubmitError('Cannot mark as tax-only while payments are recorded. Remove payments first.');
+         return;
+       }
+      
       await updateExpense.mutateAsync({
         id: expense.id,
         input: {
@@ -206,6 +214,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
           date: date || undefined,
           category: category || undefined,
           recipientName: recipientName || undefined,
+          isTaxOnly,
         },
       });
       if (file) {
@@ -217,23 +226,26 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
-    if (!f) { setFile(undefined); setFileError(undefined); return; }
+    if (!f) { setFile(undefined); setSubmitError(undefined); return; }
     if (f.size > MAX_DOCUMENT_SIZE_BYTES) {
       setFile(undefined);
-      setFileError("File must be 20 MB or smaller.");
+      setSubmitError("File must be 20 MB or smaller.");
       e.target.value = "";
       return;
     }
-    setFileError(undefined);
+    setSubmitError(undefined);
     setFile(f);
   }
 
-  const isBusy = updateExpense.isPending || uploadDocument.isPending || addCardCharge.isPending || updateCardCharge.isPending;
+   const isBusy = updateExpense.isPending || uploadDocument.isPending || addCardCharge.isPending || updateCardCharge.isPending;
 
-  // Determine modal title
-  const modalTitle = cardChargeContext
-    ? (cardChargeContext.chargeId ? "Edit Card Charge" : "Add Card Charge")
-    : "Edit Expense";
+   // Can only toggle tax-only status if the expense has no payments (unpaid or already tax-only)
+   const canToggleTaxOnly = expense && (expense.paymentStatus === 'unpaid' || expense.paymentStatus === 'taxOnly');
+
+   // Determine modal title
+   const modalTitle = cardChargeContext
+     ? (cardChargeContext.chargeId ? "Edit Card Charge" : "Add Card Charge")
+     : "Edit Expense";
 
   return (
     <Modal open={!!expense || (cardChargeContext && !cardChargeContext.chargeId)} onClose={onClose} title={modalTitle}>
@@ -275,13 +287,32 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           />
-          <FormField
-            label="Recipient"
-            value={recipientName}
-            onChange={(e) => setRecipientName(e.target.value)}
-          />
+           <FormField
+             label="Recipient"
+             value={recipientName}
+             onChange={(e) => setRecipientName(e.target.value)}
+           />
 
-           {/* Document */}
+           {/* Tax-only toggle - only for normal expense editing */}
+           {!cardChargeContext && expense && (
+             <div style={{ gridColumn: "1 / -1", marginTop: "0.25rem" }}>
+               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", userSelect: "none" }}>
+                  <input
+                    type="checkbox"
+                    checked={isTaxOnly}
+                    onChange={(e) => setIsTaxOnly(e.target.checked)}
+                    disabled={!canToggleTaxOnly}
+                    style={{ margin: 0 }}
+                  />
+                 <span>Personal cost, tax claim only</span>
+               </label>
+                {!canToggleTaxOnly && (
+                  <small style={{ color: "var(--pico-color-red-500)", display: "block", marginTop: "0.25rem" }}>
+                    ⚠️ Remove all payments before marking as tax-only.
+                  </small>
+                )}
+             </div>
+           )}
            <div style={{ gridColumn: "1 / -1" }}>
              <small><strong>Document</strong></small>
              {expense?.personInvoice ? (
@@ -320,13 +351,13 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
                  </button>
                </div>
              ) : (
-               <div style={{ marginTop: "0.25rem" }}>
-                 <label>
-                   <small>Upload invoice (optional, max 20 MB)</small>
-                   <input type="file" onChange={handleFileChange} style={{ marginTop: "0.25rem" }} />
-                 </label>
-                 {fileError && <small style={{ color: "var(--pico-color-red-500)" }}>{fileError}</small>}
-               </div>
+                <div style={{ marginTop: "0.25rem" }}>
+                  <label>
+                    <small>Upload invoice (optional, max 20 MB)</small>
+                    <input type="file" onChange={handleFileChange} style={{ marginTop: "0.25rem" }} />
+                  </label>
+                  {submitError && <small style={{ color: "var(--pico-color-red-500)" }}>{submitError}</small>}
+                </div>
              )}
              </div>
 
@@ -431,7 +462,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
           <button
             type="submit"
             aria-busy={isBusy}
-            disabled={isBusy || !!fileError}
+            disabled={isBusy || !!submitError}
           >
             Save
           </button>

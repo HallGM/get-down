@@ -46,13 +46,15 @@ export default function ExpenseCreateModal({
   const getPaymentDate = () =>
     paymentDateIsToday ? toInputDate(new Date()) : (form.date || toInputDate(new Date()));
 
+  const [isTaxOnly, setIsTaxOnly] = useState(false);
+
   const {
     recordPayment,
     setRecordPayment,
     handleRecordPaymentToggle,
     paymentForm,
     setPaymentFormFields,
-  } = useRecordPaymentForm(true, form.amount, form.date, businessAccount?.id, getPaymentDate);
+  } = useRecordPaymentForm(!isTaxOnly, form.amount, form.date, businessAccount?.id, getPaymentDate);
 
   // Reset everything whenever the modal opens
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function ExpenseCreateModal({
       });
       fileUpload.reset();
       setRecordPayment(false);
+      setIsTaxOnly(false);
       // Clear the file input's DOM value to remove any stale filename display
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -80,8 +83,8 @@ export default function ExpenseCreateModal({
     e.preventDefault();
     if (fileUpload.error) return;
 
-    const input: CreateExpenseRequest = { ...form };
-    if (recordPayment && typeof paymentForm.accountId === "number") {
+    const input: CreateExpenseRequest = { ...form, isTaxOnly };
+    if (!isTaxOnly && recordPayment && typeof paymentForm.accountId === "number") {
       input.payment = {
         accountId:     paymentForm.accountId,
         amount:        paymentForm.amount,
@@ -98,7 +101,7 @@ export default function ExpenseCreateModal({
   }
 
   const isLoading = createExpense.isPending || settleAllocation.isPending;
-  const paymentMissing = recordPayment && (paymentForm.accountId === "" || paymentForm.amount === 0);
+  const paymentMissing = !isTaxOnly && recordPayment && (paymentForm.accountId === "" || paymentForm.amount === 0);
 
 
   return (
@@ -147,29 +150,40 @@ export default function ExpenseCreateModal({
              {fileUpload.error && <small style={{ color: "var(--pico-color-red-500)" }}>{fileUpload.error}</small>}
            </div>
 
-          {/* Record payment toggle */}
-          <div style={{ gridColumn: "1 / -1", marginTop: "0.25rem" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", userSelect: "none" }}>
-              <input
-                type="checkbox"
-                checked={recordPayment}
-                onChange={(e) => handleRecordPaymentToggle(e.target.checked)}
-                style={{ margin: 0 }}
-              />
-              <span>Record payment now</span>
-            </label>
-          </div>
+           {/* Tax-only and payment toggles */}
+           <div style={{ gridColumn: "1 / -1", display: "flex", gap: "2rem", marginTop: "0.25rem" }}>
+             <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", userSelect: "none" }}>
+               <input
+                 type="checkbox"
+                 checked={isTaxOnly}
+                 onChange={(e) => setIsTaxOnly(e.target.checked)}
+                 style={{ margin: 0 }}
+               />
+               <span>Personal cost, tax claim only</span>
+             </label>
+             {!isTaxOnly && (
+               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", userSelect: "none" }}>
+                 <input
+                   type="checkbox"
+                   checked={recordPayment}
+                   onChange={(e) => handleRecordPaymentToggle(e.target.checked)}
+                   style={{ margin: 0 }}
+                 />
+                 <span>Record payment now</span>
+               </label>
+             )}
+           </div>
 
-          {/* Inline payment fields */}
-          {recordPayment && (
-            <div style={{ gridColumn: "1 / -1" }}>
-              <PaymentFormFields
-                form={paymentForm}
-                setForm={setPaymentFormFields}
-                accounts={accounts}
-              />
-            </div>
-          )}
+           {/* Inline payment fields */}
+           {!isTaxOnly && recordPayment && (
+             <div style={{ gridColumn: "1 / -1" }}>
+               <PaymentFormFields
+                 form={paymentForm}
+                 setForm={setPaymentFormFields}
+                 accounts={accounts}
+               />
+             </div>
+           )}
         </div>
 
         <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>

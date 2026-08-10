@@ -10,6 +10,7 @@ export interface ExpenseRow {
   recipient_name: string | null;
   airtable_id: string | null;
   document_key: string | null;
+  is_tax_only: boolean;
 }
 
 export interface ExpenseMutationInput {
@@ -19,15 +20,16 @@ export interface ExpenseMutationInput {
   category?: string;
   recipientName?: string;
   airtableId?: string;
+  isTaxOnly?: boolean;
 }
 
-const SELECT_COLS = `id, date, amount, description, category, recipient_name, airtable_id, document_key`;
+const SELECT_COLS = `id, date, amount, description, category, recipient_name, airtable_id, document_key, is_tax_only`;
 
 export async function createExpense(input: ExpenseMutationInput): Promise<ExpenseRow> {
   const rows = await run_query<ExpenseRow>({
     text: `
-      INSERT INTO expenses (date, amount, description, category, recipient_name, airtable_id)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO expenses (date, amount, description, category, recipient_name, airtable_id, is_tax_only)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -37,6 +39,7 @@ export async function createExpense(input: ExpenseMutationInput): Promise<Expens
       input.category ?? null,
       input.recipientName ?? null,
       input.airtableId ?? null,
+      input.isTaxOnly ?? false,
     ],
   });
   return rows[0];
@@ -64,8 +67,8 @@ export async function updateExpense(
     text: `
       UPDATE expenses
       SET date = $1, amount = $2, description = $3, category = $4,
-          recipient_name = $5, airtable_id = $6
-      WHERE id = $7
+          recipient_name = $5, airtable_id = $6, is_tax_only = $7
+      WHERE id = $8
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -75,6 +78,7 @@ export async function updateExpense(
       input.category ?? null,
       input.recipientName ?? null,
       input.airtableId ?? null,
+      input.isTaxOnly ?? false,
       id,
     ],
   });

@@ -99,14 +99,45 @@ describe("Dashboard — unpaid expenses", () => {
     expect(result[0].id).toBe(expense.id);
   });
 
-  test("filtering unpaid expenses includes expenses linked to card charges", async () => {
-    // Create an expense that would be linked to a card charge
-    const expense = await fixtures.makeExpense({ amount: 8000, description: "Card charge expense" });
-    // Partially pay it
-    await createExpensePayment(expense.id, 3000);
-    const result = await getUnpaidExpenses();
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(expense.id);
-    expect(result[0].total_paid).toBe(3000);
-  });
+   test("filtering unpaid expenses includes expenses linked to card charges", async () => {
+     // Create an expense that would be linked to a card charge
+     const expense = await fixtures.makeExpense({ amount: 8000, description: "Card charge expense" });
+     // Partially pay it
+     await createExpensePayment(expense.id, 3000);
+     const result = await getUnpaidExpenses();
+     expect(result).toHaveLength(1);
+     expect(result[0].id).toBe(expense.id);
+     expect(result[0].total_paid).toBe(3000);
+   });
+
+   test("tax-only expenses are excluded from unpaid alerts, even if unpaid", async () => {
+     // Regular unpaid expense
+     const regularExpense = await fixtures.makeExpense({ amount: 50000, description: "Regular unpaid" });
+     
+     // Tax-only unpaid expense
+     const taxOnlyExpense = await fixtures.makeExpense({ amount: 25000, description: "Tax-only unpaid", isTaxOnly: true });
+
+     const result = await getUnpaidExpenses();
+     
+     // Only the regular expense should appear
+     expect(result).toHaveLength(1);
+     expect(result[0].id).toBe(regularExpense.id);
+     expect(result[0].amount).toBe(50000);
+   });
+
+    test("tax-only expenses never alert, regardless of payment status", async () => {
+      const taxOnlyUnpaid = await fixtures.makeExpense({ amount: 10000, isTaxOnly: true, description: "Tax unpaid" });
+      const taxOnlyPartial = await fixtures.makeExpense({ amount: 20000, isTaxOnly: true, description: "Tax partial" });
+      // Note: We add payments via the repository directly (bypassing the service guard that prevents payments on tax-only expenses in production).
+      // This test verifies that the query-level filtering in readUnpaidExpenses() correctly excludes tax-only expenses
+      // regardless of their payment status. In real usage, tax-only expenses never have payments.
+      await createExpensePayment(taxOnlyPartial.id, 5000);
+      const taxOnlyPaid = await fixtures.makeExpense({ amount: 15000, isTaxOnly: true, description: "Tax paid" });
+      await createExpensePayment(taxOnlyPaid.id, 15000);
+
+      const result = await getUnpaidExpenses();
+      
+      // No tax-only expenses should appear, even those unpaid or partially paid
+      expect(result).toHaveLength(0);
+    });
 });

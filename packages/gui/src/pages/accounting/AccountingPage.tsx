@@ -197,13 +197,41 @@ function SummaryTable({ data }: { data: AccountingSummary }) {
             value={<MoneyDisplay pennies={data.expenses + data.predictedFeeAllocations} colorNegative bold />}
           />
 
-          {/* ── Business profit ── */}
-          <SectionHeader title="Business profit" subtitle="Whole-business result before any partner takes their playing fee" />
+          {/* ── Tax-only expenses (in Expenses section) ── */}
           <Row
-            label="Business profit"
-            hint="Actual settled turnover minus actual settled expenses. Excludes partner fee allocations — see 'Partner fee allocations' below, which is a distribution of this profit, not a cost."
-            value={<MoneyDisplay pennies={data.businessProfit} colorNegative bold />}
+            label="Tax-only expenses"
+            hint="Personal costs claimed for tax purposes only — not included in the settled expenses or forecast totals above"
+            value={<MoneyDisplay pennies={data.taxOnlyExpensesTotal} colorNegative bold />}
+            indent
           />
+          <Divider />
+          <Row
+            label="Total taxable expenses"
+            hint="Actual settled expenses plus tax-only expenses — use this total for tax reporting purposes"
+            value={<MoneyDisplay pennies={data.expenses + data.taxOnlyExpensesTotal} colorNegative bold />}
+          />
+
+          {/* ── Business profit ── */}
+           <SectionHeader title="Business profit" subtitle="Whole-business result before any partner takes their playing fee" />
+           <Row
+             label="Business profit"
+             hint="Actual settled turnover minus actual settled expenses. Excludes partner fee allocations — see 'Partner fee allocations' below, which is a distribution of this profit, not a cost."
+             value={<MoneyDisplay pennies={data.businessProfit} colorNegative bold />}
+           />
+
+           {/* ── Tax-only expenses and taxable profit ── */}
+           <SectionHeader title="Tax adjustments" subtitle="Personal costs for tax purposes, excluded from business profit" />
+           <Row
+             label="Tax-only expenses"
+             hint="Personal costs claimed for tax purposes only — not recorded as payments and excluded from business profit"
+             value={<MoneyDisplay pennies={data.taxOnlyExpensesTotal} colorNegative bold />}
+           />
+           <Divider />
+           <Row
+             label="Taxable profit"
+             hint="Business profit adjusted for tax-only expenses — the figure to use on tax returns"
+             value={<MoneyDisplay pennies={data.taxableProfit} colorNegative bold />}
+           />
 
           {/* ── Partner fee allocations ── */}
           <SectionHeader

@@ -7,10 +7,11 @@ const STYLES: Record<PaymentStatus, { background: string; color: string }> = {
   paid:    { background: "var(--pico-ins-color, #28a745)", color: "#fff" },
   partial: { background: "#e6a817",                        color: "#fff" },
   unpaid:  { background: "var(--pico-muted-color, #888)",  color: "#fff" },
+  taxOnly: { background: "#6c757d",                        color: "#fff" },
 };
 
 const LABELS: Record<PaymentStatus, string> = {
-  paid: "Paid", partial: "Partial", unpaid: "Unpaid",
+  paid: "Paid", partial: "Partial", unpaid: "Unpaid", taxOnly: "Tax only",
 };
 
 export default function PaymentStatusBadge({ status }: { status: PaymentStatus }) {

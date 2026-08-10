@@ -22,12 +22,13 @@ type DateBounds = { start: string | null; end: string | null };
 export async function getSummary(params: SummaryParams): Promise<AccountingSummary> {
   const bounds = resolveBounds(params);
 
-  const [gigCounts, expensesBreakdown, partnerAllocations, predictedSummary] =
+  const [gigCounts, expensesBreakdown, partnerAllocations, predictedSummary, taxOnlyTotal] =
     await Promise.all([
       repo.readGigCounts(bounds),
       repo.readExpensesBreakdown(bounds),
       repo.readPartnerFeeAllocations(bounds),
       repo.readPredictedProfitSummary(bounds),
+      repo.readTaxOnlyExpensesTotal(bounds),
     ]);
 
   const { settledNetReceived, predictedBillingUnsettled, predictedFeeAllocUnsettled, predictedSharedProfit, excludedCount } = predictedSummary;
@@ -36,6 +37,7 @@ export async function getSummary(params: SummaryParams): Promise<AccountingSumma
   const businessProfit        = settledNetReceived - expenses;
   const feeAllocationsTotal   = partnerAllocations.reduce((sum, a) => sum + a.amount, 0);
   const confirmedSharedProfit = businessProfit - feeAllocationsTotal;
+  const taxableProfit         = businessProfit - taxOnlyTotal;
 
   return {
     gigsBooked:    gigCounts.booked,
@@ -55,6 +57,8 @@ export async function getSummary(params: SummaryParams): Promise<AccountingSumma
     confirmedSharedProfit,
     predictedSharedProfit,
     predictedProfitExcludedCount: excludedCount,
+    taxOnlyExpensesTotal: taxOnlyTotal,
+    taxableProfit,
   };
 }
 

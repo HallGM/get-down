@@ -127,17 +127,39 @@ export async function readExpensesBreakdown(bounds: DateBounds): Promise<Expense
       LEFT JOIN (
         SELECT DISTINCT expense_id FROM fae_all WHERE gig_id IS NOT NULL
       ) any_gig_fae ON any_gig_fae.expense_id = e.id
-      WHERE ($1::date IS NULL OR e.date >= $1)
+      WHERE e.is_tax_only = false
+        AND ($1::date IS NULL OR e.date >= $1)
         AND ($2::date IS NULL OR e.date <= $2);
     `,
     values: [bounds.start, bounds.end],
   });
-  const row = rows[0]!;
-  return {
-    feeAllocation: parseInt(row.fee_allocation, 10),
-    showcase:      parseInt(row.showcase, 10),
-    other:         parseInt(row.other, 10),
-  };
+   const row = rows[0]!;
+   return {
+     feeAllocation: parseInt(row.fee_allocation, 10),
+     showcase:      parseInt(row.showcase, 10),
+     other:         parseInt(row.other, 10),
+   };
+}
+
+// ─── Tax-only expenses ────────────────────────────────────────────────────────
+
+/**
+ * Sum of all tax-only expense amounts within the period. Tax-only expenses are
+ * personal costs claimed for tax purposes only, excluded from business profit
+ * but included in the taxable profit calculation.
+ */
+export async function readTaxOnlyExpensesTotal(bounds: DateBounds): Promise<number> {
+  const rows = await run_query<{ total: string }>({
+    text: `
+      SELECT COALESCE(SUM(amount), 0)::bigint AS total
+      FROM expenses
+      WHERE is_tax_only = true
+        AND ($1::date IS NULL OR date >= $1)
+        AND ($2::date IS NULL OR date <= $2);
+    `,
+    values: [bounds.start, bounds.end],
+  });
+  return parseInt(rows[0]?.total ?? '0', 10);
 }
 
 // ─── Partner fee allocations ──────────────────────────────────────────────────
