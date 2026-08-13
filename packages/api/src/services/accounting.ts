@@ -5,8 +5,8 @@ import { buildPersonName } from "../utils/people.js";
 import { PARTNERSHIP_START_DATE } from "../constants.js";
 
 export interface SummaryParams {
-  year?: number;
-  taxYearStart?: number;
+  start?: string;
+  end?: string;
 }
 
 type DateBounds = { start: string | null; end: string | null };
@@ -65,23 +65,23 @@ export async function getSummary(params: SummaryParams): Promise<AccountingSumma
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 function resolveBounds(params: SummaryParams): DateBounds {
-  const { year, taxYearStart } = params;
+  const { start, end } = params;
 
-  if (year !== undefined && taxYearStart !== undefined) {
-    throw new BadRequestError("Provide either year or taxYearStart, not both");
+  // Require both start/end or both absent
+  if ((start !== undefined && end === undefined) || (start === undefined && end !== undefined)) {
+    throw new BadRequestError("Provide both start and end, or neither");
   }
 
-  if (year !== undefined) {
-    return {
-      start: floorToPartnershipStart(`${year}-01-01`),
-      end:   `${year}-12-31`,
-    };
+  // Validate start <= end if both provided
+  if (start !== undefined && end !== undefined && start > end) {
+    throw new BadRequestError("start date must not be after end date");
   }
 
-  if (taxYearStart !== undefined) {
+  // Explicit range provided
+  if (start !== undefined && end !== undefined) {
     return {
-      start: floorToPartnershipStart(`${taxYearStart}-04-06`),
-      end:   `${taxYearStart + 1}-04-05`,
+      start: floorToPartnershipStart(start),
+      end,
     };
   }
 
