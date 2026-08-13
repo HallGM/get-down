@@ -160,10 +160,24 @@ describe("accounting service — getSummary", () => {
     expect(result.confirmedSharedProfit).toBe(0);
   });
 
-  test("rejects both year and taxYearStart provided together", async () => {
+  test("rejects when only start is provided", async () => {
     stubRepo({});
-    await expect(getSummary({ year: 2024, taxYearStart: 2024 })).rejects.toThrow(
-      "Provide either year or taxYearStart, not both"
+    await expect(getSummary({ start: "2024-01-01" })).rejects.toThrow(
+      "Provide both start and end, or neither"
+    );
+  });
+
+  test("rejects when only end is provided", async () => {
+    stubRepo({});
+    await expect(getSummary({ end: "2024-12-31" })).rejects.toThrow(
+      "Provide both start and end, or neither"
+    );
+  });
+
+  test("rejects when end is before start", async () => {
+    stubRepo({});
+    await expect(getSummary({ start: "2024-12-31", end: "2024-01-01" })).rejects.toThrow(
+      "start date must not be after end date"
     );
   });
 
@@ -201,5 +215,51 @@ describe("accounting service — getSummary", () => {
     expect(result.businessProfit).toBe(80000);
     expect(result.taxOnlyExpensesTotal).toBe(0);
     expect(result.taxableProfit).toBe(80000);
+  });
+
+  test("respects explicit start/end date range", async () => {
+    stubRepo({
+      predictedSummary: {
+        settledNetReceived: 50000,
+        predictedBillingUnsettled: 0,
+        predictedFeeAllocUnsettled: 0,
+        predictedSharedProfit: 0,
+        excludedCount: 0,
+      },
+      expensesBreakdown: { feeAllocation: 10000, showcase: 0, other: 0 },
+    });
+    const result = await getSummary({ start: "2024-03-15", end: "2024-06-30" });
+    expect(result.businessProfit).toBe(40000);
+  });
+
+  test("floors explicit start date to partnership start date", async () => {
+    stubRepo({
+      predictedSummary: {
+        settledNetReceived: 25000,
+        predictedBillingUnsettled: 0,
+        predictedFeeAllocUnsettled: 0,
+        predictedSharedProfit: 0,
+        excludedCount: 0,
+      },
+      expensesBreakdown: { feeAllocation: 5000, showcase: 0, other: 0 },
+    });
+    // Pass a date before the partnership start (which is 2018-01-01 in constants)
+    const result = await getSummary({ start: "2000-01-01", end: "2024-12-31" });
+    expect(result.businessProfit).toBe(20000);
+  });
+
+  test("treats absent start/end as all-time", async () => {
+    stubRepo({
+      predictedSummary: {
+        settledNetReceived: 75000,
+        predictedBillingUnsettled: 0,
+        predictedFeeAllocUnsettled: 0,
+        predictedSharedProfit: 0,
+        excludedCount: 0,
+      },
+      expensesBreakdown: { feeAllocation: 15000, showcase: 0, other: 0 },
+    });
+    const result = await getSummary({});
+    expect(result.businessProfit).toBe(60000);
   });
 });

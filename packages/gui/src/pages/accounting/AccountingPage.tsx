@@ -5,7 +5,9 @@ import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import YearSelect from "../../components/YearSelect.js";
-import { formatTaxYearKey, parseTaxYearKey } from "../../utils/taxYear.js";
+import DateRangeFilter from "../../components/DateRangeFilter.js";
+import { formatTaxYearKey } from "../../utils/taxYear.js";
+import { formatDate } from "../../utils/date.js";
 import type { AccountingSummary } from "@get-down/shared";
 
 // ─── Year option generation ───────────────────────────────────────────────────
@@ -75,20 +77,27 @@ function Divider() {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function AccountingPage() {
-  const { calendarYear, taxYear, setCalendarYear, setTaxYear } = useYearFilter();
+  const { start, end, calendarYearLabel, taxYearLabel, setCalendarYear, setTaxYear, setDateRange } = useYearFilter();
 
+  // Determine params: start/end are always set from the hook (null initially, filled when a year is selected or dates are entered)
   const params = useMemo(() => {
-    if (calendarYear) return { year: Number(calendarYear) };
-    if (taxYear) return { taxYearStart: parseTaxYearKey(taxYear) };
+    if (start && end) {
+      return { start, end };
+    }
     return {};
-  }, [calendarYear, taxYear]);
+  }, [start, end]);
 
-  const { data, isLoading, error } = useAccountingSummary(params);
+  // Only call the query if both start and end are set (valid range)
+  const isValidRange = start && end && start <= end;
+  const { data, isLoading, error } = useAccountingSummary(isValidRange ? params : {});
 
-  const periodLabel = calendarYear
-    ? calendarYear
-    : taxYear
-    ? `Tax year ${taxYear}`
+  // Determine period label: show named period if selected, otherwise show date range, otherwise "All time"
+  const periodLabel = calendarYearLabel
+    ? calendarYearLabel
+    : taxYearLabel
+    ? `Tax year ${taxYearLabel}`
+    : start && end
+    ? `${formatDate(start)} to ${formatDate(end)}`
     : "All time";
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
@@ -105,15 +114,21 @@ export default function AccountingPage() {
       <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <YearSelect
           label="Year:"
-          value={calendarYear ?? ""}
+          value={calendarYearLabel ?? ""}
           options={CALENDAR_YEAR_OPTIONS}
           onChange={setCalendarYear}
         />
         <YearSelect
           label="Tax year:"
-          value={taxYear ?? ""}
+          value={taxYearLabel ?? ""}
           options={TAX_YEAR_OPTIONS}
           onChange={setTaxYear}
+        />
+        <DateRangeFilter
+          label="Custom:"
+          start={start}
+          end={end}
+          onChange={setDateRange}
         />
       </div>
 

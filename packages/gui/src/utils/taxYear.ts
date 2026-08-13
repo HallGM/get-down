@@ -89,3 +89,26 @@ export function taxYearsFromDates(dates: (string | null | undefined)[]): string[
   }
   return [...keys].sort().reverse();
 }
+
+/**
+ * Get the ISO start and end date strings for a given calendar year.
+ * e.g. "2024" → { start: "2024-01-01", end: "2024-12-31" }
+ */
+export function calendarYearDateRange(year: string): { start: string; end: string } {
+  return {
+    start: `${year}-01-01`,
+    end: `${year}-12-31`,
+  };
+}
+
+/**
+ * Get the ISO start and end date strings for a given tax year key.
+ * e.g. "2024/25" (start year 2024) → { start: "2024-04-06", end: "2025-04-05" }
+ */
+export function taxYearDateRange(taxYearKey: string): { start: string; end: string } {
+  const startYear = parseTaxYearKey(taxYearKey);
+  return {
+    start: `${startYear}-04-06`,
+    end: `${startYear + 1}-04-05`,
+  };
+}
