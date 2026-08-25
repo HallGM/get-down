@@ -1,9 +1,11 @@
 import type { HousePlaylistSong } from "@get-down/shared";
+import { isSongExcludedForBandSizes } from "../../utils/songExclusions.js";
 
 interface Props {
   songs: HousePlaylistSong[];
   setListSongIds: Set<number>;
   doNotPlayIds: Set<number>;
+  excludedForBandSizeIds?: Set<number>;
   onAdd: (songId: number) => void;
   isAdding: boolean;
 }
@@ -12,6 +14,7 @@ export default function HousePlaylistPanel({
   songs,
   setListSongIds,
   doNotPlayIds,
+  excludedForBandSizeIds,
   onAdd,
   isAdding,
 }: Props) {
@@ -28,71 +31,90 @@ export default function HousePlaylistPanel({
               No songs in the house playlist yet. Add them from the Songs page.
             </p>
           )}
-          {songs.map(song => {
-            const inSetList = setListSongIds.has(song.songId);
-            const isDnp = doNotPlayIds.has(song.songId);
-            return (
-              <div
-                key={song.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.4rem",
-                  padding: "0.25rem 0.4rem",
-                  marginBottom: "0.2rem",
-                  borderRadius: "var(--pico-border-radius)",
-                  background: inSetList
-                    ? "var(--pico-muted-border-color)"
-                    : "var(--pico-card-background-color)",
-                  border: "1px solid var(--pico-muted-border-color)",
-                  opacity: inSetList ? 0.6 : 1,
-                }}
-              >
-                {/* Song info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", flexWrap: "wrap" }}>
-                    <span
-                      style={{
-                        fontSize: "0.85rem",
-                        fontWeight: 600,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        maxWidth: "12rem",
-                      }}
-                    >
-                      {song.title}
-                    </span>
-                    {song.vocalType && (
-                      <small
-                        style={{
-                          background: "var(--pico-ins-color)",
-                          color: "#fff",
-                          padding: "0.05em 0.35em",
-                          borderRadius: "0.2em",
-                          fontSize: "0.68rem",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {song.vocalType}
-                      </small>
-                    )}
-                    {isDnp && (
-                      <small
-                        style={{
-                          background: "var(--pico-del-color)",
-                          color: "#fff",
-                          padding: "0.05em 0.35em",
-                          borderRadius: "0.2em",
-                          fontSize: "0.68rem",
-                          fontWeight: 700,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        ⚠ DNP
-                      </small>
-                    )}
-                  </div>
+           {songs.map(song => {
+              const inSetList = setListSongIds.has(song.songId);
+              const isDnp = doNotPlayIds.has(song.songId);
+              const isExcluded = isSongExcludedForBandSizes(
+                song.excludedServiceIds,
+                excludedForBandSizeIds ?? new Set()
+              );
+              return (
+               <div
+                 key={song.id}
+                 style={{
+                   display: "flex",
+                   alignItems: "center",
+                   gap: "0.4rem",
+                   padding: "0.25rem 0.4rem",
+                   marginBottom: "0.2rem",
+                   borderRadius: "var(--pico-border-radius)",
+                   background: inSetList
+                     ? "var(--pico-muted-border-color)"
+                     : "var(--pico-card-background-color)",
+                   border: "1px solid var(--pico-muted-border-color)",
+                   opacity: inSetList ? 0.6 : 1,
+                 }}
+               >
+                 {/* Song info */}
+                 <div style={{ flex: 1, minWidth: 0 }}>
+                   <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", flexWrap: "wrap" }}>
+                     <span
+                       style={{
+                         fontSize: "0.85rem",
+                         fontWeight: 600,
+                         whiteSpace: "nowrap",
+                         overflow: "hidden",
+                         textOverflow: "ellipsis",
+                         maxWidth: "12rem",
+                       }}
+                     >
+                       {song.title}
+                     </span>
+                     {song.vocalType && (
+                       <small
+                         style={{
+                           background: "var(--pico-ins-color)",
+                           color: "#fff",
+                           padding: "0.05em 0.35em",
+                           borderRadius: "0.2em",
+                           fontSize: "0.68rem",
+                           whiteSpace: "nowrap",
+                         }}
+                       >
+                         {song.vocalType}
+                       </small>
+                     )}
+                     {isDnp && (
+                       <small
+                         style={{
+                           background: "var(--pico-del-color)",
+                           color: "#fff",
+                           padding: "0.05em 0.35em",
+                           borderRadius: "0.2em",
+                           fontSize: "0.68rem",
+                           fontWeight: 700,
+                           whiteSpace: "nowrap",
+                         }}
+                       >
+                         ⚠ DNP
+                       </small>
+                     )}
+                     {isExcluded && (
+                       <small
+                         style={{
+                           background: "var(--pico-del-color)",
+                           color: "#fff",
+                           padding: "0.05em 0.35em",
+                           borderRadius: "0.2em",
+                           fontSize: "0.68rem",
+                           fontWeight: 700,
+                           whiteSpace: "nowrap",
+                         }}
+                       >
+                         ⚠ Not for this band
+                       </small>
+                     )}
+                   </div>
                   {song.artist && (
                     <div style={{ fontSize: "0.75rem", color: "var(--pico-muted-color)" }}>
                       {song.artist}

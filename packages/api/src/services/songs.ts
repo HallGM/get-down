@@ -11,6 +11,8 @@ import { z } from "zod";
 import * as songsRepo from "../repository/songs.js";
 import * as gigsRepo from "../repository/gigs.js";
 import * as prefsRepo from "../repository/gig_song_preferences.js";
+import * as exclusionsRepo from "../repository/song_service_exclusions.js";
+import * as servicesRepo from "../repository/services.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { withTransaction } from "../db/init.js";
 import { DEFAULT_SECTION_NAME } from "../constants.js";
@@ -19,25 +21,59 @@ import { formatGigName } from "../utils/gig.js";
 
 export async function getSongs(): Promise<Song[]> {
   const rows = await songsRepo.readSongs();
-  return rows.map(mapSong);
+  const songIds = rows.map(r => r.id);
+  const exclusionsMap = await exclusionsRepo.readExclusionsByMultipleSongIds(songIds);
+  return rows.map(row => mapSong(row, exclusionsMap.get(row.id) ?? []));
 }
 
 export async function getSongById(id: number): Promise<Song> {
   const row = await songsRepo.readSongById(id);
   if (!row) throw new NotFoundError("Song not found");
-  return mapSong(row);
+  const exclusions = await exclusionsRepo.readExclusionsBySongId(id);
+  return mapSong(row, exclusions);
 }
 
 export async function createSong(input: CreateSongRequest): Promise<Song> {
-  const row = await songsRepo.createSong(buildSongMutationInput(input));
-  return mapSong(row);
+  // Normalize and validate excluded service IDs if provided
+  const normalizedExclusions = normalizeExclusionIds(input.excludedServiceIds);
+  if (normalizedExclusions.length > 0) {
+    await validateBandServices(normalizedExclusions);
+  }
+
+  return withTransaction(async () => {
+    const row = await songsRepo.createSong(buildSongMutationInput(input));
+    
+    // Persist exclusions if provided
+    if (normalizedExclusions.length > 0) {
+      await exclusionsRepo.replaceExclusions(row.id, normalizedExclusions);
+    }
+    
+    return mapSong(row, normalizedExclusions);
+  });
 }
 
 export async function updateSong(id: number, input: UpdateSongRequest): Promise<Song> {
   const existing = await getSongById(id);
-  const row = await songsRepo.updateSong(id, buildSongMutationInput(input, existing));
-  if (!row) throw new NotFoundError("Song not found");
-  return mapSong(row);
+  
+  // Normalize and validate excluded service IDs if provided
+  const normalizedExclusions = normalizeExclusionIds(input.excludedServiceIds);
+  if (normalizedExclusions.length > 0) {
+    await validateBandServices(normalizedExclusions);
+  }
+
+  return withTransaction(async () => {
+    const row = await songsRepo.updateSong(id, buildSongMutationInput(input, existing));
+    if (!row) throw new NotFoundError("Song not found");
+    
+    // An explicitly supplied empty array clears all exclusions. Omitted input
+    // preserves the existing exclusions for partial updates.
+    const finalExclusions = input.excludedServiceIds !== undefined
+      ? normalizedExclusions
+      : existing.excludedServiceIds ?? [];
+    await exclusionsRepo.replaceExclusions(id, finalExclusions);
+    
+    return mapSong(row, finalExclusions);
+  });
 }
 
 export async function deleteSong(id: number): Promise<void> {
@@ -47,7 +83,24 @@ export async function deleteSong(id: number): Promise<void> {
 
 export async function getSetList(gigId: number): Promise<SetListItemWithSong[]> {
   const rows = await songsRepo.readSetListByGigId(gigId);
-  return rows.map(mapSetListItemWithSong);
+  const items = rows.map(mapSetListItemWithSong);
+  
+  // Bulk-fetch exclusions for songs
+  const songIds = rows
+    .filter((row) => row.song_id != null)
+    .map((row) => row.song_id as number);
+  if (songIds.length > 0) {
+    const exclusionsBysongId = await exclusionsRepo.readExclusionsByMultipleSongIds(
+      songIds
+    );
+    items.forEach((item) => {
+      if (item.songId && exclusionsBysongId.has(item.songId)) {
+        item.excludedServiceIds = exclusionsBysongId.get(item.songId);
+      }
+    });
+  }
+  
+  return items;
 }
 
 // ─── Add set list item ────────────────────────────────────────────────────────
@@ -424,7 +477,7 @@ export async function buildSetListPdfPayload(gigId: number): Promise<Record<stri
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
-function mapSong(row: songsRepo.SongRow): Song {
+function mapSong(row: songsRepo.SongRow, excludedServiceIds: number[] = []): Song {
   return {
     id: row.id,
     title: row.title,
@@ -438,6 +491,7 @@ function mapSong(row: songsRepo.SongRow): Song {
     airtableId: row.airtable_id ?? undefined,
     duration: row.duration ?? undefined,
     active: row.active,
+    excludedServiceIds: excludedServiceIds.length > 0 ? excludedServiceIds : undefined,
   };
 }
 
@@ -485,9 +539,40 @@ function buildSongMutationInput(
     musicalKey: input.musicalKey?.trim() ?? existing?.musicalKey,
     keyChange: input.keyChange?.trim() ?? existing?.keyChange,
     bpm: input.bpm ?? existing?.bpm,
-    vocalType: input.vocalType ?? existing?.vocalType,
+    vocalType: input.vocalType?.trim() ?? existing?.vocalType,
     airtableId: input.airtableId ?? existing?.airtableId,
     duration: input.duration ?? existing?.duration,
     active: input.active ?? existing?.active ?? true,
   };
+}
+
+// ─── Validation helpers ───────────────────────────────────────────────────────
+
+/**
+ * Validate that every service ID corresponds to an existing service with is_band = true.
+ * Throws BadRequestError if any validation fails.
+ */
+function normalizeExclusionIds(ids?: number[]): number[] {
+  if (!ids || ids.length === 0) return [];
+  
+  // Deduplicate
+  const deduped = Array.from(new Set(ids));
+  
+  // Cap at 50 to prevent DOS/bind-parameter exhaustion
+  if (deduped.length > 50) {
+    throw new BadRequestError("Cannot exclude more than 50 band sizes per song");
+  }
+  
+  return deduped;
+}
+
+async function validateBandServices(serviceIds: number[]): Promise<void> {
+  const allServices = await servicesRepo.readServices();
+  const bandServices = new Set(allServices.filter(s => s.is_band).map(s => s.id));
+  
+  for (const serviceId of serviceIds) {
+    if (!bandServices.has(serviceId)) {
+      throw new BadRequestError(`Service ${serviceId} is not a band-size service`);
+    }
+  }
 }

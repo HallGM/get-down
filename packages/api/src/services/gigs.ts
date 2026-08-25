@@ -302,6 +302,7 @@ function mapGigService(row: gigsRepo.GigServiceRow): Service {
     id: row.id,
     name: row.name,
     priceToClient: row.price_to_client ?? undefined,
+    isBand: row.is_band,
   };
 }
 

@@ -40,6 +40,7 @@ import SongPrefList from "./SongPrefList.js";
 import HousePlaylistPanel from "./HousePlaylistPanel.js";
 import EditSetListItemModal, { type EditSetListItemSubmit } from "./EditSetListItemModal.js";
 import { formatDuration } from "../../utils/formatDuration.js";
+import { isSongExcludedForBandSizes } from "../../utils/songExclusions.js";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -127,6 +128,12 @@ export default function SetListBuilder() {
   const [addSearch, setAddSearch] = useState("");
   const existingSongIds = new Set(setList.map(i => i.songId).filter((id): id is number => id !== undefined));
   const doNotPlaySet = new Set(prefs?.doNotPlays ?? []);
+  
+  // Compute booked band-size service IDs
+  const bookedBandServiceIds = useMemo(
+    () => new Set((gig?.services ?? []).filter(s => s.isBand).map(s => s.id)),
+    [gig?.services]
+  );
 
   const filteredAdd = songs.filter(
     s => !existingSongIds.has(s.id) && (
@@ -367,20 +374,21 @@ export default function SetListBuilder() {
                           />
                         );
                       }
-                      if (entry.type === "song") {
-                        return (
-                          <SortableSetListRow
-                            key={entry.item.id}
-                            item={entry.item}
-                            index={entry.sectionIndex}
-                            removing={removeItem.isPending}
-                            selected={selectedIds.has(entry.item.id)}
-                            onToggleSelect={toggleSelect}
-                            onRemove={(itemId) => removeItem.mutate({ gigId, itemId })}
-                            onEdit={openEdit}
-                          />
-                        );
-                      }
+                       if (entry.type === "song") {
+                         return (
+                           <SortableSetListRow
+                             key={entry.item.id}
+                             item={entry.item}
+                             index={entry.sectionIndex}
+                             removing={removeItem.isPending}
+                             selected={selectedIds.has(entry.item.id)}
+                             onToggleSelect={toggleSelect}
+                             onRemove={(itemId) => removeItem.mutate({ gigId, itemId })}
+                             onEdit={openEdit}
+                             excludedForBandSizeIds={bookedBandServiceIds}
+                           />
+                         );
+                       }
                       // Section duration footer
                       return (
                         <div
@@ -419,49 +427,63 @@ export default function SetListBuilder() {
                   style={{ marginBottom: "0.25rem" }}
                 />
                 {addSearch && filteredAdd.slice(0, 10).map(s => {
-                  const isDnp = doNotPlaySet.has(s.id);
-                  return (
-                    <div
-                      key={s.id}
-                      tabIndex={0}
-                      aria-label={`Add ${s.title}${s.artist ? ` by ${s.artist}` : ""}${isDnp ? " (Do Not Play warning)" : ""} to set list`}
-                      style={{
-                        cursor: "pointer",
-                        padding: "0.3rem 0.5rem",
-                        borderRadius: "var(--pico-border-radius)",
-                        background: "var(--pico-card-background-color)",
-                        border: isDnp
-                          ? "1px solid var(--pico-del-color)"
-                          : "1px solid var(--pico-muted-border-color)",
-                        marginBottom: "0.15rem",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.4rem",
-                        flexWrap: "wrap",
-                      }}
-                      onClick={() => { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); }}
-                      onKeyDown={e => { if (e.key === "Enter") { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); } }}
-                    >
-                      <strong>{s.title}</strong>
-                      {s.artist && <span style={{ color: "var(--pico-muted-color)" }}>· {s.artist}</span>}
-                      {s.musicalKey && <small style={{ marginLeft: "0.2rem" }}>{s.musicalKey}</small>}
-                      {s.vocalType && <small style={{ color: "var(--pico-muted-color)" }}>({s.vocalType})</small>}
-                      {isDnp && (
-                        <small style={{
-                          marginLeft: "auto",
-                          background: "var(--pico-del-color)",
-                          color: "#fff",
-                          padding: "0.05em 0.4em",
-                          borderRadius: "0.2em",
-                          fontWeight: 700,
-                          fontSize: "0.7rem",
-                        }}>
-                          ⚠ Do Not Play
-                        </small>
-                      )}
-                    </div>
-                  );
-                })}
+                   const isDnp = doNotPlaySet.has(s.id);
+                   const isExcluded = isSongExcludedForBandSizes(s.excludedServiceIds, bookedBandServiceIds);
+                   return (
+                     <div
+                       key={s.id}
+                       tabIndex={0}
+                       aria-label={`Add ${s.title}${s.artist ? ` by ${s.artist}` : ""}${isDnp ? " (Do Not Play warning)" : ""}${isExcluded ? " (Not suitable for booked band size)" : ""} to set list`}
+                       style={{
+                         cursor: "pointer",
+                         padding: "0.3rem 0.5rem",
+                         borderRadius: "var(--pico-border-radius)",
+                         background: "var(--pico-card-background-color)",
+                         border: isDnp || isExcluded
+                           ? "1px solid var(--pico-del-color)"
+                           : "1px solid var(--pico-muted-border-color)",
+                         marginBottom: "0.15rem",
+                         display: "flex",
+                         alignItems: "center",
+                         gap: "0.4rem",
+                         flexWrap: "wrap",
+                       }}
+                       onClick={() => { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); }}
+                       onKeyDown={e => { if (e.key === "Enter") { addItem.mutate({ gigId, songId: s.id }); setAddSearch(""); } }}
+                     >
+                       <strong>{s.title}</strong>
+                       {s.artist && <span style={{ color: "var(--pico-muted-color)" }}>· {s.artist}</span>}
+                       {s.musicalKey && <small style={{ marginLeft: "0.2rem" }}>{s.musicalKey}</small>}
+                       {s.vocalType && <small style={{ color: "var(--pico-muted-color)" }}>({s.vocalType})</small>}
+                       {isDnp && (
+                         <small style={{
+                           marginLeft: "auto",
+                           background: "var(--pico-del-color)",
+                           color: "#fff",
+                           padding: "0.05em 0.4em",
+                           borderRadius: "0.2em",
+                           fontWeight: 700,
+                           fontSize: "0.7rem",
+                         }}>
+                           ⚠ Do Not Play
+                         </small>
+                       )}
+                       {isExcluded && (
+                         <small style={{
+                           marginLeft: isExcluded && !isDnp ? "auto" : "0",
+                           background: "var(--pico-del-color)",
+                           color: "#fff",
+                           padding: "0.05em 0.4em",
+                           borderRadius: "0.2em",
+                           fontWeight: 700,
+                           fontSize: "0.7rem",
+                         }}>
+                           ⚠ Not for this band size
+                         </small>
+                       )}
+                     </div>
+                   );
+                 })}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                 <button
@@ -509,14 +531,15 @@ export default function SetListBuilder() {
           </section>
         </div>
 
-        {/* Right column: house playlist panel */}
-        <HousePlaylistPanel
-          songs={housePlaylist}
-          setListSongIds={existingSongIds}
-          doNotPlayIds={doNotPlaySet}
-          onAdd={(songId) => addFromHouse.mutate({ gigId, songId })}
-          isAdding={addFromHouse.isPending}
-        />
+         {/* Right column: house playlist panel */}
+         <HousePlaylistPanel
+           songs={housePlaylist}
+           setListSongIds={existingSongIds}
+           doNotPlayIds={doNotPlaySet}
+           excludedForBandSizeIds={bookedBandServiceIds}
+           onAdd={(songId) => addFromHouse.mutate({ gigId, songId })}
+           isAdding={addFromHouse.isPending}
+         />
       </div>
 
       {/* Edit / create modal */}

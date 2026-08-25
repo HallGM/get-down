@@ -3,6 +3,7 @@ import { z } from "zod";
 import * as gigsRepo from "../repository/gigs.js";
 import * as prefsRepo from "../repository/gig_song_preferences.js";
 import * as songsRepo from "../repository/songs.js";
+import * as exclusionsRepo from "../repository/song_service_exclusions.js";
 import { NotFoundError, BadRequestError } from "../errors.js";
 import { withTransaction } from "../db/init.js";
 import { parseOrBadRequest } from "../utils/parse.js";
@@ -56,10 +57,24 @@ export async function getClientForm(token: string): Promise<ClientFormResponse> 
     gigsRepo.readGigServicesByGigId(gig.id),
   ]);
 
+  // Compute booked band-size service IDs
+  const bookedBandServiceIds = services.filter(s => s.is_band).map(s => s.id);
+
+  // Bulk fetch exclusions for all songs
+  const songIds = allSongs.map(s => s.id);
+  const exclusionsMap = await exclusionsRepo.readExclusionsByMultipleSongIds(songIds);
+
+  // Filter out songs excluded for any of the booked band-size services
+  const filteredSongs = allSongs.filter(song => {
+    if (!song.active) return false;
+    const exclusions = exclusionsMap.get(song.id) ?? [];
+    // Exclude if any exclusion matches a booked band-size service
+    return !exclusions.some(serviceId => bookedBandServiceIds.includes(serviceId));
+  });
+
   // Group songs by genre, preserving the canonical Fillout order.
   const genreMap = new Map<string, { id: number; title: string; artist?: string }[]>();
-  for (const song of allSongs) {
-    if (!song.active) continue;
+  for (const song of filteredSongs) {
     const genre = song.genre_name ?? "Other";
     if (!genreMap.has(genre)) genreMap.set(genre, []);
     genreMap.get(genre)!.push({

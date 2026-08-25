@@ -1132,6 +1132,7 @@ export interface Song {
   airtableId?: string;
   duration?: number;
   active: boolean;
+  excludedServiceIds?: number[];
 }
 
 export interface CreateSongRequest {
@@ -1145,6 +1146,7 @@ export interface CreateSongRequest {
   airtableId?: string;
   duration?: number;
   active?: boolean;
+  excludedServiceIds?: number[];
 }
 
 export interface UpdateSongRequest {
@@ -1158,6 +1160,7 @@ export interface UpdateSongRequest {
   airtableId?: string;
   duration?: number;
   active?: boolean;
+  excludedServiceIds?: number[];
 }
 
 export interface SetListItem {
@@ -1190,6 +1193,7 @@ export interface SetListItemWithSong extends SetListItem {
   isMustPlay: boolean;
   isFavourite: boolean;
   isDoNotPlay: boolean;
+  excludedServiceIds?: number[];
 }
 
 export interface CreateSetListItemRequest {
@@ -1237,6 +1241,7 @@ export interface HousePlaylistSong {
   artist?: string;
   musicalKey?: string;
   vocalType?: string;
+  excludedServiceIds?: number[];
 }
 
 export interface CreateHousePlaylistEntryRequest {

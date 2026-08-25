@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from "../../api/hooks/useSongs.js";
 import { useHousePlaylist, useAddToHousePlaylist, useRemoveFromHousePlaylist } from "../../api/hooks/useHousePlaylist.js";
 import { useGenres, useCreateGenre, useDeleteGenre } from "../../api/hooks/useGenres.js";
+import { useServices } from "../../api/hooks/useServices.js";
 import type { CreateSongRequest, UpdateSongRequest, Song } from "@get-down/shared";
 import { formatDuration } from "../../utils/formatDuration.js";
 import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
@@ -51,8 +52,10 @@ export default function SongsList() {
   const { data: genres = [] } = useGenres();
   const createGenre = useCreateGenre();
   const deleteGenre = useDeleteGenre();
+  const { data: services = [] } = useServices();
 
   const houseIds = new Set(housePlaylist.map(h => h.songId));
+  const bandServices = services.filter(s => s.isBand);
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CreateSongRequest>(EMPTY_FORM);
@@ -81,7 +84,17 @@ export default function SongsList() {
 
   function openEdit(s: Song) {
     setEditTarget(s);
-    setEditForm({ title: s.title, artist: s.artist, genreId: s.genreId, musicalKey: s.musicalKey, keyChange: s.keyChange, vocalType: s.vocalType, duration: s.duration, active: s.active });
+    setEditForm({ 
+      title: s.title, 
+      artist: s.artist, 
+      genreId: s.genreId, 
+      musicalKey: s.musicalKey, 
+      keyChange: s.keyChange, 
+      vocalType: s.vocalType, 
+      duration: s.duration, 
+      active: s.active,
+      excludedServiceIds: s.excludedServiceIds ?? [],
+    });
   }
 
   async function handleAddGenre(e: React.FormEvent) {
@@ -174,6 +187,13 @@ export default function SongsList() {
               <DurationInput value={form.duration} onChange={(v) => setForm((f) => ({ ...f, duration: v }))} />
             </div>
           </div>
+          {bandServices.length > 0 && (
+            <BandSizeExclusionsFieldset
+              bandServices={bandServices}
+              excludedServiceIds={form.excludedServiceIds}
+              onChange={(ids) => setForm((f) => ({ ...f, excludedServiceIds: ids }))}
+            />
+          )}
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="secondary" onClick={() => setShowCreate(false)}>Cancel</button>
             <button type="submit" aria-busy={createSong.isPending} disabled={createSong.isPending}>Create</button>
@@ -206,7 +226,7 @@ export default function SongsList() {
                 <option value="Instrumental">Instrumental</option>
               </select>
             </div>
-            <div>
+             <div>
               <label>Duration</label>
               <DurationInput value={editForm.duration} onChange={(v) => setEditForm((f) => ({ ...f, duration: v }))} />
             </div>
@@ -222,6 +242,13 @@ export default function SongsList() {
               Active (visible to clients)
             </label>
           </div>
+          {bandServices.length > 0 && (
+            <BandSizeExclusionsFieldset
+              bandServices={bandServices}
+              excludedServiceIds={editForm.excludedServiceIds}
+              onChange={(ids) => setEditForm((f) => ({ ...f, excludedServiceIds: ids }))}
+            />
+          )}
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="contrast outline" onClick={() => { setDeleteTarget(editTarget); setEditTarget(null); }}>Delete</button>
             <button type="button" className="secondary" onClick={() => setEditTarget(null)}>Cancel</button>
@@ -287,5 +314,49 @@ export default function SongsList() {
         />
       )}
     </main>
+  );
+}
+
+// Helper component for band-size exclusions fieldset
+interface BandSizeExclusionsFieldsetProps {
+  bandServices: Array<{ id: number; name: string }>;
+  excludedServiceIds: number[] | undefined;
+  onChange: (ids: number[]) => void;
+}
+
+function BandSizeExclusionsFieldset({
+  bandServices,
+  excludedServiceIds,
+  onChange,
+}: BandSizeExclusionsFieldsetProps) {
+  if (bandServices.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: "1rem" }}>
+      <fieldset style={{ border: "1px solid var(--pico-muted-border-color)", borderRadius: "var(--pico-border-radius)", padding: "1rem" }}>
+        <legend style={{ paddingLeft: "0.5rem", paddingRight: "0.5rem" }}>Not suitable for band sizes</legend>
+        <small style={{ display: "block", marginBottom: "0.5rem", color: "var(--pico-muted-color)" }}>Songs excluded for these band sizes won&apos;t be shown to clients booking those packages.</small>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {bandServices.map(service => (
+            <label key={service.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={(excludedServiceIds ?? []).includes(service.id)}
+                onChange={(e) => {
+                  const current = excludedServiceIds ?? [];
+                  if (e.target.checked) {
+                    onChange([...current, service.id]);
+                  } else {
+                    onChange(current.filter(id => id !== service.id));
+                  }
+                }}
+                style={{ width: "1rem", height: "1rem", flexShrink: 0, margin: 0 }}
+              />
+              {service.name}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    </div>
   );
 }
