@@ -4,7 +4,6 @@ import { useYearFilterData } from "../../hooks/useYearFilter.js";
 import { useExpenses, useDeleteExpense } from "../../api/hooks/useExpenses.js";
 import { useFeeAllocations } from "../../api/hooks/useFeeAllocations.js";
 import { useAllAttributionFees } from "../../api/hooks/useAttributionFees.js";
-import { useGigs } from "../../api/hooks/useGigs.js";
 import type { Expense } from "@get-down/shared";
 import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import PaymentStatusBadge from "../../components/PaymentStatusBadge.js";
@@ -14,10 +13,8 @@ import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
 import ExpenseModal from "../../components/ExpenseModal.js";
 import ExpenseCreateModal from "../../components/ExpenseCreateModal.js";
-import GigLink from "../../components/GigLink.js";
 import YearFilterBar from "../../components/YearFilterBar.js";
 import { formatDate } from "../../utils/date.js";
-import { formatGigName } from "../../utils/people.js";
 import RunningTotal from "../../components/RunningTotal.js";
 
 /**
@@ -36,7 +33,6 @@ export default function ExpensesList() {
   const { data: expenses, isLoading, error } = useExpenses();
   const { data: allAllocations = [] } = useFeeAllocations();
   const { data: allAttributionFees = [] } = useAllAttributionFees();
-  const { data: allGigs = [] } = useGigs();
   const deleteExpense = useDeleteExpense();
 
   const [showCreate, setShowCreate] = useState(false);
@@ -59,7 +55,7 @@ export default function ExpensesList() {
     [filteredExpenses]
   );
 
-  // Build columns with gig name resolution
+  // Build expense columns
   const columns = useMemo(() => {
     const cols: Column<Expense>[] = [
       { key: "date", header: "Date", sortable: true, render: (e) => formatDate(e.date) },
@@ -73,14 +69,6 @@ export default function ExpensesList() {
       },
       { key: "recipientName", header: "Recipient", render: (e) => e.recipientName ?? "—" },
       {
-        key: "gig",
-        header: "Gig",
-        render: (e) => {
-          if (!e.linkedCardCharge) return null;
-          return <GigLink gigId={e.linkedCardCharge.gigId} gigs={allGigs} />;
-        },
-      },
-      {
         key: "documentUrl",
         header: "Document",
         render: (e) =>
@@ -92,7 +80,7 @@ export default function ExpensesList() {
       },
     ];
     return cols;
-  }, [allGigs]);
+  }, []);
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
   if (error) return <main className="container"><ErrorBanner error={error} /></main>;

@@ -51,6 +51,21 @@ export async function readAllExpenses(): Promise<ExpenseRow[]> {
   });
 }
 
+export async function readCardChargesByExpenseIds(
+  expenseIds: number[]
+): Promise<Map<number, { id: number; invoice_id: number | null; gig_id: number }>> {
+  if (expenseIds.length === 0) return new Map();
+  const rows = await run_query<{ id: number; invoice_id: number | null; gig_id: number; expense_id: number }>({
+    text: `
+      SELECT icc.id, icc.invoice_id, icc.gig_id, icc.expense_id
+      FROM invoice_card_charges icc
+      WHERE icc.expense_id = ANY($1::int[]);
+    `,
+    values: [expenseIds],
+  });
+  return new Map(rows.map((row) => [row.expense_id, row]));
+}
+
 export async function readExpenseById(id: number): Promise<ExpenseRow | null> {
   const rows = await run_query<ExpenseRow>({
     text: `SELECT ${SELECT_COLS} FROM expenses WHERE id = $1 LIMIT 1;`,
@@ -169,7 +184,7 @@ export async function readCardChargeByExpenseId(
     text: `
       SELECT icc.id, icc.invoice_id, inv.gig_id
       FROM invoice_card_charges icc
-      JOIN invoices inv ON inv.id = icc.invoice_id
+      LEFT JOIN invoices inv ON inv.id = icc.invoice_id
       WHERE icc.expense_id = $1
       LIMIT 1;
     `,

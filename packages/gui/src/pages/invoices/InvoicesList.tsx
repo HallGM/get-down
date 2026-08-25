@@ -10,6 +10,7 @@ import DateCell from "../../components/DateCell.js";
 import YearFilterBar from "../../components/YearFilterBar.js";
 import SearchInput from "../../components/SearchInput.js";
 import DataTable, { type Column } from "../../components/DataTable.js";
+import { gigUrl } from "../../utils/gigUrl.js";
 
 // ---------------------------------------------------------------------------
 // Filter predicate (module-scope keeps the reference stable for useSearch)
@@ -109,7 +110,7 @@ export default function InvoicesList() {
         <DataTable<Invoice>
           columns={COLUMNS}
           data={displayed}
-          rowHref={(inv) => `/gigs/${inv.gigId}?tab=billing`}
+          rowHref={(inv) => gigUrl(inv.gigId, "billing")}
           hideSearch
         />
       )}

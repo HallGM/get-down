@@ -20,11 +20,12 @@ import { resolvePersonRowName } from "../utils/person.js";
 export async function getAllExpenses(): Promise<Expense[]> {
   const rows = await expensesRepo.readAllExpenses();
   const ids = rows.map((r) => r.id);
-  const [allocationMap, attributionFeeMap, paymentStatusMap, personInvoiceMap] = await Promise.all([
+  const [allocationMap, attributionFeeMap, paymentStatusMap, personInvoiceMap, cardChargeMap] = await Promise.all([
     expensesRepo.readAllocationIdsByExpenseIds(ids),
     expensesRepo.readAttributionFeeIdsByExpenseIds(ids),
     expensePaymentsRepo.readPaymentStatusByExpenseIds(ids),
     personInvoicesRepo.readPersonInvoicesByExpenseIds(ids),
+    expensesRepo.readCardChargesByExpenseIds(ids),
   ]);
   const personMap = await resolvePeopleForPersonInvoices(personInvoiceMap);
   return Promise.all(rows.map(async (row) => {
@@ -33,12 +34,11 @@ export async function getAllExpenses(): Promise<Expense[]> {
     const documentUrl = await tryGetPresignedUrl(row.document_key);
     const personInvoice = personInvoiceMap.get(row.id);
     const person = personInvoice ? personMap.get(personInvoice.person_id) : null;
-    // For list endpoint, linkedCardCharge is null - callers that need it can use getExpenseById or assembleExpense
     return mapExpense(row, allocationMap.get(row.id) ?? [], attributionFeeMap.get(row.id) ?? [], totalPaid, {
       documentUrl,
       personInvoice,
       person,
-      linkedCardCharge: null,
+      linkedCardCharge: cardChargeMap.get(row.id) ?? null,
     });
   }));
 }
@@ -251,7 +251,7 @@ export interface MapExpenseOptions {
   documentUrl?: string;
   personInvoice?: personInvoicesRepo.PersonInvoiceByExpenseRow | null;
   person?: peopleRepo.PersonRow | null;
-  linkedCardCharge?: { id: number; invoice_id: number; gig_id: number } | null;
+  linkedCardCharge?: { id: number; invoice_id: number | null; gig_id: number } | null;
 }
 
 export function mapExpense(
@@ -327,4 +327,3 @@ async function resolvePeopleForPersonInvoices(
   );
   return peopleRepo.readPeopleByIds(personIds);
 }
-
