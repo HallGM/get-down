@@ -773,7 +773,7 @@ export interface Expense {
   /** When present, this expense was auto-created for a person invoice (no manual document upload possible). */
   personInvoice?: { id: number; invoiceNumber: string; personName: string };
   /** When present, this expense is linked to a card charge and some fields are synced (description, amount). */
-  linkedCardCharge?: { id: number; invoiceId: number; gigId: number };
+  linkedCardCharge?: { id: number; invoiceId: number | null; gigId: number };
 }
 
 export interface CreateExpenseRequest {

@@ -21,6 +21,8 @@ import { useViewPersonInvoicePdf } from "../api/hooks/usePersonInvoices.js";
 import { useAddCardCharge, useUpdateCardCharge, useGigInvoices } from "../api/hooks/useInvoices.js";
 import { useAccounts } from "../api/hooks/useAccounts.js";
 import { useRecordPaymentForm } from "../api/hooks/useRecordPaymentForm.js";
+import { useGig } from "../api/hooks/useGigs.js";
+import GigLink from "./GigLink.js";
 
 export interface CardChargeContext {
   invoiceId: number | null;
@@ -56,6 +58,8 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
   const updateCardCharge = useUpdateCardCharge();
   const { data: accounts = [] } = useAccounts();
   const { data: invoices = [] } = useGigInvoices(cardChargeContext?.gigId ?? 0);
+  const linkedGigId = expense?.linkedCardCharge?.gigId ?? cardChargeContext?.gigId;
+  const { data: linkedGig, isLoading: linkedGigLoading, error: linkedGigError } = useGig(linkedGigId ?? 0);
 
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState<number | undefined>(undefined);
@@ -282,16 +286,35 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
-          <FormField
-            label="Category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          />
+           {!expense?.linkedCardCharge && !cardChargeContext && (
+            <FormField
+              label="Category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            />
+          )}
            <FormField
              label="Recipient"
              value={recipientName}
              onChange={(e) => setRecipientName(e.target.value)}
            />
+
+           {linkedGigId && (
+             <div style={{ gridColumn: "1 / -1" }}>
+               <small><strong>Linked gig</strong></small>
+               <div style={{ marginTop: "0.25rem" }}>
+                 {linkedGigLoading ? (
+                   <small>Loading gig…</small>
+                 ) : linkedGigError ? (
+                   <small style={{ color: "var(--pico-color-red-500)" }}>Unable to load gig</small>
+                 ) : linkedGig ? (
+                   <GigLink gigId={linkedGig.id} gigs={[linkedGig]} tab="billing" />
+                 ) : (
+                   <small style={{ color: "var(--pico-color-red-500)" }}>Gig not found</small>
+                 )}
+               </div>
+             </div>
+           )}
 
            {/* Tax-only toggle - only for normal expense editing */}
            {!cardChargeContext && expense && (
@@ -409,7 +432,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
            )}
 
            {/* Linked fee allocations */}
-          {expense && (
+           {expense && !expense.linkedCardCharge && !cardChargeContext && (
             <div style={{ gridColumn: "1 / -1" }}>
               <small><strong>Linked fee allocations</strong></small>
               <LinkedItemsSection
