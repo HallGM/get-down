@@ -2,6 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { SetListItemWithSong } from "@get-down/shared";
 import { formatDuration } from "../../utils/formatDuration.js";
+import { isSongExcludedForBandSizes } from "../../utils/songExclusions.js";
 import Badge from "../../components/Badge.js";
 
 interface Props {
@@ -12,9 +13,10 @@ interface Props {
   selected: boolean;
   onToggleSelect: (itemId: number) => void;
   onEdit: (item: SetListItemWithSong) => void;
+  excludedForBandSizeIds?: Set<number>;
 }
 
-export default function SortableSetListRow({ item, index, onRemove, removing, selected, onToggleSelect, onEdit }: Props) {
+export default function SortableSetListRow({ item, index, onRemove, removing, selected, onToggleSelect, onEdit, excludedForBandSizeIds }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
 
@@ -32,6 +34,12 @@ export default function SortableSetListRow({ item, index, onRemove, removing, se
   const displayDuration = isUnlinked
     ? item.duration
     : (item.overrideDuration ?? item.duration);
+
+  // Check if this song is excluded for any booked band-size
+  const isExcludedForBandSize = isSongExcludedForBandSizes(
+    item.excludedServiceIds,
+    excludedForBandSizeIds ?? new Set()
+  );
 
   const rowStyle: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -145,9 +153,11 @@ export default function SortableSetListRow({ item, index, onRemove, removing, se
         )}
       </div>
 
-      {/* Badges column — DNP takes priority, then Must Play, then Fav */}
+      {/* Badges column — DNP takes priority, then excluded for band size, then Must Play, then Fav */}
       {item.isDoNotPlay ? (
         <Badge label="⚠ DNP" background="var(--pico-del-color)" fontSize="0.7rem" style={{ padding: "0.1em 0.4em", fontWeight: 700 }} />
+      ) : isExcludedForBandSize ? (
+        <Badge label="⚠ Not for this band" background="var(--pico-del-color)" fontSize="0.7rem" style={{ padding: "0.1em 0.4em", fontWeight: 700 }} />
       ) : item.isMustPlay ? (
         <Badge label="MUST PLAY" background="var(--pico-del-color)" fontSize="0.7rem" style={{ padding: "0.1em 0.4em" }} />
       ) : item.isFavourite ? (

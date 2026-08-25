@@ -193,6 +193,10 @@ export function getFirstName(name?: string): string {
 
 const checkHasMusic = createCheckHas([
   "Live Band (3/5/7 piece)",
+  "Live Band (3-piece)",
+  "Live Band (4-piece)",
+  "Live Band (5-piece)",
+  "Live Band (7-piece)",
   "Singing Waiting",
   "Bagpipes",
   "Acoustic Duo",
@@ -202,7 +206,13 @@ const checkHasMusic = createCheckHas([
   "Ceilidh",
 ]);
 const checkHasVideoOrPhoto = createCheckHas(["Wedding Film", "Photography"]);
-const checkHasBand = createCheckHas(["Live Band (3/5/7 piece)"]);
+const checkHasBand = createCheckHas([
+  "Live Band (3/5/7 piece)",
+  "Live Band (3-piece)",
+  "Live Band (4-piece)",
+  "Live Band (5-piece)",
+  "Live Band (7-piece)",
+]);
 const checkHasCeilidh = createCheckHas(["Ceilidh"]);
 const checkHasSingingWaiter = createCheckHas(["Singing Waiting"]);
 

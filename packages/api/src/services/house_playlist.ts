@@ -2,10 +2,26 @@ import type { HousePlaylistSong } from "@get-down/shared";
 import * as repo from "../repository/house_playlist.js";
 import { NotFoundError } from "../errors.js";
 import * as songsRepo from "../repository/songs.js";
+import * as exclusionsRepo from "../repository/song_service_exclusions.js";
 
 export async function getHousePlaylist(): Promise<HousePlaylistSong[]> {
   const rows = await repo.readHousePlaylist();
-  return rows.map(repo.mapHousePlaylistRow);
+  const items = rows.map(repo.mapHousePlaylistRow);
+  
+  // Bulk-fetch exclusions for songs
+  const songIds = rows.map((row) => row.song_id);
+  if (songIds.length > 0) {
+    const exclusionsBySongId = await exclusionsRepo.readExclusionsByMultipleSongIds(
+      songIds
+    );
+    items.forEach((item) => {
+      if (exclusionsBySongId.has(item.songId)) {
+        item.excludedServiceIds = exclusionsBySongId.get(item.songId);
+      }
+    });
+  }
+  
+  return items;
 }
 
 export async function addToHousePlaylist(songId: number): Promise<HousePlaylistSong> {

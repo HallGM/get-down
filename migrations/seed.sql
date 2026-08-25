@@ -19,7 +19,14 @@ BEGIN
   END IF;
 END $$;
 
-INSERT INTO services (name) VALUES ('Live Band (3/5/7 piece)') ON CONFLICT DO NOTHING;
+INSERT INTO services (name, is_band) VALUES ('Live Band (3-piece)', true)
+ON CONFLICT (name) DO UPDATE SET is_band = EXCLUDED.is_band;
+INSERT INTO services (name, is_band) VALUES ('Live Band (4-piece)', true)
+ON CONFLICT (name) DO UPDATE SET is_band = EXCLUDED.is_band;
+INSERT INTO services (name, is_band) VALUES ('Live Band (5-piece)', true)
+ON CONFLICT (name) DO UPDATE SET is_band = EXCLUDED.is_band;
+INSERT INTO services (name, is_band) VALUES ('Live Band (7-piece)', true)
+ON CONFLICT (name) DO UPDATE SET is_band = EXCLUDED.is_band;
 INSERT INTO services (name) VALUES ('Wedding Film')            ON CONFLICT DO NOTHING;
 INSERT INTO services (name) VALUES ('Photography')             ON CONFLICT DO NOTHING;
 INSERT INTO services (name) VALUES ('Singing Waiting')         ON CONFLICT DO NOTHING;
