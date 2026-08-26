@@ -31,6 +31,7 @@ import clientForm from "./controllers/client_form.js";
 import delivery from "./controllers/delivery.js";
 import accounting from "./controllers/accounting.js";
 import dashboard from "./controllers/dashboard.js";
+import vat from "./controllers/vat.js";
 import { AppError } from "./errors.js";
 
 const app: express.Express = express();
@@ -65,6 +66,7 @@ app.use("/", housePlaylist);
 app.use("/", enquiries);
 app.use("/", accounting);
 app.use("/", dashboard);
+app.use("/", vat);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
