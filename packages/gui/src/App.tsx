@@ -32,6 +32,7 @@ import FeeAllocationsList from "./pages/fee-allocations/FeeAllocationsList.js";
 import ExpensePaymentsPage from "./pages/expense-payments/ExpensePaymentsPage.js";
 import GigPaymentsPage from "./pages/gig-payments/GigPaymentsPage.js";
 import InvoicesList from "./pages/invoices/InvoicesList.js";
+import VatPage from "./pages/vat/VatPage.js";
 
 const NAV_LINKS = [
   { to: "/", label: "Dashboard", end: true },
@@ -54,6 +55,7 @@ const MORE_LINKS = [
   { to: "/expense-payments", label: "Expense payments" },
   { to: "/gig-payments", label: "Gig payments" },
   { to: "/invoices", label: "Invoices" },
+  { to: "/vat", label: "VAT" },
 ];
 
 const navLinkStyle: NavLinkProps["style"] = ({ isActive }) => ({
@@ -205,6 +207,7 @@ export default function App() {
           <Route path="/expense-payments" element={<ExpensePaymentsPage />} />
           <Route path="/gig-payments" element={<GigPaymentsPage />} />
           <Route path="/invoices" element={<InvoicesList />} />
+          <Route path="/vat" element={<VatPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

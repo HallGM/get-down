@@ -878,6 +878,31 @@ export interface GigPaymentSummary {
   subtype?: 'credit' | 'adjustment' | 'write_off';
 }
 
+export type VatPeriodMode = "before" | "after";
+
+export interface VatTransaction {
+  id: number;
+  type: "payment" | "refund";
+  date: string;
+  amount: number;
+  effect: number;
+  clientFirstName: string;
+  clientLastName: string;
+  refundSubtype?: "credit" | "adjustment";
+  runningTotal: number;
+}
+
+export interface VatReport {
+  mode: VatPeriodMode;
+  selectedDate: string;
+  periodStart: string;
+  periodEnd: string;
+  turnover: number;
+  undatedPayments: number;
+  undatedRefunds: number;
+  transactions: VatTransaction[];
+}
+
 export interface CreatePaymentRequest {
   gigId: number;
   date?: string;
