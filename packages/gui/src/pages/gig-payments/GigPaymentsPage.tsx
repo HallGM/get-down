@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import type { GigPaymentSummary, Refund, UpdatePaymentRequest, UpdateRefundRequest } from "@get-down/shared";
-import { REFUND_SUBTYPE_DEFAULT } from "@get-down/shared";
+import { calcTransactionEffect, REFUND_SUBTYPE_DEFAULT } from "@get-down/shared";
 import { useSearch } from "../../hooks/useSearch.js";
 import { useAllGigPayments, useUpdatePayment } from "../../api/hooks/usePayments.js";
 import { useUpdateRefund } from "../../api/hooks/useRefunds.js";
@@ -54,7 +54,7 @@ export default function GigPaymentsPage() {
   const { search, setSearch, displayed: displayedRows } = useSearch(filtered, filterGigPayment);
 
   const netTotal = useMemo(
-    () => displayedRows.reduce((sum, s) => (s.type === "payment" ? sum + s.amount : sum - s.amount), 0),
+    () => displayedRows.reduce((sum, s) => sum + calcTransactionEffect(s.type, s.amount), 0),
     [displayedRows],
   );
 

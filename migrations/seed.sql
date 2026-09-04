@@ -645,6 +645,113 @@ BEGIN
   END IF;
 END $$;
 
+-- ─── Dev-only: VAT rolling-period test data ───────────────────────────────────
+-- Creates dated activity across the last 18 months so the VAT page has enough
+-- variation to exercise rolling windows, refunds, empty periods, and future
+-- selected dates. All records are identified by stable descriptions and are
+-- safe to seed repeatedly.
+DO $$
+DECLARE
+  v_gig_id int;
+  v_i int;
+BEGIN
+  IF current_setting('app.env', true) IS DISTINCT FROM 'production' THEN
+    FOR v_i IN 0..17 LOOP
+      INSERT INTO gigs (first_name, last_name, date, status, total_price,
+                        travel_cost, discount_percent, venue_name, location)
+      SELECT 'VAT Seed ' || v_i, 'Client', CURRENT_DATE - (v_i * INTERVAL '1 month'),
+             'completed', 120000 + (v_i * 5000), 0, 0,
+             'Dev Seed: VAT Test Venue ' || v_i, 'Edinburgh'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM gigs
+        WHERE first_name = 'VAT Seed ' || v_i AND last_name = 'Client'
+      );
+
+      SELECT id INTO v_gig_id FROM gigs
+      WHERE first_name = 'VAT Seed ' || v_i AND last_name = 'Client';
+
+      -- Two dated payments per gig make the received-date behaviour visible.
+      INSERT INTO payments (gig_id, date, amount, method, description)
+      SELECT v_gig_id, CURRENT_DATE - (v_i * INTERVAL '1 month'),
+             60000 + (v_i * 2500), 'Bank transfer',
+             'Dev Seed: VAT payment ' || v_i || 'a'
+      WHERE v_gig_id IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM payments WHERE description = 'Dev Seed: VAT payment ' || v_i || 'a'
+        );
+
+      INSERT INTO payments (gig_id, date, amount, method, description)
+      SELECT v_gig_id, CURRENT_DATE - (v_i * INTERVAL '1 month') + INTERVAL '10 days',
+             30000 + (v_i * 1000), 'Card',
+             'Dev Seed: VAT payment ' || v_i || 'b'
+      WHERE v_gig_id IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM payments WHERE description = 'Dev Seed: VAT payment ' || v_i || 'b'
+        );
+
+      -- Every fourth gig has a credit refund and every sixth has an adjustment.
+      IF v_i % 4 = 0 THEN
+        INSERT INTO refunds (gig_id, date, amount, method, description, subtype)
+        SELECT v_gig_id, CURRENT_DATE - (v_i * INTERVAL '1 month') + INTERVAL '15 days',
+               5000, 'Bank transfer', 'Dev Seed: VAT credit refund ' || v_i, 'credit'
+        WHERE v_gig_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM refunds WHERE description = 'Dev Seed: VAT credit refund ' || v_i
+          );
+      END IF;
+
+      IF v_i % 6 = 0 THEN
+        INSERT INTO refunds (gig_id, date, amount, method, description, subtype)
+        SELECT v_gig_id, CURRENT_DATE - (v_i * INTERVAL '1 month') + INTERVAL '20 days',
+               2500, 'Bank transfer', 'Dev Seed: VAT adjustment refund ' || v_i, 'adjustment'
+        WHERE v_gig_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM refunds WHERE description = 'Dev Seed: VAT adjustment refund ' || v_i
+          );
+      END IF;
+    END LOOP;
+
+    -- A write-off must be ignored by VAT turnover even though it is dated.
+    SELECT id INTO v_gig_id FROM gigs
+    WHERE first_name = 'VAT Seed 0' AND last_name = 'Client';
+    INSERT INTO refunds (gig_id, date, amount, method, description, subtype)
+    SELECT v_gig_id, CURRENT_DATE - INTERVAL '5 days', 9000, 'Bank transfer',
+           'Dev Seed: VAT write-off refund', 'write_off'
+    WHERE v_gig_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM refunds WHERE description = 'Dev Seed: VAT write-off refund'
+      );
+
+    -- These dated records are outside a today-ending period but are useful
+    -- when selecting a future period. They are real data, not predictions.
+    SELECT id INTO v_gig_id FROM gigs
+    WHERE first_name = 'VAT Seed 0' AND last_name = 'Client';
+    INSERT INTO payments (gig_id, date, amount, method, description)
+    SELECT v_gig_id, CURRENT_DATE + INTERVAL '2 months', 45000, 'Bank transfer',
+           'Dev Seed: VAT future payment'
+    WHERE v_gig_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM payments WHERE description = 'Dev Seed: VAT future payment'
+      );
+
+    -- Undated records verify that the report excludes them and reports their
+    -- counts separately.
+    INSERT INTO payments (gig_id, date, amount, method, description)
+    SELECT v_gig_id, NULL, 10000, 'Bank transfer', 'Dev Seed: VAT undated payment'
+    WHERE v_gig_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM payments WHERE description = 'Dev Seed: VAT undated payment'
+      );
+
+    INSERT INTO refunds (gig_id, date, amount, method, description, subtype)
+    SELECT v_gig_id, NULL, 3000, 'Bank transfer', 'Dev Seed: VAT undated refund', 'credit'
+    WHERE v_gig_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM refunds WHERE description = 'Dev Seed: VAT undated refund'
+      );
+  END IF;
+END $$;
+
 -- ─── Dev-only: pre-partnership data (before 2024-09-01) ──────────────────────
 -- These records exist solely to verify the partnership start date floor.
 -- They must NOT appear in accounting summary totals or account balances/ledger.

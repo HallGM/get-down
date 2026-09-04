@@ -1,27 +1,43 @@
 import { z } from "zod";
-import type { VatReport } from "@get-down/shared";
+import { calcTransactionEffect } from "@get-down/shared";
+import type { VatGraphPoint, VatReport } from "@get-down/shared";
 import * as repo from "../repository/vat.js";
 import { BadRequestError } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 import { toDateString } from "../utils/date.js";
 
 const RequestSchema = z.object({
-  mode: z.enum(["before", "after"]),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD"),
 });
 
 export async function getReport(input: unknown): Promise<VatReport> {
-  const parsed = parseOrBadRequest(RequestSchema, input);
-  const selected = parseDate(parsed.date);
-  const periodStart = parsed.mode === "before" ? addDays(addMonths(selected, -12), 1) : selected;
-  const periodEnd = parsed.mode === "before" ? selected : addDays(addMonths(selected, 12), -1);
-  const bounds = parsed.mode === "before"
-    ? { start: toDateString(periodStart)!, end: parsed.date }
-    : { start: parsed.date, end: toDateString(periodEnd)! };
-  const [rows, undated] = await Promise.all([repo.readTransactions(bounds.start, bounds.end), repo.readUndatedCounts()]);
+  const { date } = parseOrBadRequest(RequestSchema, input);
+  const selected = parseDate(date);
+  const periodStart = rollingWindowStart(selected);
+  const graphDataStart = rollingWindowStart(periodStart);
+  const [rows, undated] = await Promise.all([
+    repo.readTransactions(toDateString(graphDataStart)!, date),
+    repo.readUndatedCounts(),
+  ]);
+  const datedRows = rows.map((row) => ({ ...row, date: toDateString(row.date)! }));
+  const periodStartString = toDateString(periodStart)!;
+  const transactions = mapTransactions(datedRows.filter((row) => row.date >= periodStartString));
+  return {
+    selectedDate: date,
+    periodStart: toDateString(periodStart)!,
+    periodEnd: date,
+    turnover: transactions.at(-1)?.runningTotal ?? 0,
+    undatedPayments: undated.payments,
+    undatedRefunds: undated.refunds,
+    transactions,
+    graph: buildGraph(periodStart, selected, datedRows),
+  };
+}
+
+function mapTransactions(rows: repo.VatTransactionRow[]): VatReport["transactions"] {
   let runningTotal = 0;
-  const transactions = rows.map((row) => {
-    const effect = row.type === "payment" ? row.amount : -row.amount;
+  return rows.map((row) => {
+    const effect = transactionEffect(row);
     runningTotal += effect;
     return {
       id: row.id,
@@ -35,16 +51,33 @@ export async function getReport(input: unknown): Promise<VatReport> {
       runningTotal,
     };
   });
-  return {
-    mode: parsed.mode,
-    selectedDate: parsed.date,
-    periodStart: bounds.start,
-    periodEnd: bounds.end,
-    turnover: runningTotal,
-    undatedPayments: undated.payments,
-    undatedRefunds: undated.refunds,
-    transactions,
-  };
+}
+
+function buildGraph(
+  graphStart: Date,
+  selectedEnd: Date,
+  transactions: Array<Omit<repo.VatTransactionRow, "date"> & { date: string }>,
+): VatGraphPoint[] {
+  const points: VatGraphPoint[] = [];
+  for (let pointDate = new Date(graphStart); pointDate <= selectedEnd; pointDate = addDays(pointDate, 1)) {
+    const windowStart = rollingWindowStart(pointDate);
+    const pointDateString = toDateString(pointDate)!;
+    const windowStartString = toDateString(windowStart)!;
+    const turnover = transactions.reduce((total, row) => {
+      if (row.date < windowStartString || row.date > pointDateString) return total;
+      return total + transactionEffect(row);
+    }, 0);
+    points.push({ date: pointDateString, turnover });
+  }
+  return points;
+}
+
+function transactionEffect(row: repo.VatTransactionRow): number {
+  return calcTransactionEffect(row.type, row.amount);
+}
+
+function rollingWindowStart(date: Date): Date {
+  return addDays(addMonths(date, -12), 1);
 }
 
 function parseDate(value: string): Date {
@@ -52,6 +85,7 @@ function parseDate(value: string): Date {
   if (Number.isNaN(date.getTime()) || toDateString(date) !== value) throw new BadRequestError("date is not a valid calendar date");
   return date;
 }
+
 function addMonths(date: Date, months: number): Date {
   const d = new Date(date);
   const day = d.getUTCDate();
@@ -61,4 +95,9 @@ function addMonths(date: Date, months: number): Date {
   d.setUTCDate(Math.min(day, daysInTargetMonth));
   return d;
 }
-function addDays(date: Date, days: number): Date { const d = new Date(date); d.setUTCDate(d.getUTCDate() + days); return d; }
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d;
+}
