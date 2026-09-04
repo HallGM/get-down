@@ -10,6 +10,7 @@ import ErrorBanner from "../../components/ErrorBanner.js";
 import StatusBadge from "../../components/StatusBadge.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
 import TabBar from "../../components/TabBar.js";
+import { formatDate } from "../../utils/date.js";
 import type { UpdateGigRequest } from "@get-down/shared";
 import GigOverviewTab from "./GigOverviewTab.js";
 import GigDeliveryTab from "./GigDeliveryTab.js";
@@ -120,6 +121,7 @@ export default function GigDetail() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
         <hgroup>
           <h1 style={{ marginBottom: "0.25rem" }}>{gig.firstName} {gig.lastName}</h1>
+          {gig.date && <p style={{ marginBottom: "0.25rem" }}>Date: {formatDate(gig.date)}</p>}
           <p>
             <StatusBadge status={gig.status} />
             {gig.settled && <> · <span style={{ color: "var(--pico-muted-color)" }}>Settled</span></>}
