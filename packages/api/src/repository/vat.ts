@@ -4,7 +4,7 @@ import { run_query } from "../db/init.js";
 export interface VatTransactionRow {
   id: number;
   type: "payment" | "refund";
-  date: string;
+  date: string | Date;
   amount: number;
   client_first_name: string;
   client_last_name: string;

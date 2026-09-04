@@ -37,7 +37,7 @@ function isoDate(date: Date): string {
 
 describe("GET /vat/report (end-to-end)", () => {
   test("requires authentication", async () => {
-    const response = await request(app).get("/vat/report?mode=before&date=2026-06-30");
+    const response = await request(app).get("/vat/report?date=2026-06-30");
     expect(response.status).toBe(401);
   });
 
@@ -47,7 +47,7 @@ describe("GET /vat/report (end-to-end)", () => {
     const gig = await fixtures.makeGig({ date: "2030-01-01" });
     await fixtures.makePayment(gig.id, 36000, paymentDate);
 
-    const response = await auth(request(app).get(`/vat/report?mode=before&date=${isoDate(today)}`));
+    const response = await auth(request(app).get(`/vat/report?date=${isoDate(today)}`));
 
     expect(response.status).toBe(200);
     expect(response.body.periodEnd).toBe(isoDate(today));
@@ -72,7 +72,7 @@ describe("GET /vat/report (end-to-end)", () => {
     await fixtures.makeRefund(gig.id, 1500, "adjustment", "2025-09-01");
     await fixtures.makeRefund(gig.id, 5000, "write_off", "2025-10-01");
 
-    const response = await auth(request(app).get("/vat/report?mode=before&date=2026-06-30"));
+    const response = await auth(request(app).get("/vat/report?date=2026-06-30"));
 
     expect(response.status).toBe(200);
     expect(response.body.periodStart).toBe("2025-07-01");
@@ -90,7 +90,7 @@ describe("GET /vat/report (end-to-end)", () => {
     await createPayment({ gigId: gig.id, amount: 10000, date: undefined });
     await createRefund({ gigId: gig.id, amount: 1000, subtype: "credit", date: undefined });
 
-    const response = await auth(request(app).get("/vat/report?mode=before&date=2026-06-30"));
+    const response = await auth(request(app).get("/vat/report?date=2026-06-30"));
 
     expect(response.status).toBe(200);
     expect(response.body.turnover).toBe(0);

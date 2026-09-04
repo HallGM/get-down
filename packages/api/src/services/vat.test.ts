@@ -14,28 +14,43 @@ describe("VAT report service", () => {
     readUndatedCounts.mockResolvedValue({ payments: 2, refunds: 1 });
   });
 
-  test("builds a before-selected-date inclusive rolling period and running total", async () => {
+  test("builds the inclusive end-date period, running total, and rolling graph", async () => {
     readTransactions.mockResolvedValue([
       { id: 1, type: "payment", date: "2025-07-01", amount: 10000, client_first_name: "A", client_last_name: "Client", refund_subtype: null },
       { id: 2, type: "refund", date: "2026-01-01", amount: 2500, client_first_name: "A", client_last_name: "Client", refund_subtype: "credit" },
     ]);
 
-    const result = await getReport({ mode: "before", date: "2026-06-30" });
+    const result = await getReport({ date: "2026-06-30" });
 
-    expect(readTransactions).toHaveBeenCalledWith("2025-07-01", "2026-06-30");
+    expect(readTransactions).toHaveBeenCalledWith("2024-07-02", "2026-06-30");
     expect(result.periodStart).toBe("2025-07-01");
     expect(result.periodEnd).toBe("2026-06-30");
     expect(result.turnover).toBe(7500);
     expect(result.transactions.map((t) => t.runningTotal)).toEqual([10000, 7500]);
+    expect(result.graph).toHaveLength(365);
+    expect(result.graph.at(-1)).toEqual({ date: "2026-06-30", turnover: 7500 });
     expect(result.undatedPayments).toBe(2);
     expect(result.undatedRefunds).toBe(1);
   });
 
-  test("builds an after-selected-date period and rejects invalid calendar dates", async () => {
+  test("returns zero graph points and rejects invalid calendar dates", async () => {
     readTransactions.mockResolvedValue([]);
-    const result = await getReport({ mode: "after", date: "2025-07-01" });
-    expect(readTransactions).toHaveBeenCalledWith("2025-07-01", "2026-06-30");
+    const result = await getReport({ date: "2025-07-01" });
+    expect(readTransactions).toHaveBeenCalledWith("2023-07-03", "2025-07-01");
     expect(result.transactions).toEqual([]);
-    await expect(getReport({ mode: "before", date: "2025-02-30" })).rejects.toThrow("valid calendar date");
+    expect(result.graph.every((point) => point.turnover === 0)).toBe(true);
+    await expect(getReport({ date: "2025-02-30" })).rejects.toThrow("valid calendar date");
+  });
+
+  test("normalizes database Date values before filtering and graphing", async () => {
+    readTransactions.mockResolvedValue([
+      { id: 3, type: "payment", date: new Date("2026-08-27T00:00:00Z"), amount: 12500, client_first_name: "Date", client_last_name: "Row", refund_subtype: null },
+    ]);
+
+    const result = await getReport({ date: "2026-08-27" });
+
+    expect(result.turnover).toBe(12500);
+    expect(result.transactions[0]?.date).toBe("2026-08-27");
+    expect(result.graph.at(-1)).toEqual({ date: "2026-08-27", turnover: 12500 });
   });
 });

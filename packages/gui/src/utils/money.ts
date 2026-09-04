@@ -6,6 +6,11 @@ export function formatPennies(pennies: number): string {
   return `£${(pennies / 100).toFixed(2)}`;
 }
 
+/** Format integer pennies as whole pounds with thousands separators. */
+export function formatPenniesWhole(pennies: number): string {
+  return `£${(pennies / 100).toLocaleString("en-GB", { maximumFractionDigits: 0 })}`;
+}
+
 /**
  * Convert integer pennies to a pounds-and-pence number suitable for a form input.
  * e.g. 1250 → 12.5  (display as "12.50" via the input's step="0.01")

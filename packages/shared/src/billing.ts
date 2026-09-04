@@ -30,6 +30,14 @@ export function isRefundSubtype(subtype: string): boolean {
 }
 
 /**
+ * Return the signed effect of a payment or refund on net received.
+ * Amounts are stored as positive pennies; refunds reduce the total.
+ */
+export function calcTransactionEffect(type: "payment" | "refund", amount: number): number {
+  return type === "payment" ? amount : -amount;
+}
+
+/**
  * Derives all billing figures from raw totals.
  * Single source of truth shared between the API service and the GUI.
  *
