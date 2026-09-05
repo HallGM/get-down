@@ -556,6 +556,8 @@ export interface Showcase {
   expenseLinks: ShowcaseExpenseLink[];
   /** Computed: sum of apportioned (or full) expense amounts linked to this showcase, in pennies. */
   calculatedCost?: number;
+  /** Computed: direct showcase expenses plus direct showcase fee allocation line items, in pennies. */
+  totalCost?: number;
   /** Computed: number of distinct gigs linked to this showcase via shared attribution. */
   linkedGigCount?: number;
   /** Computed: total gig income (actual for settled gigs, predicted for unsettled), in pennies. */
@@ -564,7 +566,7 @@ export interface Showcase {
   predictedGigCount?: number;
   /** Computed: sum of showcase-only fee allocation line items, in pennies. */
   showcasePerformerFees?: number;
-  /** Computed: incomeFromGigs minus calculatedCost minus showcasePerformerFees, in pennies. */
+  /** Computed: incomeFromGigs minus totalCost, in pennies. */
   netProfit?: number;
 }
 

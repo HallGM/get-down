@@ -14,7 +14,7 @@ const COLUMNS: Column<Showcase>[] = [
   { key: "date", header: "Date", sortable: true, render: (s) => formatDate(s.date) },
   { key: "nickname", header: "Nickname", sortable: true, render: (s) => s.nickname ?? "—" },
   { key: "fullName", header: "Full Name", sortable: true, render: (s) => s.fullName ?? "—" },
-  { key: "calculatedCost", header: "Cost", render: (s) => <MoneyDisplay pennies={s.calculatedCost ?? 0} /> },
+  { key: "totalCost", header: "Cost", render: (s) => <MoneyDisplay pennies={s.totalCost ?? 0} /> },
   { key: "linkedGigCount", header: "Gigs", render: (s) => String(s.linkedGigCount ?? 0) },
   {
     key: "netProfit",

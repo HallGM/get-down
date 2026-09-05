@@ -213,10 +213,14 @@ export async function readShowcaseGigMappings(
 
 /**
  * Sum of fee allocation line item amounts for showcase-only allocations
- * (fa.gig_id IS NULL) per showcase. Returns a map of showcaseId → total in pence.
+ * (fa.gig_id IS NULL) per showcase. Each allocation is counted once even when
+ * it is linked to multiple assigned roles. Returns a map of showcaseId → total
+ * in pence.
  *
  * The fa.gig_id IS NULL filter ensures gig performer fees (already captured inside
- * each gig's own profit figure) are not double-counted here.
+ * each gig's own profit figure) are not double-counted here. The DISTINCT
+ * allocation subquery also prevents multiple showcase roles from multiplying
+ * the allocation's line items.
  */
 export async function readShowcasePerformerFees(
   showcaseIds: number[]
@@ -225,10 +229,13 @@ export async function readShowcasePerformerFees(
   const rows = await run_query<{ showcase_id: number; performer_fees: string }>({
     text: `
       SELECT ar.showcase_id, COALESCE(SUM(fali.amount), 0)::bigint AS performer_fees
-      FROM assigned_roles ar
-      JOIN fee_allocations fa ON fa.id = ar.fee_allocation_id
+      FROM (
+        SELECT DISTINCT showcase_id, fee_allocation_id
+        FROM assigned_roles
+        WHERE showcase_id = ANY($1::int[]) AND fee_allocation_id IS NOT NULL
+      ) ar
+      JOIN fee_allocations fa ON fa.id = ar.fee_allocation_id AND fa.gig_id IS NULL
       JOIN fee_allocation_line_items fali ON fali.allocation_id = fa.id
-      WHERE ar.showcase_id = ANY($1::int[]) AND fa.gig_id IS NULL
       GROUP BY ar.showcase_id;
     `,
     values: [showcaseIds],
