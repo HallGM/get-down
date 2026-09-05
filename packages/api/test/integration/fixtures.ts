@@ -92,6 +92,11 @@ export async function makeFeeAllocation(gigId: number, personId: number, confirm
   return allocation;
 }
 
+export async function makeShowcaseFeeAllocation() {
+  const { createFeeAllocation } = await import("../../src/repository/fee_allocations.js");
+  return createFeeAllocation({ isInvoiced: false });
+}
+
 export async function makeFeeAllocationLineItem(allocationId: number, amount: number, description = "Performance fee") {
   const { createLineItem } = await import("../../src/repository/fee_allocations.js");
   return createLineItem(allocationId, description, amount);

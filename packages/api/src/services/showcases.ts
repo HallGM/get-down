@@ -98,6 +98,7 @@ export async function updateShowcase(id: number, input: UpdateShowcaseRequest): 
     incomeFromGigs: existing.incomeFromGigs ?? 0,
     predictedGigCount: existing.predictedGigCount ?? 0,
     showcasePerformerFees: existing.showcasePerformerFees ?? 0,
+    totalCost: existing.totalCost ?? 0,
     netProfit: existing.netProfit ?? 0,
   };
   return mapShowcase(row, links, computed);
@@ -168,6 +169,7 @@ interface ShowcaseComputedFinancials {
   incomeFromGigs: number;
   predictedGigCount: number;
   showcasePerformerFees: number;
+  totalCost: number;
   netProfit: number;
 }
 
@@ -197,13 +199,16 @@ function computeShowcaseFinancials(
     }
   }
 
+  const totalCost = calculatedCost + showcasePerformerFees;
+
   return {
     calculatedCost,
     linkedGigCount: gigIds.length,
     incomeFromGigs,
     predictedGigCount,
     showcasePerformerFees,
-    netProfit: incomeFromGigs - calculatedCost - showcasePerformerFees,
+    totalCost,
+    netProfit: incomeFromGigs - totalCost,
   };
 }
 

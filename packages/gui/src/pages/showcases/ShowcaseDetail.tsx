@@ -76,8 +76,7 @@ export default function ShowcaseDetail() {
           {/* Profit breakdown */}
           <div style={{ display: "flex", gap: "2rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
             <FinancialStat label="Income from gigs"  pennies={showcase.incomeFromGigs ?? 0} />
-            <FinancialStat label="Showcase expenses" pennies={showcase.calculatedCost ?? 0} />
-            <FinancialStat label="Performer fees"    pennies={showcase.showcasePerformerFees ?? 0} />
+            <FinancialStat label="Cost"              pennies={showcase.totalCost ?? 0} />
             <FinancialStat label="Net profit"        pennies={showcase.netProfit ?? 0} />
           </div>
           {(showcase.predictedGigCount ?? 0) > 0 && (
