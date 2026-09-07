@@ -7,7 +7,7 @@ import type {
   UpdateAccountTransactionRequest,
 } from "@get-down/shared";
 import * as accountsRepo from "../repository/accounts.js";
-import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
+import { BadRequestError, ConflictError, NotFoundError, isUniqueViolation } from "../errors.js";
 import { parseOrBadRequest } from "../utils/parse.js";
 import { buildPersonName } from "../utils/people.js";
 import { groupById } from "../utils/groupById.js";
@@ -45,7 +45,7 @@ export async function createAccount(body: unknown): Promise<Account> {
     if (!created) throw new NotFoundError("Account not found after creation");
     return mapAccount(created);
   } catch (err: unknown) {
-    if ((err as { code?: string }).code === "23505") {
+    if (isUniqueViolation(err)) {
       throw new ConflictError("This person already has an account");
     }
     throw err;

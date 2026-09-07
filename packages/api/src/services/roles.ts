@@ -1,6 +1,7 @@
 import type { Role, CreateRoleRequest, UpdateRoleRequest } from "@get-down/shared";
 import * as rolesRepo from "../repository/roles.js";
-import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
+import { BadRequestError, ConflictError, NotFoundError, isUniqueViolation } from "../errors.js";
+import { mapRole, mapRolePerson } from "./role_mappers.js";
 
 export async function getAllRoles(): Promise<Role[]> {
   const rows = await rolesRepo.readAllRoles();
@@ -10,7 +11,8 @@ export async function getAllRoles(): Promise<Role[]> {
 export async function getRoleById(id: number): Promise<Role> {
   const row = await rolesRepo.readRoleById(id);
   if (!row) throw new NotFoundError("Role not found");
-  return mapRole(row);
+  const people = await rolesRepo.readPeopleForRole(id);
+  return { ...mapRole(row), people: people.map(mapRolePerson) };
 }
 
 export async function createRole(input: CreateRoleRequest): Promise<Role> {
@@ -64,21 +66,6 @@ export async function removeRoleFromService(serviceId: number, roleServicesId: n
   if (!removed) throw new NotFoundError(`Role slot not found on service ${serviceId}`);
 }
 
-// ─── Private helpers ──────────────────────────────────────────────────────────
-
-function mapRole(row: rolesRepo.RoleRow): Role {
-  return { id: row.id, name: row.name, fee: row.fee ?? undefined };
-}
-
 function mapServiceRole(row: rolesRepo.ServiceRoleRow): Role {
   return { ...mapRole(row), roleServicesId: row.role_services_id };
-}
-
-function isUniqueViolation(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code: string }).code === "23505"
-  );
 }

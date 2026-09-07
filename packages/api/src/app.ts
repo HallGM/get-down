@@ -32,6 +32,7 @@ import delivery from "./controllers/delivery.js";
 import accounting from "./controllers/accounting.js";
 import dashboard from "./controllers/dashboard.js";
 import vat from "./controllers/vat.js";
+import peopleRoles from "./controllers/people_roles.js";
 import { AppError } from "./errors.js";
 
 const app: express.Express = express();
@@ -45,6 +46,7 @@ app.use("/", clientForm);
 app.use("/", delivery);
 app.use("/", services);
 app.use("/", people);
+app.use("/", peopleRoles);
 app.use("/", attributions);
 app.use("/", gigs);
 app.use("/", showcases);

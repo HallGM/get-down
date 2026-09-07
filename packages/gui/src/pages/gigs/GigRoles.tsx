@@ -4,6 +4,8 @@ import { useGig } from "../../api/hooks/useGigs.js";
 import { useCollapsibleAllocations } from "../../api/hooks/useCollapsibleAllocations.js";
 import { useGigRoles, useCreateRole, useUpdateRole, useDeleteRole, useImportRolesFromServices } from "../../api/hooks/useAssignedRoles.js";
 import { usePeople } from "../../api/hooks/usePeople.js";
+import { useRoles } from "../../api/hooks/useRoles.js";
+import type { Person } from "@get-down/shared";
 import {
   useFeeAllocationsByGig,
   useGenerateFeeAllocations,
@@ -22,6 +24,7 @@ export default function GigRoles() {
   const gigId = Number(id);
   const { data: gig, isLoading: gigLoading, error: gigError } = useGig(gigId);
   const { data: roles = [] } = useGigRoles(gigId);
+  const { data: globalRoles = [] } = useRoles();
   const { data: people = [] } = usePeople();
   const { data: feeAllocations = [] } = useFeeAllocationsByGig(gigId);
 
@@ -113,7 +116,7 @@ export default function GigRoles() {
                       style={{ margin: 0 }}
                     >
                       <option value="">—</option>
-                      {people.map((p) => (
+                       {people.filter((p) => !r.roleId || p.roles?.some((role) => role.id === r.roleId)).map((p) => (
                         <option key={p.id} value={p.id}>
                           {formatPersonName(p)}
                         </option>
@@ -189,7 +192,7 @@ export default function GigRoles() {
               style={{ width: "100%" }}
             >
               <option value="">— None —</option>
-              {people.map((p) => (
+                {people.filter((person) => canAssignToNewRole(person, roleForm.roleName, globalRoles)).map((p) => (
                 <option key={p.id} value={p.id}>
                   {formatPersonName(p)}
                 </option>
@@ -244,4 +247,11 @@ export default function GigRoles() {
       </Modal>
     </>
   );
+}
+
+function canAssignToNewRole(person: Person, roleName: string, globalRoles: { name: string }[]): boolean {
+  const normalizedRoleName = roleName.trim();
+  if (!normalizedRoleName) return true;
+  if (!globalRoles.some((role) => role.name === normalizedRoleName)) return true;
+  return person.roles?.some((role) => role.name === normalizedRoleName) ?? false;
 }

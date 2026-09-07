@@ -3,8 +3,8 @@ import type { Role, CreateRoleRequest, UpdateRoleRequest } from "@get-down/share
 import { apiFetch, ApiError } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 import { SERVICES_KEY } from "./useServices.js";
+import { invalidateRoleLinkCaches, ROLES_KEY } from "./queryKeys.js";
 
-const ROLES_KEY = "roles-list";
 const SERVICE_ROLES_KEY = "service-roles";
 
 export function useRoles() {
@@ -19,6 +19,32 @@ export function useServiceRoles(serviceId: number) {
     queryKey: [SERVICE_ROLES_KEY, serviceId],
     queryFn: () => apiFetch<Role[]>("GET", `/services/${serviceId}/roles`),
     enabled: !!serviceId,
+  });
+}
+
+export function useRole(id: number) {
+  return useQuery({ queryKey: [ROLES_KEY, id], queryFn: () => apiFetch<Role>("GET", `/roles/${id}`), enabled: !!id });
+}
+
+export function useRolePeople(id: number) {
+  return useQuery({ queryKey: [ROLES_KEY, id, "people"], queryFn: () => apiFetch<Role["people"]>("GET", `/roles/${id}/people`), enabled: !!id });
+}
+
+export function useAddRolePerson() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ roleId, personId }: { roleId: number; personId: number }) => apiFetch<void>("POST", `/roles/${roleId}/people/${personId}`),
+    onSuccess: (_data, variables) => invalidateRoleLinkCaches(qc, variables.personId, variables.roleId),
+    successMessage: "Person added",
+  });
+}
+
+export function useRemoveRolePerson() {
+  const qc = useQueryClient();
+  return useApiMutation({
+    mutationFn: ({ roleId, personId }: { roleId: number; personId: number }) => apiFetch<void>("DELETE", `/roles/${roleId}/people/${personId}`),
+    onSuccess: (_data, variables) => invalidateRoleLinkCaches(qc, variables.personId, variables.roleId),
+    successMessage: "Person removed",
   });
 }
 

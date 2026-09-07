@@ -71,6 +71,7 @@ export default function RolesList() {
             <tr>
               <th>Name</th>
               <th>Default Fee</th>
+              <th>People</th>
               <th style={{ width: "1%" }}></th>
             </tr>
           </thead>
@@ -79,6 +80,7 @@ export default function RolesList() {
               <tr key={role.id}>
                 <td>{role.name}</td>
                 <td><MoneyDisplay pennies={role.fee} /></td>
+                <td><Link to={`/services/roles/${role.id}`}>{role.peopleCount ?? 0}</Link></td>
                 <td style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
                   <button
                     className="secondary outline"

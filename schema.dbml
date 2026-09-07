@@ -118,6 +118,9 @@ Table roles {
 Table people_roles {
   person_id int [ref: > people.id, not null]
   role_id int [ref: > roles.id, not null]
+  indexes {
+    (person_id, role_id) [pk]
+  }
 }
 
 Table gigs {
@@ -172,6 +175,7 @@ Table assigned_roles {
   gig_id int [ref: > gigs.id]
   person_id int [ref: > people.id]
   role_name varchar(255) [not null]
+  role_id int [ref: > roles.id]
   fee_allocation_id int [ref: > fee_allocations.id]
   showcase_id int [ref: > showcases.id]
 }
@@ -434,4 +438,3 @@ Table person_invoice_line_items {
   description       varchar(255)
   amount            int
 }
-
