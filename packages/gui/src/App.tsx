@@ -14,6 +14,8 @@ import PersonInvoicesList from "./pages/people/PersonInvoicesList.js";
 import ServicesList from "./pages/services/ServicesList.js";
 import ServiceDetail from "./pages/services/ServiceDetail.js";
 import RolesList from "./pages/services/RolesList.js";
+import PersonDetail from "./pages/people/PersonDetail.js";
+import RoleDetail from "./pages/services/RoleDetail.js";
 import SongsList from "./pages/songs/SongsList.js";
 import ShowcasesList from "./pages/showcases/ShowcasesList.js";
 import ShowcaseDetail from "./pages/showcases/ShowcaseDetail.js";
@@ -191,8 +193,10 @@ export default function App() {
           <Route path="/songs" element={<SongsList />} />
           <Route path="/people" element={<PeopleList />} />
           <Route path="/people/:personId/invoices" element={<PersonInvoicesList />} />
+          <Route path="/people/:personId" element={<PersonDetail />} />
           <Route path="/services" element={<ServicesList />} />
           <Route path="/services/roles" element={<RolesList />} />
+          <Route path="/services/roles/:roleId" element={<RoleDetail />} />
           <Route path="/services/:id" element={<ServiceDetail />} />
           <Route path="/showcases" element={<ShowcasesList />} />
           <Route path="/showcases/:id" element={<ShowcaseDetail />} />

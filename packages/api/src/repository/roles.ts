@@ -1,9 +1,12 @@
 import { run_query } from "../db/init.js";
+export { readPeopleForRole } from "./people_roles.js";
+export type { RolePersonRow } from "./people_roles.js";
 
 export interface RoleRow {
   id: number;
   name: string;
   fee: number | null;
+  people_count?: number;
 }
 
 export interface ServiceRoleRow extends RoleRow {
@@ -14,13 +17,13 @@ const COLS = `id, name, fee`;
 
 export async function readAllRoles(): Promise<RoleRow[]> {
   return run_query<RoleRow>({
-    text: `SELECT ${COLS} FROM roles ORDER BY name;`,
+    text: `SELECT r.id, r.name, r.fee, COUNT(pr.person_id)::int AS people_count FROM roles r LEFT JOIN people_roles pr ON pr.role_id = r.id GROUP BY r.id ORDER BY r.name;`,
   });
 }
 
 export async function readRoleById(id: number): Promise<RoleRow | null> {
   const rows = await run_query<RoleRow>({
-    text: `SELECT ${COLS} FROM roles WHERE id = $1 LIMIT 1;`,
+    text: `SELECT r.id, r.name, r.fee, COUNT(pr.person_id)::int AS people_count FROM roles r LEFT JOIN people_roles pr ON pr.role_id = r.id WHERE r.id = $1 GROUP BY r.id LIMIT 1;`,
     values: [id],
   });
   return rows[0] ?? null;

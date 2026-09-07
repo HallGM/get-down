@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { usePeople, useCreatePerson, useUpdatePerson, useDeletePerson, useGeneratePerformerToken } from "../../api/hooks/usePeople.js";
-import type { CreatePersonRequest, UpdatePersonRequest, Person } from "@get-down/shared";
+import { usePeople, useCreatePerson, useGeneratePerformerToken } from "../../api/hooks/usePeople.js";
+import type { CreatePersonRequest, Person } from "@get-down/shared";
 import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
-import ConfirmDelete from "../../components/ConfirmDelete.js";
+import PersonEditDialog from "../../components/PersonEditDialog.js";
 import PersonFormFields from "../../components/PersonFormFields.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
@@ -40,16 +40,12 @@ export default function PeopleList() {
   const navigate = useNavigate();
   const { data: people, isLoading, error } = usePeople();
   const createPerson = useCreatePerson();
-  const updatePerson = useUpdatePerson();
-  const deletePerson = useDeletePerson();
   const generateToken = useGeneratePerformerToken();
   const { showToast } = useToast();
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CreatePersonRequest>(EMPTY_FORM);
   const [editTarget, setEditTarget] = useState<Person | null>(null);
-  const [editForm, setEditForm] = useState<UpdatePersonRequest>({});
-  const [deleteTarget, setDeleteTarget] = useState<Person | null>(null);
 
   async function handleCopyLink(person: Person) {
     let token = person.performerToken;
@@ -74,33 +70,8 @@ export default function PeopleList() {
     setForm(EMPTY_FORM);
   }
 
-  async function handleUpdate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editTarget) return;
-    await updatePerson.mutateAsync({ id: editTarget.id, input: editForm });
-    setEditTarget(null);
-  }
-
   function openEdit(person: Person) {
     setEditTarget(person);
-    setEditForm({
-      firstName: person.firstName,
-      lastName: person.lastName,
-      displayName: person.displayName,
-      email: person.email,
-      phone: person.phone,
-      bankDetails: person.bankDetails,
-      businessName: person.businessName,
-      addressLine1: person.addressLine1,
-      addressLine2: person.addressLine2,
-      addressTown: person.addressTown,
-      addressCounty: person.addressCounty,
-      addressPostcode: person.addressPostcode,
-      accountNumber: person.accountNumber,
-      sortCode: person.sortCode,
-      isPartner: person.isPartner,
-      isActive: person.isActive,
-    });
   }
 
   if (isLoading) return <main className="container"><LoadingState /></main>;
@@ -131,7 +102,8 @@ export default function PeopleList() {
             </div>
           ),
         }]}
-        data={people ?? []}
+         onRowClick={(p) => void navigate(`/people/${p.id}`)}
+         data={people ?? []}
         emptyMessage="No people yet."
         filterPlaceholder="Search people…"
         filterFn={filterPerson}
@@ -148,37 +120,7 @@ export default function PeopleList() {
         </form>
       </Modal>
 
-      {/* Edit */}
-      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit Person">
-        <form onSubmit={handleUpdate}>
-          <PersonFormFields
-            values={editForm}
-            onFieldChange={(field, value) => setEditForm((f) => ({ ...f, [field]: value }))}
-            showActive
-          />
-          <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-            <button type="button" className="contrast outline" onClick={() => { setDeleteTarget(editTarget); setEditTarget(null); }}>Delete</button>
-            <button type="button" className="secondary" onClick={() => setEditTarget(null)}>Cancel</button>
-            <button type="submit" aria-busy={updatePerson.isPending} disabled={updatePerson.isPending}>Save</button>
-          </footer>
-        </form>
-      </Modal>
-
-      {deleteTarget && (
-        <ConfirmDelete
-          open={!!deleteTarget}
-          itemName={`${deleteTarget.firstName} ${deleteTarget.lastName ?? ""}`.trim()}
-          onConfirm={async () => {
-            try {
-              await deletePerson.mutateAsync(deleteTarget.id);
-            } finally {
-              setDeleteTarget(null);
-            }
-          }}
-          onCancel={() => setDeleteTarget(null)}
-          loading={deletePerson.isPending}
-        />
-      )}
+      <PersonEditDialog person={editTarget} onClose={() => setEditTarget(null)} />
     </main>
   );
 }

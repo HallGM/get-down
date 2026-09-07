@@ -66,6 +66,7 @@ export interface Person {
   isActive: boolean;
   airtableId?: string;
   performerToken?: string;
+  roles?: Role[];
 }
 
 export interface CreatePersonRequest {
@@ -640,6 +641,7 @@ export interface AssignedRole {
   showcaseId?: number;
   personId?: number;
   roleName: string;
+  roleId?: number;
   feeAllocationId?: number;
 }
 
@@ -667,6 +669,12 @@ export interface Role {
   fee?: number;
   /** Only present when the role is returned in the context of a specific service slot. */
   roleServicesId?: number;
+  peopleCount?: number;
+  people?: Person[];
+}
+
+export interface AddPersonRoleRequest {
+  roleId: number;
 }
 
 export interface CreateRoleRequest {

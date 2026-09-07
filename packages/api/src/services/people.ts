@@ -1,10 +1,12 @@
 import type { CreatePersonRequest, Person, UpdatePersonRequest } from "@get-down/shared";
 import * as peopleRepository from "../repository/people.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
+import { mapRoleSummary } from "./role_mappers.js";
 
 export async function getPeople(): Promise<Person[]> {
   const rows = await peopleRepository.readPeople();
-  return rows.map(mapPerson);
+  const roleMap = await peopleRepository.readRolesForPeople(rows.map((row) => row.id));
+  return rows.map((row) => mapPerson(row, roleMap.get(row.id)));
 }
 
 export async function getPersonById(id: number): Promise<Person> {
@@ -13,7 +15,7 @@ export async function getPersonById(id: number): Promise<Person> {
     throw new NotFoundError("Person not found");
   }
 
-  return mapPerson(row);
+  return mapPerson(row, await peopleRepository.readRolesForPerson(id));
 }
 
 export async function createPerson(input: CreatePersonRequest): Promise<Person> {
@@ -44,7 +46,7 @@ export async function createPerson(input: CreatePersonRequest): Promise<Person> 
     airtableId: input.airtableId,
   });
 
-  return mapPerson(row);
+  return mapPerson(row, await peopleRepository.readRolesForPerson(row.id));
 }
 
 export async function updatePerson(id: number, input: UpdatePersonRequest): Promise<Person> {
@@ -54,7 +56,7 @@ export async function updatePerson(id: number, input: UpdatePersonRequest): Prom
     throw new NotFoundError("Person not found");
   }
 
-  return mapPerson(updated);
+  return mapPerson(updated, await peopleRepository.readRolesForPerson(updated.id));
 }
 
 export async function deletePerson(id: number): Promise<void> {
@@ -70,13 +72,13 @@ export async function generatePerformerToken(id: number): Promise<Person> {
 
   // Idempotent — if token already exists, return person as-is
   if (existing.performer_token) {
-    return mapPerson(existing);
+    return mapPerson(existing, await peopleRepository.readRolesForPerson(existing.id));
   }
 
   const token = crypto.randomUUID();
   const updated = await peopleRepository.setPerformerToken(id, token);
   if (!updated) throw new NotFoundError("Person not found");
-  return mapPerson(updated);
+  return mapPerson(updated, await peopleRepository.readRolesForPerson(updated.id));
 }
 
 function normalizeOptionalString(value?: string): string | undefined {
@@ -104,7 +106,7 @@ function mapPerson(row: {
   is_active: boolean;
   airtable_id: string | null;
   performer_token: string | null;
-}): Person {
+}, roles: peopleRepository.PersonRoleRow[] = []): Person {
   return {
     id: row.id,
     firstName: row.first_name,
@@ -125,6 +127,7 @@ function mapPerson(row: {
     isActive: row.is_active,
     airtableId: row.airtable_id ?? undefined,
     performerToken: row.performer_token ?? undefined,
+    roles: roles.map(mapRoleSummary),
   };
 }
 

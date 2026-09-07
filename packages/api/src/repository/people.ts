@@ -1,4 +1,7 @@
 import { run_query } from "../db/init.js";
+import type { PersonRoleRow } from "./people_roles.js";
+
+export type { PersonRoleRow } from "./people_roles.js";
 
 const PERSON_COLS = `
   id, first_name, last_name, display_name, email, phone, bank_details, business_name,
@@ -77,6 +80,19 @@ export async function readPeople(): Promise<PersonRow[]> {
     `,
   });
 }
+
+export async function readRolesForPeople(personIds: number[]): Promise<Map<number, PersonRoleRow[]>> {
+  if (personIds.length === 0) return new Map();
+  const rows = await run_query<PersonRoleRow & { person_id: number }>({
+    text: `SELECT pr.person_id, r.id, r.name, r.fee FROM people_roles pr JOIN roles r ON r.id = pr.role_id WHERE pr.person_id = ANY($1::int[]) ORDER BY r.name;`,
+    values: [personIds],
+  });
+  const result = new Map<number, PersonRoleRow[]>();
+  for (const row of rows) result.set(row.person_id, [...(result.get(row.person_id) ?? []), row]);
+  return result;
+}
+
+export { readRolesForPerson } from "./people_roles.js";
 
 export async function readPersonById(id: number): Promise<PersonRow | null> {
   const rows = await run_query<PersonRow>({

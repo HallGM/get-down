@@ -8,6 +8,7 @@ router.use(authenticateToken);
 
 // Global roles CRUD
 router.get("/roles",        handle(() => rolesService.getAllRoles()));
+router.get("/roles/:id",    handle(req => rolesService.getRoleById(+req.params.id)));
 router.post("/roles",       handle(req => rolesService.createRole(req.body), 201));
 router.put("/roles/:id",    handle(req => rolesService.updateRole(+req.params.id, req.body)));
 router.delete("/roles/:id", handle(req => rolesService.deleteRole(+req.params.id), 204));

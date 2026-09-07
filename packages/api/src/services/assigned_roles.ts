@@ -26,7 +26,7 @@ export async function getAssignedRoleById(id: number): Promise<AssignedRole> {
 }
 
 export async function createAssignedRole(input: CreateAssignedRoleRequest): Promise<AssignedRole> {
-  const row = await assignedRolesRepo.createAssignedRole(buildMutationInput(input));
+  const row = await assignedRolesRepo.createAssignedRole(await buildMutationInput(input));
   return mapAssignedRole(row);
 }
 
@@ -35,7 +35,7 @@ export async function updateAssignedRole(
   input: UpdateAssignedRoleRequest
 ): Promise<AssignedRole> {
   const existing = await getAssignedRoleById(id);
-  const row = await assignedRolesRepo.updateAssignedRole(id, buildMutationInput(input, existing));
+  const row = await assignedRolesRepo.updateAssignedRole(id, await buildMutationInput(input, existing));
   if (!row) throw new NotFoundError("AssignedRole not found");
   return mapAssignedRole(row);
 }
@@ -55,7 +55,7 @@ export async function importRolesFromServices(gigId: number): Promise<AssignedRo
   return withTransaction(async () => {
     const created: AssignedRole[] = [];
     for (const role of roleRows) {
-      const row = await assignedRolesRepo.createAssignedRole({ gigId, roleName: role.name });
+      const row = await assignedRolesRepo.createAssignedRole({ gigId, roleName: role.name, roleId: role.id });
       created.push(mapAssignedRole(row));
     }
     return created;
@@ -70,13 +70,14 @@ function mapAssignedRole(row: assignedRolesRepo.AssignedRoleRow): AssignedRole {
     personId: row.person_id ?? undefined,
     roleName: row.role_name,
     feeAllocationId: row.fee_allocation_id ?? undefined,
+    roleId: row.role_id ?? undefined,
   };
 }
 
-function buildMutationInput(
+async function buildMutationInput(
   input: CreateAssignedRoleRequest | UpdateAssignedRoleRequest,
   existing?: AssignedRole
-): assignedRolesRepo.AssignedRoleMutationInput {
+): Promise<assignedRolesRepo.AssignedRoleMutationInput> {
   const roleName = input.roleName?.trim() ?? existing?.roleName;
   if (!roleName) throw new BadRequestError("roleName is required");
 
@@ -92,11 +93,14 @@ function buildMutationInput(
       ? existing?.feeAllocationId
       : (input.feeAllocationId ?? undefined);
 
+  const isGig = (input.gigId ?? existing?.gigId) !== undefined && (input.showcaseId ?? existing?.showcaseId) === undefined;
+  const role = isGig ? await rolesRepo.readRoleByName(roleName) : null;
   return {
     gigId: input.gigId ?? existing?.gigId,
     showcaseId: input.showcaseId ?? existing?.showcaseId,
     personId,
     roleName,
     feeAllocationId,
+    roleId: role?.id,
   };
 }
