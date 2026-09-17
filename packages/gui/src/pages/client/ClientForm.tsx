@@ -206,7 +206,8 @@ export default function ClientForm() {
       playlistUrl: data.playlistUrl ?? "",
       endOfNightSong: data.endOfNightSong ?? "",
       firstDanceSong: data.firstDanceSong ?? "",
-      firstDanceType: data.firstDanceType ?? "",
+       firstDanceType: data.firstDanceType ?? "",
+       ceremonySongChoices: data.ceremonySongChoices ?? "", receptionMusicDetails: data.receptionMusicDetails ?? "", walkOnSong: data.walkOnSong ?? "", introductionWording: data.introductionWording ?? "", piperTuneRequests: data.piperTuneRequests ?? "", bagpipesDetails: data.bagpipesDetails ?? "", speechesPaRequirements: data.speechesPaRequirements ?? "", ceremonyReadingsNotes: data.ceremonyReadingsNotes ?? "", preparationLocations: data.preparationLocations ?? "",
       ceilidh: data.ceilidh,
       ceilidhLength: data.ceilidhLength ?? "",
       ceilidhStyle: data.ceilidhStyle ?? "",
@@ -305,9 +306,7 @@ export default function ClientForm() {
   const clientName = `${data.firstName}${data.partnerName ? ` & ${data.partnerName}` : ""}`;
   const mustPlaysAtMax = mustPlays.length >= 3;
   const caps = deriveClientFormCapabilities({
-    hasBand: data.hasBand,
-    hasDj: data.hasDj,
-    requiresMeal: data.requiresMeal,
+    ...data.capabilities,
   });
 
   // ── Tab bar ────────────────────────────────────────────────────────────────
@@ -437,6 +436,63 @@ export default function ClientForm() {
               rows={4}
             />
           </Field>
+          )}
+
+          {caps.showCeremonyMusic && (
+            <section>
+              <h3>Ceremony music</h3>
+              <Field label="Ceremony song choices" hint="You can provide up to three choices: one for walking down the aisle, one for signing the register, and one for walking back up the aisle.">
+                <textarea value={form.ceremonySongChoices ?? ""} onChange={(e) => setForm((f) => ({ ...f, ceremonySongChoices: e.target.value }))} rows={3} />
+              </Field>
+              <Field label="Reception music details" hint="Please provide any general guidance or useful details for the music at your reception.">
+                <textarea value={form.receptionMusicDetails ?? ""} onChange={(e) => setForm((f) => ({ ...f, receptionMusicDetails: e.target.value }))} rows={3} />
+              </Field>
+            </section>
+          )}
+
+          {caps.showEveningEntertainment && (
+            <section>
+              <h3>Evening entertainment</h3>
+              <Field label="Walk-on song" hint="Optional. The song to play when you enter for speeches or cake cutting.">
+                <input value={form.walkOnSong ?? ""} onChange={(e) => setForm((f) => ({ ...f, walkOnSong: e.target.value }))} />
+              </Field>
+              <Field label="How would you like to be introduced?" hint="For example, Bride and Groom, Mr and Mrs, or your names.">
+                <input value={form.introductionWording ?? ""} onChange={(e) => setForm((f) => ({ ...f, introductionWording: e.target.value }))} />
+              </Field>
+            </section>
+          )}
+
+          {caps.showBagpipes && (
+            <section>
+              <h3>Bagpipes</h3>
+              <Field label="Piper tune requests" hint="Please list any tunes you would particularly like the piper to play.">
+                <textarea value={form.piperTuneRequests ?? ""} onChange={(e) => setForm((f) => ({ ...f, piperTuneRequests: e.target.value }))} rows={3} />
+              </Field>
+              <Field label="Bagpipes details" hint="Please tell us when you would like the piper to play, for example as guests arrive, during the ceremony, after the ceremony, or into dinner.">
+                <textarea value={form.bagpipesDetails ?? ""} onChange={(e) => setForm((f) => ({ ...f, bagpipesDetails: e.target.value }))} rows={3} />
+              </Field>
+            </section>
+          )}
+
+          {caps.showVideography && (
+            <section>
+              <h3>Videography</h3>
+              <Field label="Speech microphone and PA requirements" hint="Please tell us about any microphone, PA, or setup requirements for the speeches, including anything unusual we should prepare for.">
+                <textarea value={form.speechesPaRequirements ?? ""} onChange={(e) => setForm((f) => ({ ...f, speechesPaRequirements: e.target.value }))} rows={3} />
+              </Field>
+              <Field label="Ceremony readings or unusual events" hint="Please tell us about any readings, performances, rituals, or other unusual events so the videography team knows what to expect and can prepare.">
+                <textarea value={form.ceremonyReadingsNotes ?? ""} onChange={(e) => setForm((f) => ({ ...f, ceremonyReadingsNotes: e.target.value }))} rows={3} />
+              </Field>
+            </section>
+          )}
+
+          {caps.showGettingReady && (
+            <section>
+              <h3>Getting ready</h3>
+              <Field label="Preparation address and postcode" hint="Please provide the full address and postcode for each preparation location.">
+                <textarea value={form.preparationLocations ?? ""} onChange={(e) => setForm((f) => ({ ...f, preparationLocations: e.target.value }))} rows={3} />
+              </Field>
+            </section>
           )}
 
           {caps.showMusicSection && (

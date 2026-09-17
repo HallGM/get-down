@@ -1,9 +1,17 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Service, CreateServiceRequest, UpdateServiceRequest } from "@get-down/shared";
+import type { Service, ServiceGroup, CreateServiceRequest, UpdateServiceRequest } from "@get-down/shared";
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
 
 export const SERVICES_KEY = "services";
+export const SERVICE_GROUPS_KEY = "service-groups";
+
+export function useServiceGroups() {
+  return useQuery({
+    queryKey: [SERVICE_GROUPS_KEY],
+    queryFn: async () => (await apiFetch<ServiceGroup[] | null>("GET", "/service-groups")) ?? [],
+  });
+}
 
 export function useServices() {
   return useQuery({

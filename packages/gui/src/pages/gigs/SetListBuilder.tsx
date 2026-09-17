@@ -13,6 +13,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
+import { isBandService } from "@get-down/shared";
 import type { SetListItemWithSong } from "@get-down/shared";
 import { useGig } from "../../api/hooks/useGigs.js";
 import {
@@ -131,7 +132,7 @@ export default function SetListBuilder() {
   
   // Compute booked band-size service IDs
   const bookedBandServiceIds = useMemo(
-    () => new Set((gig?.services ?? []).filter(s => s.isBand).map(s => s.id)),
+    () => new Set((gig?.services ?? []).filter(isBandService).map(s => s.id)),
     [gig?.services]
   );
 

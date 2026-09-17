@@ -1,11 +1,17 @@
 import type { CreateServiceRequest, Service, UpdateServiceRequest } from "@get-down/shared";
 import * as servicesRepository from "../repository/services.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
+import { z } from "zod";
+import { parseOrBadRequest } from "../utils/parse.js";
+
+const ServiceGroupsSchema = z.array(z.number().int().positive()).optional();
 
 export async function getServices(): Promise<Service[]> {
   const rows = await servicesRepository.readServices();
   return rows.map(mapService);
 }
+
+export async function getServiceGroups() { return servicesRepository.readServiceGroups(); }
 
 export async function getServiceById(id: number): Promise<Service> {
   const row = await servicesRepository.readServiceById(id);
@@ -54,9 +60,7 @@ function mapService(row: servicesRepository.ServiceRow): Service {
     timesUsed: row.times_used,
     extraFee: row.extra_fee ?? undefined,
     extraFeeDescription: row.extra_fee_description ?? undefined,
-    isBand: row.is_band,
-    isDjOnly: row.is_dj_only,
-    requiresMeal: row.requires_meal,
+    groups: row.groups ?? [],
     airtableId: row.airtable_id ?? undefined,
   };
 }
@@ -70,15 +74,15 @@ function buildMutationInput(
     throw new BadRequestError("name is required");
   }
 
+  const groupIds = parseOrBadRequest(ServiceGroupsSchema, input.groupIds) ?? existing?.groups.map((group) => group.id) ?? [];
+
   return {
     name,
     description: trimOptional(input.description) ?? existing?.description,
     priceToClient: input.priceToClient ?? existing?.priceToClient,
     extraFee: input.extraFee ?? existing?.extraFee,
     extraFeeDescription: trimOptional(input.extraFeeDescription) ?? existing?.extraFeeDescription,
-    isBand: input.isBand ?? existing?.isBand ?? false,
-    isDjOnly: input.isDjOnly ?? existing?.isDjOnly ?? false,
-    requiresMeal: input.requiresMeal ?? existing?.requiresMeal ?? false,
+    groupIds,
     airtableId: input.airtableId ?? existing?.airtableId,
   };
 }

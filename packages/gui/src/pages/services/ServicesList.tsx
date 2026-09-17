@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useServices, useCreateService } from "../../api/hooks/useServices.js";
+import { useServices, useServiceGroups, useCreateService } from "../../api/hooks/useServices.js";
 import type { CreateServiceRequest, Service } from "@get-down/shared";
 import DataTable, { type Column } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
@@ -9,6 +9,7 @@ import MoneyField from "../../components/MoneyField.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
+import ServiceGroupCheckboxes from "../../components/ServiceGroupCheckboxes.js";
 
 const COLUMNS: Column<Service>[] = [
   { key: "name", header: "Name", sortable: true },
@@ -25,6 +26,7 @@ const EMPTY_FORM: CreateServiceRequest = { name: "" };
 
 export default function ServicesList() {
   const { data: services, isLoading, error } = useServices();
+  const { data: groups = [], isLoading: groupsLoading, error: groupsError } = useServiceGroups();
   const createService = useCreateService();
   const navigate = useNavigate();
 
@@ -42,8 +44,8 @@ export default function ServicesList() {
     setForm(EMPTY_FORM);
   }
 
-  if (isLoading) return <main className="container"><LoadingState /></main>;
-  if (error) return <main className="container"><ErrorBanner error={error} /></main>;
+  if (isLoading || groupsLoading) return <main className="container"><LoadingState /></main>;
+  if (error || groupsError) return <main className="container"><ErrorBanner error={error ?? groupsError!} /></main>;
 
   return (
     <main className="container">
@@ -93,6 +95,11 @@ export default function ServicesList() {
             <FormField label="Name" value={form.name} onChange={(e) => field("name", e.target.value)} required />
             <MoneyField label="Price to Client" value={form.priceToClient} onChange={(pennies) => field("priceToClient", pennies)} min={0} />
           </div>
+          <ServiceGroupCheckboxes
+            groups={groups}
+            selectedIds={form.groupIds ?? []}
+            onChange={(groupIds) => field("groupIds", groupIds)}
+          />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="secondary" onClick={() => setShowCreate(false)}>Cancel</button>
             <button type="submit" aria-busy={createService.isPending} disabled={createService.isPending}>Create</button>

@@ -211,10 +211,7 @@ async function main(): Promise<void> {
       numberOfPeople: typeof f["Number of People"] === "number" ? f["Number of People"] : undefined,
       extraFee: toP(f["extra fee"]) || undefined,
       extraFeeDescription: str(f["EF description"]) ?? undefined,
-      isBand: f["_is_band?"] === true,
-      isDjOnly: f["_is_dj"] === true,
-      requiresMeal: false, // No Airtable equivalent — set manually by admins
-      isActive: true,
+       isActive: true,
       airtableId: r.id,
     };
 
@@ -667,5 +664,3 @@ main().catch((err) => {
   console.error("Migration failed:", err);
   process.exit(1);
 });
-
-

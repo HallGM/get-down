@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useService, useUpdateService, useDeleteService } from "../../api/hooks/useServices.js";
+import { useService, useServiceGroups, useUpdateService, useDeleteService } from "../../api/hooks/useServices.js";
 import { useRoles, useServiceRoles, useAddRoleToService, useRemoveRoleFromService, useCreateAndAttachRole } from "../../api/hooks/useRoles.js";
 import type { UpdateServiceRequest } from "@get-down/shared";
 import LoadingState from "../../components/LoadingState.js";
@@ -9,6 +9,7 @@ import ConfirmDelete from "../../components/ConfirmDelete.js";
 import FormField from "../../components/FormField.js";
 import MoneyField from "../../components/MoneyField.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
+import ServiceGroupCheckboxes from "../../components/ServiceGroupCheckboxes.js";
 
 export default function ServiceDetail() {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,7 @@ export default function ServiceDetail() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { data: service, isLoading, error } = useService(serviceId);
+  const { data: groups = [], isLoading: groupsLoading, error: groupsError } = useServiceGroups();
   const { data: serviceRoles = [] } = useServiceRoles(serviceId);
   const { data: allRoles = [] } = useRoles();
 
@@ -40,8 +42,8 @@ export default function ServiceDetail() {
     }
   }, [searchParams, service]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (isLoading) return <main className="container"><LoadingState /></main>;
-  if (error || !service) return <main className="container"><ErrorBanner error={error ?? "Service not found"} /></main>;
+  if (isLoading || groupsLoading) return <main className="container"><LoadingState /></main>;
+  if (error || groupsError || !service) return <main className="container"><ErrorBanner error={error ?? groupsError ?? "Service not found"} /></main>;
 
   function startEdit() {
     setEditForm({
@@ -50,9 +52,7 @@ export default function ServiceDetail() {
       priceToClient: service!.priceToClient,
       extraFee: service!.extraFee,
       extraFeeDescription: service!.extraFeeDescription,
-      isBand: service!.isBand,
-      isDjOnly: service!.isDjOnly,
-      requiresMeal: service!.requiresMeal ?? false,
+       groupIds: service!.groups.map((g) => g.id),
     });
     setEditing(true);
   }
@@ -106,9 +106,7 @@ export default function ServiceDetail() {
             <dt>No. of roles</dt><dd>{service.numberOfPeople ?? 0}</dd>
             <dt>Extra fee</dt><dd><MoneyDisplay pennies={service.extraFee} /></dd>
             {service.extraFeeDescription && <><dt>Extra fee desc.</dt><dd>{service.extraFeeDescription}</dd></>}
-            <dt>Band</dt><dd>{service.isBand ? "Yes" : "No"}</dd>
-            <dt>DJ only</dt><dd>{service.isDjOnly ? "Yes" : "No"}</dd>
-            <dt>Requires meal</dt><dd>{service.requiresMeal ? "Yes" : "No"}</dd>
+             <dt>Groups</dt><dd>{service.groups.map((g) => g.name).join(", ") || "None"}</dd>
             {service.description && <><dt>Description</dt><dd>{service.description}</dd></>}
           </dl>
         </article>
@@ -122,17 +120,11 @@ export default function ServiceDetail() {
               <FormField label="Extra Fee Description" value={editForm.extraFeeDescription ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, extraFeeDescription: e.target.value }))} />
             </div>
             <FormField as="textarea" label="Description" value={editForm.description ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={3} />
-            <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <input type="checkbox" checked={!!editForm.isBand} onChange={(e) => setEditForm((f) => ({ ...f, isBand: e.target.checked }))} /> Band
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <input type="checkbox" checked={!!editForm.isDjOnly} onChange={(e) => setEditForm((f) => ({ ...f, isDjOnly: e.target.checked }))} /> DJ only
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <input type="checkbox" checked={!!editForm.requiresMeal} onChange={(e) => setEditForm((f) => ({ ...f, requiresMeal: e.target.checked }))} /> Requires meal
-              </label>
-            </div>
+             <ServiceGroupCheckboxes
+               groups={groups}
+               selectedIds={editForm.groupIds ?? []}
+               onChange={(groupIds) => setEditForm((f) => ({ ...f, groupIds }))}
+             />
             <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
               <button type="submit" aria-busy={updateService.isPending} disabled={updateService.isPending}>Save</button>
               <button type="button" className="secondary" onClick={() => setEditing(false)}>Cancel</button>
