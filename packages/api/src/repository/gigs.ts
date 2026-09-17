@@ -1,6 +1,7 @@
 import { run_query } from "../db/init.js";
 import { SQL_CARD_CHARGES_EXPR, SQL_PAYMENT_SUBQUERY } from "./sql-fragments.js";
 import { BILLING_TOTAL_EXPR } from "./settled.js";
+import type { ServiceGroupRow } from "./services.js";
 
 export interface GigRow {
   id: number;
@@ -34,6 +35,15 @@ export interface GigRow {
   ceilidh: boolean;
   ceilidh_length: string | null;
   ceilidh_style: string | null;
+  ceremony_song_choices: string | null;
+  reception_music_details: string | null;
+  walk_on_song: string | null;
+  introduction_wording: string | null;
+  piper_tune_requests: string | null;
+  bagpipes_details: string | null;
+  speeches_pa_requirements: string | null;
+  ceremony_readings_notes: string | null;
+  preparation_locations: string | null;
   client_token: string;
   form_saved_at: string | null;
   vimeo_url: string | null;
@@ -72,6 +82,15 @@ export interface GigMutationInput {
   ceilidh?: boolean;
   ceilidhLength?: string;
   ceilidhStyle?: string;
+  ceremonySongChoices?: string;
+  receptionMusicDetails?: string;
+  walkOnSong?: string;
+  introductionWording?: string;
+  piperTuneRequests?: string;
+  bagpipesDetails?: string;
+  speechesPaRequirements?: string;
+  ceremonyReadingsNotes?: string;
+  preparationLocations?: string;
   vimeoUrl?: string;
   dropboxUrl?: string;
   deliveryTitle?: string;
@@ -83,7 +102,7 @@ const SELECT_COLS = `
   total_price, travel_cost, discount_percent, airtable_id,
   timings, contact_number, parking_info, meal_details, client_notes, performer_notes,
   playlist_url, end_of_night_song, first_dance_song, first_dance_type,
-  ceilidh, ceilidh_length, ceilidh_style, client_token, form_saved_at,
+  ceilidh, ceilidh_length, ceilidh_style, ceremony_song_choices, reception_music_details, walk_on_song, introduction_wording, piper_tune_requests, bagpipes_details, speeches_pa_requirements, ceremony_readings_notes, preparation_locations, client_token, form_saved_at,
   vimeo_url, dropbox_url, delivery_title
 `;
 
@@ -96,10 +115,10 @@ export async function createGig(input: GigMutationInput): Promise<GigRow> {
         total_price, travel_cost, discount_percent, airtable_id,
         timings, contact_number, parking_info, meal_details, client_notes, performer_notes,
         playlist_url, end_of_night_song, first_dance_song, first_dance_type,
-        ceilidh, ceilidh_length, ceilidh_style, vimeo_url, dropbox_url, delivery_title
+         ceilidh, ceilidh_length, ceilidh_style, ceremony_song_choices, reception_music_details, walk_on_song, introduction_wording, piper_tune_requests, bagpipes_details, speeches_pa_requirements, ceremony_readings_notes, preparation_locations, vimeo_url, dropbox_url, delivery_title
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
-              $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33)
+              $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42)
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -133,6 +152,7 @@ export async function createGig(input: GigMutationInput): Promise<GigRow> {
       input.ceilidh ?? false,
       input.ceilidhLength ?? null,
       input.ceilidhStyle ?? null,
+       input.ceremonySongChoices ?? null, input.receptionMusicDetails ?? null, input.walkOnSong ?? null, input.introductionWording ?? null, input.piperTuneRequests ?? null, input.bagpipesDetails ?? null, input.speechesPaRequirements ?? null, input.ceremonyReadingsNotes ?? null, input.preparationLocations ?? null,
       input.vimeoUrl ?? null,
       input.dropboxUrl ?? null,
       input.deliveryTitle ?? null,
@@ -166,9 +186,9 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
           timings = $18, contact_number = $19, parking_info = $20, meal_details = $21,
           client_notes = $22, performer_notes = $23, playlist_url = $24,
           end_of_night_song = $25, first_dance_song = $26, first_dance_type = $27,
-          ceilidh = $28, ceilidh_length = $29, ceilidh_style = $30,
-          vimeo_url = $31, dropbox_url = $32, delivery_title = $33
-      WHERE id = $34
+           ceilidh = $28, ceilidh_length = $29, ceilidh_style = $30, ceremony_song_choices=$31, reception_music_details=$32, walk_on_song=$33, introduction_wording=$34, piper_tune_requests=$35, bagpipes_details=$36, speeches_pa_requirements=$37, ceremony_readings_notes=$38, preparation_locations=$39,
+           vimeo_url = $40, dropbox_url = $41, delivery_title = $42
+       WHERE id = $43
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -202,6 +222,7 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
       input.ceilidh ?? false,
       input.ceilidhLength ?? null,
       input.ceilidhStyle ?? null,
+       input.ceremonySongChoices ?? null, input.receptionMusicDetails ?? null, input.walkOnSong ?? null, input.introductionWording ?? null, input.piperTuneRequests ?? null, input.bagpipesDetails ?? null, input.speechesPaRequirements ?? null, input.ceremonyReadingsNotes ?? null, input.preparationLocations ?? null,
       input.vimeoUrl ?? null,
       input.dropboxUrl ?? null,
       input.deliveryTitle ?? null,
@@ -258,15 +279,13 @@ export interface GigServiceRow {
   id: number;
   name: string;
   price_to_client: number | null;
-  is_band: boolean;
-  is_dj_only: boolean;
-  requires_meal: boolean;
+  groups: ServiceGroupRow[];
 }
 
 export async function readGigServicesByGigId(gigId: number): Promise<GigServiceRow[]> {
   return run_query<GigServiceRow>({
     text: `
-      SELECT s.id, s.name, s.price_to_client, s.is_band, s.is_dj_only, s.requires_meal
+      SELECT s.id, s.name, s.price_to_client, COALESCE((SELECT json_agg(json_build_object('id', sg.id, 'name', sg.name)) FROM service_service_groups ssg JOIN service_groups sg ON sg.id=ssg.group_id WHERE ssg.service_id=s.id), '[]') AS groups
       FROM services s
       JOIN gig_services gs ON gs.service_id = s.id
       WHERE gs.gig_id = $1

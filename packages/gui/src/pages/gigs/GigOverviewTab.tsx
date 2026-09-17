@@ -79,6 +79,15 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
               <FormField label="End of night song" value={editForm.endOfNightSong ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, endOfNightSong: e.target.value }))} />
               <FormField label="First dance / song request" value={editForm.firstDanceSong ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, firstDanceSong: e.target.value }))} />
               <FormField label="First dance type" value={editForm.firstDanceType ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, firstDanceType: e.target.value }))} />
+              <FormField label="Ceremony song choices" value={editForm.ceremonySongChoices ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, ceremonySongChoices: e.target.value }))} />
+              <FormField label="Reception music details" value={editForm.receptionMusicDetails ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, receptionMusicDetails: e.target.value }))} />
+              <FormField label="Walk-on song" value={editForm.walkOnSong ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, walkOnSong: e.target.value }))} />
+              <FormField label="How would you like to be introduced?" value={editForm.introductionWording ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, introductionWording: e.target.value }))} />
+              <FormField label="Piper tune requests" value={editForm.piperTuneRequests ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, piperTuneRequests: e.target.value }))} />
+              <FormField label="Bagpipes details" value={editForm.bagpipesDetails ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, bagpipesDetails: e.target.value }))} />
+              <FormField label="Speech microphone and PA requirements" value={editForm.speechesPaRequirements ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, speechesPaRequirements: e.target.value }))} />
+              <FormField label="Ceremony readings or unusual events" value={editForm.ceremonyReadingsNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, ceremonyReadingsNotes: e.target.value }))} />
+              <FormField label="Preparation location(s)" value={editForm.preparationLocations ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, preparationLocations: e.target.value }))} />
               <FormField label="Ceilidh length" value={editForm.ceilidhLength ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, ceilidhLength: e.target.value }))} />
               <FormField label="Ceilidh style" value={editForm.ceilidhStyle ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, ceilidhStyle: e.target.value }))} />
             </div>
@@ -160,6 +169,7 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
             gig.endOfNightSong,
             gig.firstDanceSong,
             gig.firstDanceType,
+            gig.ceremonySongChoices, gig.receptionMusicDetails, gig.walkOnSong, gig.introductionWording, gig.piperTuneRequests, gig.bagpipesDetails, gig.speechesPaRequirements, gig.ceremonyReadingsNotes, gig.preparationLocations,
             gig.ceilidh,
             gig.ceilidhLength,
             gig.ceilidhStyle,
@@ -177,6 +187,15 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
               {gig.endOfNightSong && <><dt>End of night</dt><dd>{gig.endOfNightSong}</dd></>}
               {gig.firstDanceSong && <><dt>First dance</dt><dd>{gig.firstDanceSong}</dd></>}
               {gig.firstDanceType && <><dt>First dance type</dt><dd>{gig.firstDanceType}</dd></>}
+              {gig.ceremonySongChoices && <><dt>Ceremony song choices</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.ceremonySongChoices}</dd></>}
+              {gig.receptionMusicDetails && <><dt>Reception music details</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.receptionMusicDetails}</dd></>}
+              {gig.walkOnSong && <><dt>Walk-on song</dt><dd>{gig.walkOnSong}</dd></>}
+              {gig.introductionWording && <><dt>Introduction wording</dt><dd>{gig.introductionWording}</dd></>}
+              {gig.piperTuneRequests && <><dt>Piper tune requests</dt><dd>{gig.piperTuneRequests}</dd></>}
+              {gig.bagpipesDetails && <><dt>Bagpipes details</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.bagpipesDetails}</dd></>}
+              {gig.speechesPaRequirements && <><dt>Speech PA requirements</dt><dd>{gig.speechesPaRequirements}</dd></>}
+              {gig.ceremonyReadingsNotes && <><dt>Ceremony readings or unusual events</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.ceremonyReadingsNotes}</dd></>}
+              {gig.preparationLocations && <><dt>Preparation location(s)</dt><dd>{gig.preparationLocations}</dd></>}
               <dt>Ceilidh</dt><dd>{gig.ceilidh ? "Yes" : "No"}</dd>
               {gig.ceilidhLength && <><dt>Ceilidh length</dt><dd>{gig.ceilidhLength}</dd></>}
               {gig.ceilidhStyle && <><dt>Ceilidh style</dt><dd>{gig.ceilidhStyle}</dd></>}

@@ -6,6 +6,7 @@ import { handle } from "../utils/handle.js";
 const router: Router = express.Router();
 
 router.get("/services",     handle(() => servicesService.getServices()));
+router.get("/service-groups", authenticateToken, handle(() => servicesService.getServiceGroups()));
 router.get("/services/:id", handle(req => servicesService.getServiceById(+req.params.id)));
 router.post("/services",    authenticateToken, handle(req => servicesService.createService(req.body), 201));
 router.put("/services/:id", authenticateToken, handle(req => servicesService.updateService(+req.params.id, req.body)));

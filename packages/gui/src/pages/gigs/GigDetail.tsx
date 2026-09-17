@@ -83,6 +83,7 @@ export default function GigDetail() {
       ceilidhLength: gig!.ceilidhLength,
       ceilidhStyle: gig!.ceilidhStyle,
       mealDetails: gig!.mealDetails,
+      ceremonySongChoices: gig!.ceremonySongChoices, receptionMusicDetails: gig!.receptionMusicDetails, walkOnSong: gig!.walkOnSong, introductionWording: gig!.introductionWording, piperTuneRequests: gig!.piperTuneRequests, bagpipesDetails: gig!.bagpipesDetails, speechesPaRequirements: gig!.speechesPaRequirements, ceremonyReadingsNotes: gig!.ceremonyReadingsNotes, preparationLocations: gig!.preparationLocations,
       dropboxUrl: gig!.dropboxUrl,
       deliveryTitle: gig!.deliveryTitle,
     });

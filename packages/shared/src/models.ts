@@ -16,10 +16,21 @@ export interface Service {
   timesUsed?: number;
   extraFee?: number;
   extraFeeDescription?: string;
-  isBand?: boolean;
-  isDjOnly?: boolean;
-  requiresMeal?: boolean;
+  groups: ServiceGroup[];
   airtableId?: string;
+}
+
+export interface ServiceGroup { id: number; name: string; }
+
+export interface ClientFormCapabilities {
+  ceremonyMusic: boolean;
+  eveningEntertainment: boolean;
+  bagpipes: boolean;
+  videography: boolean;
+  gettingReady: boolean;
+  hasBand: boolean;
+  hasMusicCapability: boolean;
+  requiresMeal: boolean;
 }
 
 export interface CreateServiceRequest {
@@ -28,9 +39,7 @@ export interface CreateServiceRequest {
   priceToClient?: number;
   extraFee?: number;
   extraFeeDescription?: string;
-  isBand?: boolean;
-  isDjOnly?: boolean;
-  requiresMeal?: boolean;
+  groupIds?: number[];
   airtableId?: string;
 }
 
@@ -40,9 +49,7 @@ export interface UpdateServiceRequest {
   priceToClient?: number;
   extraFee?: number;
   extraFeeDescription?: string;
-  isBand?: boolean;
-  isDjOnly?: boolean;
-  requiresMeal?: boolean;
+  groupIds?: number[];
   airtableId?: string;
 }
 
@@ -310,6 +317,15 @@ export interface Gig {
   endOfNightSong?: string;
   firstDanceSong?: string;
   firstDanceType?: string;
+  ceremonySongChoices?: string;
+  receptionMusicDetails?: string;
+  walkOnSong?: string;
+  introductionWording?: string;
+  piperTuneRequests?: string;
+  bagpipesDetails?: string;
+  speechesPaRequirements?: string;
+  ceremonyReadingsNotes?: string;
+  preparationLocations?: string;
   ceilidh?: boolean;
   ceilidhLength?: string;
   ceilidhStyle?: string;
@@ -351,6 +367,15 @@ export interface CreateGigRequest {
   endOfNightSong?: string;
   firstDanceSong?: string;
   firstDanceType?: string;
+  ceremonySongChoices?: string;
+  receptionMusicDetails?: string;
+  walkOnSong?: string;
+  introductionWording?: string;
+  piperTuneRequests?: string;
+  bagpipesDetails?: string;
+  speechesPaRequirements?: string;
+  ceremonyReadingsNotes?: string;
+  preparationLocations?: string;
   ceilidh?: boolean;
   ceilidhLength?: string;
   ceilidhStyle?: string;
@@ -389,6 +414,15 @@ export interface UpdateGigRequest {
   endOfNightSong?: string;
   firstDanceSong?: string;
   firstDanceType?: string;
+  ceremonySongChoices?: string;
+  receptionMusicDetails?: string;
+  walkOnSong?: string;
+  introductionWording?: string;
+  piperTuneRequests?: string;
+  bagpipesDetails?: string;
+  speechesPaRequirements?: string;
+  ceremonyReadingsNotes?: string;
+  preparationLocations?: string;
   ceilidh?: boolean;
   ceilidhLength?: string;
   ceilidhStyle?: string;
@@ -468,6 +502,15 @@ export interface PerformerGigDetail {
   endOfNightSong?: string;
   firstDanceSong?: string;
   firstDanceType?: string;
+  ceremonySongChoices?: string;
+  receptionMusicDetails?: string;
+  walkOnSong?: string;
+  introductionWording?: string;
+  piperTuneRequests?: string;
+  bagpipesDetails?: string;
+  speechesPaRequirements?: string;
+  ceremonyReadingsNotes?: string;
+  preparationLocations?: string;
   ceilidh: boolean;
   ceilidhLength?: string;
   ceilidhStyle?: string;
@@ -507,14 +550,21 @@ export interface ClientFormResponse {
   endOfNightSong?: string;
   firstDanceSong?: string;
   firstDanceType?: string;
+  ceremonySongChoices?: string;
+  receptionMusicDetails?: string;
+  walkOnSong?: string;
+  introductionWording?: string;
+  piperTuneRequests?: string;
+  bagpipesDetails?: string;
+  speechesPaRequirements?: string;
+  ceremonyReadingsNotes?: string;
+  preparationLocations?: string;
   ceilidh: boolean;
   ceilidhLength?: string;
   ceilidhStyle?: string;
   preferences: GigSongPreferences;
   songGroups: ClientFormSongGroup[];
-  hasBand: boolean;
-  hasDj: boolean;
-  requiresMeal: boolean;
+  capabilities: ClientFormCapabilities;
 }
 
 /** Request body for PUT /client-form/:token */
@@ -531,6 +581,8 @@ export type SaveClientFormRequest = Pick<
   | "endOfNightSong"
   | "firstDanceSong"
   | "firstDanceType"
+  | "ceremonySongChoices" | "receptionMusicDetails" | "walkOnSong" | "introductionWording"
+  | "piperTuneRequests" | "bagpipesDetails" | "speechesPaRequirements" | "ceremonyReadingsNotes" | "preparationLocations"
   | "ceilidh"
   | "ceilidhLength"
   | "ceilidhStyle"
@@ -1433,7 +1485,7 @@ export interface AccountingSummary {
 }
 
 export function createService(id: number, name: string): Service {
-  return { id, name };
+  return { id, name, groups: [] };
 }
 
 // ─── Dashboard types ───────────────────────────────────────────────────────────

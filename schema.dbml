@@ -9,11 +9,19 @@ Table services {
   price_to_client       int
   extra_fee             int
   extra_fee_description varchar(255)
-  is_band               boolean [not null, default: false]
-  is_dj_only            boolean [not null, default: false]
-  requires_meal         boolean [not null, default: false]
   is_active             boolean [not null, default: true]
   airtable_id           varchar(255)
+}
+
+Table service_groups {
+  id serial [pk, increment]
+  name varchar(100) [not null, unique]
+}
+
+Table service_service_groups {
+  service_id int [ref: > services.id, not null]
+  group_id int [ref: > service_groups.id, not null]
+  indexes { (service_id, group_id) [pk] }
 }
 
 Table enquiries {
@@ -155,6 +163,15 @@ Table gigs {
   ceilidh           boolean [not null, default: false]
   ceilidh_length    text
   ceilidh_style     text
+  ceremony_song_choices text
+  reception_music_details text
+  walk_on_song text
+  introduction_wording text
+  piper_tune_requests text
+  bagpipes_details text
+  speeches_pa_requirements text
+  ceremony_readings_notes text
+  preparation_locations text
   client_token      uuid [not null, unique, default: `gen_random_uuid()`]
   form_saved_at     timestamptz
   vimeo_url         text

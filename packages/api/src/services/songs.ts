@@ -1,3 +1,4 @@
+import { isBandService } from "@get-down/shared";
 import type {
   Song,
   CreateSongRequest,
@@ -549,7 +550,7 @@ function buildSongMutationInput(
 // ─── Validation helpers ───────────────────────────────────────────────────────
 
 /**
- * Validate that every service ID corresponds to an existing service with is_band = true.
+ * Validate that every service ID corresponds to an existing service tagged with Band.
  * Throws BadRequestError if any validation fails.
  */
 function normalizeExclusionIds(ids?: number[]): number[] {
@@ -568,7 +569,7 @@ function normalizeExclusionIds(ids?: number[]): number[] {
 
 async function validateBandServices(serviceIds: number[]): Promise<void> {
   const allServices = await servicesRepo.readServices();
-  const bandServices = new Set(allServices.filter(s => s.is_band).map(s => s.id));
+  const bandServices = new Set(allServices.filter(isBandService).map(s => s.id));
   
   for (const serviceId of serviceIds) {
     if (!bandServices.has(serviceId)) {

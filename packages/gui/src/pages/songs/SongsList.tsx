@@ -3,6 +3,7 @@ import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from "../../api
 import { useHousePlaylist, useAddToHousePlaylist, useRemoveFromHousePlaylist } from "../../api/hooks/useHousePlaylist.js";
 import { useGenres, useCreateGenre, useDeleteGenre } from "../../api/hooks/useGenres.js";
 import { useServices } from "../../api/hooks/useServices.js";
+import { isBandService } from "@get-down/shared";
 import type { CreateSongRequest, UpdateSongRequest, Song } from "@get-down/shared";
 import { formatDuration } from "../../utils/formatDuration.js";
 import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
@@ -55,7 +56,7 @@ export default function SongsList() {
   const { data: services = [] } = useServices();
 
   const houseIds = new Set(housePlaylist.map(h => h.songId));
-  const bandServices = services.filter(s => s.isBand);
+  const bandServices = services.filter(isBandService);
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CreateSongRequest>(EMPTY_FORM);
