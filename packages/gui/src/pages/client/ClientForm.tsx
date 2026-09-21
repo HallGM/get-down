@@ -4,6 +4,12 @@ import { useClientForm, useSaveClientForm } from "../../api/hooks/useClientForm.
 import type { SaveClientFormRequest } from "@get-down/shared";
 import { formatDate } from "../../utils/date.js";
 import { deriveClientFormCapabilities } from "../../utils/clientFormCapabilities.js";
+import {
+  CEILIDH_LENGTHS,
+  CEILIDH_STYLES,
+  FIRST_DANCE_TYPES,
+  optionLabel,
+} from "../gigs/gigFormOptions.js";
 import "./client-form.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -168,10 +174,6 @@ function SongRow({
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const FIRST_DANCE_TYPES = ["", "Live", "DJ", "None"];
-const CEILIDH_LENGTHS = ["", "30 mins", "1 hour"];
-const CEILIDH_STYLES = ["", "Mash-up", "Traditional"];
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -518,7 +520,7 @@ export default function ClientForm() {
             >
               {FIRST_DANCE_TYPES.map((t) => (
                 <option key={t} value={t}>
-                  {t || "please select"}
+                  {optionLabel(t)}
                 </option>
               ))}
             </select>
@@ -581,7 +583,7 @@ export default function ClientForm() {
                 >
                   {CEILIDH_LENGTHS.map((t) => (
                     <option key={t} value={t}>
-                      {t || "Please select"}
+                      {optionLabel(t)}
                     </option>
                   ))}
                 </select>
@@ -593,7 +595,7 @@ export default function ClientForm() {
                 >
                   {CEILIDH_STYLES.map((t) => (
                     <option key={t} value={t}>
-                      {t || "Please select"}
+                      {optionLabel(t)}
                     </option>
                   ))}
                 </select>
