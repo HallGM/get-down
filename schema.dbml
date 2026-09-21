@@ -156,6 +156,7 @@ Table gigs {
   meal_details      text
   client_notes      text
   performer_notes   text
+  private_notes     text
   playlist_url      text
   end_of_night_song text
   first_dance_song  text

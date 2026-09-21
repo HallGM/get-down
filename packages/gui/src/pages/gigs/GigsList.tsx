@@ -17,11 +17,10 @@ import UnavailableMoney from "../../components/UnavailableMoney.js";
 import { formatDate } from "../../utils/date.js";
 import { formatPersonName } from "../../utils/people.js";
 import { confirmedProfit } from "./gigUtils.js";
+import { STATUS_OPTIONS } from "./gigFormOptions.js";
 import type { Gig } from "@get-down/shared";
 
 type GigView = "upcoming" | "past" | "all";
-
-const STATUS_OPTIONS = ["enquiry", "confirmed", "completed", "cancelled", "postponed"];
 
 const EMPTY_FORM: CreateGigRequest = {
   firstName: "",

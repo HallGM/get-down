@@ -313,6 +313,7 @@ export interface Gig {
   mealDetails?: string;
   clientNotes?: string;
   performerNotes?: string;
+  privateNotes?: string;
   playlistUrl?: string;
   endOfNightSong?: string;
   firstDanceSong?: string;
@@ -363,6 +364,7 @@ export interface CreateGigRequest {
   mealDetails?: string;
   clientNotes?: string;
   performerNotes?: string;
+  privateNotes?: string;
   playlistUrl?: string;
   endOfNightSong?: string;
   firstDanceSong?: string;
@@ -410,6 +412,7 @@ export interface UpdateGigRequest {
   mealDetails?: string;
   clientNotes?: string;
   performerNotes?: string;
+  privateNotes?: string;
   playlistUrl?: string;
   endOfNightSong?: string;
   firstDanceSong?: string;

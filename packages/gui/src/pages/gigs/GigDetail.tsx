@@ -75,6 +75,7 @@ export default function GigDetail() {
       parkingInfo: gig!.parkingInfo,
       clientNotes: gig!.clientNotes,
       performerNotes: gig!.performerNotes,
+      privateNotes: gig!.privateNotes,
       playlistUrl: gig!.playlistUrl,
       endOfNightSong: gig!.endOfNightSong,
       firstDanceSong: gig!.firstDanceSong,
@@ -84,8 +85,6 @@ export default function GigDetail() {
       ceilidhStyle: gig!.ceilidhStyle,
       mealDetails: gig!.mealDetails,
       ceremonySongChoices: gig!.ceremonySongChoices, receptionMusicDetails: gig!.receptionMusicDetails, walkOnSong: gig!.walkOnSong, introductionWording: gig!.introductionWording, piperTuneRequests: gig!.piperTuneRequests, bagpipesDetails: gig!.bagpipesDetails, speechesPaRequirements: gig!.speechesPaRequirements, ceremonyReadingsNotes: gig!.ceremonyReadingsNotes, preparationLocations: gig!.preparationLocations,
-      dropboxUrl: gig!.dropboxUrl,
-      deliveryTitle: gig!.deliveryTitle,
     });
     setEditing(true);
   }
