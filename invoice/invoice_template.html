@@ -51,6 +51,12 @@
         text-align: left;
       }
 
+      /* Generic line-item descriptions may contain a breakdown separated by
+         newlines. Keep those breaks visible in the rendered PDF. */
+      td.line-item-description {
+        white-space: pre-line;
+      }
+
       th {
         background-color: hsl(6.21deg 76.32% 85.1%);
       }
@@ -136,7 +142,7 @@
           </tr>
           {% endif %} {% for row in section.rows %}
           <tr>
-            <td {% if row.bold %}style="font-weight: bold" {% endif %}>{{ row.description }}</td>
+            <td class="line-item-description" {% if row.bold %}style="font-weight: bold" {% endif %}>{{ row.description }}</td>
             <td style="text-align: right{% if row.bold %}; font-weight: bold{% endif %}">
               {{ "-" if row.price < 0 else "" }}£{{ "%.2f"|format(row.price|abs) }}
             </td>

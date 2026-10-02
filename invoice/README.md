@@ -161,3 +161,7 @@ For issues or deployment questions:
 - Review [DEPLOYMENT.md](DEPLOYMENT.md) for detailed Render setup
 - Check [ARCHITECTURE.md](ARCHITECTURE.md) for scalability patterns
 - See [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for commands
+
+Line-item descriptions preserve embedded newline characters in the generated
+PDF. This allows invoices that include fee breakdowns to display one component
+per line without changing the generic invoice API contract.
