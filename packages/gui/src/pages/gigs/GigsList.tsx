@@ -20,7 +20,7 @@ import { confirmedProfit } from "./gigUtils.js";
 import { STATUS_OPTIONS } from "./gigFormOptions.js";
 import type { Gig } from "@get-down/shared";
 
-type GigView = "upcoming" | "past" | "all";
+type GigView = "enquiries" | "upcoming" | "past" | "all";
 
 const EMPTY_FORM: CreateGigRequest = {
   firstName: "",
@@ -132,10 +132,18 @@ export default function GigsList() {
     const today = new Date().toISOString().slice(0, 10);
     let all = [...(gigs ?? [])];
 
-    if (view === "upcoming") {
-      all = all.filter((g) => g.date != null && g.date >= today).sort((a, b) => a.date!.localeCompare(b.date!));
+    if (view === "enquiries") {
+      all = all
+        .filter(isEnquiry)
+        .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
+    } else if (view === "upcoming") {
+      all = all
+        .filter((g) => isScheduledGig(g) && g.date != null && g.date >= today)
+        .sort((a, b) => a.date!.localeCompare(b.date!));
     } else if (view === "past") {
-      all = all.filter((g) => g.date != null && g.date < today).sort((a, b) => b.date!.localeCompare(a.date!));
+      all = all
+        .filter((g) => isScheduledGig(g) && g.date != null && g.date < today)
+        .sort((a, b) => b.date!.localeCompare(a.date!));
     } else {
       all.sort((a, b) => (a.date ?? "9999-12-31").localeCompare(b.date ?? "9999-12-31"));
     }
@@ -230,6 +238,13 @@ export default function GigsList() {
       </div>
 
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+        <button
+          className={view !== "enquiries" ? "secondary" : undefined}
+          aria-pressed={view === "enquiries"}
+          onClick={() => setView("enquiries")}
+        >
+          Enquiries
+        </button>
         <button
           className={view !== "upcoming" ? "secondary" : undefined}
           aria-pressed={view === "upcoming"}
@@ -357,6 +372,14 @@ export default function GigsList() {
       )}
     </main>
   );
+}
+
+function isEnquiry(gig: Gig): boolean {
+  return gig.status === "enquiry";
+}
+
+function isScheduledGig(gig: Gig): boolean {
+  return !isEnquiry(gig);
 }
 
 // ── private helpers ──────────────────────────────────────────────────────────
