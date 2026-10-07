@@ -1,7 +1,8 @@
 import type { Gig, UpdateGigRequest } from "@get-down/shared";
 import { Link } from "react-router-dom";
 import { useServices } from "../../api/hooks/useServices.js";
-import { useSetGigServices } from "../../api/hooks/useGigs.js";
+import { useSetGigServices, useGigEnquiryServices, useSetGigEnquiryServices } from "../../api/hooks/useGigs.js";
+import { useEnquiryServices } from "../../api/hooks/useEnquiryServices.js";
 import CopyLinkBanner from "../../components/CopyLinkBanner.js";
 import FormField from "../../components/FormField.js";
 import MoneyField from "../../components/MoneyField.js";
@@ -32,6 +33,9 @@ interface Props {
 export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditForm, saveEdit, cancelEdit, isPending }: Props) {
   const { data: allServices = [] } = useServices();
   const setGigServices = useSetGigServices();
+  const { data: enquiryOptions = [] } = useEnquiryServices();
+  const { data: selectedEnquiry = [] } = useGigEnquiryServices(gigId);
+  const setEnquiry = useSetGigEnquiryServices();
 
   const attachedIds = new Set((gig.services ?? []).map(s => s.id));
   const available = allServices.filter(s => !attachedIds.has(s.id));
@@ -50,7 +54,8 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
       {!editing ? (
         <article>
           <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem" }}>
-            <dt>Date</dt><dd>{formatDate(gig.date)}</dd>
+            <dt>Date</dt><dd>{gig.date ? formatDate(gig.date) : "Undated"}</dd>
+            {gig.enquiryNotes && <><dt>Enquiry notes</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.enquiryNotes}</dd></>}
             <dt>Partner</dt><dd>{gig.partnerName ?? "—"}</dd>
             <dt>Email</dt><dd>{gig.email ?? "—"}</dd>
             <dt>Phone</dt><dd>{gig.phone ?? "—"}</dd>
@@ -71,13 +76,14 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
               <FormField label="Partner" value={editForm.partnerName ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, partnerName: e.target.value }))} />
               <FormField label="Email" type="email" value={editForm.email ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} />
               <FormField label="Phone" type="tel" value={editForm.phone ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} />
-              <FormField label="Date" type="date" value={toInputDate(editForm.date)} onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))} required />
+              <FormField label="Date" type="date" value={toInputDate(editForm.date)} onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value || undefined }))} required={editForm.status !== "enquiry"} />
               <FormField as="select" label="Status" value={editForm.status ?? "enquiry"} onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}>
                 {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
               </FormField>
               <MoneyField label="Quoted price" value={editForm.totalPrice} onChange={(totalPrice) => setEditForm((f) => ({ ...f, totalPrice }))} />
             </div>
             <FormField as="textarea" label="Description" value={editForm.description ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={3} />
+            <FormField as="textarea" label="Enquiry notes" value={editForm.enquiryNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, enquiryNotes: e.target.value }))} rows={4} />
 
             <h3>Venue and logistics</h3>
             <FormField label="Venue name" value={editForm.venueName ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, venueName: e.target.value }))} />
@@ -180,6 +186,47 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
           </select>
         )}
       </section>
+
+      {gig.status === "enquiry" && (
+        <section>
+          <h2>Enquiry services</h2>
+          {!editing ? (
+            selectedEnquiry.length > 0 ? (
+              <ul>
+                {selectedEnquiry.map((service) => <li key={service.id}>{service.name}</li>)}
+              </ul>
+            ) : <p style={{ color: "var(--pico-muted-color)" }}>No enquiry services selected.</p>
+          ) : enquiryOptions.length === 0 ? (
+            <p style={{ color: "var(--pico-muted-color)" }}>No enquiry services have been configured.</p>
+          ) : (
+            <fieldset>
+              <legend>Client interests</legend>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(14rem, 1fr))", gap: "0.5rem 1rem" }}>
+                {enquiryOptions.map((service) => {
+                  const checked = selectedEnquiry.some((selected) => selected.id === service.id);
+                  return (
+                    <label key={service.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={setEnquiry.isPending}
+                        onChange={(event) => {
+                          const selectedIds = selectedEnquiry.map((selected) => selected.id);
+                          const enquiryServiceIds = event.target.checked
+                            ? [...selectedIds, service.id]
+                            : selectedIds.filter((id) => id !== service.id);
+                          setEnquiry.mutate({ gigId, enquiryServiceIds });
+                        }}
+                      />
+                      {service.name}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
+        </section>
+      )}
 
       {/* Event details (view mode) */}
       {!editing && (

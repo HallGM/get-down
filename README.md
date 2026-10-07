@@ -72,7 +72,12 @@ pnpm dbml:sql                 # Print SQL from schema.dbml
 pnpm migrate                  # Run migrations standalone
 pnpm build && node dist/scripts/csv.js         # Export CSV
 pnpm build && node dist/scripts/html_table.js  # Export HTML table
+pnpm import:enquiry-gigs /path/to/form-responses.csv # Import showcase enquiries as enquiry gigs
 ```
+
+The enquiry importer defaults to `Every Angle Enquiry Form (Responses) - Form responses 1.csv`
+at the repository root. The CSV is intentionally not committed to the repository. Pass the
+downloaded file path as the first argument, or set `ENQUIRY_CSV_PATH`, when running the importer.
 
 ### Production
 
@@ -86,8 +91,7 @@ pnpm -C packages/api start   # Start server on port 3000
 PostgreSQL runs in Docker (see `docker-compose.yml`). Schema defined in `schema.dbml`, applied via numbered migrations in `migrations/`.
 
 - `services` - Service catalog
-- `enquiries` - Enquiry records
-- `enquiries_services` - Many-to-many join table
+- `enquiry_services` - Managed broad enquiry service options
 
 Migrations run automatically on API startup. See `.github/copilot-instructions.md` for the full database workflow.
 
@@ -106,9 +110,6 @@ PORT=3000
 
 ## 📡 API Endpoints
 
-- `POST /enquiry` - Create enquiry
-- `GET /enquiries` - List all enquiries
-- `DELETE /enquiry/:id` - Delete enquiry
 - `POST /register` - Register user
 - `POST /login` - Login user
 

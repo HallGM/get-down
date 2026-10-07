@@ -11,6 +11,7 @@ import * as vimeo from "../utils/vimeo.js";
 import { throttleIfMemoryHigh, memMB } from "../utils/memory.js";
 import { semaphore, r2Key, VARIANTS, type VariantName, fireGenerateDeliveryPhotos } from "../jobs/generateDeliveryPhotos.js";
 import * as photoStatus from "../jobs/deliveryPhotoStatus.js";
+import { toOptionalDateString } from "../utils/date.js";
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -18,8 +19,7 @@ export async function getDeliveryPage(token: string): Promise<DeliveryPageRespon
   const gig = await gigsRepo.readGigByClientToken(token);
   if (!gig) throw new NotFoundError("Delivery page not found");
 
-  const dateStr =
-    typeof gig.date === "string" ? gig.date : new Date(gig.date).toISOString().slice(0, 10);
+  const dateStr = toOptionalDateString(gig.date);
 
   const videoRows = await videosRepo.readVideosByGigId(gig.id);
   const videos = videoRows.map(mapVideo);

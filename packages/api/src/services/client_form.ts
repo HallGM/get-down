@@ -13,6 +13,7 @@ import * as gigsRepo from "../repository/gigs.js";
 import * as prefsRepo from "../repository/gig_song_preferences.js";
 import * as songsRepo from "../repository/songs.js";
 import * as exclusionsRepo from "../repository/song_service_exclusions.js";
+import { toOptionalDateString } from "../utils/date.js";
 import { NotFoundError, BadRequestError } from "../errors.js";
 import { withTransaction } from "../db/init.js";
 import { parseOrBadRequest } from "../utils/parse.js";
@@ -131,8 +132,7 @@ export async function getClientForm(token: string): Promise<ClientFormResponse> 
   }
 
 
-  const dateStr =
-    typeof gig.date === "string" ? gig.date : new Date(gig.date).toISOString().slice(0, 10);
+  const dateStr = toOptionalDateString(gig.date);
 
   return {
     gigId: gig.id,
@@ -189,12 +189,12 @@ export async function saveClientForm(
       status: gig.status,
       firstName: gig.first_name,
       lastName: gig.last_name,
-      date: typeof gig.date === "string" ? gig.date : new Date(gig.date).toISOString().slice(0, 10),
+       date: gig.date ?? undefined,
       travelCost: gig.travel_cost,
       discountPercent: gig.discount_percent,
       // Preserve all admin-only fields unchanged.
-      enquiryId:      gig.enquiry_id      ?? undefined,
-      attributionId:  gig.attribution_id  ?? undefined,
+       attributionId:  gig.attribution_id  ?? undefined,
+       enquiryNotes:   gig.enquiry_notes  ?? undefined,
       name:           gig.name            ?? undefined,
       partnerName:    gig.partner_name    ?? undefined,
       email:          gig.email           ?? undefined,

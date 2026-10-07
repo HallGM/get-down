@@ -211,7 +211,7 @@ export async function addCardChargeToGig(
     invoiceGigId = inv.gig_id;
   } else {
     // Use gig date if no invoice specified
-    invoiceDate = gig.date;
+    invoiceDate = gig.date ?? undefined;
   }
 
   const input = parseOrBadRequest(CreateCardChargeSchema, body) as CreateInvoiceCardChargeRequest;
@@ -792,5 +792,4 @@ function buildMutationInput(
     invoiceType: input.invoiceType ?? existing?.invoiceType ?? 'balance',
   };
 }
-
 

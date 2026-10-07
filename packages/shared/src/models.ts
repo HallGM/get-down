@@ -127,59 +127,6 @@ export interface AuthUser {
   accountId?: number;
 }
 
-export interface Enquiry {
-  id?: number | string;
-  createdAt: Date;
-  firstName: string;
-  lastName: string;
-  partnersName?: string;
-  email: string;
-  phone?: string;
-  eventDate?: Date;
-  venueLocation?: string;
-  services: string[] | Service[];
-  otherServices: string[];
-  message?: string;
-  airtableId?: string;
-}
-
-export interface EnquiryWithServices extends Enquiry {
-  services: Service[];
-}
-
-/**
- * Request/Response DTOs for API endpoints
- */
-
-export interface CreateEnquiryRequest {
-  firstName: string;
-  lastName: string;
-  partnersName?: string;
-  email: string;
-  phone?: string;
-  eventDate?: string;
-  venueLocation?: string;
-  services: (number | string)[];
-  otherServices?: string[];
-  message?: string;
-  airtableId?: string;
-}
-
-export interface EnquiryResponse {
-  id: number;
-  createdAt: string;
-  firstName: string;
-  lastName: string;
-  partnersName?: string;
-  email: string;
-  phone?: string;
-  eventDate?: string;
-  venueLocation?: string;
-  services: Service[];
-  otherServices: string[];
-  message?: string;
-}
-
 export interface Attribution {
   id: number;
   name: string;
@@ -257,7 +204,6 @@ export interface ShowcaseGigSummary {
 
 export interface Gig {
   id: number;
-  enquiryId?: number;
   attributionId?: number;
   /** Present on detail (GET /gigs/:id) only. ID of the showcase that sourced this gig, if any. */
   showcaseId?: number;
@@ -270,7 +216,7 @@ export interface Gig {
   partnerName?: string;
   email?: string;
   phone?: string;
-  date: string;
+  date?: string;
   venueName?: string;
   location?: string;
   description?: string;
@@ -312,6 +258,8 @@ export interface Gig {
   parkingInfo?: string;
   mealDetails?: string;
   clientNotes?: string;
+  enquiryNotes?: string;
+  enquiryServices?: EnquiryService[];
   performerNotes?: string;
   privateNotes?: string;
   playlistUrl?: string;
@@ -340,7 +288,6 @@ export interface Gig {
 }
 
 export interface CreateGigRequest {
-  enquiryId?: number;
   attributionId?: number;
   name?: string;
   status?: string;
@@ -349,7 +296,7 @@ export interface CreateGigRequest {
   partnerName?: string;
   email?: string;
   phone?: string;
-  date: string;
+  date?: string | null;
   venueName?: string;
   location?: string;
   description?: string;
@@ -363,6 +310,7 @@ export interface CreateGigRequest {
   parkingInfo?: string;
   mealDetails?: string;
   clientNotes?: string;
+  enquiryNotes?: string;
   performerNotes?: string;
   privateNotes?: string;
   playlistUrl?: string;
@@ -388,7 +336,6 @@ export interface CreateGigRequest {
 }
 
 export interface UpdateGigRequest {
-  enquiryId?: number;
   attributionId?: number;
   name?: string;
   status?: string;
@@ -397,7 +344,7 @@ export interface UpdateGigRequest {
   partnerName?: string;
   email?: string;
   phone?: string;
-  date?: string;
+  date?: string | null;
   venueName?: string;
   location?: string;
   description?: string;
@@ -411,6 +358,7 @@ export interface UpdateGigRequest {
   parkingInfo?: string;
   mealDetails?: string;
   clientNotes?: string;
+  enquiryNotes?: string;
   performerNotes?: string;
   privateNotes?: string;
   playlistUrl?: string;
@@ -434,6 +382,15 @@ export interface UpdateGigRequest {
   dropboxUrl?: string;
   deliveryTitle?: string;
 }
+
+export interface EnquiryService {
+  id: number;
+  name: string;
+  usageCount?: number;
+}
+export interface CreateEnquiryServiceRequest { name: string; }
+export interface UpdateEnquiryServiceRequest { name: string; }
+export interface SetGigEnquiryServicesRequest { enquiryServiceIds: number[]; }
 
 // ─── Media delivery types ──────────────────────────────────────────────────────
 
@@ -1387,27 +1344,6 @@ export interface UpdateRehearsalCostShareRequest {
   costShare: number;
 }
 
-/**
- * Factory functions for creating instances
- */
-
-export function createEnquiry(data: Partial<Enquiry>): Enquiry {
-  return {
-    id: data.id,
-    createdAt: data.createdAt || new Date(),
-    firstName: data.firstName || "",
-    lastName: data.lastName || "",
-    partnersName: data.partnersName || "",
-    email: (data.email || "").trim().replace(/\s+/g, ""),
-    phone: data.phone || "",
-    eventDate: data.eventDate,
-    venueLocation: data.venueLocation || "",
-    services: Array.isArray(data.services) ? data.services : [],
-    otherServices: Array.isArray(data.otherServices) ? data.otherServices : [],
-    message: data.message || "",
-    airtableId: data.airtableId,
-  };
-}
 
 export interface FeeAllocationSummary extends FeeAllocationAlert {
   /** Numeric ID of the assigned person, or undefined if unassigned. */

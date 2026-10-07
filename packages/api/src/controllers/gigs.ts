@@ -21,6 +21,5 @@ router.post("/gigs/:id/generate-line-items",           handle(req => gigsService
 router.post("/gigs/:id/line-items",                    handle(req => gigsService.addGigLineItem(+req.params.id, req.body), 201));
 router.put("/gigs/:id/line-items/:itemId",             handle(req => gigsService.updateGigLineItem(+req.params.id, +req.params.itemId, req.body)));
 router.delete("/gigs/:id/line-items/:itemId",          handle(req => gigsService.removeGigLineItem(+req.params.id, +req.params.itemId), 204));
-router.post("/enquiries/:id/convert-to-gig", handle(req => gigsService.convertEnquiryToGig(+req.params.id), 201));
 
 export default router;

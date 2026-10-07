@@ -7,8 +7,7 @@ import Dashboard from "./pages/Dashboard.js";
 import GigsList from "./pages/gigs/GigsList.js";
 import GigDetail from "./pages/gigs/GigDetail.js";
 import InvoiceEdit from "./pages/gigs/InvoiceEdit.js";
-import EnquiriesList from "./pages/enquiries/EnquiriesList.js";
-import EmailGenerator from "./pages/enquiries/EmailGenerator.js";
+import EnquiryServicesPage from "./pages/settings/EnquiryServicesPage.js";
 import PeopleList from "./pages/people/PeopleList.js";
 import PersonInvoicesList from "./pages/people/PersonInvoicesList.js";
 import ServicesList from "./pages/services/ServicesList.js";
@@ -53,6 +52,7 @@ const MORE_LINKS = [
   { to: "/attributions", label: "Attributions" },
   { to: "/rehearsals", label: "Rehearsals" },
   { to: "/services/roles", label: "Roles" },
+  { to: "/settings/enquiry-services", label: "Enquiry services" },
   { to: "/fee-allocations", label: "Fee allocations" },
   { to: "/expense-payments", label: "Expense payments" },
   { to: "/gig-payments", label: "Gig payments" },
@@ -188,8 +188,7 @@ export default function App() {
           <Route path="/gigs" element={<GigsList />} />
           <Route path="/gigs/:id" element={<GigDetail />} />
           <Route path="/gigs/:id/invoices/:invoiceId/edit" element={<InvoiceEdit />} />
-          <Route path="/enquiries" element={<EnquiriesList />} />
-          <Route path="/enquiries/email-generator" element={<EmailGenerator />} />
+          <Route path="/settings/enquiry-services" element={<EnquiryServicesPage />} />
           <Route path="/songs" element={<SongsList />} />
           <Route path="/people" element={<PeopleList />} />
           <Route path="/people/:personId/invoices" element={<PersonInvoicesList />} />

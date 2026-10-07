@@ -5,6 +5,7 @@ import * as gigSongPreferencesRepo from "../repository/gig_song_preferences.js";
 import * as songsRepo from "../repository/songs.js";
 import * as assignedRolesRepo from "../repository/assigned_roles.js";
 import { NotFoundError } from "../errors.js";
+import { toOptionalDateString } from "../utils/date.js";
 
 export async function getPerformerByToken(token: string): Promise<PerformerResponse> {
   const person = await peopleRepo.readPersonByPerformerToken(token);
@@ -85,7 +86,7 @@ export async function getPerformerGigDetail(
       displayName: p.display_name ?? undefined,
     }));
 
-  const dateStr = typeof gig.date === "string" ? gig.date : new Date(gig.date).toISOString().slice(0, 10);
+  const dateStr = toOptionalDateString(gig.date);
 
   return {
     id: gig.id,

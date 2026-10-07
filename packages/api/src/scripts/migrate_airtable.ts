@@ -28,7 +28,6 @@ const TABLES = {
   showcases:    "tbl7a51UZUl6Mm1fK",
   recipient:    "tblIgNPC0L10PhpMl",
   expenses:     "tbljLOEDbueq51OTs",
-  enquiries:    "tblIF2otYYuZwirXR",
   gigs:         "tbldxbkHiZOEcpkrk",
   rehearsals:   "tblVrEfV206UKPL3G",
   gigPayments:  "tblmoq1Xt57MR5p4X",
@@ -430,36 +429,7 @@ async function main(): Promise<void> {
   }
   console.log(`   ${expenseLinksCreated} links created\n`);
 
-  // ── 7. Enquiries ────────────────────────────────────────────────────────────
-  console.log("→ enquiries");
-  const existingEnquiries = await callApi<{ id: number; airtableId?: string }[]>("GET", "/enquiries");
-  const enquiriesByAirtableId = new Set(existingEnquiries.filter(e => e.airtableId).map(e => e.airtableId!));
-
-  const atEnquiries = await fetchTable(TABLES.enquiries);
-  let enquiriesSkipped = 0;
-  for (const r of atEnquiries) {
-    if (enquiriesByAirtableId.has(r.id)) {
-      enquiriesSkipped++;
-      continue;
-    }
-    const f = r.fields;
-    const firstName = String(f["First Name"] ?? "").trim();
-    if (!firstName) continue;
-    await callApi("POST", "/enquiry", {
-      firstName,
-      lastName: String(f["Last Name"] ?? ""),
-      email: str(f["Email"]) ?? "",
-      phone: str(f["phone"]) ?? undefined,
-      eventDate: str(f["Event Date"]) ?? undefined,
-      venueLocation: str(f["Venue Location"]) ?? undefined,
-      message: str(f["Message (optional)"]) ?? undefined,
-      services: [],
-      airtableId: r.id,
-    });
-  }
-  console.log(`   ${atEnquiries.length} records (${enquiriesSkipped} skipped as already migrated)\n`);
-
-  // ── 8. Gigs (+ gig_services + assigned_roles) ───────────────────────────────
+  // ── 7. Gigs (+ gig_services + assigned_roles) ───────────────────────────────
   console.log("→ gigs");
   const existingGigs = await callApi<{ id: number; airtableId?: string }[]>("GET", "/gigs");
   const gigsByAirtableId = byAirtableId(existingGigs);

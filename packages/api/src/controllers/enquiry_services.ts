@@ -1,0 +1,13 @@
+import express, { type Router } from "express";
+import { authenticateToken, requirePartner } from "../middleware/auth.js";
+import * as service from "../services/enquiry_services.js";
+import { handle } from "../utils/handle.js";
+const router: Router = express.Router();
+router.use(authenticateToken);
+router.get("/enquiry-services", handle(() => service.getAll()));
+router.post("/enquiry-services", requirePartner, handle((req) => service.create(req.body), 201));
+router.put("/enquiry-services/:id", requirePartner, handle((req) => service.update(+req.params.id, req.body)));
+router.delete("/enquiry-services/:id", requirePartner, handle((req) => service.remove(+req.params.id), 204));
+router.get("/gigs/:id/enquiry-services", handle((req) => service.getGigSelections(+req.params.id)));
+router.put("/gigs/:id/enquiry-services", requirePartner, handle((req) => service.setGigSelections(+req.params.id, req.body)));
+export default router;

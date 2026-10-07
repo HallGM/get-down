@@ -130,14 +130,14 @@ export default function GigsList() {
 
   const displayedGigs = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
-    let all = gigs ?? [];
+    let all = [...(gigs ?? [])];
 
     if (view === "upcoming") {
-      all = all.filter((g) => g.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+      all = all.filter((g) => g.date != null && g.date >= today).sort((a, b) => a.date!.localeCompare(b.date!));
     } else if (view === "past") {
-      all = all.filter((g) => g.date < today).sort((a, b) => b.date.localeCompare(a.date));
+      all = all.filter((g) => g.date != null && g.date < today).sort((a, b) => b.date!.localeCompare(a.date!));
     } else {
-      all = [...all].sort((a, b) => a.date.localeCompare(b.date));
+      all.sort((a, b) => (a.date ?? "9999-12-31").localeCompare(b.date ?? "9999-12-31"));
     }
 
     if (selectedServiceId !== null) {
@@ -325,7 +325,7 @@ export default function GigsList() {
             <FormField label="Partner Name" value={form.partnerName ?? ""} onChange={(e) => setField("partnerName", e.target.value)} />
             <FormField label="Email" type="email" value={form.email ?? ""} onChange={(e) => setField("email", e.target.value)} />
             <FormField label="Phone" type="tel" value={form.phone ?? ""} onChange={(e) => setField("phone", e.target.value)} />
-            <FormField label="Date" type="date" value={form.date} onChange={(e) => setField("date", e.target.value)} required />
+             <FormField label="Date" type="date" value={form.date ?? ""} onChange={(e) => setField("date", e.target.value || undefined)} required={form.status !== "enquiry"} />
             <FormField label="Venue" value={form.venueName ?? ""} onChange={(e) => setField("venueName", e.target.value)} />
             <FormField label="Location" value={form.location ?? ""} onChange={(e) => setField("location", e.target.value)} />
             <FormField as="select" label="Status" value={form.status ?? "enquiry"} onChange={(e) => setField("status", e.target.value)}>

@@ -24,6 +24,7 @@
     "backfill:scott-payments": "tsx src/scripts/backfill_scott_payments.ts",
     "migrate:scott-account": "tsx src/scripts/migrate_scott_account.ts",
     "repair:performer-fees": "tsx src/scripts/repair_performer_fee_payments.ts"
+    ,"import:enquiry-gigs": "tsx src/scripts/import_enquiry_gigs.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1039.0",

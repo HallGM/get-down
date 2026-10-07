@@ -5,7 +5,6 @@ import type { ServiceGroupRow } from "./services.js";
 
 export interface GigRow {
   id: number;
-  enquiry_id: number | null;
   attribution_id: number | null;
   name: string | null;
   status: string;
@@ -14,7 +13,8 @@ export interface GigRow {
   partner_name: string | null;
   email: string | null;
   phone: string | null;
-  date: string;
+  date: string | null;
+  enquiry_notes: string | null;
   venue_name: string | null;
   location: string | null;
   description: string | null;
@@ -53,7 +53,6 @@ export interface GigRow {
 }
 
 export interface GigMutationInput {
-  enquiryId?: number;
   attributionId?: number;
   name?: string;
   status: string;
@@ -62,7 +61,8 @@ export interface GigMutationInput {
   partnerName?: string;
   email?: string;
   phone?: string;
-  date: string;
+  date?: string | null;
+  enquiryNotes?: string;
   venueName?: string;
   location?: string;
   description?: string;
@@ -99,8 +99,8 @@ export interface GigMutationInput {
 }
 
 const SELECT_COLS = `
-  id, enquiry_id, attribution_id, name, status, first_name, last_name,
-  partner_name, email, phone, date, venue_name, location, description,
+  id, attribution_id, name, status, first_name, last_name,
+  partner_name, email, phone, date, enquiry_notes, venue_name, location, description,
   total_price, travel_cost, discount_percent, airtable_id,
   timings, contact_number, parking_info, meal_details, client_notes, performer_notes, private_notes,
   playlist_url, end_of_night_song, first_dance_song, first_dance_type,
@@ -112,7 +112,7 @@ export async function createGig(input: GigMutationInput): Promise<GigRow> {
   const rows = await run_query<GigRow>({
     text: `
       INSERT INTO gigs (
-        enquiry_id, attribution_id, name, status, first_name, last_name,
+        enquiry_notes, attribution_id, name, status, first_name, last_name,
         partner_name, email, phone, date, venue_name, location, description,
         total_price, travel_cost, discount_percent, airtable_id,
         timings, contact_number, parking_info, meal_details, client_notes, performer_notes, private_notes,
@@ -124,7 +124,7 @@ export async function createGig(input: GigMutationInput): Promise<GigRow> {
       RETURNING ${SELECT_COLS};
     `,
     values: [
-      input.enquiryId ?? null,
+      input.enquiryNotes ?? null,
       input.attributionId ?? null,
       input.name ?? null,
       input.status,
@@ -166,7 +166,7 @@ export async function createGig(input: GigMutationInput): Promise<GigRow> {
 
 export async function readGigs(): Promise<GigRow[]> {
   return run_query<GigRow>({
-    text: `SELECT ${SELECT_COLS} FROM gigs ORDER BY date DESC;`,
+    text: `SELECT ${SELECT_COLS} FROM gigs ORDER BY date DESC NULLS LAST;`,
   });
 }
 
@@ -182,7 +182,7 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
   const rows = await run_query<GigRow>({
     text: `
       UPDATE gigs
-      SET enquiry_id = $1, attribution_id = $2, name = $3, status = $4,
+       SET enquiry_notes = $1, attribution_id = $2, name = $3, status = $4,
           first_name = $5, last_name = $6, partner_name = $7, email = $8, phone = $9,
           date = $10, venue_name = $11, location = $12, description = $13,
           total_price = $14, travel_cost = $15, discount_percent = $16, airtable_id = $17,
@@ -195,7 +195,7 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
       RETURNING ${SELECT_COLS};
     `,
     values: [
-      input.enquiryId ?? null,
+       input.enquiryNotes ?? null,
       input.attributionId ?? null,
       input.name ?? null,
       input.status,
@@ -312,28 +312,6 @@ export async function touchFormSavedAt(gigId: number): Promise<void> {
     text: `UPDATE gigs SET form_saved_at = NOW() WHERE id = $1;`,
     values: [gigId],
   });
-}
-
-interface EnquiryBriefRow {
-  id: number;
-  first_name: string;
-  last_name: string;
-  partner_name: string | null;
-  email: string;
-  phone: string | null;
-  event_date: string | null;
-  venue_location: string | null;
-}
-
-export async function readEnquiryBrief(enquiryId: number): Promise<EnquiryBriefRow | null> {
-  const rows = await run_query<EnquiryBriefRow>({
-    text: `
-      SELECT id, first_name, last_name, partner_name, email, phone, event_date, venue_location
-      FROM enquiries WHERE id = $1 LIMIT 1;
-    `,
-    values: [enquiryId],
-  });
-  return rows[0] ?? null;
 }
 
 export interface UpcomingGigRow {

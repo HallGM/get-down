@@ -24,29 +24,6 @@ Table service_service_groups {
   indexes { (service_id, group_id) [pk] }
 }
 
-Table enquiries {
-  id             serial [pk, increment]
-  created_at     date
-  first_name     varchar(255) [not null]
-  last_name      varchar(255) [not null]
-  partner_name   varchar(255)
-  email          varchar(255) [not null]
-  phone          varchar(255)
-  event_date     date
-  venue_location varchar(255)
-  other_services varchar[]
-  message        text
-  airtable_id    varchar(255)
-  status         varchar(50) [not null, default: 'new']
-  attribution_id int [ref: > attributions.id]
-}
-
-Table enquiries_services {
-  id          serial [pk, increment]
-  service_id  int    [ref: > services.id, not null]
-  enquiry_id  int    [ref: > enquiries.id, not null]
-}
-
 Table people {
   id              serial [pk, increment]
   first_name      varchar(255) [not null]
@@ -133,7 +110,6 @@ Table people_roles {
 
 Table gigs {
   id                serial [pk, increment]
-  enquiry_id        int [ref: > enquiries.id]
   attribution_id    int [ref: > attributions.id]
   name              varchar(255)
   status            varchar(50) [not null, default: 'draft']
@@ -142,7 +118,7 @@ Table gigs {
   partner_name      varchar(255)
   email             varchar(255)
   phone             varchar(255)
-  date              date [not null]
+  date              date
   venue_name        varchar(255)
   location          varchar(255)
   description       text
@@ -155,6 +131,7 @@ Table gigs {
   parking_info      text
   meal_details      text
   client_notes      text
+  enquiry_notes     text
   performer_notes   text
   private_notes     text
   playlist_url      text
@@ -178,6 +155,17 @@ Table gigs {
   vimeo_url         text
   dropbox_url       text
   delivery_title    text
+}
+
+Table enquiry_services {
+  id serial [pk, increment]
+  name varchar(255) [not null, unique]
+}
+
+Table gig_enquiry_services {
+  gig_id int [ref: > gigs.id, not null]
+  enquiry_service_id int [ref: > enquiry_services.id, not null]
+  indexes { (gig_id, enquiry_service_id) [pk] }
 }
 
 Table gig_line_items {

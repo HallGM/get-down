@@ -94,7 +94,7 @@ export async function getGigById(id: number): Promise<Gig> {
 
 export async function createGig(input: CreateGigRequest): Promise<Gig> {
   return withTransaction(async () => {
-    const row = await gigsRepo.createGig(buildMutationInput(input));
+     const row = await gigsRepo.createGig(buildMutationInput(input));
     await seedDefaultSetListSection(row.id);
     return mapGig(row);
   });
@@ -198,33 +198,6 @@ export async function generateLineItemsFromServices(gigId: number): Promise<GigL
   return created.map(mapGigLineItem);
 }
 
-export async function convertEnquiryToGig(enquiryId: number): Promise<Gig> {
-  const enquiry = await gigsRepo.readEnquiryBrief(enquiryId);
-  if (!enquiry) throw new NotFoundError("Enquiry not found");
-  if (!enquiry.event_date) {
-    throw new BadRequestError("Enquiry has no event date — cannot convert to gig");
-  }
-  const eventDate = enquiry.event_date; // capture narrowed value before async closure
-
-  return withTransaction(async () => {
-    const row = await gigsRepo.createGig({
-      enquiryId: enquiry.id,
-      status: "draft",
-      firstName: enquiry.first_name,
-      lastName: enquiry.last_name,
-      partnerName: enquiry.partner_name ?? undefined,
-      email: enquiry.email,
-      phone: enquiry.phone ?? undefined,
-      date: toDateString(eventDate) ?? eventDate,
-      location: enquiry.venue_location ?? undefined,
-      travelCost: 0,
-      discountPercent: 0,
-    });
-    await seedDefaultSetListSection(row.id);
-    return mapGig(row);
-  });
-}
-
 async function seedDefaultSetListSection(gigId: number): Promise<void> {
   await songsRepo.createSetListItem({
     gigId,
@@ -251,7 +224,6 @@ function toDateString(value: string | Date | null): string | null {
 function mapGig(row: gigsRepo.GigRow): Gig {
   return {
     id: row.id,
-    enquiryId: row.enquiry_id ?? undefined,
     attributionId: row.attribution_id ?? undefined,
     name: row.name ?? undefined,
     status: row.status,
@@ -260,7 +232,8 @@ function mapGig(row: gigsRepo.GigRow): Gig {
     partnerName: row.partner_name ?? undefined,
     email: row.email ?? undefined,
     phone: row.phone ?? undefined,
-    date: toDateString(row.date) ?? row.date,
+     date: toDateString(row.date) ?? undefined,
+     enquiryNotes: row.enquiry_notes ?? undefined,
     venueName: row.venue_name ?? undefined,
     location: row.location ?? undefined,
     description: row.description ?? undefined,
@@ -336,8 +309,9 @@ function buildMutationInput(
   if (!firstName) throw new BadRequestError("firstName is required");
   const lastName = input.lastName?.trim() ?? existing?.lastName;
   if (!lastName) throw new BadRequestError("lastName is required");
-  const date = input.date ?? existing?.date;
-  if (!date) throw new BadRequestError("date is required");
+  const date = "date" in input ? input.date ?? undefined : existing?.date;
+   const status = input.status ?? existing?.status ?? "draft";
+   if (!date && status !== "enquiry") throw new BadRequestError("date is required unless status is enquiry");
 
   const vimeoUrl = input.vimeoUrl?.trim() ?? existing?.vimeoUrl;
   const dropboxUrl = input.dropboxUrl?.trim() ?? existing?.dropboxUrl;
@@ -345,16 +319,16 @@ function buildMutationInput(
   if (dropboxUrl && !isValidUrl(dropboxUrl)) throw new BadRequestError("dropboxUrl must be a valid URL");
 
   return {
-    enquiryId: input.enquiryId ?? existing?.enquiryId,
     attributionId: input.attributionId ?? existing?.attributionId,
     name: input.name?.trim() ?? existing?.name,
-    status: input.status ?? existing?.status ?? "draft",
+     status,
     firstName,
     lastName,
     partnerName: input.partnerName !== undefined ? input.partnerName.trim() : existing?.partnerName,
     email: input.email !== undefined ? input.email.trim() : existing?.email,
     phone: input.phone !== undefined ? input.phone.trim() : existing?.phone,
-    date,
+     date,
+     enquiryNotes: input.enquiryNotes ?? existing?.enquiryNotes,
     venueName: input.venueName !== undefined ? input.venueName.trim() : existing?.venueName,
     location: input.location !== undefined ? input.location.trim() : existing?.location,
     description: input.description !== undefined ? input.description.trim() : existing?.description,

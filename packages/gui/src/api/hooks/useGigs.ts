@@ -6,6 +6,7 @@ import type {
   UpdateGigRequest,
   CreateGigLineItemRequest,
   UpdateGigLineItemRequest,
+  EnquiryService,
 } from "@get-down/shared";
 import { apiFetch } from "../client.js";
 import { useApiMutation } from "./useApiMutation.js";
@@ -70,13 +71,16 @@ export function useSetGigServices() {
   });
 }
 
-export function useConvertEnquiryToGig() {
+export function useGigEnquiryServices(id: number) {
+  return useQuery({ queryKey: [KEY, id, "enquiry-services"], queryFn: () => apiFetch<EnquiryService[]>("GET", `/gigs/${id}/enquiry-services`), enabled: !!id });
+}
+
+export function useSetGigEnquiryServices() {
   const qc = useQueryClient();
   return useApiMutation({
-    mutationFn: (enquiryId: number) =>
-      apiFetch<Gig>("POST", `/enquiries/${enquiryId}/convert-to-gig`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
-    successMessage: "Enquiry converted to gig",
+    mutationFn: ({ gigId, enquiryServiceIds }: { gigId: number; enquiryServiceIds: number[] }) => apiFetch<EnquiryService[]>("PUT", `/gigs/${gigId}/enquiry-services`, enquiryServiceIds),
+    onSuccess: (_data, { gigId }) => qc.invalidateQueries({ queryKey: [KEY, gigId, "enquiry-services"] }),
+    successMessage: "Enquiry services updated",
   });
 }
 

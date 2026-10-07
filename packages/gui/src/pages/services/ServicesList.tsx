@@ -53,6 +53,7 @@ export default function ServicesList() {
         <h1>Services</h1>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <Link to="/services/roles" className="secondary outline" style={{ padding: "0.4em 0.8em" }}>Manage roles →</Link>
+          <Link to="/settings/enquiry-services" className="secondary outline" style={{ padding: "0.4em 0.8em" }}>Enquiry services →</Link>
           <button onClick={() => setShowCreate(true)}>+ New Service</button>
         </div>
       </div>

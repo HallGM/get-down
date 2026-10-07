@@ -15,6 +15,10 @@ export function toDateString(value: string | Date | null): string | null {
   return value.toISOString().slice(0, 10);
 }
 
+export function toOptionalDateString(value: string | Date | null | undefined): string {
+  return toDateString(value ?? null) ?? "";
+}
+
 /**
  * Return today's date as an ISO date string (YYYY-MM-DD).
  */
