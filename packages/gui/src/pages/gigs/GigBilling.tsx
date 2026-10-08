@@ -1095,7 +1095,7 @@ export default function GigBilling() {
 
        {/* Card Charge Modal (using ExpenseModal) */}
        <ExpenseModal
-         expense={showChargeModal && chargeModalChargeId ? chargeModalExpense : null}
+          expense={showChargeModal && chargeModalChargeId ? chargeModalExpense ?? null : null}
          onClose={closeChargeModal}
          allAllocations={allAllocations}
          allAttributionFees={allAttributionFees}

@@ -21,21 +21,19 @@ export function getAllocationTitle(
  * Generates a description in the format: `<role(s)> - <date> - <entity name>`
  * If no roles are linked, omits the role prefix: `<date> - <entity name>`
  */
-export function buildExpenseInitialValues(
-  entity: { date: string } | null | undefined,
+export function buildExpenseInitialValues<T extends { date?: string }>(
+  entity: T | null | undefined,
   linkedRoles: { roleName: string }[],
   allocation: { personId?: number | null; lineItems?: { amount?: number | null }[] },
   people: Person[],
-  formatEntityName: (entity: { date: string }) => string,
+  formatEntityName: (entity: T) => string,
 ): { description: string; amount: number; recipientName: string } | undefined {
   if (!entity || !allocation.personId) return undefined;
 
   const roleNames = linkedRoles.map((r) => r.roleName).join("/");
-  const date = formatDate(entity.date);
+  const date = entity.date ? formatDate(entity.date) : undefined;
   const name = formatEntityName(entity);
-  const description = roleNames
-    ? `${roleNames} - ${date} - ${name}`
-    : `${date} - ${name}`;
+  const description = [roleNames, date, name].filter(Boolean).join(" - ");
 
   return {
     description,

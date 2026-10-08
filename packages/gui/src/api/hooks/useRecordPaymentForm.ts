@@ -26,7 +26,7 @@ export function useRecordPaymentForm(
   shouldAutoSync: boolean,
   defaultAmount?: number,
   defaultDate?: string,
-  businessAccountId?: number | string,
+  businessAccountId?: number,
   getToggleDate?: () => string
 ) {
   const [recordPayment, setRecordPayment] = useState(false);
@@ -48,7 +48,11 @@ export function useRecordPaymentForm(
     if (checked) {
       const toggleDate = getToggleDate?.() || toInputDate(new Date());
       setPaymentForm({
-        accountId: businessAccountId ?? "",
+        accountId: typeof businessAccountId === "number"
+          ? businessAccountId
+          : businessAccountId
+            ? Number(businessAccountId)
+            : "",
         amount: defaultAmount ?? 0,
         date: toggleDate,
         paymentMethod: "Transfer",
@@ -62,10 +66,10 @@ export function useRecordPaymentForm(
     setRecordPayment(checked);
   }
 
-  function setPaymentFormFields(fn: (state: LocalPaymentState) => PaymentFormState) {
+  function setPaymentFormFields(fn: (state: PaymentFormState) => PaymentFormState) {
     setPaymentForm((f) => {
       const { amountDirty, dateDirty, ...base } = f;
-      const next = fn(base);
+      const next = fn(base as PaymentFormState);
       return {
         ...next,
         amountDirty: amountDirty || next.amount !== base.amount,
@@ -82,5 +86,3 @@ export function useRecordPaymentForm(
     setPaymentFormFields,
   };
 }
-
-

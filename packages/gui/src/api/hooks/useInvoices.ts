@@ -107,8 +107,8 @@ export function useRemoveLineItem() {
   });
 }
 
-function invalidateInvoiceAndCharges(qc: ReturnType<typeof useQueryClient>, invoiceId: number, gigId?: number) {
-  qc.invalidateQueries({ queryKey: [KEY, invoiceId] });
+function invalidateInvoiceAndCharges(qc: ReturnType<typeof useQueryClient>, invoiceId: number | null, gigId?: number) {
+  if (invoiceId !== null) qc.invalidateQueries({ queryKey: [KEY, invoiceId] });
   if (gigId) qc.invalidateQueries({ queryKey: [CARD_CHARGES_KEY, gigId] });
   // Invalidate expenses since creating/editing/removing a card charge also affects linked expenses
   qc.invalidateQueries({ queryKey: ["expenses"] });

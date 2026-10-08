@@ -63,7 +63,10 @@ export default function PersonInvoicesList() {
     if (editTarget) {
       setEditForm({
         date: editTarget.date,
-        lineItems: editTarget.lineItems || [],
+        lineItems: (editTarget.lineItems || []).map((item) => ({
+          description: item.description ?? "",
+          amount: item.amount ?? 0,
+        })),
       });
     }
   }, [editTarget?.id]); // Only depend on ID to avoid unnecessary updates
@@ -76,9 +79,9 @@ export default function PersonInvoicesList() {
     setForm((f) => {
       const items = [...(f.lineItems || [])];
       if (field === "description") {
-        items[index] = { ...items[index], [field]: value as string };
+        items[index] = { ...items[index], description: String(value ?? "") };
       } else {
-        items[index] = { ...items[index], [field]: value ?? 0 };
+        items[index] = { ...items[index], amount: typeof value === "number" ? value : 0 };
       }
       return { ...f, lineItems: items };
     });
@@ -231,9 +234,9 @@ export default function PersonInvoicesList() {
               setEditForm((f) => {
                 const items = [...(f.lineItems || [])];
                 if (field === "description") {
-                  items[index] = { ...items[index], [field]: value as string };
+                  items[index] = { ...items[index], description: String(value ?? "") };
                 } else {
-                  items[index] = { ...items[index], [field]: value ?? 0 };
+                  items[index] = { ...items[index], amount: typeof value === "number" ? value : 0 };
                 }
                 return { ...f, lineItems: items };
               });

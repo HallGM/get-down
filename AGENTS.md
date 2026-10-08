@@ -171,6 +171,7 @@ Local documentation lives in `airtable_api/`. Consult it whenever reading from o
 
 ## Code Conventions
 
+- **Hidden files**: Glob searches may omit dot-directories; before declaring a hidden file unavailable, inspect its parent directory or read the explicit path.
 - ESM modules throughout; import paths use `.js` extension.
 - DB columns: `snake_case`; TypeScript: `camelCase`.
 - Tests: Jest with `--experimental-vm-modules`.

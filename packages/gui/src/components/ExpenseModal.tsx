@@ -244,7 +244,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
    const isBusy = updateExpense.isPending || uploadDocument.isPending || addCardCharge.isPending || updateCardCharge.isPending;
 
    // Can only toggle tax-only status if the expense has no payments (unpaid or already tax-only)
-   const canToggleTaxOnly = expense && (expense.paymentStatus === 'unpaid' || expense.paymentStatus === 'taxOnly');
+    const canToggleTaxOnly = !!expense && (expense.paymentStatus === 'unpaid' || expense.paymentStatus === 'taxOnly');
 
    // Determine modal title
    const modalTitle = cardChargeContext
@@ -252,7 +252,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
      : "Edit Expense";
 
   return (
-    <Modal open={!!expense || (cardChargeContext && !cardChargeContext.chargeId)} onClose={onClose} title={modalTitle}>
+    <Modal open={!!expense || !!(cardChargeContext && !cardChargeContext.chargeId)} onClose={onClose} title={modalTitle}>
       <form onSubmit={handleSave}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
           <div>

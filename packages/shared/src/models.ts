@@ -202,6 +202,14 @@ export interface ShowcaseGigSummary {
   totalPrice: number | null;
 }
 
+export interface CalendarEvent {
+  eventType: "gig" | "showcase" | "rehearsal";
+  eventId: number;
+  title: string;
+  eventDate: string;
+  location: string | null;
+}
+
 export interface Gig {
   id: number;
   attributionId?: number;
@@ -517,6 +525,7 @@ export interface ClientFormSongGroup {
 /** Response shape for GET /client-form/:token */
 export interface ClientFormResponse {
   gigId: number;
+  status: string;
   date: string;
   firstName: string;
   lastName: string;

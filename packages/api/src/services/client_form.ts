@@ -136,6 +136,7 @@ export async function getClientForm(token: string): Promise<ClientFormResponse> 
 
   return {
     gigId: gig.id,
+    status: gig.status,
     date: dateStr,
     firstName: gig.first_name,
     lastName: gig.last_name,
@@ -238,7 +239,9 @@ export async function saveClientForm(
       prefsRepo.setPreferences(gig.id, "do_not_plays", prefs.doNotPlays),
     ]);
 
-    await gigsRepo.touchFormSavedAt(gig.id);
+    if (gig.status !== "enquiry") {
+      await gigsRepo.touchFormSavedAt(gig.id);
+    }
   });
 
   return { ok: true };

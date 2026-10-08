@@ -76,9 +76,10 @@ export function GigFeeAllocationCard({
     const updateRole = useUpdateRole();
 
     const modals = useExpenseLinkModals();
-    const [apportionExpense, setApportionExpense] = useState<{
-       expense: Expense;
-     } | null>(null);
+   const [apportionExpense, setApportionExpense] = useState<{
+        expense: Expense;
+        link: NonNullable<FeeAllocation["expenseLinks"]>[number];
+      } | null>(null);
 
    // Find the allocation by ID
    const allocation = feeAllocations.find((a) => a.id === allocationId);
@@ -234,7 +235,7 @@ export function GigFeeAllocationCard({
          {apportionExpense && (
             <ApportionModal
               expense={apportionExpense.expense}
-              currentAmount={apportionExpense.expense.amount}
+              currentAmount={apportionExpense.link.apportionedAmount}
               onClose={() => setApportionExpense(null)}
               onSave={(amount) => {
                 updateExpenseLink.mutate(

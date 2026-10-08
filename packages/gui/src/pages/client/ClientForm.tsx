@@ -181,6 +181,7 @@ export default function ClientForm() {
   const { token = "" } = useParams<{ token: string }>();
   const { data, isLoading, error } = useClientForm(token);
   const save = useSaveClientForm(token);
+  const isEnquiry = data?.status === "enquiry";
 
   // ── Shared form state ──────────────────────────────────────────────────────
   const [form, setForm] = useState<Omit<SaveClientFormRequest, "preferences">>({});
@@ -256,7 +257,7 @@ export default function ClientForm() {
     setSaveError("");
     try {
       await save.mutateAsync({
-        ...form,
+        ...(isEnquiry ? {} : form),
         preferences: { favourites, mustPlays, doNotPlays },
       });
       setSaved(true);
@@ -352,25 +353,117 @@ export default function ClientForm() {
     </div>
   );
 
+  const songSelection = (
+    <div>
+      {!isEnquiry && (
+        <button
+          type="button"
+          className="secondary outline"
+          style={{ marginBottom: "1rem" }}
+          onClick={() => setStep("details")}
+        >
+          ← Back to event details
+        </button>
+      )}
+      <p>
+        It's time to customise the band's set list! Take a look through our song list and pick
+        your favourites. We'll use these as a guide when putting your set together. You can
+        also highlight up to three songs you'd especially like to hear, and flag anything you'd
+        rather we didn't play.
+      </p>
+      <p style={{ color: "var(--pico-muted-color)", fontSize: "0.9rem" }}>
+        There's no pressure to pick a lot. Even one or two favourites is really helpful. You
+        can always come back and add more later.
+      </p>
+
+      <div className="cf-legend">
+        <span>
+          <span style={{ fontWeight: 600, color: "var(--pico-primary)" }}>♥ Fav</span> — I'd love to hear this if possible
+        </span>
+        <span>
+          <span style={{ fontWeight: 600, color: "#2e7d32" }}>★ Must</span> — definitely play this (max 3)
+        </span>
+        <span>
+          <span style={{ fontWeight: 600, color: "#b71c1c" }}>✕ DNP</span> — do not play
+        </span>
+      </div>
+
+      {mustPlaysError && (
+        <p role="alert" style={{ color: "var(--pico-del-color)", fontWeight: 600 }}>
+          {mustPlaysError}
+        </p>
+      )}
+      {mustPlays.length > 0 && (
+        <p style={{ fontSize: "0.85rem", color: "#2e7d32" }}>
+          Must-plays selected: {mustPlays.length} / 3
+        </p>
+      )}
+
+      {data.songGroups.map((group) => (
+        <div key={group.genre} style={{ marginTop: "1rem" }}>
+          <p
+            style={{
+              fontWeight: 700,
+              margin: "0 0 0.25rem",
+              color: "var(--pico-color)",
+              fontSize: "0.95rem",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+            }}
+          >
+            {group.genre}
+          </p>
+          <div style={{ paddingLeft: "1rem" }}>
+            {group.songs.map((song) => (
+              <SongRow
+                key={song.id}
+                id={song.id}
+                title={song.title}
+                artist={song.artist}
+                favourites={favourites}
+                mustPlays={mustPlays}
+                doNotPlays={doNotPlays}
+                mustPlaysAtMax={mustPlaysAtMax}
+                onToggle={togglePref}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <SaveBar
+        isPending={save.isPending}
+        saved={saved}
+        error={saveError}
+        onSave={handleSave}
+      />
+    </div>
+  );
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <main className="container">
       {header}
 
       <hgroup>
-        <h1>Event Form</h1>
+        <h1>{isEnquiry ? "Choose your songs" : "Event Form"}</h1>
         <p>
-          {clientName} · {formatDate(data.date)}
+          {clientName}
+          {data.date ? ` · ${formatDate(data.date)}` : ""}
           {data.venueName ? ` · ${data.venueName}` : ""}
         </p>
       </hgroup>
 
-      <p style={{ color: "var(--pico-muted-color)", fontSize: "0.9rem" }}>
-        Please fill in the event details and song selection forms below. Fill in what you know and
-        come back any time using this link. No need to do it all at once.
-      </p>
+      {isEnquiry ? (
+        songSelection
+      ) : (
+        <>
+          <p style={{ color: "var(--pico-muted-color)", fontSize: "0.9rem" }}>
+            Please fill in the event details and song selection forms below. Fill in what you know and
+            come back any time using this link. No need to do it all at once.
+          </p>
 
-      {tabBar}
+          {tabBar}
 
       {/* ── Step 1: Event details ── */}
       {step === "details" && (
@@ -636,90 +729,9 @@ export default function ClientForm() {
         </div>
       )}
 
-      {/* ── Step 2: Song selection ── */}
-      {caps.showSongStep && step === "songs" && (
-        <div>
-          <button
-            type="button"
-            className="secondary outline"
-            style={{ marginBottom: "1rem" }}
-            onClick={() => setStep("details")}
-          >
-            ← Back to event details
-          </button>
-          <p>
-            It's time to customise the band's set list! Take a look through our song list and pick
-            your favourites. We'll use these as a guide when putting your set together. You can
-            also highlight up to three songs you'd especially like to hear, and flag anything you'd
-            rather we didn't play.
-          </p>
-          <p style={{ color: "var(--pico-muted-color)", fontSize: "0.9rem" }}>
-            There's no pressure to pick a lot. Even one or two favourites is really helpful. You
-            can always come back and add more later.
-          </p>
-
-          <div className="cf-legend">
-            <span>
-              <span style={{ fontWeight: 600, color: "var(--pico-primary)" }}>♥ Fav</span> — I'd love to hear this if possible
-            </span>
-            <span>
-              <span style={{ fontWeight: 600, color: "#2e7d32" }}>★ Must</span> — definitely play this (max 3)
-            </span>
-            <span>
-              <span style={{ fontWeight: 600, color: "#b71c1c" }}>✕ DNP</span> — do not play
-            </span>
-          </div>
-
-          {mustPlaysError && (
-            <p role="alert" style={{ color: "var(--pico-del-color)", fontWeight: 600 }}>
-              {mustPlaysError}
-            </p>
-          )}
-          {mustPlays.length > 0 && (
-            <p style={{ fontSize: "0.85rem", color: "#2e7d32" }}>
-              Must-plays selected: {mustPlays.length} / 3
-            </p>
-          )}
-
-          {data.songGroups.map((group) => (
-            <div key={group.genre} style={{ marginTop: "1rem" }}>
-              <p
-                style={{
-                  fontWeight: 700,
-                  margin: "0 0 0.25rem",
-                  color: "var(--pico-color)",
-                  fontSize: "0.95rem",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                {group.genre}
-              </p>
-              <div style={{ paddingLeft: "1rem" }}>
-                {group.songs.map((song) => (
-                  <SongRow
-                    key={song.id}
-                    id={song.id}
-                    title={song.title}
-                    artist={song.artist}
-                    favourites={favourites}
-                    mustPlays={mustPlays}
-                    doNotPlays={doNotPlays}
-                    mustPlaysAtMax={mustPlaysAtMax}
-                    onToggle={togglePref}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-
-          <SaveBar
-            isPending={save.isPending}
-            saved={saved}
-            error={saveError}
-            onSave={handleSave}
-          />
-        </div>
+          {/* ── Step 2: Song selection ── */}
+          {caps.showSongStep && step === "songs" && songSelection}
+        </>
       )}
     </main>
   );

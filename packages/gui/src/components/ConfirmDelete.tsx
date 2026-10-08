@@ -3,12 +3,13 @@ import ConfirmAction from "./ConfirmAction.js";
 interface Props {
   open: boolean;
   itemName: string;
+  warning?: string;
   onConfirm: () => void;
   onCancel: () => void;
   loading?: boolean;
 }
 
-export default function ConfirmDelete({ open, itemName, onConfirm, onCancel, loading }: Props) {
+export default function ConfirmDelete({ open, itemName, warning, onConfirm, onCancel, loading }: Props) {
   return (
     <ConfirmAction
       open={open}
@@ -22,7 +23,7 @@ export default function ConfirmDelete({ open, itemName, onConfirm, onCancel, loa
       <p>
         Are you sure you want to delete <strong>{itemName}</strong>? This cannot be undone.
       </p>
+      {warning && <p>{warning}</p>}
     </ConfirmAction>
   );
 }
-

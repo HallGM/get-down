@@ -60,12 +60,13 @@ export function ShowcaseFeeAllocationCard({
      const confirmFeeAllocation = useConfirmFeeAllocation();
      const deleteExpense = useDeleteExpense();
      const updateRole = useUpdateRole();
-     const updateExpenseLink = useUpdateShowcaseExpenseLink(showcaseId);
+     const updateExpenseLink = useUpdateShowcaseExpenseLink();
 
      const modals = useExpenseLinkModals();
      const [apportionExpense, setApportionExpense] = useState<{
-       expense: Expense;
-     } | null>(null);
+        expense: Expense;
+        link: NonNullable<FeeAllocation["expenseLinks"]>[number];
+      } | null>(null);
 
    // Find the allocation by ID
    const allocation = feeAllocations.find((a) => a.id === allocationId);
@@ -134,7 +135,7 @@ export function ShowcaseFeeAllocationCard({
             onAddExpense={() => modals.openCreate(allocationId)}
             onBrowse={() => modals.openPicker(allocationId)}
             onEdit={(expense) => modals.openEdit(expense.id)}
-            onApportion={(expense) => setApportionExpense({ expense })}
+             onApportion={(expense, link) => setApportionExpense({ expense, link })}
             onRemove={(expense) => modals.openUnlinkConfirm(allocationId, expense)}
           />
       </FeeAllocationCard>
@@ -200,11 +201,11 @@ export function ShowcaseFeeAllocationCard({
         {apportionExpense && (
            <ApportionModal
              expense={apportionExpense.expense}
-             currentAmount={apportionExpense.expense.amount}
+               currentAmount={apportionExpense.link.apportionedAmount}
              onClose={() => setApportionExpense(null)}
              onSave={(amount) => {
                updateExpenseLink.mutate(
-                 { expenseId: apportionExpense.expense.id, apportionedAmount: amount },
+                  { showcaseId, expenseId: apportionExpense.expense.id, apportionedAmount: amount },
                  { onSuccess: () => setApportionExpense(null) }
                );
              }}

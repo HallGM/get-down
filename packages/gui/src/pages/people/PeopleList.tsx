@@ -59,7 +59,10 @@ export default function PeopleList() {
     showToast("Link copied!", "success");
   }
 
-  function setField<K extends keyof CreatePersonRequest>(field: K, value: CreatePersonRequest[K]) {
+  function setField<K extends keyof CreatePersonRequest & keyof import("../../components/PersonFormFields.js").PersonFieldValues>(
+    field: K,
+    value: import("../../components/PersonFormFields.js").PersonFieldValues[K],
+  ) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 

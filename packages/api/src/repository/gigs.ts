@@ -183,7 +183,8 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
     text: `
       UPDATE gigs
        SET enquiry_notes = $1, attribution_id = $2, name = $3, status = $4,
-          first_name = $5, last_name = $6, partner_name = $7, email = $8, phone = $9,
+           form_saved_at = CASE WHEN status = 'enquiry' AND $4::varchar = 'confirmed' THEN NULL ELSE form_saved_at END,
+           first_name = $5, last_name = $6, partner_name = $7, email = $8, phone = $9,
           date = $10, venue_name = $11, location = $12, description = $13,
           total_price = $14, travel_cost = $15, discount_percent = $16, airtable_id = $17,
           timings = $18, contact_number = $19, parking_info = $20, meal_details = $21,

@@ -6,7 +6,7 @@ interface LinkedExpensesSectionProps {
   onAddExpense: () => void;
   onBrowse: () => void;
   onEdit: (expense: Expense) => void;
-  onApportion: (expense: Expense, expenseLink: FeeAllocation['expenseLinks'][number]) => void;
+  onApportion: (expense: Expense, expenseLink: NonNullable<FeeAllocation["expenseLinks"]>[number]) => void;
   onRemove: (expense: Expense) => void;
 }
 
