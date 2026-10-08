@@ -106,6 +106,13 @@ describe("buildEnquiryEmail", () => {
     expect(buildEnquiryEmail({ ...gig, date: undefined }, [service("Custom", null)]).subject).toBe("Custom");
   });
 
+  test("does not confirm availability when no date was provided", () => {
+    const { body } = buildEnquiryEmail({ ...gig, date: undefined }, []);
+
+    expect(body).not.toContain("currently available");
+    expect(body).toContain("We'd be thrilled to be part of your celebration.");
+  });
+
   test("uses the general price list with no services and custom names do not trigger rules", () => {
     const { body } = buildEnquiryEmail(gig, []);
     expect(body).toContain("I've attached our general price list so you can explore our services and prices.");

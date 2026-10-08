@@ -32,7 +32,9 @@ function buildBody(gig: EnquiryEmailGig, services: EnquiryService[]): string {
   const paragraphs = [`Hi ${gig.firstName.trim()}${partnerFirstName ? ` and ${partnerFirstName}` : ""},`];
 
   paragraphs.push("Thanks for your recent enquiry with Every Angle!");
-  paragraphs.push("I'm delighted to confirm that your date is currently available, and we'd be thrilled to be part of your celebration.");
+  paragraphs.push(gig.date?.trim()
+    ? "I'm delighted to confirm that your date is currently available, and we'd be thrilled to be part of your celebration."
+    : "We'd be thrilled to be part of your celebration.");
 
   paragraphs.push(serviceAreas.length
     ? `I've attached our general price list so you can explore the ${formatServiceAreas(serviceAreas)} options you asked about.`
