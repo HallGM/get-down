@@ -3,6 +3,7 @@
  */
 
 export * from "./billing.js";
+export * from "./enquiryEmail.js";
 export * from "./models.js";
 export * from "./person.js";
 export * from "./services.js";

@@ -1,4 +1,5 @@
 import type { Gig, UpdateGigRequest } from "@get-down/shared";
+import { buildEnquiryEmail } from "@get-down/shared";
 import { Link } from "react-router-dom";
 import { useServices } from "../../api/hooks/useServices.js";
 import { useSetGigServices, useGigEnquiryServices, useSetGigEnquiryServices } from "../../api/hooks/useGigs.js";
@@ -7,6 +8,7 @@ import CopyLinkBanner from "../../components/CopyLinkBanner.js";
 import FormField from "../../components/FormField.js";
 import MoneyField from "../../components/MoneyField.js";
 import MoneyDisplay from "../../components/MoneyDisplay.js";
+import { useToast } from "../../components/Toast.js";
 import { formatDate, toInputDate } from "../../utils/date.js";
 import { isUrl } from "../../utils/url.js";
 import {
@@ -36,6 +38,37 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
   const { data: enquiryOptions = [] } = useEnquiryServices();
   const { data: selectedEnquiry = [] } = useGigEnquiryServices(gigId);
   const setEnquiry = useSetGigEnquiryServices();
+  const { showToast } = useToast();
+
+  function generateResponseEmail() {
+    const firstName = gig.firstName?.trim();
+    const email = gig.email?.trim();
+    if (!firstName) {
+      showToast("Client first name is required to generate an email.", "error");
+      return;
+    }
+    if (!email) {
+      showToast("Client email address is required to generate an email.", "error");
+      return;
+    }
+
+    let anchor: HTMLAnchorElement | undefined;
+    try {
+      const { mailto } = buildEnquiryEmail({ ...gig, firstName, email }, selectedEnquiry);
+      anchor = document.createElement("a");
+      anchor.href = mailto;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+    } catch (error) {
+      console.error("Failed to generate enquiry response email:", error);
+      showToast("Unable to open the email app.", "error");
+    } finally {
+      anchor?.remove();
+    }
+  }
 
   const attachedIds = new Set((gig.services ?? []).map(s => s.id));
   const available = allServices.filter(s => !attachedIds.has(s.id));
@@ -189,7 +222,10 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
 
       {gig.status === "enquiry" && (
         <section>
-          <h2>Enquiry services</h2>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+            <h2>Enquiry services</h2>
+            <button type="button" onClick={generateResponseEmail}>Generate response email</button>
+          </div>
           {!editing ? (
             selectedEnquiry.length > 0 ? (
               <ul>

@@ -1,11 +1,11 @@
 import { run_query, withTransaction } from "../db/init.js";
 
-export interface EnquiryServiceRow { id: number; name: string; usage_count: number; }
+export interface EnquiryServiceRow { id: number; name: string; email_rule_key: string | null; usage_count: number; }
 
-const COLS = `es.id, es.name, (SELECT COUNT(*) FROM gig_enquiry_services ges WHERE ges.enquiry_service_id = es.id)::int AS usage_count`;
+const COLS = `es.id, es.name, es.email_rule_key, (SELECT COUNT(*) FROM gig_enquiry_services ges WHERE ges.enquiry_service_id = es.id)::int AS usage_count`;
 
 export async function readAll(): Promise<EnquiryServiceRow[]> {
-  return run_query({ text: `SELECT ${COLS} FROM enquiry_services es ORDER BY es.name` });
+  return run_query<EnquiryServiceRow>({ text: `SELECT ${COLS} FROM enquiry_services es ORDER BY es.name` });
 }
 export async function readById(id: number): Promise<EnquiryServiceRow | null> {
   const rows = await run_query<EnquiryServiceRow>({ text: `SELECT ${COLS} FROM enquiry_services es WHERE es.id=$1`, values: [id] });
@@ -24,7 +24,7 @@ export async function remove(id: number): Promise<boolean> {
   return rows.length > 0;
 }
 export async function readGigSelections(gigId: number): Promise<EnquiryServiceRow[]> {
-  return run_query({ text: `SELECT ${COLS} FROM enquiry_services es JOIN gig_enquiry_services ges ON ges.enquiry_service_id=es.id WHERE ges.gig_id=$1 ORDER BY es.name`, values: [gigId] });
+  return run_query<EnquiryServiceRow>({ text: `SELECT ${COLS} FROM enquiry_services es JOIN gig_enquiry_services ges ON ges.enquiry_service_id=es.id WHERE ges.gig_id=$1 ORDER BY es.name`, values: [gigId] });
 }
 export async function replaceGigSelections(gigId: number, ids: number[]): Promise<void> {
   await withTransaction(async () => {

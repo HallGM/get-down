@@ -386,8 +386,30 @@ export interface UpdateGigRequest {
 export interface EnquiryService {
   id: number;
   name: string;
+  emailRuleKey?: EnquiryEmailRuleKey | null;
   usageCount?: number;
 }
+
+export const ENQUIRY_EMAIL_RULE_KEYS = [
+  "music",
+  "live_band",
+  "video",
+  "photo",
+  "singing_waiter",
+  "ceilidh",
+  "bagpipes",
+  "acoustic_duo",
+  "karaoke_bandeoke",
+  "saxophone_solo",
+  "dj",
+] as const;
+
+export type EnquiryEmailRuleKey = typeof ENQUIRY_EMAIL_RULE_KEYS[number];
+
+export function isEnquiryEmailRuleKey(value: string | null): value is EnquiryEmailRuleKey {
+  return value !== null && ENQUIRY_EMAIL_RULE_KEYS.some((key) => key === value);
+}
+
 export interface CreateEnquiryServiceRequest { name: string; }
 export interface UpdateEnquiryServiceRequest { name: string; }
 export interface SetGigEnquiryServicesRequest { enquiryServiceIds: number[]; }

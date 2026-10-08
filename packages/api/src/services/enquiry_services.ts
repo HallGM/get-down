@@ -1,4 +1,4 @@
-import type { CreateEnquiryServiceRequest, EnquiryService, UpdateEnquiryServiceRequest } from "@get-down/shared";
+import { isEnquiryEmailRuleKey, type CreateEnquiryServiceRequest, type EnquiryService, type UpdateEnquiryServiceRequest } from "@get-down/shared";
 import * as repo from "../repository/enquiry_services.js";
 import * as gigsRepo from "../repository/gigs.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
@@ -43,4 +43,9 @@ async function withDuplicateNameHandling<T extends repo.EnquiryServiceRow>(opera
   catch (error) { if (isUniqueViolation(error)) throw new ConflictError("An enquiry service with that name already exists"); throw error; }
 }
 function requireName(name: string): string { const value = name?.trim(); if (!value) throw new BadRequestError("name is required"); return value; }
-function map(row: repo.EnquiryServiceRow): EnquiryService { return { id: row.id, name: row.name, usageCount: row.usage_count }; }
+function map(row: repo.EnquiryServiceRow): EnquiryService {
+  if (row.email_rule_key !== null && !isEnquiryEmailRuleKey(row.email_rule_key)) {
+    throw new Error(`Unknown enquiry email rule key: ${row.email_rule_key}`);
+  }
+  return { id: row.id, name: row.name, emailRuleKey: row.email_rule_key, usageCount: row.usage_count };
+}
