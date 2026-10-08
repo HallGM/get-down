@@ -39,6 +39,7 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
   const { data: selectedEnquiry = [] } = useGigEnquiryServices(gigId);
   const setEnquiry = useSetGigEnquiryServices();
   const { showToast } = useToast();
+  const clientFormUrl = gig.clientToken ? `${window.location.origin}/c/${gig.clientToken}` : undefined;
 
   function generateResponseEmail() {
     const firstName = gig.firstName?.trim();
@@ -51,10 +52,14 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
       showToast("Client email address is required to generate an email.", "error");
       return;
     }
-
+    const hasBand = selectedEnquiry.some(({ emailRuleKey }) => emailRuleKey === "live_band");
+    if (hasBand && !clientFormUrl) {
+      showToast("Client form link is unavailable to generate an email.", "error");
+      return;
+    }
     let anchor: HTMLAnchorElement | undefined;
     try {
-      const { mailto } = buildEnquiryEmail({ ...gig, firstName, email }, selectedEnquiry);
+      const { mailto } = buildEnquiryEmail({ ...gig, firstName, email, clientFormUrl }, selectedEnquiry);
       anchor = document.createElement("a");
       anchor.href = mailto;
       anchor.target = "_blank";
@@ -75,9 +80,9 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
 
   return (
     <>
-      {gig.clientToken && (
+      {clientFormUrl && (
         <CopyLinkBanner
-          url={`${window.location.origin}/c/${gig.clientToken}`}
+          url={clientFormUrl}
           label="Client form"
           status={gig.formSavedAt ? `· saved ${new Date(gig.formSavedAt).toLocaleString()}` : "· not yet filled in"}
           successMessage="Client form link copied!"
