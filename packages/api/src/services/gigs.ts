@@ -6,6 +6,7 @@ import * as paymentsRepo from "../repository/payments.js";
 import * as refundsRepo from "../repository/refunds.js";
 import * as showcasesRepo from "../repository/showcases.js";
 import * as invoicesRepo from "../repository/invoices.js";
+import * as attributionsRepo from "../repository/attributions.js";
 import { BadRequestError, NotFoundError } from "../errors.js";
 import { isValidUrl, validateDiscountPercent } from "../utils/validation.js";
 import { groupById } from "../utils/groupById.js";
@@ -93,6 +94,7 @@ export async function getGigById(id: number): Promise<Gig> {
 }
 
 export async function createGig(input: CreateGigRequest): Promise<Gig> {
+  await validateAttributionId(input.attributionId);
   return withTransaction(async () => {
      const row = await gigsRepo.createGig(buildMutationInput(input));
     await seedDefaultSetListSection(row.id);
@@ -103,6 +105,7 @@ export async function createGig(input: CreateGigRequest): Promise<Gig> {
 export async function updateGig(id: number, input: UpdateGigRequest): Promise<Gig> {
   const existing = await gigsRepo.readGigById(id);
   if (!existing) throw new NotFoundError("Gig not found");
+  await validateAttributionId(input.attributionId);
   
   // Check mutual exclusivity: if trying to set overall discount, ensure no line items have per-item discounts
   if (input.discountPercent !== undefined && input.discountPercent > 0) {
@@ -319,7 +322,7 @@ function buildMutationInput(
   if (dropboxUrl && !isValidUrl(dropboxUrl)) throw new BadRequestError("dropboxUrl must be a valid URL");
 
   return {
-    attributionId: input.attributionId ?? existing?.attributionId,
+    attributionId: input.attributionId !== undefined ? input.attributionId : existing?.attributionId,
     name: input.name?.trim() ?? existing?.name,
      status,
     firstName,
@@ -364,4 +367,10 @@ function buildMutationInput(
     dropboxUrl,
      deliveryTitle: input.deliveryTitle ?? existing?.deliveryTitle,
    };
+}
+
+async function validateAttributionId(attributionId: number | null | undefined): Promise<void> {
+  if (attributionId == null) return;
+  const attribution = await attributionsRepo.readAttributionById(attributionId);
+  if (!attribution) throw new NotFoundError("Attribution not found");
 }

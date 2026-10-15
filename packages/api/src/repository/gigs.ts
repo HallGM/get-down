@@ -53,7 +53,7 @@ export interface GigRow {
 }
 
 export interface GigMutationInput {
-  attributionId?: number;
+  attributionId?: number | null;
   name?: string;
   status: string;
   firstName: string;

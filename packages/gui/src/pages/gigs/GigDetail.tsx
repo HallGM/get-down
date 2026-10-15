@@ -59,6 +59,7 @@ export default function GigDetail() {
 
   function startEdit() {
     setEditForm({
+      attributionId: gig!.attributionId ?? null,
       firstName: gig!.firstName,
       lastName: gig!.lastName,
       partnerName: gig!.partnerName,

@@ -2,8 +2,10 @@ import type { Gig, UpdateGigRequest } from "@get-down/shared";
 import { buildEnquiryEmail } from "@get-down/shared";
 import { Link } from "react-router-dom";
 import { useServices } from "../../api/hooks/useServices.js";
+import { useAttributions } from "../../api/hooks/useAttributions.js";
 import { useSetGigServices, useGigEnquiryServices, useSetGigEnquiryServices } from "../../api/hooks/useGigs.js";
 import { useEnquiryServices } from "../../api/hooks/useEnquiryServices.js";
+import AttributionSelect from "../../components/AttributionSelect.js";
 import CopyLinkBanner from "../../components/CopyLinkBanner.js";
 import FormField from "../../components/FormField.js";
 import MoneyField from "../../components/MoneyField.js";
@@ -34,6 +36,7 @@ interface Props {
 
 export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditForm, saveEdit, cancelEdit, isPending }: Props) {
   const { data: allServices = [] } = useServices();
+  const { data: attributions = [] } = useAttributions();
   const setGigServices = useSetGigServices();
   const { data: enquiryOptions = [] } = useEnquiryServices();
   const { data: selectedEnquiry = [] } = useGigEnquiryServices(gigId);
@@ -77,6 +80,16 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
 
   const attachedIds = new Set((gig.services ?? []).map(s => s.id));
   const available = allServices.filter(s => !attachedIds.has(s.id));
+  const selectedAttribution = attributions.find((attribution) => attribution.id === gig.attributionId);
+  let attributionDisplay: React.ReactNode = "No attribution";
+  if (gig.attributionId != null) {
+    const attributionName = selectedAttribution?.name ?? (
+      gig.showcaseId ? gig.showcaseName ?? "Showcase" : `Attribution #${gig.attributionId}`
+    );
+    attributionDisplay = gig.showcaseId
+      ? <Link to={`/showcases/${gig.showcaseId}`}>{attributionName}</Link>
+      : attributionName;
+  }
 
   return (
     <>
@@ -100,7 +113,8 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
             {gig.venueName && <><dt>Venue</dt><dd>{gig.venueName}</dd></>}
             {gig.location && <><dt>Address</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.location}</dd></>}
             <dt>Quoted Price</dt><dd><MoneyDisplay pennies={gig.totalPrice} /></dd>
-            {gig.showcaseId && <><dt>Source</dt><dd><Link to={`/showcases/${gig.showcaseId}`}>{gig.showcaseName ?? "Showcase"}</Link></dd></>}
+            <dt>Attribution</dt>
+            <dd>{attributionDisplay}</dd>
             {gig.description && <><dt>Notes</dt><dd>{gig.description}</dd></>}
           </dl>
         </article>
@@ -119,6 +133,11 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
                 {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
               </FormField>
               <MoneyField label="Quoted price" value={editForm.totalPrice} onChange={(totalPrice) => setEditForm((f) => ({ ...f, totalPrice }))} />
+              <AttributionSelect
+                attributions={attributions}
+                value={editForm.attributionId}
+                onChange={(attributionId) => setEditForm((form) => ({ ...form, attributionId }))}
+              />
             </div>
             <FormField as="textarea" label="Description" value={editForm.description ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={3} />
             <FormField as="textarea" label="Enquiry notes" value={editForm.enquiryNotes ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, enquiryNotes: e.target.value }))} rows={4} />

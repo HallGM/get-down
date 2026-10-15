@@ -3,7 +3,9 @@ import { useSearchParams } from "react-router-dom";
 import { useGigs, useCreateGig, useDeleteGig } from "../../api/hooks/useGigs.js";
 import { useServices } from "../../api/hooks/useServices.js";
 import { usePeople } from "../../api/hooks/usePeople.js";
+import { useAttributions } from "../../api/hooks/useAttributions.js";
 import type { CreateGigRequest, Service } from "@get-down/shared";
+import AttributionSelect from "../../components/AttributionSelect.js";
 import DataTable, { type Column, multiWordFilter } from "../../components/DataTable.js";
 import Modal from "../../components/Modal.js";
 import ConfirmDelete from "../../components/ConfirmDelete.js";
@@ -50,6 +52,7 @@ export default function GigsList() {
   const { data: gigs, isLoading, error } = useGigs();
   const { data: services = [] } = useServices();
   const { data: people = [] } = usePeople();
+  const { data: attributions = [] } = useAttributions();
   const createGig = useCreateGig();
   const deleteGig = useDeleteGig();
 
@@ -346,6 +349,11 @@ export default function GigsList() {
             <FormField as="select" label="Status" value={form.status ?? "enquiry"} onChange={(e) => setField("status", e.target.value)}>
               {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
             </FormField>
+            <AttributionSelect
+              attributions={attributions}
+              value={form.attributionId}
+              onChange={(attributionId) => setForm((current) => ({ ...current, attributionId }))}
+            />
           </div>
           <FormField as="textarea" label="Description" value={form.description ?? ""} onChange={(e) => setField("description", e.target.value)} rows={3} />
           <footer style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>

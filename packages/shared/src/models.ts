@@ -296,7 +296,7 @@ export interface Gig {
 }
 
 export interface CreateGigRequest {
-  attributionId?: number;
+  attributionId?: number | null;
   name?: string;
   status?: string;
   firstName: string;
@@ -344,7 +344,7 @@ export interface CreateGigRequest {
 }
 
 export interface UpdateGigRequest {
-  attributionId?: number;
+  attributionId?: number | null;
   name?: string;
   status?: string;
   firstName?: string;
