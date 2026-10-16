@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Gig, DeliveryVideo } from "@get-down/shared";
+import type { Gig, DeliveryVideo, UpdateGigRequest } from "@get-down/shared";
 import {
   useGigDeliveryVideos,
   useCreateDeliveryVideo,
@@ -49,8 +49,15 @@ export default function GigDeliveryTab({ gigId, gig }: Props) {
 
   useEffect(() => {
     setDeliveryTitle(gig.deliveryTitle ?? "");
+  }, [gig.deliveryTitle]);
+
+  useEffect(() => {
     setDropboxUrl(gig.dropboxUrl ?? "");
-  }, [gig.deliveryTitle, gig.dropboxUrl]);
+  }, [gig.dropboxUrl]);
+
+  async function saveDeliverySettings(input: UpdateGigRequest) {
+    await updateGig.mutateAsync({ id: gigId, input });
+  }
 
   return (
     <>
@@ -64,6 +71,21 @@ export default function GigDeliveryTab({ gigId, gig }: Props) {
           successMessage="Delivery page link copied!"
         />
       )}
+
+      {/* General delivery-page settings */}
+      <section>
+        <h2>Delivery page</h2>
+        <FormField label="Delivery page title" value={deliveryTitle} onChange={(e) => setDeliveryTitle(e.target.value)} placeholder="e.g. Sarah & Sean · Wedding Film" />
+        <button
+          aria-busy={updateGig.isPending}
+          disabled={updateGig.isPending}
+          onClick={async () => {
+            await saveDeliverySettings({ deliveryTitle });
+          }}
+        >
+          Save
+        </button>
+      </section>
 
       {/* Photos */}
       <section>
@@ -88,17 +110,13 @@ export default function GigDeliveryTab({ gigId, gig }: Props) {
           </div>
         )}
         
-        <FormField label="Delivery page title" value={deliveryTitle} onChange={(e) => setDeliveryTitle(e.target.value)} placeholder="e.g. Sarah & Sean · Wedding Film" />
         <FormField label="Dropbox folder link" value={dropboxUrl} onChange={(e) => setDropboxUrl(e.target.value)} />
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", alignItems: "flex-start" }}>
           <button
             aria-busy={updateGig.isPending}
             disabled={updateGig.isPending}
             onClick={async () => {
-              await updateGig.mutateAsync({
-                id: gigId,
-                input: { deliveryTitle, dropboxUrl },
-              });
+              await saveDeliverySettings({ dropboxUrl });
             }}
           >
             Save
