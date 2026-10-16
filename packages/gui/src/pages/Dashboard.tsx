@@ -507,7 +507,7 @@ function FeeAllocationExpenseMismatchTable({ mismatches }: { mismatches: FeeAllo
                     style={{ padding: "0.3em 0.7em", fontSize: "0.85em", width: "auto" }}
                     onClick={() => toggle(m.allocationId)}
                   >
-                    {isExpanded ? "Hide" : "Apportion"}
+                    {isExpanded ? "Hide" : "Expand"}
                   </button>
                 </td>
               </tr>
@@ -567,7 +567,7 @@ function ExpenseOverApportionmentTable({ mismatches }: { mismatches: ExpenseOver
                     style={{ padding: "0.3em 0.7em", fontSize: "0.85em", width: "auto" }}
                     onClick={() => toggle(m.id)}
                   >
-                    {isExpanded ? "Hide" : "Apportion"}
+                    {isExpanded ? "Hide" : "Expand"}
                   </button>
                 </td>
               </tr>
