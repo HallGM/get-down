@@ -23,7 +23,9 @@ export interface ExpenseMutationInput {
   isTaxOnly?: boolean;
 }
 
-const SELECT_COLS = `id, date, amount, description, category, recipient_name, airtable_id, document_key, is_tax_only`;
+// Keep DATE values as strings instead of relying on JavaScript Date's much
+// narrower range than PostgreSQL DATE, especially for expanded future years.
+const SELECT_COLS = `id, date::text AS date, amount, description, category, recipient_name, airtable_id, document_key, is_tax_only`;
 
 export async function createExpense(input: ExpenseMutationInput): Promise<ExpenseRow> {
   const rows = await run_query<ExpenseRow>({

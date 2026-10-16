@@ -6,7 +6,7 @@ import FormField from "./FormField.js";
 import MoneyField from "./MoneyField.js";
 import ExpensePaymentsSection from "./ExpensePaymentsSection.js";
 import { PaymentFormFields, EMPTY_PAYMENT_FORM, type PaymentFormState } from "./ExpensePaymentFormFields.js";
-import { toInputDate } from "../utils/date.js";
+import { isSupportedDateInputValue, toInputDate } from "../utils/date.js";
 import { apiFetch } from "../api/client.js";
 import {
   useUpdateExpense,
@@ -282,7 +282,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
           </div>
           <FormField
             label="Date"
-            type="date"
+            type={expense && !isSupportedDateInputValue(expense.date) ? "text" : "date"}
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />

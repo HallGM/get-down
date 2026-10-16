@@ -1,99 +1,85 @@
-/**
- * UK tax year utilities.
- *
- * The UK tax year runs from 6 April of one calendar year to 5 April of the
- * next (inclusive). For example, the "2024/25" tax year spans
- * 6 April 2024 to 5 April 2025.
- *
- * Tax year keys use the format "YYYY/YY" (e.g. "2024/25").
- */
+import { isValidDateParts } from "./date.js";
 
 /**
- * Parse an ISO date string (YYYY-MM-DD) as a local date, avoiding UTC
- * midnight boundary issues that arise from passing an ISO string directly
- * to `new Date()`.
+ * UK tax year utilities. The tax year runs from 6 April to 5 April inclusive.
+ * Ordinary keys retain the "YYYY/YY" format; expanded years use full years
+ * on both sides, such as "275760/275761".
  */
-function parseLocalDate(isoDate: string): Date {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  return new Date(y, m - 1, d);
+
+interface DateParts {
+  year: number;
+  month: number;
+  day: number;
 }
 
-/**
- * Return the tax year start year that contains the given local date.
- * e.g. 2024-04-06 → 2024, 2025-04-05 → 2024, 2025-04-06 → 2025.
- */
+function parseDateParts(value: string): DateParts | null {
+  const match = /^(\d{4,})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (!Number.isSafeInteger(year) || !isValidDateParts(year, month, day)) return null;
+  return { year, month, day };
+}
+
+/** Return the tax year start year containing the given date-only string. */
 export function taxYearStartYear(isoDate: string): number {
-  const d = parseLocalDate(isoDate);
-  const year = d.getFullYear();
-  const taxYearStart = new Date(year, 3, 6); // 6 April of this calendar year
-  return d >= taxYearStart ? year : year - 1;
+  const date = parseDateParts(isoDate);
+  if (!date) return Number.NaN;
+  return date.month > 4 || (date.month === 4 && date.day >= 6) ? date.year : date.year - 1;
 }
 
-/**
- * Format a tax year start year as a "YYYY/YY" key, e.g. 2024 → "2024/25".
- */
+/** Format a tax year as "YYYY/YY" or, for expanded years, "YYYY/YYYY+1". */
 export function formatTaxYearKey(startYear: number): string {
-  const endYY = String(startYear + 1).slice(-2);
-  return `${startYear}/${endYY}`;
+  const endYear = startYear + 1;
+  if (startYear < 10000) return `${startYear}/${String(endYear).slice(-2)}`;
+  return `${startYear}/${endYear}`;
 }
 
-/**
- * Parse a "YYYY/YY" key back to the start year, e.g. "2024/25" → 2024.
- */
+/** Parse ordinary and expanded tax year keys back to the full start year. */
 export function parseTaxYearKey(key: string): number {
-  return parseInt(key.slice(0, 4), 10);
+  const match = /^(\d{1,})\/(\d{2}|\d{1,})$/.exec(key);
+  if (!match) return Number.NaN;
+  const startYear = Number(match[1]);
+  const endPart = match[2];
+  if (!Number.isSafeInteger(startYear)) return Number.NaN;
+  if (match[1].length >= 5) {
+    return Number(endPart) === startYear + 1 ? startYear : Number.NaN;
+  }
+  return Number(endPart) === (startYear + 1) % 100 ? startYear : Number.NaN;
 }
 
-/**
- * Return true if the date falls within the given calendar year string (e.g. "2024").
- * Dates with a null or empty value always return false.
- */
 export function isInCalendarYear(isoDate: string | null | undefined, year: string): boolean {
   if (!isoDate) return false;
-  return isoDate.slice(0, 4) === year;
+  const date = parseDateParts(isoDate);
+  return !!date && String(date.year) === year;
 }
 
-/**
- * Return true if the expense date falls within the given tax year key.
- * Expenses with a null or empty date always return false.
- */
 export function isInTaxYear(isoDate: string | null | undefined, taxYearKey: string): boolean {
   if (!isoDate) return false;
   const startYear = parseTaxYearKey(taxYearKey);
-  const d = parseLocalDate(isoDate);
-  const start = new Date(startYear, 3, 6);     // 6 Apr YYYY
-  const end = new Date(startYear + 1, 3, 6);   // 6 Apr YYYY+1 (exclusive)
-  return d >= start && d < end;
+  if (!Number.isSafeInteger(startYear)) return false;
+  return taxYearStartYear(isoDate) === startYear;
 }
 
-/**
- * Derive a sorted-descending list of unique calendar year strings (e.g. "2024")
- * present in the given list of ISO date strings.
- */
 export function calendarYearsFromDates(dates: (string | null | undefined)[]): string[] {
   const years = new Set<string>();
-  for (const d of dates) {
-    if (d) years.add(d.slice(0, 4));
+  for (const date of dates) {
+    const parts = date ? parseDateParts(date) : null;
+    if (parts) years.add(String(parts.year));
   }
-  return [...years].sort().reverse();
+  return [...years].sort(compareYearsDescending);
 }
 
-/**
- * Derive a sorted-descending list of unique tax year keys (e.g. "2024/25")
- * present in the given list of ISO date strings.
- */
 export function taxYearsFromDates(dates: (string | null | undefined)[]): string[] {
-  const keys = new Set<string>();
-  for (const d of dates) {
-    if (d) keys.add(formatTaxYearKey(taxYearStartYear(d)));
+  const years = new Set<number>();
+  for (const date of dates) {
+    const startYear = date ? taxYearStartYear(date) : Number.NaN;
+    if (Number.isSafeInteger(startYear)) years.add(startYear);
   }
-  return [...keys].sort().reverse();
+  return [...years].sort((a, b) => b - a).map(formatTaxYearKey);
 }
 
-/**
- * Get the ISO start and end date strings for a given calendar year.
- * e.g. "2024" → { start: "2024-01-01", end: "2024-12-31" }
- */
 export function calendarYearDateRange(year: string): { start: string; end: string } {
   return {
     start: `${year}-01-01`,
@@ -101,14 +87,14 @@ export function calendarYearDateRange(year: string): { start: string; end: strin
   };
 }
 
-/**
- * Get the ISO start and end date strings for a given tax year key.
- * e.g. "2024/25" (start year 2024) → { start: "2024-04-06", end: "2025-04-05" }
- */
 export function taxYearDateRange(taxYearKey: string): { start: string; end: string } {
   const startYear = parseTaxYearKey(taxYearKey);
   return {
     start: `${startYear}-04-06`,
     end: `${startYear + 1}-04-05`,
   };
+}
+
+function compareYearsDescending(a: string, b: string): number {
+  return Number(b) - Number(a);
 }
