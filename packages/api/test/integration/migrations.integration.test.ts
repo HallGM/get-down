@@ -1,12 +1,8 @@
 /**
- * Integration tests for migration 061: Delete orphaned expense payments.
- *
- * Verifies that:
- * 1. The migration successfully identifies orphaned payments
- * 2. Orphaned payments are deleted
- * 3. Normal (linked) payments are preserved
- * 4. The FK constraint is verified and in place
- * 5. After migration, it's impossible to create orphans (FK prevents it)
+ * Regression coverage for migration 061's orphan cleanup and FK guarantees,
+ * plus schema/accounting coverage for the later expense-payment-share model.
+ * Migration 072 removes expense_payments.expense_id, so the legacy 061 checks
+ * run against isolated temporary tables that reproduce the pre-072 schema.
  */
 import type { Pool } from "pg";
 import { startDatabase, stopDatabase, resetDatabase, type IntegrationDb } from "./setup.js";
@@ -19,133 +15,161 @@ beforeAll(async () => {
   db = await startDatabase();
   pool = db.pool;
 }, 120000);
+afterAll(async () => stopDatabase());
+beforeEach(async () => resetDatabase(pool));
 
-afterAll(async () => {
-  await stopDatabase();
-});
-
-beforeEach(async () => {
-  await resetDatabase(pool);
-});
-
-describe("Migration 061 — Delete orphaned expense payments", () => {
-  async function createExpensePayment(expenseId: number, amount: number) {
-    const result = await pool.query(
-      "INSERT INTO expense_payments (expense_id, account_id, amount, date) VALUES ($1, (SELECT id FROM accounts WHERE is_business LIMIT 1), $2, now()) RETURNING id",
-      [expenseId, amount]
-    );
-    return result.rows[0].id;
-  }
-
-  async function getOrphanedPayments() {
-    const result = await pool.query(
-      "SELECT ep.id, ep.expense_id, ep.amount FROM expense_payments ep LEFT JOIN expenses e ON e.id = ep.expense_id WHERE e.id IS NULL"
-    );
-    return result.rows;
-  }
-
-  async function countPayments() {
-    const result = await pool.query("SELECT COUNT(*) as count FROM expense_payments");
-    return parseInt(result.rows[0].count, 10);
-  }
-
+describe("Migration 061: Delete orphaned expense payments", () => {
   test("migration deletes orphaned payments and preserves linked ones", async () => {
-    // Create linked payment (should survive)
-    const linkedExpense = await fixtures.makeExpense({ amount: 50000, description: "Linked" });
-    const linkedPaymentId = await createExpensePayment(linkedExpense.id, 25000);
-
-    // Create orphaned payment by disabling triggers
-    const orphanedExpense = await fixtures.makeExpense({ amount: 30000, description: "Will be deleted" });
-    const orphanedPaymentId = await createExpensePayment(orphanedExpense.id, 20000);
-
-    // Verify both exist before migration
-    let orphans = await getOrphanedPayments();
-    expect(orphans).toHaveLength(0); // None orphaned yet (expense still exists)
-
-    // Simulate orphaning by deleting the expense without cascade
-    await pool.query("ALTER TABLE expenses DISABLE TRIGGER ALL");
+    const client = await pool.connect();
     try {
-      await pool.query("DELETE FROM expenses WHERE id = $1", [orphanedExpense.id]);
+      await createLegacyTables(client);
+      await client.query("INSERT INTO legacy_expenses (id) VALUES (1), (2)");
+      const linked = await client.query<{ id: number }>(
+        "INSERT INTO legacy_expense_payments (expense_id, amount) VALUES (1, 25000) RETURNING id",
+      );
+      const orphaned = await client.query<{ id: number }>(
+        "INSERT INTO legacy_expense_payments (expense_id, amount) VALUES (2, 20000) RETURNING id",
+      );
+
+      await client.query("DELETE FROM legacy_expenses WHERE id = 2");
+      const orphansBefore = await client.query(
+        "SELECT ep.id FROM legacy_expense_payments ep LEFT JOIN legacy_expenses e ON e.id = ep.expense_id WHERE e.id IS NULL",
+      );
+      expect(orphansBefore.rows).toHaveLength(1);
+      expect(orphansBefore.rows[0].id).toBe(orphaned.rows[0].id);
+      expect((await client.query("SELECT COUNT(*)::int AS count FROM legacy_expense_payments")).rows[0].count).toBe(2);
+
+      await client.query(`
+        DELETE FROM legacy_expense_payments
+        WHERE NOT EXISTS (
+          SELECT 1 FROM legacy_expenses WHERE legacy_expenses.id = legacy_expense_payments.expense_id
+        )
+      `);
+
+      const orphansAfter = await client.query(
+        "SELECT ep.id FROM legacy_expense_payments ep LEFT JOIN legacy_expenses e ON e.id = ep.expense_id WHERE e.id IS NULL",
+      );
+      expect(orphansAfter.rows).toHaveLength(0);
+      expect((await client.query("SELECT COUNT(*)::int AS count FROM legacy_expense_payments")).rows[0].count).toBe(1);
+      expect((await client.query("SELECT id FROM legacy_expense_payments WHERE id = $1", [linked.rows[0].id])).rows).toHaveLength(1);
     } finally {
-      await pool.query("ALTER TABLE expenses ENABLE TRIGGER ALL");
+      client.release();
     }
-
-    // Verify orphan was created
-    orphans = await getOrphanedPayments();
-    expect(orphans).toHaveLength(1);
-    expect(orphans[0].id).toBe(orphanedPaymentId);
-
-    const countBefore = await countPayments();
-    expect(countBefore).toBe(2); // Both still in DB
-
-    // Run migration 061 manually
-    await pool.query(`
-      DELETE FROM expense_payments
-      WHERE NOT EXISTS (
-        SELECT 1 FROM expenses WHERE expenses.id = expense_payments.expense_id
-      )
-    `);
-
-    // Verify orphan was deleted, linked payment survives
-    const countAfter = await countPayments();
-    expect(countAfter).toBe(1);
-
-    orphans = await getOrphanedPayments();
-    expect(orphans).toHaveLength(0);
-
-    // Verify the linked payment still exists
-    const linkedPayment = await pool.query(
-      "SELECT id FROM expense_payments WHERE id = $1",
-      [linkedPaymentId]
-    );
-    expect(linkedPayment.rows).toHaveLength(1);
   });
 
   test("FK constraint is in place and prevents new orphans", async () => {
-    // Verify the constraint exists
-    const constraint = await pool.query(
-      "SELECT constraint_name FROM information_schema.table_constraints WHERE table_name = 'expense_payments' AND constraint_type = 'FOREIGN KEY'"
-    );
-    expect(constraint.rows.length).toBeGreaterThan(0);
-    expect(constraint.rows.some((r) => r.constraint_name === "expense_payments_expense_id_fkey")).toBe(true);
+    const client = await pool.connect();
+    try {
+      await createLegacyTables(client, true);
+      const constraint = await client.query(
+        "SELECT constraint_name FROM information_schema.table_constraints WHERE table_name = 'legacy_expense_payments' AND constraint_type = 'FOREIGN KEY'",
+      );
+      expect(constraint.rows.length).toBeGreaterThan(0);
+      expect(constraint.rows.some((row) => row.constraint_name === "expense_payments_expense_id_fkey")).toBe(true);
 
-    // Try to create a payment referencing a non-existent expense (should fail)
-    const nonExistentId = 999999;
-    await expect(
-      pool.query(
-        "INSERT INTO expense_payments (expense_id, account_id, amount, date) VALUES ($1, (SELECT id FROM accounts WHERE is_business LIMIT 1), 1000, now())",
-        [nonExistentId]
-      )
-    ).rejects.toThrow(/violates foreign key constraint/);
+      await expect(
+        client.query("INSERT INTO legacy_expense_payments (expense_id, amount) VALUES (999999, 1000)"),
+      ).rejects.toThrow(/violates foreign key constraint/);
+    } finally {
+      client.release();
+    }
   });
 
   test("no orphaned payments exist after migration", async () => {
-    // Create several valid expenses with payments
-    const exp1 = await fixtures.makeExpense({ amount: 10000, description: "Exp 1" });
-    const exp2 = await fixtures.makeExpense({ amount: 20000, description: "Exp 2" });
-    const exp3 = await fixtures.makeExpense({ amount: 30000, description: "Exp 3" });
+    const client = await pool.connect();
+    try {
+      await createLegacyTables(client);
+      await client.query("INSERT INTO legacy_expenses (id) VALUES (1), (2), (3)");
+      await client.query(
+        "INSERT INTO legacy_expense_payments (expense_id, amount) VALUES (1, 5000), (2, 15000), (3, 25000)",
+      );
 
-    await createExpensePayment(exp1.id, 5000);
-    await createExpensePayment(exp2.id, 15000);
-    await createExpensePayment(exp3.id, 25000);
+      const orphansBefore = await client.query(
+        "SELECT ep.id FROM legacy_expense_payments ep LEFT JOIN legacy_expenses e ON e.id = ep.expense_id WHERE e.id IS NULL",
+      );
+      expect(orphansBefore.rows).toHaveLength(0);
 
-    // Verify no orphans exist
-    let orphans = await getOrphanedPayments();
-    expect(orphans).toHaveLength(0);
+      await client.query(`
+        DELETE FROM legacy_expense_payments
+        WHERE NOT EXISTS (
+          SELECT 1 FROM legacy_expenses WHERE legacy_expenses.id = legacy_expense_payments.expense_id
+        )
+      `);
 
-    // After migration, still no orphans
-    await pool.query(`
-      DELETE FROM expense_payments
-      WHERE NOT EXISTS (
-        SELECT 1 FROM expenses WHERE expenses.id = expense_payments.expense_id
-      )
-    `);
-
-    orphans = await getOrphanedPayments();
-    expect(orphans).toHaveLength(0);
-
-    // All linked payments remain
-    const count = await countPayments();
-    expect(count).toBe(3);
+      const orphansAfter = await client.query(
+        "SELECT ep.id FROM legacy_expense_payments ep LEFT JOIN legacy_expenses e ON e.id = ep.expense_id WHERE e.id IS NULL",
+      );
+      expect(orphansAfter.rows).toHaveLength(0);
+      expect((await client.query("SELECT COUNT(*)::int AS count FROM legacy_expense_payments")).rows[0].count).toBe(3);
+    } finally {
+      client.release();
+    }
   });
 });
+
+describe("expense payment shares schema", () => {
+  test("a payment survives deletion of one share target and cascades when payment is deleted", async () => {
+    const expenseA = await fixtures.makeExpense({ description: "Share target A" });
+    const expenseB = await fixtures.makeExpense({ description: "Share target B" });
+    const inserted = await pool.query<{ id: number }>(
+      "INSERT INTO expense_payments (account_id, amount) VALUES ((SELECT id FROM accounts WHERE is_business LIMIT 1), 10000) RETURNING id",
+    );
+    const paymentId = inserted.rows[0].id;
+    await pool.query("INSERT INTO expense_payment_shares (payment_id, expense_id, amount) VALUES ($1, $2, $3), ($1, $4, $5)", [paymentId, expenseA.id, 4000, expenseB.id, 6000]);
+
+    await pool.query("DELETE FROM expenses WHERE id = $1", [expenseA.id]);
+    const survivors = await pool.query("SELECT * FROM expense_payments WHERE id = $1", [paymentId]);
+    expect(survivors.rows).toHaveLength(1);
+    const shares = await pool.query("SELECT expense_id, amount FROM expense_payment_shares WHERE payment_id = $1", [paymentId]);
+    expect(shares.rows).toEqual([{ expense_id: expenseB.id, amount: 6000 }]);
+
+    await pool.query("DELETE FROM expense_payments WHERE id = $1", [paymentId]);
+    expect((await pool.query("SELECT * FROM expense_payment_shares WHERE payment_id = $1", [paymentId])).rows).toHaveLength(0);
+  });
+
+  test("migrated payments preserve IDs, amounts and a matching share", async () => {
+    const expense = await fixtures.makeExpense({ description: "Migrated share target" });
+    const inserted = await pool.query<{ id: number }>(
+      "INSERT INTO expense_payments (account_id, amount) VALUES ((SELECT id FROM accounts WHERE is_business LIMIT 1), 8200) RETURNING id",
+    );
+    const paymentId = inserted.rows[0].id;
+    await pool.query(
+      "INSERT INTO expense_payment_shares (payment_id, expense_id, amount) VALUES ($1, $2, $3)",
+      [paymentId, expense.id, 8200],
+    );
+
+    const migrated = await pool.query<{ id: number; amount: number; assigned: number }>(
+      "SELECT ep.id, ep.amount, COALESCE(SUM(s.amount), 0)::int AS assigned FROM expense_payments ep LEFT JOIN expense_payment_shares s ON s.payment_id = ep.id WHERE ep.id = $1 GROUP BY ep.id",
+      [paymentId],
+    );
+    expect(migrated.rows).toEqual([{ id: paymentId, amount: 8200, assigned: 8200 }]);
+  });
+
+  test("account ledger records each shared payment once, regardless of share count", async () => {
+    const expenseA = await fixtures.makeExpense({ description: "Ledger share A" });
+    const expenseB = await fixtures.makeExpense({ description: "Ledger share B" });
+    const inserted = await pool.query<{ id: number }>(
+      "INSERT INTO expense_payments (account_id, amount) VALUES ((SELECT id FROM accounts WHERE is_business LIMIT 1), 7000) RETURNING id",
+    );
+    const paymentId = inserted.rows[0].id;
+    await pool.query("INSERT INTO expense_payment_shares (payment_id, expense_id, amount) VALUES ($1, $2, 2000), ($1, $3, 5000)", [paymentId, expenseA.id, expenseB.id]);
+    const ledger = await pool.query("SELECT source_id, amount, description FROM account_ledger WHERE entry_type = 'expense_payment' AND source_id = $1", [paymentId]);
+    expect(ledger.rows).toHaveLength(1);
+    expect(ledger.rows[0].amount).toBe(7000);
+    expect(ledger.rows[0].description).toContain("Ledger share A");
+    expect(ledger.rows[0].description).toContain("Ledger share B");
+  });
+});
+
+async function createLegacyTables(client: import("pg").PoolClient, withForeignKey = false): Promise<void> {
+  await client.query("DROP TABLE IF EXISTS pg_temp.legacy_expense_payments, pg_temp.legacy_expenses");
+  await client.query("CREATE TEMP TABLE legacy_expenses (id integer PRIMARY KEY)");
+  await client.query(`
+    CREATE TEMP TABLE legacy_expense_payments (
+      id serial PRIMARY KEY,
+      expense_id integer NOT NULL,
+      amount integer NOT NULL
+      ${withForeignKey ? ", CONSTRAINT expense_payments_expense_id_fkey FOREIGN KEY (expense_id) REFERENCES legacy_expenses(id)" : ""}
+    )
+  `);
+}

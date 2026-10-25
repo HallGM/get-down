@@ -415,7 +415,7 @@ function UnpaidExpensesTable({ expenses, onEditExpense }: { expenses: UnpaidExpe
             <td>{exp.date ? formatDate(exp.date) : "No date"}</td>
             <td>{exp.description}</td>
             <td>{formatPennies(exp.amount)}</td>
-            <td style={paidStyle}>{formatPennies(exp.totalPaid)}</td>
+          <td style={paidStyle}>{formatPennies(exp.totalPaid)}{exp.totalPaid > exp.amount ? " (overpaid)" : exp.totalPaid < 0 ? " (refund balance)" : ""}</td>
           </tr>
         );
       }}
@@ -649,6 +649,14 @@ export default function Dashboard() {
       PICO_RED,
       data.unpaidExpenses,
       (expenses) => <UnpaidExpensesTable expenses={expenses} onEditExpense={setEditTargetId} />,
+    ),
+    buildSection(
+      "expense-payment-mismatches",
+      "Expense Payment Allocation Mismatches",
+      "Payments where the signed assigned shares do not match the payment total. Unassigned payments are included.",
+      PICO_RED,
+      data.expensePaymentMismatches,
+      (alerts) => <table><thead><tr><th>Date</th><th>Payment total</th><th>Assigned total</th><th>Expenses</th><th>Difference</th></tr></thead><tbody>{alerts.map((alert) => <tr key={alert.id}><td>{alert.date ? formatDate(alert.date) : "No date"}</td><td>{formatPennies(alert.amount)}</td><td>{formatPennies(alert.assignedTotal)}</td><td>{alert.expenses.length ? alert.expenses.map((expense) => expense.expenseDescription).join(", ") : "No shares assigned"}</td><td>{formatPennies(alert.difference)}</td></tr>)}</tbody></table>,
     ),
     ...buildGigShowcasePair({
       baseId: "allocations-missing-expenses",

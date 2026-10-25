@@ -6,7 +6,7 @@ import * as expensesRepo from "../repository/expenses.js";
 import * as expensePaymentsRepo from "../repository/expense_payments.js";
 import * as personInvoicesRepo from "../repository/person_invoices.js";
 import * as peopleRepo from "../repository/people.js";
-import { mapPayment as mapExpensePayment, CreatePaymentSchema } from "../services/expense_payments.js";
+import { mapExpensePaymentShare, mapPayment as mapExpensePayment, CreatePaymentSchema } from "../services/expense_payments.js";
 import * as feeAllocationsRepo from "../repository/fee_allocations.js";
 import * as attributionFeesRepo from "../repository/attribution_fees.js";
 import * as accountsRepo from "../repository/accounts.js";
@@ -65,7 +65,8 @@ export async function createExpense(input: CreateExpenseRequest): Promise<Expens
 
     return withTransaction(async () => {
       const row = await expensesRepo.createExpense(mutationInput);
-      await expensePaymentsRepo.createExpensePayment(row.id, paymentInput);
+      const payment = await expensePaymentsRepo.createExpensePayment(paymentInput);
+      await expensePaymentsRepo.createPaymentShare(payment.id, row.id, paymentInput.amount);
       return mapExpense(row, [], [], paymentInput.amount);
     });
   }
@@ -204,7 +205,9 @@ async function assembleExpense(row: expensesRepo.ExpenseRow): Promise<Expense> {
   const personMap = await resolvePeopleForPersonInvoices(
     new Map(personInvoice ? [[row.id, personInvoice]] as const : [])
   );
-  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+  const sharesByExpense = await expensePaymentsRepo.readPaymentStatusByExpenseIds([row.id]);
+  const totalPaid = sharesByExpense.get(row.id)?.total_paid ?? 0;
+  const paymentShares = await expensePaymentsRepo.readPaymentShares(payments.map((payment) => payment.id));
   const documentUrl = await tryGetPresignedUrl(row.document_key);
   const person = personInvoice ? personMap.get(personInvoice.person_id) : null;
   const expense = mapExpense(row, allocationIds, attributionFeeIds, totalPaid, {
@@ -213,7 +216,10 @@ async function assembleExpense(row: expensesRepo.ExpenseRow): Promise<Expense> {
     person,
     linkedCardCharge,
   });
-  expense.payments = payments.map(mapExpensePayment);
+  expense.payments = payments.map((payment) => mapExpensePayment(
+    payment,
+    paymentShares.filter((share) => share.payment_id === payment.id).map(mapExpensePaymentShare),
+  ));
   return expense;
 }
 

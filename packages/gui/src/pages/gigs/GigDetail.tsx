@@ -71,6 +71,7 @@ export default function GigDetail() {
       location: gig!.location,
       description: gig!.description,
       status: gig!.status,
+      emailed: gig!.emailed,
       totalPrice: gig!.totalPrice,
       timings: gig!.timings,
       contactNumber: gig!.contactNumber,

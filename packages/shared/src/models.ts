@@ -219,6 +219,7 @@ export interface Gig {
   showcaseName?: string;
   name?: string;
   status: string;
+  emailed: boolean;
   firstName: string;
   lastName: string;
   partnerName?: string;
@@ -347,6 +348,7 @@ export interface UpdateGigRequest {
   attributionId?: number | null;
   name?: string;
   status?: string;
+  emailed?: boolean;
   firstName?: string;
   lastName?: string;
   partnerName?: string;
@@ -767,22 +769,32 @@ export const MAX_DOCUMENT_SIZE_BYTES = 20 * 1024 * 1024;
 
 export interface ExpensePayment {
   id: number;
-  expenseId: number;
   accountId: number;
   /** Signed amount in pennies: positive = payment, negative = refund. */
   amount: number;
   date?: string;
   paymentMethod?: string;
   description?: string;
+  shares: ExpensePaymentShare[];
+}
+
+export interface ExpensePaymentShare {
+  expenseId: number;
+  expenseDescription: string;
+  amount: number;
 }
 
 export interface ExpensePaymentSummary {
   id: number;
-  expenseId: number;
-  expenseDescription: string;
+  accountId: number;
+  paymentMethod?: string;
+  description?: string;
   date?: string;
   amount: number;
   paidForBy: string;
+  assignedTotal: number;
+  mismatch: number;
+  shares: ExpensePaymentShare[];
 }
 
 export interface CreateExpensePaymentRequest {
@@ -792,6 +804,7 @@ export interface CreateExpensePaymentRequest {
   date?: string;
   paymentMethod?: string;
   description?: string;
+  shares?: Array<{ expenseId: number; amount: number }>;
 }
 
 export interface UpdateExpensePaymentRequest {
@@ -800,6 +813,10 @@ export interface UpdateExpensePaymentRequest {
   date?: string;
   paymentMethod?: string;
   description?: string;
+}
+
+export interface UpdateExpensePaymentSharesRequest {
+  shares: Array<{ expenseId: number; amount: number }>;
 }
 
 export interface Expense {
@@ -1604,6 +1621,15 @@ export interface UnpaidExpenseAlert {
   totalPaid: number;
 }
 
+export interface ExpensePaymentMismatchAlert {
+  id: number;
+  date?: string;
+  amount: number;
+  assignedTotal: number;
+  difference: number;
+  expenses: ExpensePaymentShare[];
+}
+
 export interface DashboardAlerts {
   /** Confirmed upcoming gigs where no payment has been received. */
   noDeposit: GigPaymentAlert[];
@@ -1615,6 +1641,8 @@ export interface DashboardAlerts {
   pastPaymentMismatches: GigPaymentMismatchAlert[];
   /** Expenses where the total amount paid does not match the expense total (unpaid or partially paid). */
   unpaidExpenses: UnpaidExpenseAlert[];
+  /** Expense payments where the signed sum of shares differs from the payment total. */
+  expensePaymentMismatches: ExpensePaymentMismatchAlert[];
   /** Gig fee allocations with no expense record linked. */
   allocationsWithoutExpensesGigs: FeeAllocationAlert[];
   /** Showcase fee allocations with no expense record linked. */

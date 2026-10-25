@@ -548,7 +548,8 @@ export async function settleAllocationWithExpense(
     // Step 2: Create payment if provided (still within transaction)
     let paymentAmount = 0;
     if (parsedPayment) {
-      await expensePaymentsRepo.createExpensePayment(expenseRow.id, parsedPayment);
+      const payment = await expensePaymentsRepo.createExpensePayment(parsedPayment);
+      await expensePaymentsRepo.createPaymentShare(payment.id, expenseRow.id, parsedPayment.amount);
       paymentAmount = parsedPayment.amount;
     }
 

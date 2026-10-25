@@ -55,3 +55,67 @@ describe("GET /expenses (end-to-end)", () => {
     ]));
   });
 });
+
+describe("expense payment shares API", () => {
+  async function createExpense(description: string, isTaxOnly = false) {
+    const response = await auth(request(app).post("/expenses").send({ amount: 10000, description, isTaxOnly }));
+    expect(response.status).toBe(201);
+    return response.body as { id: number };
+  }
+
+  test("creates a payment with signed multi-expense shares and keeps one summary", async () => {
+    const first = await createExpense("First shared expense");
+    const second = await createExpense("Second shared expense");
+    const account = await pool.query<{ id: number }>("SELECT id FROM accounts WHERE is_business = true");
+    const response = await auth(request(app).post("/expense-payments").send({
+      accountId: account.rows[0].id, amount: -9000,
+      shares: [{ expenseId: first.id, amount: -2500 }, { expenseId: second.id, amount: -3000 }],
+    }));
+    expect(response.status).toBe(201);
+    expect(response.body.shares).toHaveLength(2);
+
+    const summaries = await auth(request(app).get("/expense-payments"));
+    expect(summaries.body).toHaveLength(1);
+    expect(summaries.body[0]).toMatchObject({ amount: -9000, assignedTotal: -5500, mismatch: -3500 });
+    expect(summaries.body[0].shares.map((share: { expenseId: number }) => share.expenseId)).toEqual([first.id, second.id]);
+    const expense = await auth(request(app).get(`/expenses/${first.id}`));
+    expect(expense.status).toBe(200);
+    expect(expense.body.totalPaid).toBe(-2500);
+  });
+
+  test("rejects nonexistent and tax-only share targets", async () => {
+    const taxOnly = await createExpense("Tax only target", true);
+    const account = await pool.query<{ id: number }>("SELECT id FROM accounts WHERE is_business = true");
+    for (const expenseId of [taxOnly.id, 999999]) {
+      const response = await auth(request(app).post("/expense-payments").send({
+        accountId: account.rows[0].id, amount: 1000, shares: [{ expenseId, amount: 1000 }],
+      }));
+      expect(response.status).toBe(400);
+    }
+  });
+
+  test("payment detail edits preserve shares; share changes are independent; deletion cascades", async () => {
+    const first = await createExpense("Before edit");
+    const second = await createExpense("After edit");
+    const account = await pool.query<{ id: number }>("SELECT id FROM accounts WHERE is_business = true");
+    const created = await auth(request(app).post("/expense-payments").send({
+      accountId: account.rows[0].id, amount: 8000, shares: [{ expenseId: first.id, amount: 3000 }],
+    }));
+    const paymentId = created.body.id as number;
+    const updated = await auth(request(app).put(`/expense-payments/${paymentId}`).send({ amount: 9000 }));
+    expect(updated.body.shares).toEqual(created.body.shares);
+    const moved = await auth(request(app).put(`/expense-payments/${paymentId}/shares`).send({ shares: [{ expenseId: first.id, amount: 3000 }, { expenseId: second.id, amount: -12000 }] }));
+    expect(moved.body.amount).toBe(9000);
+    expect(moved.body.shares).toEqual(expect.arrayContaining([
+      expect.objectContaining({ expenseId: first.id, amount: 3000 }),
+      expect.objectContaining({ expenseId: second.id, amount: -12000 }),
+    ]));
+    await auth(request(app).delete(`/expenses/${first.id}`));
+    expect((await pool.query("SELECT id FROM expense_payments WHERE id = $1", [paymentId])).rows).toHaveLength(1);
+    expect((await pool.query("SELECT expense_id, amount FROM expense_payment_shares WHERE payment_id = $1", [paymentId])).rows)
+      .toEqual([{ expense_id: second.id, amount: -12000 }]);
+    const deleted = await auth(request(app).delete(`/expense-payments/${paymentId}`));
+    expect(deleted.status).toBe(204);
+    expect((await pool.query("SELECT payment_id FROM expense_payment_shares WHERE payment_id = $1", [paymentId])).rows).toHaveLength(0);
+  });
+});

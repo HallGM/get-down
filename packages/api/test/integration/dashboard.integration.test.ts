@@ -29,8 +29,10 @@ async function getUnpaidExpenses() {
 }
 
 async function createExpensePayment(expenseId: number, amount: number, accountId: number = 1) {
-  const { createExpensePayment } = await import("../../src/repository/expense_payments.js");
-  return createExpensePayment(expenseId, { accountId, amount });
+  const repo = await import("../../src/repository/expense_payments.js");
+  const payment = await repo.createExpensePayment({ accountId, amount });
+  await repo.createPaymentShare(payment.id, expenseId, amount);
+  return payment;
 }
 
 describe("Dashboard — unpaid expenses", () => {
@@ -140,4 +142,37 @@ describe("Dashboard — unpaid expenses", () => {
       // No tax-only expenses should appear, even those unpaid or partially paid
       expect(result).toHaveLength(0);
     });
+});
+
+describe("Dashboard — expense payment share mismatches", () => {
+  test("flags under-, over-, and zero-share payments, while omitting exact matches", async () => {
+    const first = await fixtures.makeExpense({ amount: 2000, description: "Share first" });
+    const second = await fixtures.makeExpense({ amount: 2000, description: "Share second" });
+    const repo = await import("../../src/repository/expense_payments.js");
+    const under = await repo.createExpensePayment({ accountId: 1, amount: 1000 });
+    await repo.createPaymentShare(under.id, first.id, 400);
+    const over = await repo.createExpensePayment({ accountId: 1, amount: 500 });
+    await repo.createPaymentShare(over.id, second.id, 800);
+    const unassigned = await repo.createExpensePayment({ accountId: 1, amount: -250 });
+    const equal = await repo.createExpensePayment({ accountId: 1, amount: 100 });
+    await repo.createPaymentShare(equal.id, first.id, 100);
+
+    const dashboard = await import("../../src/repository/dashboard.js");
+    const result = await dashboard.readExpensePaymentMismatches();
+    expect(result.map((row) => row.id)).toEqual(expect.arrayContaining([under.id, over.id, unassigned.id]));
+    expect(result.map((row) => row.id)).not.toContain(equal.id);
+    expect(result.find((row) => row.id === under.id)?.assigned_total).toBe(400);
+    expect(result.find((row) => row.id === over.id)?.assigned_total).toBe(800);
+  });
+
+  test("expense payment totals use signed shares and retain overpayments", async () => {
+    const expense = await fixtures.makeExpense({ amount: 1000, description: "Signed allocations" });
+    const repo = await import("../../src/repository/expense_payments.js");
+    const paid = await repo.createExpensePayment({ accountId: 1, amount: 1400 });
+    await repo.createPaymentShare(paid.id, expense.id, 1400);
+    const refund = await repo.createExpensePayment({ accountId: 1, amount: -100 });
+    await repo.createPaymentShare(refund.id, expense.id, -100);
+    const unpaid = await getUnpaidExpenses();
+    expect(unpaid.find((row) => row.id === expense.id)?.total_paid).toBe(1300);
+  });
 });

@@ -55,12 +55,18 @@ Table accounts {
 
 Table expense_payments {
   id             serial [pk, increment]
-  expense_id     int    [ref: > expenses.id, not null]
   account_id     int    [ref: > accounts.id, not null]
   amount         int    [not null]
   date           date
   payment_method varchar(100)
   description    varchar(255)
+}
+
+Table expense_payment_shares {
+  payment_id int [ref: > expense_payments.id, not null]
+  expense_id int [ref: > expenses.id, not null]
+  amount     int [not null]
+  indexes { (payment_id, expense_id) [pk] }
 }
 
 Table account_transactions {
@@ -113,6 +119,7 @@ Table gigs {
   attribution_id    int [ref: > attributions.id]
   name              varchar(255)
   status            varchar(50) [not null, default: 'draft']
+  emailed           boolean [not null, default: false]
   first_name        varchar(255) [not null]
   last_name         varchar(255) [not null]
   partner_name      varchar(255)

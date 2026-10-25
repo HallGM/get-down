@@ -158,7 +158,7 @@ at the partnership start date).
 
 An expense can be marked `is_tax_only = true` to indicate it is a personal cost
 claimed for tax purposes only (e.g. an apportioned home-working allowance,
-personal fuel costs), with no payment recorded and no effect on the business
+personal fuel costs), with no payment shares recorded and no effect on the business
 budget or any partner's balance. Tax-only expenses are:
 
 - Always excluded from `expensesBreakdown` (all three buckets), so they never
@@ -174,6 +174,17 @@ The `isTaxOnly` flag and `paymentStatus: 'taxOnly'` are set at creation/update;
 a tax-only expense cannot be switched to normal status if it already has
 payments (the payments must be removed first, via API guard in
 `services/expenses.ts::updateExpense()`).
+
+### Expense payments and shares
+
+An expense payment is one recorded cash movement with one account, date, and
+signed total. Its `expense_payment_shares` rows allocate signed portions of
+that payment to expenses. Expense `totalPaid` is the sum of its shares, not
+the full payment amount. Shares can be negative for refunds, can be left
+unassigned, and do not have to add up to the payment total. Deleting an expense
+removes its shares only. Deleting a payment removes the payment and all shares.
+The account ledger always records the payment exactly once, independent of the
+number of shares; shares never create ledger entries.
 
 ### Partner fee allocations are not expenses
 

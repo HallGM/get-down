@@ -1,6 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ExpensePaymentSummary } from "@get-down/shared";
-import { useAllExpensePayments } from "../../api/hooks/useExpensePayments.js";
+import { useAllExpensePayments, useCreatePayment, useEligiblePaymentExpenses } from "../../api/hooks/useExpensePayments.js";
+import { useAccounts } from "../../api/hooks/useAccounts.js";
+import { PaymentFormFields, EMPTY_PAYMENT_FORM, toCreatePaymentRequest, type PaymentFormState } from "../../components/ExpensePaymentFormFields.js";
 import LoadingState from "../../components/LoadingState.js";
 import ErrorBanner from "../../components/ErrorBanner.js";
 import EmptyState from "../../components/EmptyState.js";
@@ -11,6 +13,12 @@ import ExpensePaymentRow from "./ExpensePaymentRow.js";
 
 export default function ExpensePaymentsPage() {
   const { data: payments = [], isLoading, error } = useAllExpensePayments();
+  const { data: accounts = [] } = useAccounts();
+  const { data: eligibleExpenses = [] } = useEligiblePaymentExpenses();
+  const createPayment = useCreatePayment();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<PaymentFormState>(EMPTY_PAYMENT_FORM);
+  const [shares, setShares] = useState<Array<{ expenseId: number; amount: number }>>([]);
 
   const {
     calendarYear, taxYear, setCalendarYear, setTaxYear,
@@ -27,7 +35,18 @@ export default function ExpensePaymentsPage() {
     <main className="container">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
         <h1 style={{ margin: 0 }}>Expense payments</h1>
+        {!showForm && <button type="button" onClick={() => setShowForm(true)}>+ Add payment</button>}
       </div>
+
+      {showForm && <article>
+        <h2>New payment</h2>
+        <PaymentFormFields form={form} setForm={setForm} accounts={accounts} eligibleExpenses={eligibleExpenses} shares={shares} setShares={setShares} />
+        <button type="button" disabled={!form.accountId || createPayment.isPending} onClick={async () => {
+          await createPayment.mutateAsync(toCreatePaymentRequest(form, shares));
+          setShowForm(false); setForm(EMPTY_PAYMENT_FORM); setShares([]);
+        }}>Record payment</button>
+        <button type="button" className="secondary" onClick={() => setShowForm(false)}>Cancel</button>
+      </article>}
 
       <YearFilterBar
         calendarYear={calendarYear}
@@ -44,20 +63,19 @@ export default function ExpensePaymentsPage() {
         <EmptyState message="No expense payments found." />
       ) : (
         <div style={{ overflowX: "auto" }}>
-           <table>
+           <table className="expense-payments-table">
              <thead>
                <tr>
                  <th>Date</th>
-                 <th>Expense</th>
+                  <th>Expenses</th>
                  <th style={{ textAlign: "right" }}>Amount</th>
-                 <th>Paid for by</th>
-                 <th style={{ textAlign: "right" }}>Actions</th>
+                  <th>Paid for by</th>
+                  <th style={{ textAlign: "right" }}>Assigned</th>
+                  <th className="expense-payment-actions-heading">Actions</th>
                </tr>
              </thead>
              <tbody>
-               {filtered.map((p) => (
-                 <ExpensePaymentRow key={p.id} payment={p} />
-               ))}
+                {filtered.map((p) => <ExpensePaymentRow key={p.id} payment={p} />)}
              </tbody>
            </table>
         </div>

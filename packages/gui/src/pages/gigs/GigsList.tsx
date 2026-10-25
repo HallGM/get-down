@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useGigs, useCreateGig, useDeleteGig } from "../../api/hooks/useGigs.js";
+import { useGigs, useCreateGig, useDeleteGig, useUpdateGig } from "../../api/hooks/useGigs.js";
 import { useServices } from "../../api/hooks/useServices.js";
 import { usePeople } from "../../api/hooks/usePeople.js";
 import { useAttributions } from "../../api/hooks/useAttributions.js";
@@ -55,6 +55,7 @@ export default function GigsList() {
   const { data: attributions = [] } = useAttributions();
   const createGig = useCreateGig();
   const deleteGig = useDeleteGig();
+  const updateGig = useUpdateGig();
 
   const [view, setView] = useState<GigView>("upcoming");
   const [textQuery, setTextQuery] = useState("");
@@ -88,7 +89,7 @@ export default function GigsList() {
 
   // Build columns dynamically with service lookup
   const columns = useMemo(() => {
-    return [
+    const cols: Column<Gig>[] = [
       { key: "date", header: "Date", sortable: true, render: (g: Gig) => formatDate(g.date) },
       { key: "firstName", header: "Name", sortable: true, render: (g: Gig) => `${g.firstName} ${g.lastName ?? ""}`.trim() },
       { key: "venueName", header: "Venue", sortable: true, render: (g: Gig) => g.venueName ?? "—" },
@@ -125,8 +126,25 @@ export default function GigsList() {
           return <MoneyDisplay pennies={confirmedProfit(g)} />;
         },
       },
-    ] as Column<Gig>[];
-  }, [services]);
+    ];
+    if (view === "enquiries") {
+      cols.push({
+        key: "emailed",
+        header: "Emailed",
+        interactive: true,
+        render: (gig) => (
+          <input
+            type="checkbox"
+            checked={gig.emailed}
+            aria-label={`First response email sent for ${gig.firstName} ${gig.lastName}`}
+            disabled={updateGig.isPending}
+            onChange={(event) => updateGig.mutate({ id: gig.id, input: { emailed: event.target.checked } })}
+          />
+        ),
+      });
+    }
+    return cols;
+  }, [services, view, updateGig.isPending, updateGig.mutate]);
 
   // Build the filter function with service lookup
   const filterGig = useMemo(() => buildFilterGig(services), [services]);

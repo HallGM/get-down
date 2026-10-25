@@ -40,6 +40,8 @@ describe("client form", () => {
     const exclusionsRepo = await import("../../src/repository/song_service_exclusions.js");
     const clientForm = await import("../../src/services/client_form.js");
 
+    await pool.query("UPDATE gigs SET emailed = true WHERE id = $1", [gig.id]);
+
     const groups = await servicesRepo.readServiceGroups();
     const bandGroupId = groups.find((group) => group.name === "Band")!.id;
     const fivePiece = await servicesRepo.createService({ name: "Five-piece", groupIds: [bandGroupId] });
@@ -76,6 +78,12 @@ describe("client form", () => {
         doNotPlays: [alternateOnlySong.id],
       },
     });
+
+    const emailedAfterSave = await pool.query<{ emailed: boolean }>(
+      "SELECT emailed FROM gigs WHERE id = $1",
+      [gig.id],
+    );
+    expect(emailedAfterSave.rows[0].emailed).toBe(true);
 
     const enquirySaveTimestamp = await pool.query<{ form_saved_at: string | null }>(
       "SELECT form_saved_at FROM gigs WHERE id = $1",

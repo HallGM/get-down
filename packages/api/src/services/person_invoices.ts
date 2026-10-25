@@ -232,7 +232,7 @@ export async function deletePersonInvoice(id: number): Promise<void> {
     const deleted = await personInvoicesRepo.deletePersonInvoice(id);
     if (!deleted) throw new NotFoundError("Person invoice not found");
 
-    // Delete the linked expense (which will cascade to any expense_payments)
+    // Delete the linked expense (which removes only its payment shares).
     await expensesRepo.deleteExpense(existing.expenseId);
   });
 }

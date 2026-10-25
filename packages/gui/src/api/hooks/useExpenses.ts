@@ -34,8 +34,10 @@ export function useCreateExpense() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["expense-payment-expenses"] });
       qc.invalidateQueries({ queryKey: ["accounts"] });
       qc.invalidateQueries({ queryKey: ["all-expense-payments"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
     successMessage: "Expense added",
   });
@@ -49,6 +51,9 @@ export function useUpdateExpense() {
     onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: [KEY, id] });
+      qc.invalidateQueries({ queryKey: ["expense-payment-expenses"] });
+      qc.invalidateQueries({ queryKey: ["all-expense-payments"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
     successMessage: "Expense saved",
   });
@@ -60,6 +65,9 @@ export function useDeleteExpense() {
     mutationFn: (id: number) => apiFetch<void>("DELETE", `/expenses/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["expense-payment-expenses"] });
+      qc.invalidateQueries({ queryKey: ["all-expense-payments"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
     successMessage: "Expense deleted",
   });
@@ -144,4 +152,3 @@ export function useUnlinkAllocationFromExpense() {
     successMessage: "Allocation unlinked",
   });
 }
-

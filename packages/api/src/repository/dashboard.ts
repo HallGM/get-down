@@ -94,6 +94,32 @@ export interface UnpaidExpenseAlertRow {
   total_paid: number;
 }
 
+export interface ExpensePaymentMismatchRow {
+  id: number;
+  date: string | null;
+  amount: number;
+  assigned_total: number;
+  expense_id: number | null;
+  expense_description: string | null;
+  share_amount: number | null;
+}
+
+export async function readExpensePaymentMismatches(): Promise<ExpensePaymentMismatchRow[]> {
+  return run_query<ExpensePaymentMismatchRow>({
+    text: `WITH totals AS (
+        SELECT ep.id, ep.date::text AS date, ep.amount, COALESCE(SUM(s.amount), 0)::int AS assigned_total
+        FROM expense_payments ep LEFT JOIN expense_payment_shares s ON s.payment_id = ep.id
+        GROUP BY ep.id
+      )
+      SELECT t.id, t.date, t.amount, t.assigned_total, s.expense_id,
+        e.description AS expense_description, s.amount AS share_amount
+      FROM totals t LEFT JOIN expense_payment_shares s ON s.payment_id = t.id
+      LEFT JOIN expenses e ON e.id = s.expense_id
+      WHERE t.assigned_total <> t.amount
+      ORDER BY t.date DESC NULLS LAST, t.id DESC, s.expense_id;`,
+  });
+}
+
 const SELECT_ALERT_COLS = `
   g.id,
   g.first_name,

@@ -15,6 +15,14 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 
 
 router.get("/expenses",     handle(() => expensesService.getAllExpenses()));
 router.get("/expense-payments", handle(() => expensePaymentsService.getAllPaymentSummaries()));
+router.get("/expense-payment-expenses", handle(() => expensePaymentsService.getEligibleExpenses()));
+router.get("/expense-payments/:paymentId", requirePartner, handle(req => expensePaymentsService.getPaymentById(+req.params.paymentId)));
+router.get("/expense-payments/:paymentId/shares", requirePartner, handle(req => expensePaymentsService.getPaymentShares(+req.params.paymentId)));
+router.post("/expense-payments", requirePartner, handle(req => expensePaymentsService.createPayment(req.body), 201));
+router.put("/expense-payments/:paymentId", requirePartner, handle(req => expensePaymentsService.updatePayment(+req.params.paymentId, req.body)));
+router.put("/expense-payments/:paymentId/shares", requirePartner, handle(req => expensePaymentsService.updatePaymentShares(+req.params.paymentId, req.body)));
+router.delete("/expense-payments/:paymentId/shares/:expenseId", requirePartner, handle(req => expensePaymentsService.deletePaymentShare(+req.params.paymentId, +req.params.expenseId), 204));
+router.delete("/expense-payments/:paymentId", requirePartner, handle(req => expensePaymentsService.deletePayment(+req.params.paymentId), 204));
 router.get("/expenses/:id", handle(req => expensesService.getExpenseById(+req.params.id)));
 router.post("/expenses",    handle(req => expensesService.createExpense(req.body), 201));
 router.put("/expenses/:id", handle(req => expensesService.updateExpense(+req.params.id, req.body)));
@@ -47,13 +55,7 @@ router.get("/expenses/:id/payments",
   handle(req => expensePaymentsService.getPaymentsByExpense(+req.params.id)));
 router.post("/expenses/:id/payments",
   requirePartner,
-  handle(req => expensePaymentsService.createPayment(+req.params.id, req.body), 201));
-router.put("/expenses/:id/payments/:paymentId",
-  requirePartner,
-  handle(req => expensePaymentsService.updatePayment(+req.params.id, +req.params.paymentId, req.body)));
-router.delete("/expenses/:id/payments/:paymentId",
-  requirePartner,
-  handle(req => expensePaymentsService.deletePayment(+req.params.id, +req.params.paymentId), 204));
+  handle(req => expensePaymentsService.createPayment(req.body, +req.params.id), 201));
 
 // Fee allocation links
 router.get("/expenses/:id/fee-allocations",                        handle(req => feeAllocationsService.getAllocationsByExpense(+req.params.id)));

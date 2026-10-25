@@ -106,6 +106,7 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
         <article>
           <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.5rem 1.5rem" }}>
             <dt>Date</dt><dd>{gig.date ? formatDate(gig.date) : "Undated"}</dd>
+            <dt>Emailed</dt><dd><input type="checkbox" checked={gig.emailed} disabled aria-label="First response email sent" /></dd>
             {gig.enquiryNotes && <><dt>Enquiry notes</dt><dd style={{ whiteSpace: "pre-wrap" }}>{gig.enquiryNotes}</dd></>}
             <dt>Partner</dt><dd>{gig.partnerName ?? "—"}</dd>
             <dt>Email</dt><dd>{gig.email ?? "—"}</dd>
@@ -132,6 +133,10 @@ export default function GigOverviewTab({ gig, gigId, editing, editForm, setEditF
               <FormField as="select" label="Status" value={editForm.status ?? "enquiry"} onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}>
                 {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
               </FormField>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: 0 }}>
+                <input type="checkbox" checked={!!editForm.emailed} onChange={(e) => setEditForm((f) => ({ ...f, emailed: e.target.checked }))} />
+                First response email sent
+              </label>
               <MoneyField label="Quoted price" value={editForm.totalPrice} onChange={(totalPrice) => setEditForm((f) => ({ ...f, totalPrice }))} />
               <AttributionSelect
                 attributions={attributions}

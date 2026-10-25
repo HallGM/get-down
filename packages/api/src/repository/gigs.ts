@@ -8,6 +8,7 @@ export interface GigRow {
   attribution_id: number | null;
   name: string | null;
   status: string;
+  emailed: boolean;
   first_name: string;
   last_name: string;
   partner_name: string | null;
@@ -56,6 +57,7 @@ export interface GigMutationInput {
   attributionId?: number | null;
   name?: string;
   status: string;
+  emailed?: boolean;
   firstName: string;
   lastName: string;
   partnerName?: string;
@@ -99,7 +101,7 @@ export interface GigMutationInput {
 }
 
 const SELECT_COLS = `
-  id, attribution_id, name, status, first_name, last_name,
+  id, attribution_id, name, status, emailed, first_name, last_name,
   partner_name, email, phone, date, enquiry_notes, venue_name, location, description,
   total_price, travel_cost, discount_percent, airtable_id,
   timings, contact_number, parking_info, meal_details, client_notes, performer_notes, private_notes,
@@ -184,6 +186,7 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
       UPDATE gigs
        SET enquiry_notes = $1, attribution_id = $2, name = $3, status = $4,
            form_saved_at = CASE WHEN status = 'enquiry' AND $4::varchar = 'confirmed' THEN NULL ELSE form_saved_at END,
+           emailed = COALESCE($44, emailed),
            first_name = $5, last_name = $6, partner_name = $7, email = $8, phone = $9,
           date = $10, venue_name = $11, location = $12, description = $13,
           total_price = $14, travel_cost = $15, discount_percent = $16, airtable_id = $17,
@@ -192,7 +195,7 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
            end_of_night_song = $26, first_dance_song = $27, first_dance_type = $28,
             ceilidh = $29, ceilidh_length = $30, ceilidh_style = $31, ceremony_song_choices=$32, reception_music_details=$33, walk_on_song=$34, introduction_wording=$35, piper_tune_requests=$36, bagpipes_details=$37, speeches_pa_requirements=$38, ceremony_readings_notes=$39, preparation_locations=$40,
             vimeo_url = $41, dropbox_url = $42, delivery_title = $43
-       WHERE id = $44
+        WHERE id = $45
       RETURNING ${SELECT_COLS};
     `,
     values: [
@@ -230,8 +233,9 @@ export async function updateGig(id: number, input: GigMutationInput): Promise<Gi
        input.ceremonySongChoices ?? null, input.receptionMusicDetails ?? null, input.walkOnSong ?? null, input.introductionWording ?? null, input.piperTuneRequests ?? null, input.bagpipesDetails ?? null, input.speechesPaRequirements ?? null, input.ceremonyReadingsNotes ?? null, input.preparationLocations ?? null,
       input.vimeoUrl ?? null,
       input.dropboxUrl ?? null,
-      input.deliveryTitle ?? null,
-      id,
+       input.deliveryTitle ?? null,
+       input.emailed ?? null,
+       id,
     ],
   });
   return rows[0] ?? null;

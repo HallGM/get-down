@@ -202,17 +202,43 @@ BEGIN
     SELECT id INTO v_expense2_id FROM expenses WHERE description = 'Dev Seed: PA equipment hire Feb 2026';
 
     -- Expense payments (fuel paid by Garry; equipment paid by business account)
-    INSERT INTO expense_payments (expense_id, account_id, amount, date, payment_method)
-    SELECT v_expense1_id, v_garry_account_id, 4500, '2026-01-10', 'Bank transfer'
+    INSERT INTO expense_payments (account_id, amount, date, payment_method, description)
+    SELECT v_garry_account_id, 4500, '2026-01-10', 'Bank transfer', 'Dev Seed: Fuel payment'
     WHERE v_expense1_id IS NOT NULL
       AND v_garry_account_id IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM expense_payments WHERE expense_id = v_expense1_id);
+      AND NOT EXISTS (
+        SELECT 1 FROM expense_payments WHERE description = 'Dev Seed: Fuel payment'
+      );
 
-    INSERT INTO expense_payments (expense_id, account_id, amount, date, payment_method)
-    SELECT v_expense2_id, v_business_account_id, 12000, '2026-02-04', 'Bank transfer'
+    INSERT INTO expense_payments (account_id, amount, date, payment_method, description)
+    SELECT v_business_account_id, 12000, '2026-02-04', 'Bank transfer', 'Dev Seed: PA hire payment'
     WHERE v_expense2_id IS NOT NULL
       AND v_business_account_id IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM expense_payments WHERE expense_id = v_expense2_id);
+      AND NOT EXISTS (
+        SELECT 1 FROM expense_payments WHERE description = 'Dev Seed: PA hire payment'
+      );
+
+    INSERT INTO expense_payment_shares (payment_id, expense_id, amount)
+    SELECT ep.id, v_expense1_id, ep.amount FROM expense_payments ep
+    WHERE ep.description = 'Dev Seed: Fuel payment'
+      AND ep.account_id = v_garry_account_id
+      AND ep.amount = 4500
+      AND ep.date = '2026-01-10'
+      AND v_expense1_id IS NOT NULL
+    ORDER BY ep.id
+    LIMIT 1
+    ON CONFLICT (payment_id, expense_id) DO NOTHING;
+
+    INSERT INTO expense_payment_shares (payment_id, expense_id, amount)
+    SELECT ep.id, v_expense2_id, ep.amount FROM expense_payments ep
+    WHERE ep.description = 'Dev Seed: PA hire payment'
+      AND ep.account_id = v_business_account_id
+      AND ep.amount = 12000
+      AND ep.date = '2026-02-04'
+      AND v_expense2_id IS NOT NULL
+    ORDER BY ep.id
+    LIMIT 1
+    ON CONFLICT (payment_id, expense_id) DO NOTHING;
 
   END IF;
 END $$;

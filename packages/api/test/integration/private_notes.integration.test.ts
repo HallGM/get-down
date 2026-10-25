@@ -17,16 +17,16 @@ beforeEach(async () => {
 
 describe("private gig notes", () => {
   test("persists private notes through gig creation and update", async () => {
-    const { readGigById, updateGig } = await import("../../src/repository/gigs.js");
+    const { readGigById } = await import("../../src/repository/gigs.js");
+    const { updateGig } = await import("../../src/services/gigs.js");
     const gig = await fixtures.makeGig({ privateNotes: "Staff-only context" });
+    await db.pool.query("UPDATE gigs SET emailed = true WHERE id = $1", [gig.id]);
 
     expect((await readGigById(gig.id))?.private_notes).toBe("Staff-only context");
 
-    await updateGig(gig.id, {
-      ...gig,
-      privateNotes: "Updated staff-only context",
-    });
+    await updateGig(gig.id, { privateNotes: "Updated staff-only context" });
 
     expect((await readGigById(gig.id))?.private_notes).toBe("Updated staff-only context");
+    expect((await readGigById(gig.id))?.emailed).toBe(true);
   });
 });

@@ -1,9 +1,10 @@
-import type { DashboardAlerts, GigAlertBase, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigNoLineItemsAlert, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert, FeeAllocationExpenseMismatchAlert, ExpenseOverApportionmentAlert, ExpenseOverApportionmentAllocationRef, UnpaidExpenseAlert } from "@get-down/shared";
+import type { DashboardAlerts, GigAlertBase, GigPaymentAlert, FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigNoLineItemsAlert, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert, FeeAllocationExpenseMismatchAlert, ExpenseOverApportionmentAlert, ExpenseOverApportionmentAllocationRef, UnpaidExpenseAlert, ExpensePaymentMismatchAlert } from "@get-down/shared";
 import * as repo from "../repository/dashboard.js";
 import type { GigAlertBaseRow, GigPaymentAlertRow, AllocationAlertRow, ApportionmentMismatchRow, GigNoLineItemsAlertRow, GigPaymentMismatchAlertRow, RoleWithoutAllocationAlertRow, EmptyRoleAlertRow, FeeAllocationExpenseMismatchRow, ExpenseOverApportionmentRow, ExpenseOverApportionmentAllocationRow, UnpaidExpenseAlertRow } from "../repository/dashboard.js";
+import { calculateExpensePaymentMismatch } from "../utils/expensePayment.js";
 
 export async function getDashboardAlerts(): Promise<DashboardAlerts> {
-  const [noDepositRows, balanceDueSoonRows, allocationRows, unconfirmedPartnerRows, withoutRoleRows, mismatchRows, noLineItemsRows, paymentMismatchRows, gigRoleRows, showcaseRoleRows, emptyGigRoleRows, emptyShowcaseRoleRows, expenseMismatchRows, overApportionedRows, unpaidExpenseRows] = await Promise.all([
+  const [noDepositRows, balanceDueSoonRows, allocationRows, unconfirmedPartnerRows, withoutRoleRows, mismatchRows, noLineItemsRows, paymentMismatchRows, gigRoleRows, showcaseRoleRows, emptyGigRoleRows, emptyShowcaseRoleRows, expenseMismatchRows, overApportionedRows, unpaidExpenseRows, expensePaymentMismatchRows] = await Promise.all([
     repo.readDepositAlerts(),
     repo.readBalanceDueSoonAlerts(),
     repo.readAllocationsWithoutExpenses(),
@@ -19,6 +20,7 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     repo.readFeeAllocationExpenseMismatches(),
     repo.readExpenseOverApportioned(),
     repo.readUnpaidExpenses(),
+    repo.readExpensePaymentMismatches(),
   ]);
 
   const overApportionedAllocationRows = await repo.readAllocationsForOverApportionedExpenses(
@@ -39,6 +41,7 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     balanceDueSoon: balanceDueSoonRows.map(mapPaymentMismatchAlert),
     pastPaymentMismatches: paymentMismatchRows.map(mapPaymentMismatchAlert),
     unpaidExpenses: unpaidExpenseRows.map(mapUnpaidExpenseAlert),
+    expensePaymentMismatches: mapExpensePaymentMismatches(expensePaymentMismatchRows),
     allocationsWithoutExpensesGigs,
     allocationsWithoutExpensesShowcases,
     unconfirmedPartnerAllocationsGigs,
@@ -55,6 +58,26 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     emptyGigRoles: emptyGigRoleRows.map(mapEmptyRoleAlert),
     emptyShowcaseRoles: emptyShowcaseRoleRows.map(mapEmptyRoleAlert),
   };
+}
+
+function mapExpensePaymentMismatches(rows: repo.ExpensePaymentMismatchRow[]): ExpensePaymentMismatchAlert[] {
+  const mapped = new Map<number, ExpensePaymentMismatchAlert>();
+  for (const row of rows) {
+    let alert = mapped.get(row.id);
+    if (!alert) {
+      alert = {
+        id: row.id, date: row.date ?? undefined, amount: row.amount,
+        assignedTotal: row.assigned_total,
+        difference: calculateExpensePaymentMismatch(row.amount, row.assigned_total),
+        expenses: [],
+      };
+      mapped.set(row.id, alert);
+    }
+    if (row.expense_id !== null) alert.expenses.push({
+      expenseId: row.expense_id, expenseDescription: row.expense_description ?? "", amount: row.share_amount ?? 0,
+    });
+  }
+  return Array.from(mapped.values());
 }
 
 function mapAlert(row: GigPaymentAlertRow): GigPaymentAlert {
