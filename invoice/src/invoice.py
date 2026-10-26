@@ -18,6 +18,12 @@ class Line_item:
 
 
 @dataclass
+class Payment_item(Line_item):
+    """Represents an event payment and its optional recorded date."""
+    date: Optional[str] = None
+
+
+@dataclass
 class Section:
     heading: str
     rows: list[dict]

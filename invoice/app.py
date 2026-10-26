@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, send_file
 from src.invoice_ev import generate_ev_invoice, generate_receipt, generate_credit_note, EVInvoiceOptions
 from src.generic_invoice import create_generic_invoice, create_generic_receipt
-from src.invoice import Invoice, Line_item, Section
+from src.invoice import Invoice, Line_item, Payment_item, Section
 from src.config import BusinessConfig, Address
 from src.ev_config import EV_CONFIG
 from src.services import get_service_by_id, get_all_services_flat
@@ -80,6 +80,23 @@ def _parse_item_list(raw_items: list, desc_error: str = "Each line item must hav
             raise ValueError("Line item price cannot be negative")
         items.append(Line_item(description=item["description"], price=price))
     return items
+
+
+def _parse_payment_list(raw_payments: list) -> list[Payment_item]:
+    """Parse payments while preserving optional descriptions and recorded dates."""
+    payments = []
+    for payment in raw_payments:
+        try:
+            price = float(payment.get("price", 0))
+        except (ValueError, TypeError):
+            raise ValueError("Payment amount must be a number")
+
+        payments.append(Payment_item(
+            description=payment.get("description") or "",
+            price=price,
+            date=payment.get("date") or None,
+        ))
+    return payments
 
 
 def pdf_response(pdf_bytes: bytes, filename: str):
@@ -177,18 +194,10 @@ def generate_invoice():
         # Parse payments made
         payment_made = None
         if data.get("payment_made"):
-            payment_made = []
-            for payment in data["payment_made"]:
-                if not payment.get("description"):
-                    return jsonify({"error": "Payment description is required"}), 400
-                try:
-                    price = float(payment.get("price", 0))
-                except (ValueError, TypeError):
-                    return jsonify({"error": "Payment amount must be a number"}), 400
-                payment_made.append(Line_item(
-                    description=payment["description"],
-                    price=price
-                ))
+            try:
+                payment_made = _parse_payment_list(data["payment_made"])
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
 
         # Create invoice options
         options = EVInvoiceOptions(
@@ -305,18 +314,10 @@ def generate_receipt_route():
         # Parse payments made
         payment_made = None
         if data.get("payment_made"):
-            payment_made = []
-            for payment in data["payment_made"]:
-                if not payment.get("description"):
-                    return jsonify({"error": "Payment description is required"}), 400
-                try:
-                    price = float(payment.get("price", 0))
-                except (ValueError, TypeError):
-                    return jsonify({"error": "Payment amount must be a number"}), 400
-                payment_made.append(Line_item(
-                    description=payment["description"],
-                    price=price
-                ))
+            try:
+                payment_made = _parse_payment_list(data["payment_made"])
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
 
         # Create invoice options
         options = EVInvoiceOptions(

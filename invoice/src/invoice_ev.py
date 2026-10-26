@@ -1,8 +1,9 @@
-from .invoice import Invoice, Receipt, Line_item, Section
+from .invoice import Invoice, Receipt, Line_item, Payment_item, Section
 from .generic_invoice import create_generic_invoice, create_generic_receipt
 from .config import BusinessConfig
 from .utils import calculate_amount_due
 from dataclasses import dataclass
+from datetime import date
 from typing import Optional
 
 # Options class for EV invoice generation
@@ -17,7 +18,7 @@ class EVInvoiceOptions:
     line_items: list["Line_item"]
     discount_percent: Optional[float] = None
     travel_cost: Optional[float] = None
-    payment_made: Optional[list["Line_item"]] = None
+    payment_made: Optional[list[Payment_item | Line_item]] = None
     additional_charges: Optional[list["Line_item"]] = None
 
 
@@ -67,8 +68,19 @@ def _build_summary_items(options: EVInvoiceOptions, show_deposit: bool = True, s
     # Payment made (if showing)
     if show_payments and options.payment_made:
         for payment in options.payment_made:
-            summary_items.append({"description": payment.description, "price": -abs(
-                payment.price), "bold": getattr(payment, 'bold', False)})
+            description = payment.description
+            if not description or description == "Payment received":
+                label = "Payment received"
+            else:
+                label = f"Payment received: {description}"
+
+            payment_date = _format_payment_date(getattr(payment, "date", None))
+            summary_items.append({
+                "description": label,
+                "price": -abs(payment.price),
+                "bold": getattr(payment, 'bold', False),
+                "payment_date": payment_date,
+            })
 
     return summary_items, total, deposit
 
@@ -184,3 +196,14 @@ def generate_credit_note(
             Section(heading="Totals", rows=total_section),
         ],
     )
+
+
+def _format_payment_date(value: Optional[str]) -> Optional[str]:
+    """Format an ISO payment date for display, omitting absent or invalid dates."""
+    if not value:
+        return None
+
+    try:
+        return date.fromisoformat(value[:10]).strftime("%d/%m/%y")
+    except (TypeError, ValueError):
+        return None

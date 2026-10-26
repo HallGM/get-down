@@ -142,7 +142,7 @@
           </tr>
           {% endif %} {% for row in section.rows %}
           <tr>
-            <td class="line-item-description" {% if row.bold %}style="font-weight: bold" {% endif %}>{{ row.description }}</td>
+            <td class="line-item-description" {% if row.bold %}style="font-weight: bold" {% endif %}>{{ row.description }}{% if row.payment_date %} ({{ row.payment_date }}){% endif %}</td>
             <td style="text-align: right{% if row.bold %}; font-weight: bold{% endif %}">
               {{ "-" if row.price < 0 else "" }}£{{ "%.2f"|format(row.price|abs) }}
             </td>
