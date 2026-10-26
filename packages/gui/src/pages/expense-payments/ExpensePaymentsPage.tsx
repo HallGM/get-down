@@ -14,7 +14,7 @@ import ExpensePaymentRow from "./ExpensePaymentRow.js";
 export default function ExpensePaymentsPage() {
   const { data: payments = [], isLoading, error } = useAllExpensePayments();
   const { data: accounts = [] } = useAccounts();
-  const { data: eligibleExpenses = [] } = useEligiblePaymentExpenses();
+  const { data: eligibleExpenses = [], isLoading: eligibleExpensesLoading, isError: eligibleExpensesError } = useEligiblePaymentExpenses();
   const createPayment = useCreatePayment();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<PaymentFormState>(EMPTY_PAYMENT_FORM);
@@ -40,7 +40,7 @@ export default function ExpensePaymentsPage() {
 
       {showForm && <article>
         <h2>New payment</h2>
-        <PaymentFormFields form={form} setForm={setForm} accounts={accounts} eligibleExpenses={eligibleExpenses} shares={shares} setShares={setShares} />
+        <PaymentFormFields form={form} setForm={setForm} accounts={accounts} eligibleExpenses={eligibleExpenses} eligibleExpensesLoading={eligibleExpensesLoading} eligibleExpensesError={eligibleExpensesError} shares={shares} setShares={setShares} />
         <button type="button" disabled={!form.accountId || createPayment.isPending} onClick={async () => {
           await createPayment.mutateAsync(toCreatePaymentRequest(form, shares));
           setShowForm(false); setForm(EMPTY_PAYMENT_FORM); setShares([]);

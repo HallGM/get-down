@@ -1,5 +1,5 @@
 import { BadRequestError } from "../errors.js";
-import { mapPayment, CreatePaymentSchema, assertShareTargets } from "./expense_payments.js";
+import { mapPayment, mapExpensePaymentShare, CreatePaymentSchema, assertShareTargets } from "./expense_payments.js";
 import { calculateExpensePaymentMismatch } from "../utils/expensePayment.js";
 
 describe("expense payment apportionment", () => {
@@ -24,6 +24,25 @@ describe("expense payment apportionment", () => {
       id: 17, account_id: 3, amount: -900, date: "2026-01-03", payment_method: "Cash", description: "Refund",
     })).toEqual({
       id: 17, accountId: 3, amount: -900, date: "2026-01-03", paymentMethod: "Cash", description: "Refund", shares: [],
+    });
+  });
+
+  test("maps identifying expense details for existing payment shares", () => {
+    expect(mapExpensePaymentShare({
+      payment_id: 17,
+      expense_id: 8,
+      expense_description: "Venue hire",
+      expense_date: "2026-05-12",
+      expense_recipient_name: "The Hall",
+      expense_amount: 24000,
+      amount: 12000,
+    })).toEqual({
+      expenseId: 8,
+      expenseDescription: "Venue hire",
+      expenseDate: "2026-05-12",
+      expenseRecipientName: "The Hall",
+      expenseAmount: 24000,
+      amount: 12000,
     });
   });
 

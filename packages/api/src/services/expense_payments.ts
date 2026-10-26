@@ -25,7 +25,13 @@ const UpdatePaymentSchema = CreatePaymentSchema.omit({ shares: true }).partial()
 });
 
 export async function getEligibleExpenses() {
-  return (await repo.readEligibleExpenses()).map((row) => ({ id: row.id, description: row.description, amount: row.amount }));
+  return (await repo.readEligibleExpenses()).map((row) => ({
+    id: row.id,
+    date: row.date ?? undefined,
+    recipientName: row.recipient_name ?? undefined,
+    description: row.description,
+    amount: row.amount,
+  }));
 }
 
 export async function getAllPaymentSummaries(): Promise<ExpensePaymentSummary[]> {
@@ -160,6 +166,9 @@ export function mapExpensePaymentShare(row: repo.ExpensePaymentShareRow): Expens
   return {
     expenseId: row.expense_id,
     expenseDescription: row.expense_description,
+    expenseDate: row.expense_date ?? undefined,
+    expenseRecipientName: row.expense_recipient_name ?? undefined,
+    expenseAmount: row.expense_amount,
     amount: row.amount,
   };
 }

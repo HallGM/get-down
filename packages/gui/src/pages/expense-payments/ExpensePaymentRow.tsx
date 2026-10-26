@@ -10,7 +10,7 @@ interface Props { payment: ExpensePaymentSummary; }
 
 export default function ExpensePaymentRow({ payment }: Props) {
   const { data: accounts = [] } = useAccounts();
-  const { data: eligibleExpenses = [] } = useEligiblePaymentExpenses();
+  const { data: eligibleExpenses = [], isLoading: eligibleExpensesLoading, isError: eligibleExpensesError } = useEligiblePaymentExpenses();
   const updatePayment = useUpdatePayment();
   const updateShares = useUpdatePaymentShares();
   const deletePayment = useDeletePayment();
@@ -73,6 +73,8 @@ export default function ExpensePaymentRow({ payment }: Props) {
       <ExpensePaymentSharesFields
         paymentAmount={payment.amount}
         eligibleExpenses={eligibleExpenses}
+        eligibleExpensesLoading={eligibleExpensesLoading}
+        eligibleExpensesError={eligibleExpensesError}
         shares={shares}
         setShares={setShares}
         existingExpenses={payment.shares}

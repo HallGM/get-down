@@ -33,6 +33,7 @@ export default defineConfig({
       "/todos": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/expenses": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/expense-payments": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
+      "/expense-payment-expenses": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/payments": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/gig-payments": { target: "http://localhost:3000", bypass: bypassHtmlRequests },
       "/refunds": { target: "http://localhost:3000", bypass: bypassHtmlRequests },

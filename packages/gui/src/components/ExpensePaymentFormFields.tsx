@@ -1,6 +1,7 @@
-import type { CreateExpensePaymentRequest, UpdateExpensePaymentRequest } from "@get-down/shared";
+import type { CreateExpensePaymentRequest, EligiblePaymentExpense, ExpensePaymentShare, UpdateExpensePaymentRequest } from "@get-down/shared";
 import MoneyField from "./MoneyField.js";
 import FormField from "./FormField.js";
+import { formatPennies } from "../utils/money.js";
 
 export interface PaymentFormState {
   accountId: number | "";
@@ -46,12 +47,14 @@ interface Props {
   form: PaymentFormState;
   setForm: (fn: (f: PaymentFormState) => PaymentFormState) => void;
   accounts: { id: number; personName: string }[];
-  eligibleExpenses?: { id: number; description: string; amount: number }[];
+  eligibleExpenses?: EligiblePaymentExpense[];
+  eligibleExpensesLoading?: boolean;
+  eligibleExpensesError?: boolean;
   shares?: { expenseId: number; amount: number }[];
   setShares?: (shares: { expenseId: number; amount: number }[]) => void;
 }
 
-export function PaymentFormFields({ form, setForm, accounts, eligibleExpenses, shares, setShares }: Props) {
+export function PaymentFormFields({ form, setForm, accounts, eligibleExpenses, eligibleExpensesLoading, eligibleExpensesError, shares, setShares }: Props) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
       <div>
@@ -98,6 +101,8 @@ export function PaymentFormFields({ form, setForm, accounts, eligibleExpenses, s
         <ExpensePaymentSharesFields
           paymentAmount={form.amount}
           eligibleExpenses={eligibleExpenses}
+          eligibleExpensesLoading={eligibleExpensesLoading}
+          eligibleExpensesError={eligibleExpensesError}
           shares={shares}
           setShares={setShares}
         />
@@ -108,13 +113,15 @@ export function PaymentFormFields({ form, setForm, accounts, eligibleExpenses, s
 
 interface SharesFieldsProps {
   paymentAmount: number;
-  eligibleExpenses: { id: number; description: string; amount: number }[] | null;
+  eligibleExpenses: EligiblePaymentExpense[] | null;
+  eligibleExpensesLoading?: boolean;
+  eligibleExpensesError?: boolean;
   shares: { expenseId: number; amount: number }[];
   setShares: (shares: { expenseId: number; amount: number }[]) => void;
-  existingExpenses?: { expenseId: number; expenseDescription: string }[];
+  existingExpenses?: Array<Pick<ExpensePaymentShare, "expenseId" | "expenseDescription" | "expenseDate" | "expenseRecipientName" | "expenseAmount">>;
 }
 
-export function ExpensePaymentSharesFields({ paymentAmount, eligibleExpenses, shares, setShares, existingExpenses = [] }: SharesFieldsProps) {
+export function ExpensePaymentSharesFields({ paymentAmount, eligibleExpenses, eligibleExpensesLoading, eligibleExpensesError, shares, setShares, existingExpenses = [] }: SharesFieldsProps) {
   const availableExpenses = Array.isArray(eligibleExpenses) ? eligibleExpenses : [];
   const assigned = shares.reduce((total, share) => total + share.amount, 0);
 
@@ -127,7 +134,11 @@ export function ExpensePaymentSharesFields({ paymentAmount, eligibleExpenses, sh
     <div style={{ gridColumn: "1 / -1" }}>
       <strong>Expense shares</strong>
       {shares.length === 0 && <p>No expense shares assigned yet.</p>}
-      {availableExpenses.length === 0 && <p>No eligible expenses are currently available.</p>}
+      {eligibleExpensesLoading
+        ? <p>Loading eligible expenses…</p>
+        : eligibleExpensesError
+          ? <p>Eligible expenses could not be loaded.</p>
+          : availableExpenses.length === 0 && <p>No eligible expenses are currently available.</p>}
       {shares.map((share) => (
         <div key={share.expenseId} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "0.5rem", alignItems: "end", marginTop: "0.5rem" }}>
           <label>
@@ -140,12 +151,12 @@ export function ExpensePaymentSharesFields({ paymentAmount, eligibleExpenses, sh
             >
               {!availableExpenses.some((expense) => Number(expense.id) === Number(share.expenseId)) && (
                 <option value={share.expenseId}>
-                  {existingExpenses.find((expense) => Number(expense.expenseId) === Number(share.expenseId))?.expenseDescription ?? `Expense #${share.expenseId} (unavailable)`}
+                  {getExistingExpenseLabel(share.expenseId, existingExpenses)}
                 </option>
               )}
               {availableExpenses
                 .filter((expense) => Number(expense.id) === Number(share.expenseId) || !shares.some((item) => Number(item.expenseId) === Number(expense.id)))
-                .map((expense) => <option key={expense.id} value={expense.id}>{expense.description}</option>)}
+                .map((expense) => <option key={expense.id} value={expense.id}>{formatExpenseLabel(expense)}</option>)}
             </select>
           </label>
           <MoneyField
@@ -164,4 +175,38 @@ export function ExpensePaymentSharesFields({ paymentAmount, eligibleExpenses, sh
       </p>
     </div>
   );
+}
+
+function formatExpenseLabel(expense: {
+  date?: string;
+  recipientName?: string;
+  amount?: number;
+  description: string;
+}): string {
+  return [
+    expense.date ? formatShortDate(expense.date) : undefined,
+    expense.recipientName || undefined,
+    expense.amount === undefined ? undefined : formatPennies(expense.amount),
+    expense.description,
+  ].filter(Boolean).join(" · ");
+}
+
+function formatShortDate(date: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  return match ? `${match[3]}/${match[2]}/${match[1].slice(-2)}` : date;
+}
+
+function getExistingExpenseLabel(
+  expenseId: number,
+  existingExpenses: NonNullable<SharesFieldsProps["existingExpenses"]>,
+): string {
+  const existing = existingExpenses.find((expense) => Number(expense.expenseId) === Number(expenseId));
+  if (!existing) return `Expense #${expenseId} (unavailable)`;
+
+  return formatExpenseLabel({
+    date: existing.expenseDate,
+    recipientName: existing.expenseRecipientName,
+    amount: existing.expenseAmount,
+    description: existing.expenseDescription,
+  });
 }

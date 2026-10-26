@@ -781,6 +781,9 @@ export interface ExpensePayment {
 export interface ExpensePaymentShare {
   expenseId: number;
   expenseDescription: string;
+  expenseDate?: string;
+  expenseRecipientName?: string;
+  expenseAmount?: number;
   amount: number;
 }
 
@@ -845,6 +848,8 @@ export interface Expense {
   /** When present, this expense is linked to a card charge and some fields are synced (description, amount). */
   linkedCardCharge?: { id: number; invoiceId: number | null; gigId: number };
 }
+
+export type EligiblePaymentExpense = Pick<Expense, "id" | "date" | "recipientName" | "description" | "amount">;
 
 export interface CreateExpenseRequest {
   date?: string;

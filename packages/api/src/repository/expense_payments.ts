@@ -1,4 +1,5 @@
 import { run_query } from "../db/init.js";
+import type { ExpenseRow } from "./expenses.js";
 import { SQL_PERSON_NAME_EXPR } from "./sql-fragments.js";
 
 export interface ExpensePaymentRow {
@@ -14,6 +15,9 @@ export interface ExpensePaymentShareRow {
   payment_id: number;
   expense_id: number;
   expense_description: string;
+  expense_date: string | null;
+  expense_recipient_name: string | null;
+  expense_amount: number;
   amount: number;
 }
 
@@ -57,7 +61,9 @@ export async function replacePaymentShares(paymentId: number, shares: Array<{ ex
 export async function readPaymentShares(paymentIds: number[]): Promise<ExpensePaymentShareRow[]> {
   if (paymentIds.length === 0) return [];
   return run_query<ExpensePaymentShareRow>({
-    text: `SELECT s.payment_id, s.expense_id, e.description AS expense_description, s.amount
+    text: `SELECT s.payment_id, s.expense_id, e.description AS expense_description,
+        e.date::text AS expense_date, e.recipient_name AS expense_recipient_name,
+        e.amount AS expense_amount, s.amount
       FROM expense_payment_shares s JOIN expenses e ON e.id = s.expense_id
       WHERE s.payment_id = ANY($1::int[]) ORDER BY e.description, s.expense_id;`,
     values: [paymentIds],
@@ -72,9 +78,17 @@ export async function readEligibleExpensesByIds(expenseIds: number[]): Promise<A
   });
 }
 
-export async function readEligibleExpenses(): Promise<Array<{ id: number; description: string; amount: number }>> {
+export async function readEligibleExpenses(): Promise<
+  Array<Pick<ExpenseRow, "id" | "date" | "recipient_name" | "description" | "amount">>
+> {
   return run_query({
-    text: `SELECT id, description, amount FROM expenses WHERE is_tax_only = false ORDER BY date DESC NULLS LAST, id DESC;`,
+    text: `SELECT e.id, e.date::text AS date, e.recipient_name, e.description, e.amount
+      FROM expenses e
+      LEFT JOIN expense_payment_shares s ON s.expense_id = e.id
+      WHERE e.is_tax_only = false
+      GROUP BY e.id
+      HAVING COALESCE(SUM(s.amount), 0) <> e.amount
+      ORDER BY e.date DESC NULLS FIRST, e.id DESC;`,
   });
 }
 

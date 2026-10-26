@@ -18,7 +18,7 @@ interface Props {
 export default function ExpensePaymentsSection({ expenseId, amount, paymentStatus }: Props) {
   const { data: payments = [], isLoading } = useExpensePayments(expenseId);
   const { data: accounts = [] } = useAccounts();
-  const { data: eligibleExpenses = [] } = useEligiblePaymentExpenses();
+  const { data: eligibleExpenses = [], isLoading: eligibleExpensesLoading, isError: eligibleExpensesError } = useEligiblePaymentExpenses();
   const updatePayment = useUpdatePayment();
   const updateShares = useUpdatePaymentShares();
   const createPayment = useCreatePayment();
@@ -79,6 +79,8 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
             <ExpensePaymentSharesFields
               paymentAmount={payment.amount}
               eligibleExpenses={eligibleExpenses}
+              eligibleExpensesLoading={eligibleExpensesLoading}
+              eligibleExpensesError={eligibleExpensesError}
               shares={shares}
               setShares={setShares}
               existingExpenses={payment.shares}
@@ -90,7 +92,7 @@ export default function ExpensePaymentsSection({ expenseId, amount, paymentStatu
       </article>
     ))}
     {showForm && <div>
-      <PaymentFormFields form={form} setForm={(updater) => updateCreateForm(setForm, updater)} accounts={accounts} eligibleExpenses={eligibleExpenses} shares={formShares} setShares={setFormShares} />
+      <PaymentFormFields form={form} setForm={(updater) => updateCreateForm(setForm, updater)} accounts={accounts} eligibleExpenses={eligibleExpenses} eligibleExpensesLoading={eligibleExpensesLoading} eligibleExpensesError={eligibleExpensesError} shares={formShares} setShares={setFormShares} />
       <button type="button" disabled={!form.accountId || createPayment.isPending} onClick={async () => { await createPayment.mutateAsync(toCreatePaymentRequest(form, formShares)); setShowForm(false); }}>Record payment</button>
       <button type="button" className="secondary" onClick={() => setShowForm(false)}>Cancel</button>
     </div>}
