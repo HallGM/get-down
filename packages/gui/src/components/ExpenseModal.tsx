@@ -21,8 +21,11 @@ import { useViewPersonInvoicePdf } from "../api/hooks/usePersonInvoices.js";
 import { useAddCardCharge, useUpdateCardCharge, useGigInvoices } from "../api/hooks/useInvoices.js";
 import { useAccounts } from "../api/hooks/useAccounts.js";
 import { useRecordPaymentForm } from "../api/hooks/useRecordPaymentForm.js";
+import { useFeeAllocationSummaries } from "../api/hooks/useFeeAllocations.js";
 import { useGig } from "../api/hooks/useGigs.js";
+import { formatShowcaseName } from "../utils/people.js";
 import GigLink from "./GigLink.js";
+import AllocationEventCell from "./AllocationEventCell.js";
 
 export interface CardChargeContext {
   invoiceId: number | null;
@@ -57,6 +60,7 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
   const addCardCharge = useAddCardCharge();
   const updateCardCharge = useUpdateCardCharge();
   const { data: accounts = [] } = useAccounts();
+  const { data: feeAllocationSummaries = [] } = useFeeAllocationSummaries();
   const { data: invoices = [] } = useGigInvoices(cardChargeContext?.gigId ?? 0);
   const linkedGigId = expense?.linkedCardCharge?.gigId ?? cardChargeContext?.gigId;
   const { data: linkedGig, isLoading: linkedGigLoading, error: linkedGigError } = useGig(linkedGigId ?? 0);
@@ -439,6 +443,24 @@ export default function ExpenseModal({ expense, onClose, allAllocations, allAttr
                 linkedIds={expense.feeAllocationIds}
                 allItems={allAllocations}
                 label={(a: FeeAllocation) => a.notes ? `#${a.id} — ${a.notes}` : `#${a.id}`}
+                linkedLabel={(allocation: FeeAllocation) => {
+                  const summary = feeAllocationSummaries.find((item) => item.id === allocation.id);
+                  const hasEventName = !!summary?.eventName && summary.eventName !== `Allocation #${allocation.id}`;
+                  const gigId = summary?.gigId ?? (!summary ? allocation.gigId : undefined);
+                  const showcaseId = summary?.showcaseId;
+
+                  if (hasEventName) {
+                    return <AllocationEventCell eventName={summary.eventName} gigId={gigId} showcaseId={showcaseId} />;
+                  }
+                  if (gigId) {
+                    return <AllocationEventCell eventName={`Gig #${gigId}`} gigId={gigId} />;
+                  }
+                  if (showcaseId !== undefined) {
+                    return <AllocationEventCell eventName={formatShowcaseName({}, showcaseId)} showcaseId={showcaseId} />;
+                  }
+
+                  return `Allocation #${allocation.id}`;
+                }}
                 emptyText="No fee allocations linked."
                 addPlaceholder="+ Link allocation…"
                 onLink={(allocationId) => linkAllocation.mutate({ expenseId: expense.id, allocationId })}
@@ -501,6 +523,7 @@ interface LinkedItemsSectionProps<T extends { id: number }> {
   linkedIds: number[];
   allItems: T[];
   label: (item: T) => string;
+  linkedLabel?: (item: T) => React.ReactNode;
   emptyText: string;
   addPlaceholder: string;
   onLink: (id: number) => void;
@@ -511,6 +534,7 @@ function LinkedItemsSection<T extends { id: number }>({
   linkedIds,
   allItems,
   label,
+  linkedLabel,
   emptyText,
   addPlaceholder,
   onLink,
@@ -525,7 +549,7 @@ function LinkedItemsSection<T extends { id: number }>({
         <ul style={{ margin: "0.25rem 0", paddingLeft: "1rem" }}>
           {linked.map((item) => (
             <li key={item.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85em" }}>
-              <span>{label(item)}</span>
+              <span>{linkedLabel ? linkedLabel(item) : label(item)}</span>
               <button
                 type="button"
                 className="contrast outline"
