@@ -161,6 +161,34 @@ describe("expense payment shares API", () => {
     }
   });
 
+  test("rejects duplicate expense IDs when creating or updating shares", async () => {
+    const expense = await createExpense("Duplicate share target");
+    const account = await pool.query<{ id: number }>("SELECT id FROM accounts WHERE is_business = true");
+    const duplicateShares = [
+      { expenseId: expense.id, amount: 1000 },
+      { expenseId: expense.id, amount: 2000 },
+    ];
+
+    const created = await auth(request(app).post("/expense-payments").send({
+      accountId: account.rows[0].id,
+      amount: 3000,
+      shares: duplicateShares,
+    }));
+    expect(created.status).toBe(400);
+
+    const payment = await auth(request(app).post("/expense-payments").send({
+      accountId: account.rows[0].id,
+      amount: 1000,
+      shares: [{ expenseId: expense.id, amount: 1000 }],
+    }));
+    expect(payment.status).toBe(201);
+
+    const updated = await auth(request(app).put(`/expense-payments/${payment.body.id}/shares`).send({
+      shares: duplicateShares,
+    }));
+    expect(updated.status).toBe(400);
+  });
+
   test("payment detail edits preserve shares; share changes are independent; deletion cascades", async () => {
     const first = await createExpense("Before edit");
     const second = await createExpense("After edit");

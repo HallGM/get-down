@@ -124,10 +124,12 @@ interface SharesFieldsProps {
 export function ExpensePaymentSharesFields({ paymentAmount, eligibleExpenses, eligibleExpensesLoading, eligibleExpensesError, shares, setShares, existingExpenses = [] }: SharesFieldsProps) {
   const availableExpenses = Array.isArray(eligibleExpenses) ? eligibleExpenses : [];
   const assigned = shares.reduce((total, share) => total + share.amount, 0);
+  const isExpenseAssigned = (expenseId: number) => shares.some((share) => Number(share.expenseId) === Number(expenseId));
+  const expenseToAdd = availableExpenses.find((item) => !isExpenseAssigned(item.id));
+  const canAddShare = !eligibleExpensesLoading && !eligibleExpensesError && Boolean(expenseToAdd);
 
   function addShare() {
-    const expense = availableExpenses.find((item) => !shares.some((share) => share.expenseId === item.id));
-    if (expense) setShares([...shares, { expenseId: expense.id, amount: 0 }]);
+    if (canAddShare && expenseToAdd) setShares([...shares, { expenseId: expenseToAdd.id, amount: 0 }]);
   }
 
   return (
@@ -155,7 +157,7 @@ export function ExpensePaymentSharesFields({ paymentAmount, eligibleExpenses, el
                 </option>
               )}
               {availableExpenses
-                .filter((expense) => Number(expense.id) === Number(share.expenseId) || !shares.some((item) => Number(item.expenseId) === Number(expense.id)))
+                .filter((expense) => Number(expense.id) === Number(share.expenseId) || !isExpenseAssigned(expense.id))
                 .map((expense) => <option key={expense.id} value={expense.id}>{formatExpenseLabel(expense)}</option>)}
             </select>
           </label>
@@ -167,7 +169,7 @@ export function ExpensePaymentSharesFields({ paymentAmount, eligibleExpenses, el
           <button type="button" className="contrast outline" onClick={() => setShares(shares.filter((item) => item.expenseId !== share.expenseId))}>Remove</button>
         </div>
       ))}
-      <button type="button" className="secondary outline" style={{ marginTop: "0.5rem" }} disabled={availableExpenses.length <= shares.length} onClick={addShare}>
+      <button type="button" className="secondary outline" style={{ marginTop: "0.5rem" }} disabled={!canAddShare} onClick={addShare}>
         + Add expense share
       </button>
       <p style={{ margin: "0.5rem 0 0", color: "var(--pico-muted-color)" }}>
