@@ -14,7 +14,9 @@ import ErrorBanner from "../components/ErrorBanner.js";
 import { GigFeeAllocationCard } from "../components/GigFeeAllocationCard.js";
 import { ShowcaseFeeAllocationCard } from "../components/ShowcaseFeeAllocationCard.js";
 import ExpenseModal from "../components/ExpenseModal.js";
+import TabBar from "../components/TabBar.js";
 import { formatGigName, formatLocation } from "../utils/people.js";
+import { isOlderThanTwoCalendarMonths } from "../utils/dashboardDates.js";
 import type { FeeAllocationAlert, ExpenseApportionmentMismatchAlert, GigAlertBase, GigPaymentMismatchAlert, RoleWithoutAllocationAlert, EmptyRoleAlert, FeeAllocationExpenseMismatchAlert, ExpenseOverApportionmentAlert, UnpaidExpenseAlert } from "@get-down/shared";
 
 const PICO_RED = "var(--pico-color-red-500, #e53e3e)";
@@ -601,6 +603,7 @@ export default function Dashboard() {
   const { data: expenses = [] } = useExpenses();
   
   const [editTargetId, setEditTargetId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"main" | "fee-allocations">("main");
   const editTarget = editTargetId != null ? expenses.find((e) => e.id === editTargetId) ?? null : null;
   
   // Lazy-load allocations and fees only when modal is open (security: minimize sensitive data in memory)
@@ -608,8 +611,68 @@ export default function Dashboard() {
   const { data: allAllocations = [] } = useFeeAllocations({ enabled: editTargetId != null });
   const { data: allAttributionFees = [] } = useAllAttributionFees({ enabled: editTargetId != null });
 
-  // Section descriptors in display order; partitioned below by whether they have anything to report
-  const sections: DashboardSectionData[] = data ? [
+  const onMainByAge = <T extends { eventDate?: string }>(items: T[]) =>
+    items.filter((item) => isOlderThanTwoCalendarMonths(item.eventDate));
+  const forActiveTab = <T extends { eventDate?: string }>(items: T[]) =>
+    activeTab === "main" ? onMainByAge(items) : items;
+
+  // Keep the source alert data unchanged. The tabs only choose where each issue is displayed.
+  const allocationSections: DashboardSectionData[] = data ? [
+    ...buildGigShowcasePair({
+      baseId: "allocations-missing-expenses",
+      baseTitle: "Fee Allocations Missing Expenses",
+      baseDescription: "fee allocations with no expense record linked. Manage inline by editing line items, linking roles, creating or linking expenses, and more.",
+      gigData: forActiveTab(data.allocationsWithoutExpensesGigs),
+      showcaseData: forActiveTab(data.allocationsWithoutExpensesShowcases),
+      badgeColor: PICO_ORANGE,
+      TableComponent: SettleableAllocationTable,
+    }),
+    ...buildGigShowcasePair({
+      baseId: "partner-allocations-unconfirmed",
+      baseTitle: "Partner Fee Allocations Awaiting Confirmation",
+      baseDescription: "fee allocations linked to partners that have not been confirmed. Confirm these allocations to mark them as reviewed and correct.",
+      gigData: forActiveTab(data.unconfirmedPartnerAllocationsGigs),
+      showcaseData: forActiveTab(data.unconfirmedPartnerAllocationsShowcases),
+      badgeColor: PICO_ORANGE,
+      TableComponent: SettleableAllocationTable,
+    }),
+    ...buildGigShowcasePair({
+      baseId: "allocations-without-roles",
+      baseTitle: "Fee Allocations Not Assigned to a Role",
+      baseDescription: "fee allocations that exist without being assigned to a performer role.",
+      gigData: forActiveTab(data.allocationsWithoutRolesGigs),
+      showcaseData: forActiveTab(data.allocationsWithoutRolesShowcases),
+      badgeColor: PICO_ORANGE,
+      TableComponent: AllocationAlertTable,
+    }),
+    buildSection(
+      "allocation-expense-mismatch",
+      "Fee Allocations With Mismatched Expense Shares",
+      "Gig fee allocations where the total line items don't match the apportioned expense amount.",
+      PICO_RED,
+      forActiveTab(data.feeAllocationExpenseMismatches),
+      (mismatches) => <FeeAllocationExpenseMismatchTable mismatches={mismatches} />,
+    ),
+    buildSection(
+      "gig-roles-without-allocation",
+      "Gig Roles Missing a Fee Allocation",
+      "Performer roles on past confirmed gigs that do not have a fee allocation linked.",
+      PICO_RED,
+      forActiveTab(data.gigRolesWithoutAllocation),
+      (roles) => <RoleWithoutAllocationTable roles={roles} />,
+    ),
+    buildSection(
+      "showcase-roles-without-allocation",
+      "Showcase Roles Missing a Fee Allocation",
+      "Performer roles on past showcases that do not have a fee allocation linked.",
+      PICO_RED,
+      forActiveTab(data.showcaseRolesWithoutAllocation),
+      (roles) => <RoleWithoutAllocationTable roles={roles} />,
+    ),
+  ] : [];
+
+  // Non-allocation sections retain their existing content and behavior on Main.
+  const mainSections: DashboardSectionData[] = data ? [
     buildSection(
       "no-deposit",
       "No Deposit Paid",
@@ -658,33 +721,6 @@ export default function Dashboard() {
       data.expensePaymentMismatches,
       (alerts) => <table><thead><tr><th>Date</th><th>Payment total</th><th>Assigned total</th><th>Expenses</th><th>Difference</th></tr></thead><tbody>{alerts.map((alert) => <tr key={alert.id}><td>{alert.date ? formatDate(alert.date) : "No date"}</td><td>{formatPennies(alert.amount)}</td><td>{formatPennies(alert.assignedTotal)}</td><td>{alert.expenses.length ? alert.expenses.map((expense) => expense.expenseDescription).join(", ") : "No shares assigned"}</td><td>{formatPennies(alert.difference)}</td></tr>)}</tbody></table>,
     ),
-    ...buildGigShowcasePair({
-      baseId: "allocations-missing-expenses",
-      baseTitle: "Fee Allocations Missing Expenses",
-      baseDescription: "fee allocations with no expense record linked. Manage inline by editing line items, linking roles, creating or linking expenses, and more.",
-      gigData: data.allocationsWithoutExpensesGigs,
-      showcaseData: data.allocationsWithoutExpensesShowcases,
-      badgeColor: PICO_ORANGE,
-      TableComponent: SettleableAllocationTable,
-    }),
-    ...buildGigShowcasePair({
-      baseId: "partner-allocations-unconfirmed",
-      baseTitle: "Partner Fee Allocations Awaiting Confirmation",
-      baseDescription: "fee allocations linked to partners that have not been confirmed. Confirm these allocations to mark them as reviewed and correct.",
-      gigData: data.unconfirmedPartnerAllocationsGigs,
-      showcaseData: data.unconfirmedPartnerAllocationsShowcases,
-      badgeColor: PICO_ORANGE,
-      TableComponent: SettleableAllocationTable,
-    }),
-    ...buildGigShowcasePair({
-      baseId: "allocations-without-roles",
-      baseTitle: "Fee Allocations Not Assigned to a Role",
-      baseDescription: "fee allocations that exist without being assigned to a performer role.",
-      gigData: data.allocationsWithoutRolesGigs,
-      showcaseData: data.allocationsWithoutRolesShowcases,
-      badgeColor: PICO_ORANGE,
-      TableComponent: AllocationAlertTable,
-    }),
     buildSection(
       "apportionment-mismatches",
       "Showcase Apportionment Mismatches",
@@ -692,14 +728,6 @@ export default function Dashboard() {
       PICO_RED,
       data.apportionmentMismatches,
       (mismatches) => <ApportionmentMismatchTable mismatches={mismatches} />,
-    ),
-    buildSection(
-      "allocation-expense-mismatch",
-      "Fee Allocations With Mismatched Expense Shares",
-      "Gig fee allocations where the total line items don't match the apportioned expense amount.",
-      PICO_RED,
-      data.feeAllocationExpenseMismatches,
-      (mismatches) => <FeeAllocationExpenseMismatchTable mismatches={mismatches} />,
     ),
     buildSection(
       "expense-over-apportioned",
@@ -710,28 +738,12 @@ export default function Dashboard() {
       (mismatches) => <ExpenseOverApportionmentTable mismatches={mismatches} />,
     ),
     buildSection(
-      "gig-roles-without-allocation",
-      "Gig Roles Missing a Fee Allocation",
-      "Performer roles on past confirmed gigs that do not have a fee allocation linked.",
-      PICO_RED,
-      data.gigRolesWithoutAllocation,
-      (roles) => <RoleWithoutAllocationTable roles={roles} />,
-    ),
-    buildSection(
       "empty-gig-roles",
       "Empty Gig Role Slots",
       "Performer roles on past confirmed gigs where no person has been assigned.",
       PICO_RED,
       data.emptyGigRoles,
       (roles) => <EmptyRoleTable roles={roles} />,
-    ),
-    buildSection(
-      "showcase-roles-without-allocation",
-      "Showcase Roles Missing a Fee Allocation",
-      "Performer roles on past showcases that do not have a fee allocation linked.",
-      PICO_RED,
-      data.showcaseRolesWithoutAllocation,
-      (roles) => <RoleWithoutAllocationTable roles={roles} />,
     ),
     buildSection(
       "empty-showcase-roles",
@@ -742,6 +754,35 @@ export default function Dashboard() {
       (roles) => <EmptyRoleTable roles={roles} />,
     ),
   ] : [];
+
+  const mainSectionOrder = [
+    "no-deposit",
+    "no-line-items",
+    "balance-due-soon",
+    "payment-mismatches",
+    "unpaid-expenses",
+    "expense-payment-mismatches",
+    "allocations-missing-expenses-gigs",
+    "allocations-missing-expenses-showcases",
+    "partner-allocations-unconfirmed-gigs",
+    "partner-allocations-unconfirmed-showcases",
+    "allocations-without-roles-gigs",
+    "allocations-without-roles-showcases",
+    "apportionment-mismatches",
+    "allocation-expense-mismatch",
+    "expense-over-apportioned",
+    "gig-roles-without-allocation",
+    "empty-gig-roles",
+    "showcase-roles-without-allocation",
+    "empty-showcase-roles",
+  ];
+  const allSections = [...mainSections, ...allocationSections];
+  const sections = activeTab === "main"
+    ? mainSectionOrder.flatMap((id) => {
+      const section = allSections.find((candidate) => candidate.id === id);
+      return section ? [section] : [];
+    })
+    : allocationSections;
 
   // Partition sections into populated and empty
   const populated = sections.filter((s) => s.count > 0);
@@ -759,13 +800,22 @@ export default function Dashboard() {
 
       {data && (
         <div style={{ display: "grid", gap: "2rem" }}>
-           {/* Render populated sections */}
+          <TabBar
+            tabs={["main", "fee-allocations"] as const}
+            labels={{ main: "Main", "fee-allocations": "Fee Allocations" }}
+            active={activeTab}
+            onChange={setActiveTab}
+            ariaLabel="Dashboard sections"
+          />
+          <div role="tabpanel" aria-label={activeTab === "main" ? "Main" : "Fee Allocations"}>
+            {/* Render populated sections */}
            {populated.map(({ id, ...props }) => (
              <DashboardSection key={id} {...props} />
            ))}
 
           {/* Render condensed empty sections if any exist */}
-          <CondensedEmptySections sections={empty} hasPopulated={populated.length > 0} />
+            <CondensedEmptySections sections={empty} hasPopulated={populated.length > 0} />
+          </div>
         </div>
       )}
 

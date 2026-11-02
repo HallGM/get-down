@@ -176,3 +176,92 @@ describe("Dashboard — expense payment share mismatches", () => {
     expect(unpaid.find((row) => row.id === expense.id)?.total_paid).toBe(1300);
   });
 });
+
+describe("Dashboard — fee allocation issue query eligibility", () => {
+  test("allocation issue queries return recent, future, and undated records without adding age filters", async () => {
+    const dates = await pool.query<{ today: string; future: string }>(`
+      SELECT CURRENT_DATE::text AS today, (CURRENT_DATE + 1)::text AS future;
+    `);
+    const { today, future } = dates.rows[0];
+    const pastGig = await fixtures.makeGig({ date: "2020-01-01" });
+    const todayGig = await fixtures.makeGig({ date: today });
+    const futureGig = await fixtures.makeGig({ date: future });
+    const orphan = await fixtures.makePerson();
+    const pastAllocation = await fixtures.makeFeeAllocation(pastGig.id, orphan.id);
+    const todayAllocation = await fixtures.makeFeeAllocation(todayGig.id, orphan.id);
+    const futureAllocation = await fixtures.makeFeeAllocation(futureGig.id, orphan.id);
+    const undatedAllocation = await (await import("../../src/repository/fee_allocations.js")).createFeeAllocation({ isInvoiced: false });
+
+    const dashboard = await import("../../src/repository/dashboard.js");
+    const noExpenseRows = await dashboard.readAllocationsWithoutExpenses();
+    expect(noExpenseRows.map((row) => row.id)).toEqual(expect.arrayContaining([
+      pastAllocation.id, todayAllocation.id, futureAllocation.id, undatedAllocation.id,
+    ]));
+    expect(noExpenseRows.find((row) => row.id === todayAllocation.id)?.event_date).toBe(today);
+    expect(noExpenseRows.find((row) => row.id === futureAllocation.id)?.event_date).toBe(future);
+    expect(noExpenseRows.find((row) => row.id === undatedAllocation.id)?.event_date).toBeNull();
+    const withoutRoles = await dashboard.readAllocationsWithoutRoles();
+    expect(withoutRoles.map((row) => row.id)).toEqual(expect.arrayContaining([
+      pastAllocation.id, todayAllocation.id, futureAllocation.id, undatedAllocation.id,
+    ]));
+
+    const partner = await fixtures.makePartner();
+    const unconfirmed = await fixtures.makeFeeAllocation(futureGig.id, partner.id, false);
+    expect((await dashboard.readUnconfirmedPartnerAllocations()).map((row) => row.id)).toContain(unconfirmed.id);
+  });
+
+  test("role-without-allocation queries and fee expense mismatches retain strict past-only eligibility", async () => {
+    const dates = await pool.query<{ yesterday: string; today: string; tomorrow: string }>(`
+      SELECT (CURRENT_DATE - 1)::text AS yesterday, CURRENT_DATE::text AS today,
+        (CURRENT_DATE + 1)::text AS tomorrow;
+    `);
+    const { yesterday, today, tomorrow } = dates.rows[0];
+    const person = await fixtures.makePerson();
+    const past = await fixtures.makeGig({ date: yesterday });
+    const current = await fixtures.makeGig({ date: today });
+    const future = await fixtures.makeGig({ date: tomorrow });
+    const pastRole = await fixtures.makeAssignedRole({ gigId: past.id, personId: person.id, roleName: "Past performer" });
+    const currentRole = await fixtures.makeAssignedRole({ gigId: current.id, personId: person.id, roleName: "Current performer" });
+    const futureRole = await fixtures.makeAssignedRole({ gigId: future.id, personId: person.id, roleName: "Future performer" });
+    const attribution = await fixtures.makeAttribution();
+    const pastShowcase = await fixtures.makeShowcase(attribution.id, yesterday);
+    const currentShowcase = await fixtures.makeShowcase(attribution.id, today);
+    const futureShowcase = await fixtures.makeShowcase(attribution.id, tomorrow);
+    const pastShowcaseRole = await fixtures.makeAssignedRole({ showcaseId: pastShowcase.id, personId: person.id, roleName: "Past showcase performer" });
+    const currentShowcaseRole = await fixtures.makeAssignedRole({ showcaseId: currentShowcase.id, personId: person.id, roleName: "Current showcase performer" });
+    const futureShowcaseRole = await fixtures.makeAssignedRole({ showcaseId: futureShowcase.id, personId: person.id, roleName: "Future showcase performer" });
+    const pastEmptyRole = await fixtures.makeAssignedRole({ gigId: past.id, roleName: "Past empty slot" });
+    const currentEmptyRole = await fixtures.makeAssignedRole({ gigId: current.id, roleName: "Current empty slot" });
+    const pastEmptyShowcaseRole = await fixtures.makeAssignedRole({ showcaseId: pastShowcase.id, roleName: "Past empty showcase slot" });
+    const currentEmptyShowcaseRole = await fixtures.makeAssignedRole({ showcaseId: currentShowcase.id, roleName: "Current empty showcase slot" });
+
+    const dashboard = await import("../../src/repository/dashboard.js");
+    const roleRows = await dashboard.readGigRolesWithoutAllocation();
+    expect(roleRows.map((row) => row.id)).toContain(pastRole.id);
+    expect(roleRows.map((row) => row.id)).toContain(pastShowcaseRole.id);
+    expect(roleRows.map((row) => row.id)).not.toContain(currentRole.id);
+    expect(roleRows.map((row) => row.id)).not.toContain(futureRole.id);
+    expect(roleRows.map((row) => row.id)).not.toContain(currentShowcaseRole.id);
+    expect(roleRows.map((row) => row.id)).not.toContain(futureShowcaseRole.id);
+
+    const emptyGigRows = await dashboard.readEmptyGigRoles();
+    const emptyShowcaseRows = await dashboard.readEmptyShowcaseRoles();
+    expect(emptyGigRows.map((row) => row.id)).toContain(pastEmptyRole.id);
+    expect(emptyGigRows.map((row) => row.id)).not.toContain(currentEmptyRole.id);
+    expect(emptyShowcaseRows.map((row) => row.id)).toContain(pastEmptyShowcaseRole.id);
+    expect(emptyShowcaseRows.map((row) => row.id)).not.toContain(currentEmptyShowcaseRole.id);
+
+    const mismatchPast = await fixtures.makeFeeAllocation(past.id, person.id);
+    const mismatchCurrent = await fixtures.makeFeeAllocation(current.id, person.id);
+    const mismatchFuture = await fixtures.makeFeeAllocation(future.id, person.id);
+    for (const allocation of [mismatchPast, mismatchCurrent, mismatchFuture]) {
+      await fixtures.makeFeeAllocationLineItem(allocation.id, 1000);
+      const expense = await fixtures.makeExpense({ amount: 500 });
+      await fixtures.linkExpenseToAllocation(allocation.id, expense.id);
+    }
+    const mismatches = await dashboard.readFeeAllocationExpenseMismatches();
+    expect(mismatches.map((row) => row.allocation_id)).toContain(mismatchPast.id);
+    expect(mismatches.map((row) => row.allocation_id)).not.toContain(mismatchCurrent.id);
+    expect(mismatches.map((row) => row.allocation_id)).not.toContain(mismatchFuture.id);
+  });
+});
