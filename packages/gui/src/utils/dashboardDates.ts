@@ -1,4 +1,4 @@
-import { isSupportedDateInputValue } from "./date.js";
+import { toCalendarDateString } from "./date.js";
 
 /**
  * Returns true when an event date should remain visible on Main.
@@ -10,7 +10,8 @@ export function isOlderThanTwoCalendarMonths(
   today: Date = new Date(),
 ): boolean {
   if (!eventDate) return true;
-  if (!isSupportedDateInputValue(eventDate)) return false;
+  const eventCalendarDate = toCalendarDateString(eventDate);
+  if (!eventCalendarDate) return false;
 
   const year = today.getFullYear();
   const month = today.getMonth();
@@ -22,5 +23,5 @@ export function isOlderThanTwoCalendarMonths(
   const cutoffDay = Math.min(day, lastDayOfTargetMonth);
   const cutoff = `${String(targetYear).padStart(4, "0")}-${String(targetMonth + 1).padStart(2, "0")}-${String(cutoffDay).padStart(2, "0")}`;
 
-  return eventDate < cutoff;
+  return eventCalendarDate < cutoff;
 }

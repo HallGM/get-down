@@ -5,8 +5,9 @@
 export function formatDate(value: string | Date | undefined | null): string {
   if (!value) return "—";
   if (typeof value === "string") {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-    if (!match || !isValidDateParts(Number(match[1]), Number(match[2]), Number(match[3]))) return value;
+    const calendarDate = toCalendarDateString(value);
+    if (!calendarDate) return value;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(calendarDate)!;
     const d = new Date(0);
     d.setFullYear(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
     d.setHours(0, 0, 0, 0);
@@ -41,6 +42,20 @@ export function isSupportedDateInputValue(value: string | undefined | null): boo
   if (!value) return true;
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   return !!match && isValidDateParts(Number(match[1]), Number(match[2]), Number(match[3]));
+}
+
+/** Return the event's calendar date from a date-only value or ISO timestamp. */
+export function toCalendarDateString(value: string | undefined | null): string | undefined {
+  if (!value) return undefined;
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const timestamp = /^(\d{4}-\d{2}-\d{2})T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?$/i.exec(value);
+  const datePart = dateOnly ? value : timestamp?.[1];
+  if (!datePart) return undefined;
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart)!;
+  if (!isValidDateParts(Number(match[1]), Number(match[2]), Number(match[3]))) return undefined;
+  if (timestamp && Number.isNaN(new Date(value).getTime())) return undefined;
+  return datePart;
 }
 
 export function isValidDateParts(year: number, month: number, day: number): boolean {
